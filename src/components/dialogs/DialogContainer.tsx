@@ -1,27 +1,33 @@
 
-import React, { memo } from 'react';
+import React, { memo, lazy, Suspense } from 'react';
 import { useDialog } from '@/context/DialogContext';
-import ReportDialog from './ReportDialog';
-import BlockUserDialog from './BlockUserDialog';
-import SiteRulesDialog from '../chat/SiteRulesDialog';
 
+// Lazy load dialogs to reduce initial bundle size
+const ReportDialog = lazy(() => import('./ReportDialog'));
+const BlockUserDialog = lazy(() => import('./BlockUserDialog'));
+const SiteRulesDialog = lazy(() => import('../chat/SiteRulesDialog'));
+
+// Loading fallback component
+const DialogLoading = () => (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+    <div className="bg-white p-4 rounded-md">Loading...</div>
+  </div>
+);
+
+// Memoized dialog container to prevent unnecessary re-renders
 const DialogContainer = () => {
   const { state } = useDialog();
   
-  // Only render the dialog that is currently open
-  // This prevents unnecessary rendering of hidden dialogs
+  // Only render when dialog is open
   if (!state.isOpen) return null;
   
-  switch (state.type) {
-    case 'report':
-      return <ReportDialog />;
-    case 'block':
-      return <BlockUserDialog />;
-    case 'siteRules':
-      return <SiteRulesDialog />;
-    default:
-      return null;
-  }
+  return (
+    <Suspense fallback={<DialogLoading />}>
+      {state.type === 'report' && <ReportDialog />}
+      {state.type === 'block' && <BlockUserDialog />}
+      {state.type === 'siteRules' && <SiteRulesDialog />}
+    </Suspense>
+  );
 };
 
 // Use memo to prevent unnecessary re-renders

@@ -14,19 +14,27 @@ import { Button } from '../ui/button';
 import { useToast } from "@/hooks/use-toast";
 import { useDialog } from '@/context/DialogContext';
 
-// Create a separate event callback component
-const BlockUserContent = memo(({ onConfirm }: { onConfirm: () => void }) => {
+// Memoized dialog content component to prevent unnecessary re-renders
+const BlockUserContent = memo(({ 
+  onConfirm, 
+  onCancel, 
+  userName 
+}: { 
+  onConfirm: () => void;
+  onCancel: () => void;
+  userName: string; 
+}) => {
   return (
     <AlertDialogContent>
       <AlertDialogHeader>
         <AlertDialogTitle>Block User</AlertDialogTitle>
         <AlertDialogDescription>
-          Are you sure you want to block this user? You won't be able to receive messages from them anymore.
+          Are you sure you want to block {userName}? You won't be able to receive messages from them anymore.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
         <AlertDialogCancel asChild>
-          <Button variant="outline" type="button">
+          <Button variant="outline" onClick={onCancel} type="button">
             Cancel
           </Button>
         </AlertDialogCancel>
@@ -46,29 +54,44 @@ BlockUserContent.displayName = 'BlockUserContent';
 const BlockUserDialog = () => {
   const { state, closeDialog } = useDialog();
   const { toast } = useToast();
-  const { userName, onBlockUser } = state.data;
+  
+  // Only destructure when needed
+  const isOpen = state.isOpen && state.type === 'block';
   
   // Use callback to prevent re-creation on each render
   const handleConfirmBlock = useCallback(() => {
+    if (!isOpen) return;
+    
+    const { userName, onBlockUser } = state.data;
+    
     // Call the block user function from props
     if (typeof onBlockUser === 'function') {
       onBlockUser();
     }
     
-    // Show a toast notification
+    // Show a toast notification with minimal options
     toast({
       title: "User blocked",
       description: `You have blocked ${userName}.`,
-      duration: 3000, // Short duration
+      duration: 3000,
     });
     
     // Close the dialog
     closeDialog();
-  }, [closeDialog, onBlockUser, toast, userName]);
+  }, [isOpen, state.data, toast, closeDialog]);
+
+  // Don't render anything if dialog isn't open
+  if (!isOpen) return null;
+
+  const { userName } = state.data;
 
   return (
-    <AlertDialog open={state.isOpen && state.type === 'block'} onOpenChange={(open) => !open && closeDialog()}>
-      <BlockUserContent onConfirm={handleConfirmBlock} />
+    <AlertDialog open={true} onOpenChange={(open) => !open && closeDialog()}>
+      <BlockUserContent 
+        onConfirm={handleConfirmBlock} 
+        onCancel={closeDialog}
+        userName={userName}
+      />
     </AlertDialog>
   );
 };

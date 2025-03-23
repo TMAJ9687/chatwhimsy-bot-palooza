@@ -30,16 +30,24 @@ const DialogContext = createContext<{
   closeDialog: () => void;
 } | undefined>(undefined);
 
-// Reducer function
+// Reducer function - optimized to avoid unnecessary renders
 function dialogReducer(state: DialogState, action: DialogAction): DialogState {
   switch (action.type) {
     case 'OPEN_DIALOG':
+      // Only update if dialog is not already open with the same type
+      if (state.isOpen && state.type === action.payload.type) {
+        return state;
+      }
       return {
         isOpen: true,
         type: action.payload.type,
         data: action.payload.data || {}
       };
     case 'CLOSE_DIALOG':
+      // Only update if dialog is actually open
+      if (!state.isOpen) {
+        return state;
+      }
       return {
         ...state,
         isOpen: false

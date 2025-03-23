@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect, memo, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import { Button } from '../ui/button';
 import { useToast } from "@/hooks/use-toast";
 import { useDialog } from '@/context/DialogContext';
 
+// Define report reasons outside component to prevent recreation
 const reportReasons = [
   "Under Age",
   "Harassment/Cyberbullying",
@@ -22,7 +23,44 @@ const reportReasons = [
   "Other"
 ];
 
-// New optimized implementation
+// Memoized radio option component
+const ReasonOption = memo(({ 
+  reason, 
+  isSelected, 
+  onSelect 
+}: { 
+  reason: string; 
+  isSelected: boolean; 
+  onSelect: (reason: string) => void;
+}) => (
+  <div 
+    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+      isSelected 
+        ? 'border-teal-500 bg-teal-50' 
+        : 'border-gray-200 hover:border-teal-300'
+    }`}
+    onClick={() => onSelect(reason)}
+  >
+    <div className="flex items-center">
+      <div 
+        className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+          isSelected ? 'border-teal-500' : 'border-gray-300'
+        }`}
+      >
+        {isSelected && (
+          <div className="w-2 h-2 rounded-full bg-teal-500"></div>
+        )}
+      </div>
+      <span className={`ml-2 ${reason === 'Under Age' ? 'text-red-500 font-medium' : ''}`}>
+        {reason}
+      </span>
+    </div>
+  </div>
+));
+
+ReasonOption.displayName = 'ReasonOption';
+
+// Main optimized dialog component
 const ReportDialog = () => {
   const { state, closeDialog } = useDialog();
   const { toast } = useToast();
@@ -30,46 +68,50 @@ const ReportDialog = () => {
   const [otherReason, setOtherReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Extract userName from dialog data
   const { userName } = state.data;
 
   // Reset state when dialog opens
   useEffect(() => {
-    setSelectedReason(null);
-    setOtherReason('');
-    setIsSubmitting(false);
-  }, [state.isOpen]);
+    if (state.isOpen && state.type === 'report') {
+      setSelectedReason(null);
+      setOtherReason('');
+      setIsSubmitting(false);
+    }
+  }, [state.isOpen, state.type]);
 
-  // Handle reason selection with a single state update
-  const handleSelectReason = (reason: string) => {
+  // Memoized handlers to prevent recreating functions on every render
+  const handleSelectReason = useCallback((reason: string) => {
     setSelectedReason(reason);
-  };
+  }, []);
   
-  // Handle other reason input with debouncing
-  const handleOtherReasonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleOtherReasonChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setOtherReason(e.target.value.slice(0, 100));
-  };
+  }, []);
 
-  // Submit report with optimized state updates
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     if (!selectedReason) return;
     
     setIsSubmitting(true);
     
-    // Show toast notification immediately
+    // Show toast notification using a single update
     toast({
       title: "Report submitted",
       description: "Thank you for helping to keep our community safe.",
+      duration: 3000,
     });
     
-    // Close the dialog immediately
+    // Close the dialog
     closeDialog();
-  };
+  }, [selectedReason, closeDialog, toast]);
 
+  // Compute this once per render rather than in every invocation
   const isValid = selectedReason && (selectedReason !== 'Other' || otherReason.trim().length > 0);
 
+  // If dialog isn't open or isn't the report type, don't render
+  if (!state.isOpen || state.type !== 'report') return null;
+
   return (
-    <Dialog open={state.isOpen && state.type === 'report'} onOpenChange={(open) => !open && closeDialog()}>
+    <Dialog open={true} onOpenChange={(open) => !open && closeDialog()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Report User</DialogTitle>
@@ -80,30 +122,12 @@ const ReportDialog = () => {
         
         <div className="mt-4 space-y-3">
           {reportReasons.map((reason) => (
-            <div 
+            <ReasonOption
               key={reason}
-              className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                selectedReason === reason 
-                  ? 'border-teal-500 bg-teal-50' 
-                  : 'border-gray-200 hover:border-teal-300'
-              }`}
-              onClick={() => handleSelectReason(reason)}
-            >
-              <div className="flex items-center">
-                <div 
-                  className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                    selectedReason === reason ? 'border-teal-500' : 'border-gray-300'
-                  }`}
-                >
-                  {selectedReason === reason && (
-                    <div className="w-2 h-2 rounded-full bg-teal-500"></div>
-                  )}
-                </div>
-                <span className={`ml-2 ${reason === 'Under Age' ? 'text-red-500 font-medium' : ''}`}>
-                  {reason}
-                </span>
-              </div>
-            </div>
+              reason={reason}
+              isSelected={selectedReason === reason}
+              onSelect={handleSelectReason}
+            />
           ))}
 
           {selectedReason === 'Other' && (
@@ -145,5 +169,5 @@ const ReportDialog = () => {
   );
 };
 
-// Use memo for preventing unnecessary re-renders
+// Use memo to prevent unnecessary re-renders
 export default memo(ReportDialog);

@@ -8,9 +8,9 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
-import { memo } from "react"
+import { memo, useEffect, useRef, useState } from "react"
 
-// Using memo to prevent unnecessary re-renders
+// Optimized toast item component
 const ToastItem = memo(({ 
   id, 
   title, 
@@ -24,8 +24,24 @@ const ToastItem = memo(({
   action?: React.ReactNode,
   [key: string]: any 
 }) => {
+  // Use ref to avoid layout thrashing
+  const toastRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  
+  // Apply animation after mount to avoid jank
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      setIsVisible(true);
+    });
+  }, []);
+
   return (
-    <Toast key={id} {...props}>
+    <Toast 
+      ref={toastRef}
+      key={id} 
+      className={`transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+      {...props}
+    >
       <div className="grid gap-1">
         {title && <ToastTitle>{title}</ToastTitle>}
         {description && (
@@ -36,32 +52,33 @@ const ToastItem = memo(({
       <ToastClose />
     </Toast>
   )
-})
+});
 
-ToastItem.displayName = "ToastItem"
+ToastItem.displayName = "ToastItem";
 
-// Wrap the entire Toaster component with memo for better performance
+// Performance optimized Toaster component
 const ToasterComponent = () => {
-  const { toasts } = useToast()
+  const { toasts } = useToast();
+  
+  // This prevents creating a new array on every render
+  const memoizedToasts = toasts;
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
-        return (
-          <ToastItem
-            key={id}
-            id={id}
-            title={title}
-            description={description}
-            action={action}
-            {...props}
-          />
-        )
-      })}
+      {memoizedToasts.map(({ id, title, description, action, ...props }) => (
+        <ToastItem
+          key={id}
+          id={id}
+          title={title}
+          description={description}
+          action={action}
+          {...props}
+        />
+      ))}
       <ToastViewport />
     </ToastProvider>
   )
 }
 
-// Memoize the whole component to prevent unnecessary re-renders
-export const Toaster = memo(ToasterComponent)
+// Memoize the whole component
+export const Toaster = memo(ToasterComponent);
