@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import { MoreVertical, X } from 'lucide-react';
 import { 
   DropdownMenu,
@@ -18,20 +18,12 @@ interface ChatHeaderProps {
   onOpenBlockDialog: () => void;
 }
 
+// Simplified implementation with fewer callback recreations
 const ChatHeader: React.FC<ChatHeaderProps> = ({
   currentUser,
   onOpenReportDialog,
   onOpenBlockDialog,
 }) => {
-  // Use useCallback to prevent unnecessary renders
-  const handleReportClick = useCallback(() => {
-    onOpenReportDialog();
-  }, [onOpenReportDialog]);
-
-  const handleBlockClick = useCallback(() => {
-    onOpenBlockDialog();
-  }, [onOpenBlockDialog]);
-
   return (
     <div className="px-4 py-3 border-b border-gray-200 bg-white flex items-center justify-between">
       <div className="flex items-center">
@@ -43,20 +35,28 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
       <div className="flex gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">
+            <button 
+              className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+              aria-label="Menu"
+              type="button"
+            >
               <MoreVertical className="h-5 w-5 text-gray-600" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleReportClick}>
+            <DropdownMenuItem onClick={onOpenReportDialog}>
               Report
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleBlockClick}>
+            <DropdownMenuItem onClick={onOpenBlockDialog}>
               Block
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <button className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">
+        <button 
+          className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+          aria-label="Close"
+          type="button"
+        >
           <X className="h-5 w-5 text-gray-600" />
         </button>
       </div>
@@ -64,4 +64,5 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   );
 };
 
-export default ChatHeader;
+// Use memo to prevent unnecessary re-renders
+export default React.memo(ChatHeader);

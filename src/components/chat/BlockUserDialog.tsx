@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +20,7 @@ interface BlockUserDialogProps {
   userName: string;
 }
 
+// Using a simpler component structure with fewer state updates
 const BlockUserDialog: React.FC<BlockUserDialogProps> = ({
   isOpen,
   onClose,
@@ -28,9 +29,9 @@ const BlockUserDialog: React.FC<BlockUserDialogProps> = ({
 }) => {
   const { toast } = useToast();
   
-  // Create a proper confirm handler that doesn't cause state update issues
-  const handleConfirm = useCallback(() => {
-    // Call onConfirm to handle the blocking logic
+  // Single function to handle confirmation and toast
+  const handleConfirmBlock = () => {
+    // Call the parent's onConfirm handler
     onConfirm();
     
     // Show a toast notification
@@ -39,8 +40,11 @@ const BlockUserDialog: React.FC<BlockUserDialogProps> = ({
       description: `You have blocked ${userName}.`,
     });
     
-    // Dialog will be closed by parent component
-  }, [onConfirm, userName, toast]);
+    // No need to call onClose as it will be handled by the parent component
+  };
+
+  // Only render when open to avoid unnecessary renders
+  if (!isOpen) return null;
 
   return (
     <AlertDialog open={isOpen}>
@@ -58,16 +62,16 @@ const BlockUserDialog: React.FC<BlockUserDialogProps> = ({
               onClick={onClose}
               type="button"
             >
-              No, Cancel
+              Cancel
             </Button>
           </AlertDialogCancel>
           <AlertDialogAction asChild>
             <Button 
               variant="destructive"
-              onClick={handleConfirm}
+              onClick={handleConfirmBlock}
               type="button"
             >
-              Yes, Block User
+              Block User
             </Button>
           </AlertDialogAction>
         </AlertDialogFooter>
@@ -76,4 +80,4 @@ const BlockUserDialog: React.FC<BlockUserDialogProps> = ({
   );
 };
 
-export default BlockUserDialog;
+export default React.memo(BlockUserDialog);

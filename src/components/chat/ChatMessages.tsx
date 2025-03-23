@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import MessageBubble, { Message } from './MessageBubble';
 
 interface ChatMessagesProps {
@@ -12,18 +12,29 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   isTyping 
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Optimized scroll to bottom implementation that won't cause freezes
+  const scrollToBottom = useCallback(() => {
+    if (!messagesEndRef.current) return;
+    
+    // Use scrollIntoView with a simpler configuration
+    messagesEndRef.current.scrollIntoView({ block: 'end', behavior: 'smooth' });
+  }, []);
 
   // Scroll to bottom when messages change or typing status changes
   useEffect(() => {
-    // Use requestAnimationFrame to ensure DOM is updated before scrolling
-    requestAnimationFrame(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    });
-  }, [messages, isTyping]);
+    // Small timeout to ensure DOM is updated
+    const timeoutId = setTimeout(scrollToBottom, 0);
+    return () => clearTimeout(timeoutId);
+  }, [messages, isTyping, scrollToBottom]);
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-      {messages?.map((message, index) => (
+    <div 
+      ref={containerRef}
+      className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50"
+    >
+      {messages?.map((message) => (
         <MessageBubble 
           key={message.id} 
           message={message}
@@ -46,4 +57,5 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   );
 };
 
-export default ChatMessages;
+// Use memo to prevent unnecessary re-renders
+export default React.memo(ChatMessages);
