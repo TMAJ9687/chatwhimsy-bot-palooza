@@ -32,7 +32,8 @@ const Logo: React.FC<LogoProps> = ({
     <img 
       src="/lovable-uploads/0d758ce3-525d-4cab-b5ff-da29d0055980.png" 
       alt="chatwii logo" 
-      className={`${sizes[size]} ${className}`}
+      className={`${sizes[size]} ${className} object-contain`}
+      style={{ backgroundColor: 'transparent' }}
     />
   );
 };

@@ -7,21 +7,87 @@ import Logo from '../shared/Logo';
 import Button from '../shared/Button';
 import { useUser } from '../../context/UserContext';
 
-const mockBotResponses = [
-  "Hi there! How's your day going?",
-  "That's interesting! Tell me more about it.",
-  "I've never thought about it that way before.",
-  "What do you like to do in your free time?",
-  "Have you seen any good movies lately?",
-  "What's your favorite type of music?",
-  "Do you have any pets?",
-  "What's your dream vacation destination?",
-  "If you could have any superpower, what would it be?",
-  "What's your favorite food?"
+const botProfiles = [
+  {
+    id: 'sophia',
+    name: 'Sophia',
+    age: 24,
+    gender: 'female',
+    country: 'USA',
+    responses: [
+      "Hi there! How's your day going?",
+      "That's interesting! Tell me more about it.",
+      "I've never thought about it that way before.",
+      "What do you like to do in your free time?",
+      "Have you seen any good movies lately?",
+    ]
+  },
+  {
+    id: 'alex',
+    name: 'Alex',
+    age: 28,
+    gender: 'male',
+    country: 'UK',
+    responses: [
+      "Hey, nice to meet you! What brings you here today?",
+      "That's cool! I've been into photography lately.",
+      "Have you traveled anywhere interesting recently?",
+      "What kind of music do you listen to?",
+      "Do you have any recommendations for good books?"
+    ]
+  },
+  {
+    id: 'mei',
+    name: 'Mei',
+    age: 22,
+    gender: 'female',
+    country: 'Japan',
+    responses: [
+      "こんにちは! Oh sorry, I meant hello!",
+      "I'm learning how to cook traditional dishes. Do you like cooking?",
+      "I love anime and manga. Do you have any favorites?",
+      "What's your favorite season of the year?",
+      "I'm planning to travel next month. Any destination suggestions?"
+    ]
+  },
+  {
+    id: 'carlos',
+    name: 'Carlos',
+    age: 31,
+    gender: 'male',
+    country: 'Brazil',
+    responses: [
+      "Olá! That means hello in Portuguese!",
+      "I'm a big football fan. Do you follow any sports?",
+      "The weather here is amazing today. How is it where you are?",
+      "I'm thinking about learning a new language. Any suggestions?",
+      "What's your favorite type of cuisine?"
+    ]
+  },
+  {
+    id: 'zara',
+    name: 'Zara',
+    age: 26,
+    gender: 'female',
+    country: 'India',
+    responses: [
+      "Namaste! How are you doing today?",
+      "I love dancing and music. What about you?",
+      "Have you ever tried Indian food? It's amazing!",
+      "What kind of hobbies do you enjoy?",
+      "I'm a software developer. What do you do?"
+    ]
+  }
 ];
 
-const getRandomBotResponse = () => {
-  return mockBotResponses[Math.floor(Math.random() * mockBotResponses.length)];
+const getRandomBot = () => {
+  return botProfiles[Math.floor(Math.random() * botProfiles.length)];
+};
+
+const getRandomBotResponse = (botId: string) => {
+  const bot = botProfiles.find(b => b.id === botId);
+  if (!bot) return "Hello there!";
+  return bot.responses[Math.floor(Math.random() * bot.responses.length)];
 };
 
 interface ChatInterfaceProps {
@@ -34,19 +100,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [imagesRemaining, setImagesRemaining] = useState(15); // For standard users
   const [isTyping, setIsTyping] = useState(false);
+  const [currentBot, setCurrentBot] = useState(getRandomBot());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [availableBots, setAvailableBots] = useState(botProfiles);
 
   useEffect(() => {
     const initialMessage: Message = {
       id: 'initial-greeting',
-      content: `Hey ${user?.nickname || 'there'}! I'm Sophia. How can I help you today?`,
+      content: `Hey ${user?.nickname || 'there'}! I'm ${currentBot.name} from ${currentBot.country}. How can I help you today?`,
       sender: 'bot',
       timestamp: new Date(),
     };
     
     setMessages([initialMessage]);
-  }, [user?.nickname]);
+  }, [currentBot.name, currentBot.country, user?.nickname]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -71,7 +139,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     setTimeout(() => {
       setMessages(prev => 
         prev.map(msg => 
-          msg.id === newMessage.id ? { ...msg, status: 'sent' } : msg
+          msg.id === newMessage.id ? { ...msg, status: 'sent' as const } : msg
         )
       );
     }, 500);
@@ -79,7 +147,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     setTimeout(() => {
       setMessages(prev => 
         prev.map(msg => 
-          msg.id === newMessage.id ? { ...msg, status: 'delivered' } : msg
+          msg.id === newMessage.id ? { ...msg, status: 'delivered' as const } : msg
         )
       );
     }, 1000);
@@ -97,7 +165,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
         ),
         {
           id: `bot-${Date.now()}`,
-          content: getRandomBotResponse(),
+          content: getRandomBotResponse(currentBot.id),
           sender: 'bot',
           timestamp: new Date(),
         }
@@ -110,6 +178,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     navigate('/');
   };
 
+  const switchBot = (botId: string) => {
+    const newBot = botProfiles.find(b => b.id === botId);
+    if (newBot) {
+      setCurrentBot(newBot);
+      
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `system-${Date.now()}`,
+          content: `You are now chatting with ${newBot.name} from ${newBot.country}.`,
+          sender: 'bot',
+          timestamp: new Date(),
+        }
+      ]);
+      
+      setIsMobileSidebarOpen(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       <header className="bg-white border-b border-border p-4 shadow-sm">
@@ -119,7 +206,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
               <Image className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <div className="font-medium">Sophia</div>
+              <div className="font-medium">{currentBot.name}</div>
               <div className="text-xs text-muted-foreground flex items-center">
                 <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>
                 Online
@@ -177,9 +264,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
                   <Image className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <div className="font-medium">Sophia</div>
+                  <div className="font-medium">{currentBot.name}</div>
                   <div className="text-xs text-muted-foreground truncate w-36">
-                    I'm Sophia. How can I help...
+                    I'm {currentBot.name}. How can I help...
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground">Now</div>

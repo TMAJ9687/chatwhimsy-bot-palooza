@@ -1,23 +1,66 @@
 
-import React, { useState } from 'react';
-import { ArrowRight, RefreshCw, Star } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowRight, Crown, RefreshCw, Star, Moon, Sun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../shared/Logo';
 import Button from '../shared/Button';
-import NicknameGenerator from './NicknameGenerator';
 import ProfileSetup from '../profile/ProfileSetup';
 import { useUser } from '../../context/UserContext';
+import { Switch } from "../ui/switch";
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { updateUserProfile } = useUser();
   const [step, setStep] = useState<'nickname' | 'profile'>('nickname');
   const [nickname, setNickname] = useState('');
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [nicknameError, setNicknameError] = useState('');
+
+  // Function to validate nickname input
+  const validateNickname = (value: string): boolean => {
+    if (value.length > 16) {
+      setNicknameError('Nickname must be 16 characters or less');
+      return false;
+    }
+    
+    // Check for more than 2 consecutive identical characters
+    for (let i = 0; i < value.length - 2; i++) {
+      if (value[i] === value[i + 1] && value[i] === value[i + 2]) {
+        setNicknameError('Cannot use more than 2 identical characters in a row');
+        return false;
+      }
+    }
+    
+    setNicknameError('');
+    return true;
+  };
+
+  const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    
+    // Check if the last 3 characters would form a repetition
+    if (newValue.length >= 3) {
+      const lastChar = newValue[newValue.length - 1];
+      const secondLastChar = newValue[newValue.length - 2];
+      const thirdLastChar = newValue[newValue.length - 3];
+      
+      if (lastChar === secondLastChar && lastChar === thirdLastChar) {
+        setNicknameError('Cannot use more than 2 identical characters in a row');
+        return;
+      }
+    }
+    
+    if (validateNickname(newValue)) {
+      setNickname(newValue);
+    }
+  };
 
   const handleNicknameSelected = (selectedNickname: string) => {
-    setNickname(selectedNickname);
-    updateUserProfile({ nickname: selectedNickname });
-    setStep('profile');
+    if (validateNickname(selectedNickname)) {
+      setNickname(selectedNickname);
+      updateUserProfile({ nickname: selectedNickname });
+      setStep('profile');
+    }
   };
 
   const handleProfileComplete = (profile: {
@@ -36,17 +79,53 @@ const LandingPage: React.FC = () => {
     navigate('/chat');
   };
   
+  const generateRandomNickname = () => {
+    const adjectives = [
+      'Happy', 'Clever', 'Brave', 'Shiny', 'Witty', 
+      'Calm', 'Swift', 'Smooth', 'Bright', 'Gentle',
+      'Wild', 'Noble', 'Keen', 'Merry', 'Wise',
+      'Lucky', 'Lively', 'Jolly', 'Mighty', 'Proud'
+    ];
+    
+    const nouns = [
+      'Panda', 'Tiger', 'Dolphin', 'Eagle', 'Phoenix',
+      'Voyager', 'Explorer', 'Wanderer', 'Knight', 'Pioneer',
+      'Hawk', 'Wolf', 'Falcon', 'Lynx', 'Fox',
+      'Raven', 'Panther', 'Dragon', 'Lion', 'Bear'
+    ];
+    
+    const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+    const randomNumber = Math.floor(Math.random() * 100);
+    return `${randomAdjective}${randomNoun}${randomNumber}`;
+  };
+  
   const handleStartChat = () => {
     if (nickname) {
       setStep('profile');
     } else {
       // Generate nickname and then move to profile step
-      const randomNickname = 'BoldFox24'; // Placeholder, normally this would be generated
+      const randomNickname = generateRandomNickname();
       setNickname(randomNickname);
       updateUserProfile({ nickname: randomNickname });
       setStep('profile');
     }
   };
+  
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+    // Toggle dark mode class on document
+    document.documentElement.classList.toggle('dark');
+  };
+
+  // Apply dark mode on initial load if needed
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#edf4f7] to-[#d9e6f2]">
@@ -54,38 +133,20 @@ const LandingPage: React.FC = () => {
       <header className="py-6 px-8 flex justify-between items-center">
         <Logo variant="image" />
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="rounded-full w-10 h-10 p-0 flex items-center justify-center"
-          >
-            <span className="sr-only">Toggle theme</span>
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              className="h-5 w-5"
-            >
-              <circle cx="12" cy="12" r="4"></circle>
-              <path d="M12 2v2"></path>
-              <path d="M12 20v2"></path>
-              <path d="M4.93 4.93l1.41 1.41"></path>
-              <path d="M17.66 17.66l1.41 1.41"></path>
-              <path d="M2 12h2"></path>
-              <path d="M20 12h2"></path>
-              <path d="M6.34 17.66l-1.41 1.41"></path>
-              <path d="M19.07 4.93l-1.41 1.41"></path>
-            </svg>
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Sun className="h-4 w-4" />
+            <Switch 
+              checked={isDarkMode}
+              onCheckedChange={toggleDarkMode}
+            />
+            <Moon className="h-4 w-4" />
+          </div>
           <Button
             variant="primary" 
             size="sm"
-            className="bg-primary text-white font-semibold rounded-md py-2 px-6"
+            className="bg-gradient-to-r from-yellow-400 to-amber-500 text-white font-semibold rounded-md py-2 px-6 flex items-center gap-2"
           >
+            <Crown className="h-4 w-4" />
             VIP
           </Button>
         </div>
@@ -93,17 +154,13 @@ const LandingPage: React.FC = () => {
 
       {/* Main content */}
       <main className="flex-1 flex flex-col md:flex-row items-center justify-center px-8 py-12">
-        {/* Left column: Logo and tagline */}
+        {/* Left column with animated circles */}
         <div className="w-full md:w-1/2 flex flex-col items-center justify-center text-center md:text-left mb-12 md:mb-0">
           <div className="max-w-lg">
-            <div className="text-primary text-7xl font-bold mb-6">chatwii</div>
-            <p className="text-gray-600 text-xl mb-12">
-              Connect with people from around the world in real-time conversations
-            </p>
-            <div className="flex justify-center md:justify-start space-x-4">
-              <div className="w-12 h-12 bg-secondary rounded-full"></div>
-              <div className="w-12 h-12 bg-primary rounded-full"></div>
-              <div className="w-12 h-12 bg-accent rounded-full"></div>
+            <div className="flex justify-center md:justify-start space-x-6 mt-8">
+              <div className="w-16 h-16 bg-secondary rounded-full animate-bounce" style={{ animationDuration: '2s', animationDelay: '0.1s' }}></div>
+              <div className="w-16 h-16 bg-primary rounded-full animate-bounce" style={{ animationDuration: '2.2s', animationDelay: '0.2s' }}></div>
+              <div className="w-16 h-16 bg-accent rounded-full animate-bounce" style={{ animationDuration: '1.8s', animationDelay: '0.3s' }}></div>
             </div>
           </div>
         </div>
@@ -124,19 +181,29 @@ const LandingPage: React.FC = () => {
               <div>
                 <div className="relative mb-4">
                   <div className="flex items-center justify-between bg-gray-100 rounded-lg p-2">
-                    <div className="px-4 py-2 text-lg font-medium flex-1">BoldFox24</div>
+                    <input
+                      type="text"
+                      value={nickname}
+                      onChange={handleNicknameChange}
+                      className="px-4 py-2 text-lg font-medium flex-1 bg-transparent outline-none"
+                      placeholder="Enter a nickname"
+                      maxLength={16}
+                    />
                     <Button 
                       variant="ghost" 
                       size="sm"
                       className="rounded-lg p-2 hover:bg-primary/10"
-                      onClick={() => {}}
+                      onClick={() => setNickname(generateRandomNickname())}
                       icon={<RefreshCw className="h-5 w-5" />}
                       aria-label="Generate new nickname"
                     >
-                      Refresh
+                      <span className="sr-only">Refresh</span>
                     </Button>
                   </div>
-                  <div className="absolute top-0 right-0 text-sm text-gray-500 -mt-1 mr-2">9/16</div>
+                  <div className="absolute top-0 right-16 text-sm text-gray-500 mt-2">{nickname.length}/16</div>
+                  {nicknameError && (
+                    <div className="text-red-500 text-sm mt-1">{nicknameError}</div>
+                  )}
                 </div>
                 
                 <Button
@@ -145,6 +212,7 @@ const LandingPage: React.FC = () => {
                   size="lg"
                   className="bg-secondary text-white font-semibold py-3 rounded-lg w-full"
                   onClick={handleStartChat}
+                  disabled={!!nicknameError}
                 >
                   Start Chat
                 </Button>
