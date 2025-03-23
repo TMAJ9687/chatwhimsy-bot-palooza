@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, MessageCircle, Bell, Image, Star } from 'lucide-react';
@@ -77,76 +76,6 @@ const botProfiles = [
       "Have you ever tried Indian food? It's amazing!",
       "What kind of hobbies do you enjoy?",
       "I'm a software developer. What do you do?"
-    ]
-  },
-  {
-    id: 'marco',
-    name: 'Marco',
-    age: 29,
-    gender: 'male',
-    country: 'Italy',
-    responses: [
-      "Ciao! So nice to meet you here!",
-      "I'm a chef in real life. I love cooking traditional Italian food.",
-      "What brings you to this platform? Looking for friends?",
-      "Have you ever visited Italy? It's beautiful in the summer.",
-      "I enjoy playing soccer and swimming. Do you play any sports?"
-    ]
-  },
-  {
-    id: 'aisha',
-    name: 'Aisha',
-    age: 23,
-    gender: 'female',
-    country: 'Egypt',
-    responses: [
-      "Ahlan wa sahlan! That's how we say welcome in Arabic.",
-      "I'm studying archaeology. The history here is fascinating!",
-      "What kind of music do you enjoy listening to?",
-      "Have you ever tried Egyptian cuisine? The koshari is amazing!",
-      "I love reading mystery novels. Any book recommendations?"
-    ]
-  },
-  {
-    id: 'dmitri',
-    name: 'Dmitri',
-    age: 32,
-    gender: 'male',
-    country: 'Russia',
-    responses: [
-      "Привет! (Hello!) How are you doing today?",
-      "I'm a chess enthusiast. Do you play any strategic games?",
-      "Winter is my favorite season. What's yours?",
-      "I'm a literature professor. Dostoevsky is my favorite author.",
-      "Have you ever experienced snow? It's beautiful here in winter."
-    ]
-  },
-  {
-    id: 'isabelle',
-    name: 'Isabelle',
-    age: 27,
-    gender: 'female',
-    country: 'France',
-    responses: [
-      "Bonjour! How's your day going so far?",
-      "I work as a fashion designer in Paris. What do you do?",
-      "I love visiting art galleries and museums on weekends.",
-      "Have you ever tried making crêpes? They're quite simple to make!",
-      "What's your idea of a perfect vacation?"
-    ]
-  },
-  {
-    id: 'chen',
-    name: 'Chen',
-    age: 25,
-    gender: 'male',
-    country: 'China',
-    responses: [
-      "Nǐ hǎo! Nice to meet you here!",
-      "I'm learning calligraphy in my spare time. Do you have any artistic hobbies?",
-      "I love exploring different cuisines. What's your favorite food?",
-      "I work in tech. The industry is growing so fast here!",
-      "Have you ever been to Asia? There's so much to explore!"
     ]
   }
 ];
@@ -269,11 +198,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background dark:bg-gray-900 dark:text-white">
-      <header className="bg-white dark:bg-gray-800 border-b border-border dark:border-gray-700 p-4 shadow-sm">
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
+      <header className="bg-white border-b border-border p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
               <Image className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -286,12 +215,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           </div>
           
           <div className="flex items-center space-x-2">
-            <button className="p-2 rounded-full hover:bg-muted transition-colors relative dark:hover:bg-gray-700">
+            <button className="p-2 rounded-full hover:bg-muted transition-colors relative">
               <Bell className="h-5 w-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full"></span>
             </button>
             <button 
-              className="p-2 rounded-full hover:bg-muted transition-colors dark:hover:bg-gray-700"
+              className="p-2 rounded-full hover:bg-muted transition-colors"
               onClick={handleLogout}
             >
               <LogOut className="h-5 w-5" />
@@ -301,9 +230,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       </header>
 
       <div className="flex-1 overflow-hidden">
-        <div className="md:hidden bg-white dark:bg-gray-800 border-b border-border dark:border-gray-700 p-2 flex justify-center">
+        <div className="md:hidden bg-white border-b border-border p-2 flex justify-center">
           <button
-            className="btn-outline text-xs py-1 px-3 rounded-full flex items-center space-x-1 dark:bg-gray-700 dark:text-white"
+            className="btn-outline text-xs py-1 px-3 rounded-full flex items-center space-x-1"
             onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
           >
             <MessageCircle className="h-3 w-3" />
@@ -313,13 +242,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 
         <div className="flex h-full">
           <div className={`
-            md:w-72 bg-white dark:bg-gray-800 border-r border-border dark:border-gray-700 flex flex-col
+            md:w-72 bg-white border-r border-border flex flex-col
             ${isMobileSidebarOpen ? 'w-full absolute inset-0 z-10' : 'hidden md:flex'}
           `}>
-            <div className="p-4 border-b border-border dark:border-gray-700 flex items-center justify-between">
+            <div className="p-4 border-b border-border flex items-center justify-between">
               <Logo size="sm" />
               <button 
-                className="md:hidden p-2 rounded-full hover:bg-muted transition-colors dark:hover:bg-gray-700"
+                className="md:hidden p-2 rounded-full hover:bg-muted transition-colors"
                 onClick={() => setIsMobileSidebarOpen(false)}
               >
                 <span className="sr-only">Close sidebar</span>
@@ -330,8 +259,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
             </div>
             
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
-              <div className="p-2 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center">
-                <div className="w-10 h-10 rounded-full bg-primary/20 dark:bg-primary/30 flex items-center justify-center mr-3">
+              <div className="p-2 rounded-lg bg-primary/10 flex items-center">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mr-3">
                   <Image className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex-1">
@@ -343,19 +272,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
                 <div className="text-xs text-muted-foreground">Now</div>
               </div>
               
-              {botProfiles.slice(0, 5).map((bot, index) => (
-                <div 
-                  key={bot.id} 
-                  className="p-2 rounded-lg hover:bg-muted/50 dark:hover:bg-gray-700/50 flex items-center cursor-pointer"
-                  onClick={() => switchBot(bot.id)}
-                >
-                  <div className="w-10 h-10 rounded-full bg-muted dark:bg-gray-700 flex items-center justify-center mr-3">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="p-2 rounded-lg hover:bg-muted/50 flex items-center">
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mr-3">
                     <Image className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div className="flex-1">
-                    <div className="font-medium">{bot.name}</div>
+                    <div className="font-medium">Chat {index + 1}</div>
                     <div className="text-xs text-muted-foreground truncate w-36">
-                      From {bot.country}, {bot.age} years old
+                      Last message preview...
                     </div>
                   </div>
                   <div className="text-xs text-muted-foreground">
@@ -365,9 +290,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
               ))}
             </div>
             
-            <div className="p-4 border-t border-border dark:border-gray-700">
+            <div className="p-4 border-t border-border">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-secondary/10 dark:bg-secondary/20 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center">
                   <Star className="h-5 w-5 text-secondary" />
                 </div>
                 <div className="flex-1">
@@ -382,7 +307,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           </div>
 
           <div className="flex-1 flex flex-col h-full">
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-background dark:bg-gray-900">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map((message, index) => {
                 const nextMessage = messages[index + 1];
                 const isLastInGroup = !nextMessage || nextMessage.sender !== message.sender;
@@ -398,7 +323,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
               
               {isTyping && (
                 <div className="flex items-start animate-pulse">
-                  <div className="bg-white dark:bg-gray-800 text-foreground rounded-2xl rounded-bl-none px-4 py-2 shadow-sm inline-flex space-x-1">
+                  <div className="bg-white text-foreground rounded-2xl rounded-bl-none px-4 py-2 shadow-sm inline-flex space-x-1">
                     <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }}></div>
                     <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }}></div>
                     <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '600ms' }}></div>

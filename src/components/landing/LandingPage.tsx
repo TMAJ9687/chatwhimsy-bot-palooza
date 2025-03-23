@@ -97,11 +97,7 @@ const LandingPage: React.FC = () => {
     const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
     const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
     const randomNumber = Math.floor(Math.random() * 100);
-    const newNickname = `${randomAdjective}${randomNoun}${randomNumber}`;
-    
-    // Clear any previous errors when generating a new nickname
-    setNicknameError('');
-    return newNickname;
+    return `${randomAdjective}${randomNoun}${randomNumber}`;
   };
   
   const handleStartChat = () => {
@@ -119,43 +115,31 @@ const LandingPage: React.FC = () => {
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
     // Toggle dark mode class on document
-    if (!isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.toggle('dark');
   };
 
   // Apply dark mode on initial load if needed
   useEffect(() => {
-    // Check if user has a preference in localStorage or prefers dark scheme
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const storedTheme = localStorage.getItem('theme');
-    
-    if (storedTheme === 'dark' || (!storedTheme && prefersDark)) {
-      setIsDarkMode(true);
+    if (isDarkMode) {
       document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
   }, []);
-  
-  // Save theme preference when it changes
-  useEffect(() => {
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-  }, [isDarkMode]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#edf4f7] to-[#d9e6f2] dark:from-gray-900 dark:to-gray-800 dark:text-white transition-colors duration-300">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#edf4f7] to-[#d9e6f2]">
       {/* Header */}
       <header className="py-6 px-8 flex justify-between items-center">
         <Logo variant="image" />
         <div className="flex items-center gap-4">
           <div className="flex items-center space-x-2">
-            <Sun className="h-4 w-4 dark:text-gray-400 text-amber-500" />
+            <Sun className="h-4 w-4" />
             <Switch 
               checked={isDarkMode}
               onCheckedChange={toggleDarkMode}
             />
-            <Moon className="h-4 w-4 dark:text-white text-gray-400" />
+            <Moon className="h-4 w-4" />
           </div>
           <Button
             variant="primary" 
@@ -173,30 +157,38 @@ const LandingPage: React.FC = () => {
         {/* Left column with animated circles */}
         <div className="w-full md:w-1/2 flex flex-col items-center justify-center text-center md:text-left mb-12 md:mb-0">
           <div className="max-w-lg">
-            <div className="flex justify-center md:justify-start space-x-8 mt-8">
-              <div className="w-20 h-20 bg-secondary rounded-full animate-bounce" style={{ animationDuration: '2s', animationDelay: '0.1s' }}></div>
-              <div className="w-20 h-20 bg-primary rounded-full animate-bounce" style={{ animationDuration: '2.2s', animationDelay: '0.2s' }}></div>
-              <div className="w-20 h-20 bg-accent rounded-full animate-bounce" style={{ animationDuration: '1.8s', animationDelay: '0.3s' }}></div>
+            <div className="flex justify-center md:justify-start space-x-6 mt-8">
+              <div className="w-16 h-16 bg-secondary rounded-full animate-bounce" style={{ animationDuration: '2s', animationDelay: '0.1s' }}></div>
+              <div className="w-16 h-16 bg-primary rounded-full animate-bounce" style={{ animationDuration: '2.2s', animationDelay: '0.2s' }}></div>
+              <div className="w-16 h-16 bg-accent rounded-full animate-bounce" style={{ animationDuration: '1.8s', animationDelay: '0.3s' }}></div>
             </div>
           </div>
         </div>
 
         {/* Right column: Chat card */}
         <div className="w-full md:w-1/2 flex justify-center">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg p-8 max-w-md w-full dark:border dark:border-gray-700">
+          <div className="bg-white rounded-3xl shadow-lg p-8 max-w-md w-full">
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold mb-4">Text <span className="text-secondary">Anonymously</span></h1>
+              <h2 className="text-4xl font-bold mb-6">with <span className="text-primary">no registration</span></h2>
+              <p className="text-gray-600">
+                Unleash your creativity and connect with like-minded individuals 
+                on our chatting website, where conversations come to life.
+              </p>
+            </div>
+            
             {step === 'nickname' ? (
               <div>
                 <div className="relative mb-4">
-                  <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700 rounded-lg p-2">
+                  <div className="flex items-center justify-between bg-gray-100 rounded-lg p-2">
                     <input
                       type="text"
                       value={nickname}
                       onChange={handleNicknameChange}
-                      className="px-4 py-2 text-lg font-medium flex-1 bg-transparent outline-none dark:text-white"
+                      className="px-4 py-2 text-lg font-medium flex-1 bg-transparent outline-none"
                       placeholder="Enter a nickname"
                       maxLength={16}
                     />
-                    <div className="absolute top-0 right-16 text-sm text-gray-500 dark:text-gray-400 mt-2">{nickname.length}/16</div>
                     <Button 
                       variant="ghost" 
                       size="sm"
@@ -208,6 +200,7 @@ const LandingPage: React.FC = () => {
                       <span className="sr-only">Refresh</span>
                     </Button>
                   </div>
+                  <div className="absolute top-0 right-16 text-sm text-gray-500 mt-2">{nickname.length}/16</div>
                   {nicknameError && (
                     <div className="text-red-500 text-sm mt-1">{nicknameError}</div>
                   )}
@@ -217,9 +210,9 @@ const LandingPage: React.FC = () => {
                   variant="primary"
                   fullWidth
                   size="lg"
-                  className="bg-secondary text-white font-semibold py-3 rounded-lg w-full dark:bg-secondary/80"
+                  className="bg-secondary text-white font-semibold py-3 rounded-lg w-full"
                   onClick={handleStartChat}
-                  disabled={!!nicknameError || !nickname}
+                  disabled={!!nicknameError}
                 >
                   Start Chat
                 </Button>
@@ -235,7 +228,7 @@ const LandingPage: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="py-6 px-8 text-center text-sm text-muted-foreground border-t border-border dark:border-gray-700">
+      <footer className="py-6 px-8 text-center text-sm text-muted-foreground border-t border-border">
         <p>&copy; {new Date().getFullYear()} chatwii. All rights reserved.</p>
       </footer>
     </div>
