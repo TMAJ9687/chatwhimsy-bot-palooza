@@ -1,6 +1,8 @@
 
-import React, { useState, useRef } from 'react';
-import { Send, Smile, Image as ImageIcon, X } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Send, Smile, Image as ImageIcon, X, Eye, EyeOff } from 'lucide-react';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 
 interface MessageInputBarProps {
   onSendMessage: (text: string) => void;
@@ -15,7 +17,29 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
 }) => {
   const [message, setMessage] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const emojiButtonRef = useRef<HTMLButtonElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        emojiPickerRef.current && 
+        !emojiPickerRef.current.contains(event.target as Node) &&
+        emojiButtonRef.current && 
+        !emojiButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleSend = () => {
     if (imagePreview) {
@@ -56,6 +80,15 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
     fileInputRef.current?.click();
   };
 
+  const handleEmojiSelect = (emoji: { native: string }) => {
+    setMessage(prev => prev + emoji.native);
+    setShowEmojiPicker(false);
+  };
+
+  const toggleEmojiPicker = () => {
+    setShowEmojiPicker(prev => !prev);
+  };
+
   return (
     <div className="p-3 border-t border-gray-200 bg-white">
       {imagePreview && (
@@ -89,12 +122,29 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
           {message.length}/120
         </div>
         
-        <button 
-          className="p-1.5 text-gray-500 hover:text-gray-700"
-          onClick={() => {}}
-        >
-          <Smile className="h-5 w-5" />
-        </button>
+        <div className="relative">
+          <button 
+            ref={emojiButtonRef}
+            className="p-1.5 text-gray-500 hover:text-gray-700"
+            onClick={toggleEmojiPicker}
+          >
+            <Smile className="h-5 w-5" />
+          </button>
+          
+          {showEmojiPicker && (
+            <div 
+              ref={emojiPickerRef}
+              className="absolute bottom-12 right-0 z-10"
+            >
+              <Picker 
+                data={data} 
+                onEmojiSelect={handleEmojiSelect}
+                theme="light"
+                previewPosition="none"
+              />
+            </div>
+          )}
+        </div>
         
         <input
           type="file"
@@ -105,7 +155,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
         />
         
         <button
-          className="p-1.5 text-gray-500 hover:text-gray-700"
+          className={`p-1.5 text-gray-500 hover:text-gray-700 ${imagesRemaining <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
           onClick={triggerFileInput}
           disabled={imagesRemaining <= 0 || !!imagePreview}
         >
@@ -120,6 +170,13 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
           <Send className="h-5 w-5" />
         </button>
       </div>
+      
+      {/* Display images remaining */}
+      {imagesRemaining < 10 && (
+        <div className="mt-2 text-xs text-gray-500 text-center">
+          {imagesRemaining} images remaining today
+        </div>
+      )}
     </div>
   );
 };

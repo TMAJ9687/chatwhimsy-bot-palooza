@@ -67,16 +67,15 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        {onCloseChat && (
-          <button 
-            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
-            aria-label="Close"
-            type="button"
-            onClick={onCloseChat}
-          >
-            <X className="h-5 w-5 text-gray-600" />
-          </button>
-        )}
+        
+        <button 
+          className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+          aria-label="Close chat"
+          type="button"
+          onClick={onCloseChat}
+        >
+          <X className="h-5 w-5 text-gray-600" />
+        </button>
       </div>
     </div>
   );

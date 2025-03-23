@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { Message } from './MessageBubble';
 import { Notification } from './NotificationSidebar';
+import { trackImageUpload, getRemainingUploads, IMAGE_UPLOAD_LIMIT } from '@/utils/imageUploadLimiter';
 
 // Import our new components
 import ChatHeader from './ChatHeader';
@@ -211,6 +213,25 @@ const getRandomBotResponse = (botId: string) => {
   return bot.responses[Math.floor(Math.random() * bot.responses.length)];
 };
 
+// Function to sort users based on the requirements
+const sortUsers = (users: typeof botProfiles, userCountry: string): typeof botProfiles => {
+  return [...users].sort((a, b) => {
+    // VIP users are always first
+    if (a.vip && !b.vip) return -1;
+    if (!a.vip && b.vip) return 1;
+    
+    // If both are VIP or both are not VIP, sort by country with user's country first
+    if (a.country === userCountry && b.country !== userCountry) return -1;
+    if (a.country !== userCountry && b.country === userCountry) return 1;
+    
+    // Then sort alphabetically by country
+    if (a.country !== b.country) return a.country.localeCompare(b.country);
+    
+    // If countries are the same, sort by name
+    return a.name.localeCompare(b.name);
+  });
+};
+
 interface ChatInterfaceProps {
   onLogout: () => void;
 }
@@ -223,7 +244,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   
   // State management
   const [userChats, setUserChats] = useState<Record<string, Message[]>>({});
-  const [imagesRemaining, setImagesRemaining] = useState(15);
+  const [imagesRemaining, setImagesRemaining] = useState(IMAGE_UPLOAD_LIMIT);
   const [isTyping, setIsTyping] = useState(false);
   const [currentBot, setCurrentBot] = useState(getRandomBot());
   const [onlineUsers, setOnlineUsers] = useState(botProfiles);
@@ -233,30 +254,49 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     ageRange: [18, 80],
     countries: []
   });
-  const [unreadNotifications, setUnreadNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      title: 'Welcome to Chat App',
-      message: 'We hope you enjoy connecting with people around the world!',
-      time: new Date(),
-      read: false
-    },
-    {
-      id: '2',
-      title: 'New Feature',
-      message: 'You can now share images with your chat partners!',
-      time: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-      read: false
-    }
-  ]);
+  const [unreadNotifications, setUnreadNotifications] = useState<Notification[]>([]);
   const [chatHistory, setChatHistory] = useState<Notification[]>([]);
   const [showInbox, setShowInbox] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [rulesAccepted, setRulesAccepted] = useState(false);
+  const [userCountry, setUserCountry] = useState<string>('');
+  
+  // Get user's country for sorting and fetch remaining uploads
+  useEffect(() => {
+    const fetchUserCountry = async () => {
+      try {
+        const response = await fetch('https://ipapi.co/json/');
+        const data = await response.json();
+        setUserCountry(data.country_name || '');
+      } catch (error) {
+        console.error('Error fetching user country:', error);
+      }
+    };
+    
+    const fetchRemainingUploads = async () => {
+      try {
+        const remaining = await getRemainingUploads(false); // Assuming standard user
+        setImagesRemaining(remaining);
+      } catch (error) {
+        console.error('Error fetching remaining uploads:', error);
+      }
+    };
+    
+    fetchUserCountry();
+    fetchRemainingUploads();
+  }, []);
+
+  // Sort online users whenever the user's country changes
+  useEffect(() => {
+    if (userCountry) {
+      const sortedUsers = sortUsers(botProfiles, userCountry);
+      setOnlineUsers(sortedUsers);
+    }
+  }, [userCountry]);
 
   // Memoized filtered users to prevent recalculation on every render
   const filteredUsers = useMemo(() => {
-    return onlineUsers.filter(user => {
+    const filtered = onlineUsers.filter(user => {
       // Filter by search term
       const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase());
       
@@ -272,6 +312,9 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       
       return matchesSearch && matchesGender && matchesAge && matchesCountry;
     });
+    
+    // Return sorted list
+    return filtered;
   }, [onlineUsers, searchTerm, filters]);
 
   // Initialize chat for current bot if it doesn't exist
@@ -318,6 +361,15 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     }
   }, [currentBot.id, filteredUsers]);
 
+  // Handle closing a chat
+  const handleCloseChat = useCallback(() => {
+    // If there are other users, select a new one
+    if (filteredUsers.length > 1) {
+      const newUser = filteredUsers.find(user => user.id !== currentBot.id);
+      if (newUser) selectUser(newUser);
+    }
+  }, [currentBot.id, filteredUsers]);
+
   // Handle sending text messages - optimized with useCallback
   const handleSendTextMessage = useCallback((text: string) => {
     const currentMessages = userChats[currentBot.id] || [];
@@ -339,7 +391,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   }, [currentBot.id, userChats]);
 
   // Handle sending image messages - optimized with useCallback
-  const handleSendImageMessage = useCallback((imageDataUrl: string) => {
+  const handleSendImageMessage = useCallback(async (imageDataUrl: string) => {
     const currentMessages = userChats[currentBot.id] || [];
     
     const newMessage: Message = {
@@ -356,7 +408,13 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       [currentBot.id]: [...currentMessages, newMessage]
     }));
     
-    setImagesRemaining(prev => prev - 1);
+    // Track the upload and update remaining count
+    try {
+      const remaining = await trackImageUpload();
+      setImagesRemaining(remaining);
+    } catch (error) {
+      console.error('Error tracking image upload:', error);
+    }
     
     simulateBotResponse(newMessage.id, currentBot.id);
   }, [currentBot.id, userChats]);
@@ -521,6 +579,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           <ChatHeader 
             currentUser={currentBot}
             onBlockUser={handleBlockUser}
+            onCloseChat={handleCloseChat}
           />
 
           {/* Messages area component */}

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 
 export interface Notification {
@@ -25,11 +25,37 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
   onNotificationRead,
   type
 }) => {
+  const sidebarRef = useRef<HTMLDivElement>(null);
+
+  // Handle clicking outside the sidebar
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+    
+    // Add the event listener with a small delay to prevent immediate closing
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 100);
+    
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50">
-      <div className="absolute right-0 h-full w-80 bg-white shadow-xl flex flex-col animate-in slide-in-from-right">
+      <div 
+        ref={sidebarRef}
+        className="absolute right-0 h-full w-80 bg-white shadow-xl flex flex-col animate-in slide-in-from-right"
+      >
         <div className="p-4 border-b flex justify-between items-center">
           <h3 className="font-semibold text-lg">
             {type === 'inbox' ? 'Inbox' : 'History'}
