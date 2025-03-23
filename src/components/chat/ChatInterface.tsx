@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, MessageCircle, Bell, Image, Star } from 'lucide-react';
@@ -38,7 +37,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  // Initial greeting message
   useEffect(() => {
     const initialMessage: Message = {
       id: 'initial-greeting',
@@ -50,7 +48,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     setMessages([initialMessage]);
   }, [user?.nickname]);
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -71,7 +68,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       setImagesRemaining(prev => prev - 1);
     }
 
-    // Update status to sent after 0.5s
     setTimeout(() => {
       setMessages(prev => 
         prev.map(msg => 
@@ -80,7 +76,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       );
     }, 500);
 
-    // Update status to delivered after 1s
     setTimeout(() => {
       setMessages(prev => 
         prev.map(msg => 
@@ -89,18 +84,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       );
     }, 1000);
 
-    // Bot starts typing after 1.5s
     setTimeout(() => {
       setIsTyping(true);
     }, 1500);
 
-    // Bot responds and status changes to read
     setTimeout(() => {
       setIsTyping(false);
       
       setMessages(prev => [
         ...prev.map(msg => 
-          msg.sender === 'user' ? { ...msg, status: 'read' } : msg
+          msg.sender === 'user' ? { ...msg, status: 'read' as const } : msg
         ),
         {
           id: `bot-${Date.now()}`,
@@ -119,7 +112,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
-      {/* Header */}
       <header className="bg-white border-b border-border p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -150,9 +142,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
         </div>
       </header>
 
-      {/* Chat content */}
       <div className="flex-1 overflow-hidden">
-        {/* Mobile sidebar toggle */}
         <div className="md:hidden bg-white border-b border-border p-2 flex justify-center">
           <button
             className="btn-outline text-xs py-1 px-3 rounded-full flex items-center space-x-1"
@@ -163,9 +153,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           </button>
         </div>
 
-        {/* Main content area */}
         <div className="flex h-full">
-          {/* Sidebar - hidden on mobile unless toggled */}
           <div className={`
             md:w-72 bg-white border-r border-border flex flex-col
             ${isMobileSidebarOpen ? 'w-full absolute inset-0 z-10' : 'hidden md:flex'}
@@ -184,7 +172,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
             </div>
             
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
-              {/* Active chats would go here */}
               <div className="p-2 rounded-lg bg-primary/10 flex items-center">
                 <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mr-3">
                   <Image className="h-5 w-5 text-primary" />
@@ -198,7 +185,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
                 <div className="text-xs text-muted-foreground">Now</div>
               </div>
               
-              {/* Add more mock chats for demonstration */}
               {Array.from({ length: 5 }).map((_, index) => (
                 <div key={index} className="p-2 rounded-lg hover:bg-muted/50 flex items-center">
                   <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mr-3">
@@ -233,11 +219,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
             </div>
           </div>
 
-          {/* Chat messages */}
           <div className="flex-1 flex flex-col h-full">
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map((message, index) => {
-                // Determine if this message is the last in a group
                 const nextMessage = messages[index + 1];
                 const isLastInGroup = !nextMessage || nextMessage.sender !== message.sender;
                 
@@ -263,7 +247,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
               <div ref={messagesEndRef} />
             </div>
             
-            {/* Message input */}
             <MessageInput 
               onSendMessage={handleSendMessage}
               userType="standard"

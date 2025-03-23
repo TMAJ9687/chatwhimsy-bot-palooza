@@ -72,7 +72,9 @@ const NicknameGenerator: React.FC<NicknameGeneratorProps> = ({ onNicknameSelecte
           isLoading={isGenerating}
           icon={<RefreshCw className="h-5 w-5" />}
           aria-label="Generate new nickname"
-        />
+        >
+          {/* Empty children to satisfy the required prop */}
+        </Button>
       </div>
 
       <Button
