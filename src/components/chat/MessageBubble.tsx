@@ -118,20 +118,20 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                   </button>
                 )}
                 {!isBlurred && (
-                  <button 
-                    className="absolute top-2 left-2 bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
-                    onClick={handleToggleBlur}
-                  >
-                    <EyeOff className="h-4 w-4 text-white" />
-                  </button>
-                )}
-                {!isBlurred && (
-                  <button 
-                    className="absolute top-2 right-2 bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
-                    onClick={handleToggleFullscreen}
-                  >
-                    <Maximize className="h-4 w-4 text-white" />
-                  </button>
+                  <div className="absolute top-2 right-2 flex space-x-2">
+                    <button 
+                      className="bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                      onClick={handleToggleBlur}
+                    >
+                      <EyeOff className="h-4 w-4 text-white" />
+                    </button>
+                    <button 
+                      className="bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                      onClick={handleToggleFullscreen}
+                    >
+                      <Maximize className="h-4 w-4 text-white" />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -163,14 +163,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         )}
       </div>
       
-      {isLastInGroup && (
+      {isLastInGroup && showStatus && (
         <div className={`flex items-center mt-0.5 text-xs text-gray-500 ${isUser ? 'mr-1' : 'ml-1'}`}>
           <span>{formattedTime}</span>
-          {showStatus && getStatusIcon() && <span className="ml-1">{getStatusIcon()}</span>}
+          {getStatusIcon() && <span className="ml-1">{getStatusIcon()}</span>}
         </div>
       )}
     </div>
   );
 };
 
-export default MessageBubble;
+export default React.memo(MessageBubble);

@@ -220,7 +220,12 @@ const sortUsers = (users: typeof botProfiles): typeof botProfiles => {
     if (!a.vip && b.vip) return 1;
     
     // If both are VIP or both are not VIP, sort by country alphabetically
-    return a.country.localeCompare(b.country) || a.name.localeCompare(b.name);
+    if (a.country !== b.country) {
+      return a.country.localeCompare(b.country);
+    }
+    
+    // If countries are the same, sort by name
+    return a.name.localeCompare(b.name);
   });
 };
 
@@ -474,7 +479,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     
     // Bot sends response
     setTimeout(() => {
-      // Only update if this is still the current bot OR if user is VIP
+      // Check if this is still the current bot
       const isCurrent = currentBotIdRef.current === botId;
       
       // Update typing status
@@ -502,9 +507,11 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
         
         // Add notification for new message from bot
         if (!isCurrent) {
+          const botProfile = botProfiles.find(b => b.id === botId);
+          
           const newNotification: Notification = {
             id: Date.now().toString(),
-            title: `New message from ${botProfiles.find(b => b.id === botId)?.name || 'User'}`,
+            title: `New message from ${botProfile?.name || 'User'}`,
             message: botResponse.content.slice(0, 30) + (botResponse.content.length > 30 ? '...' : ''),
             time: new Date(),
             read: false
