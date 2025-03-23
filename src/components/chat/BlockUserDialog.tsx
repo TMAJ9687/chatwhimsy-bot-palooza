@@ -24,10 +24,10 @@ const BlockUserDialog: React.FC<BlockUserDialogProps> = ({
   onConfirm,
   userName,
 }) => {
-  // Handle confirm action
+  // Handle confirm action with proper state management
   const handleConfirm = () => {
+    // Call onConfirm first then let the parent handle closing
     onConfirm();
-    // Don't call onClose here, let the parent component handle it
   };
 
   return (
@@ -40,8 +40,12 @@ const BlockUserDialog: React.FC<BlockUserDialogProps> = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => onClose()}>No</AlertDialogCancel>
-          <AlertDialogAction onClick={handleConfirm}>Yes</AlertDialogAction>
+          <AlertDialogCancel asChild>
+            <button type="button" onClick={onClose}>No</button>
+          </AlertDialogCancel>
+          <AlertDialogAction asChild>
+            <button type="button" onClick={handleConfirm}>Yes</button>
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

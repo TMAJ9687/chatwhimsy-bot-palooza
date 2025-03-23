@@ -1,19 +1,13 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  MoreVertical, 
-  X,
-  Clock, 
-  MessageSquare,
   LogOut, 
-  Send, 
-  Smile, 
-  Image as ImageIcon, 
-  Filter,
+  Clock, 
+  MessageSquare, 
   Bell,
+  Filter
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import MessageBubble, { Message } from './MessageBubble';
+import { Message } from './MessageBubble';
 import Logo from '../shared/Logo';
 import { useUser } from '../../context/UserContext';
 import UserListItem from './UserListItem';
@@ -26,13 +20,10 @@ import FilterMenu, { FilterState } from './FilterMenu';
 import ReportDialog from './ReportDialog';
 import BlockUserDialog from './BlockUserDialog';
 import SiteRulesDialog from './SiteRulesDialog';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '../ui/dropdown-menu';
 import NotificationSidebar, { Notification } from './NotificationSidebar';
+import ChatHeader from './ChatHeader';
+import ChatMessages from './ChatMessages';
+import MessageInputBar from './MessageInputBar';
 
 // Enhanced bot profiles with more diverse options
 const botProfiles = [
@@ -236,15 +227,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const { user } = useUser();
   const navigate = useNavigate();
   const [userChats, setUserChats] = useState<Record<string, Message[]>>({});
-  const [message, setMessage] = useState('');
   const [imagesRemaining, setImagesRemaining] = useState(15);
   const [isTyping, setIsTyping] = useState(false);
   const [currentBot, setCurrentBot] = useState(getRandomBot());
   const [onlineUsers, setOnlineUsers] = useState(botProfiles);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     gender: 'any',
@@ -316,54 +303,47 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [userChats, currentBot.id]);
-
-  const handleSendMessage = () => {
+  // Handle sending text messages
+  const handleSendTextMessage = (text: string) => {
     const currentMessages = userChats[currentBot.id] || [];
+    
+    const newMessage: Message = {
+      id: `user-${Date.now()}`,
+      content: text,
+      sender: 'user',
+      timestamp: new Date(),
+      status: 'sending',
+    };
+    
+    setUserChats(prev => ({
+      ...prev,
+      [currentBot.id]: [...currentMessages, newMessage]
+    }));
+    
+    simulateBotResponse(newMessage.id, currentBot.id);
+  };
 
-    if (imagePreview) {
-      const newMessage: Message = {
-        id: `user-${Date.now()}`,
-        content: imagePreview,
-        sender: 'user',
-        timestamp: new Date(),
-        status: 'sending',
-        isImage: true,
-      };
-      
-      setUserChats(prev => ({
-        ...prev,
-        [currentBot.id]: [...currentMessages, newMessage]
-      }));
-      
-      setImagePreview(null);
-      setImagesRemaining(prev => prev - 1);
-      
-      simulateBotResponse(newMessage.id, currentBot.id);
-      return;
-    }
-
-    if (message.trim()) {
-      const newMessage: Message = {
-        id: `user-${Date.now()}`,
-        content: message,
-        sender: 'user',
-        timestamp: new Date(),
-        status: 'sending',
-      };
-      
-      setUserChats(prev => ({
-        ...prev,
-        [currentBot.id]: [...currentMessages, newMessage]
-      }));
-      
-      setMessage('');
-      
-      simulateBotResponse(newMessage.id, currentBot.id);
-    }
+  // Handle sending image messages
+  const handleSendImageMessage = (imageDataUrl: string) => {
+    const currentMessages = userChats[currentBot.id] || [];
+    
+    const newMessage: Message = {
+      id: `user-${Date.now()}`,
+      content: imageDataUrl,
+      sender: 'user',
+      timestamp: new Date(),
+      status: 'sending',
+      isImage: true,
+    };
+    
+    setUserChats(prev => ({
+      ...prev,
+      [currentBot.id]: [...currentMessages, newMessage]
+    }));
+    
+    setImagesRemaining(prev => prev - 1);
+    
+    simulateBotResponse(newMessage.id, currentBot.id);
   };
 
   const simulateBotResponse = (messageId: string, botId: string) => {
@@ -376,7 +356,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       read: true
     }, ...prev]);
 
-    // Simulate message sending status updates
+    // Simulate message sending status updates - use the correct botId
     setTimeout(() => {
       setUserChats(prev => {
         const botMessages = [...(prev[botId] || [])];
@@ -401,17 +381,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       });
     }, 1000);
 
-    // Bot starts typing
+    // Bot starts typing - use the correct botId for isTyping state
     setTimeout(() => {
       setIsTyping(true);
     }, 1500);
 
-    // Bot sends response
+    // Bot sends response - make sure we're updating the correct chat
     setTimeout(() => {
       setIsTyping(false);
       
       setUserChats(prev => {
+        // Get the messages for this specific bot
         const botMessages = [...(prev[botId] || [])];
+        
+        // Update status and add new message ONLY to this bot's chat
         return {
           ...prev,
           [botId]: [
@@ -428,13 +411,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
         };
       });
     }, 3000);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
   };
 
   const handleLogout = () => {
@@ -458,25 +434,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
         }));
       }
     }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setImagePreview(event.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        alert('Please select an image file');
-      }
-    }
-  };
-
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
   };
 
   const handleFilterChange = (newFilters: FilterState) => {
@@ -658,124 +615,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 
         {/* Main chat area */}
         <div className="flex-1 flex flex-col bg-white">
-          {/* Chat header */}
-          <div className="px-4 py-3 border-b border-gray-200 bg-white flex items-center justify-between">
-            <div className="flex items-center">
-              <h2 className="text-lg font-semibold">{currentBot.name}</h2>
-              <div className="ml-2 text-pink-500 text-sm">
-                {currentBot.gender === 'female' ? 'Female' : 'Male'}, {currentBot.age}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">
-                    <MoreVertical className="h-5 w-5 text-gray-600" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setShowReportDialog(true)}>
-                    Report
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowBlockDialog(true)}>
-                    Block
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <button className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">
-                <X className="h-5 w-5 text-gray-600" />
-              </button>
-            </div>
-          </div>
+          {/* Chat header component */}
+          <ChatHeader 
+            currentUser={currentBot}
+            onOpenReportDialog={() => setShowReportDialog(true)}
+            onOpenBlockDialog={() => setShowBlockDialog(true)}
+          />
 
-          {/* Messages area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-            {userChats[currentBot.id]?.map((message) => (
-              <MessageBubble 
-                key={message.id} 
-                message={message}
-                isLastInGroup={true}
-              />
-            ))}
-            
-            {isTyping && (
-              <div className="flex items-start">
-                <div className="bg-white border border-gray-200 text-gray-800 rounded-2xl rounded-bl-none px-3 py-2 shadow-sm inline-flex space-x-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                  <div className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '600ms' }}></div>
-                </div>
-              </div>
-            )}
-            
-            <div ref={messagesEndRef} />
-          </div>
+          {/* Messages area component */}
+          <ChatMessages 
+            messages={userChats[currentBot.id] || []}
+            isTyping={isTyping}
+          />
           
-          {/* Message input */}
-          <div className="p-3 border-t border-gray-200 bg-white">
-            {imagePreview && (
-              <div className="mb-3 relative">
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="h-32 object-contain rounded-lg border border-gray-200"
-                />
-                <button
-                  onClick={() => setImagePreview(null)}
-                  className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-sm hover:bg-gray-100"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-          
-            <div className="flex items-center bg-gray-100 rounded-full px-4 py-1">
-              <input
-                type="text"
-                className="flex-1 bg-transparent border-0 focus:outline-none text-gray-700 py-2 text-sm"
-                placeholder="Type a message..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={!!imagePreview}
-              />
-              
-              <div className="text-xs text-gray-400 mr-2">
-                {message.length}/120
-              </div>
-              
-              <button 
-                className="p-1.5 text-gray-500 hover:text-gray-700"
-                onClick={() => {}}
-              >
-                <Smile className="h-5 w-5" />
-              </button>
-              
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept="image/*"
-                className="hidden"
-              />
-              
-              <button
-                className="p-1.5 text-gray-500 hover:text-gray-700"
-                onClick={triggerFileInput}
-                disabled={imagesRemaining <= 0 || !!imagePreview}
-              >
-                <ImageIcon className="h-5 w-5" />
-              </button>
-              
-              <button
-                className="ml-1 w-10 h-10 bg-teal-500 text-white rounded-full flex items-center justify-center disabled:opacity-50"
-                onClick={handleSendMessage}
-                disabled={(!message.trim() && !imagePreview)}
-              >
-                <Send className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
+          {/* Message input component */}
+          <MessageInputBar
+            onSendMessage={handleSendTextMessage}
+            onSendImage={handleSendImageMessage}
+            imagesRemaining={imagesRemaining}
+          />
         </div>
       </div>
 
@@ -822,3 +680,4 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 };
 
 export default ChatInterface;
+

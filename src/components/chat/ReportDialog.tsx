@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -31,53 +31,62 @@ const ReportDialog: React.FC<ReportDialogProps> = ({ isOpen, onClose, userName }
   const { toast } = useToast();
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [otherReason, setOtherReason] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  const handleSubmit = () => {
-    if (!selectedReason) return;
-    
-    setIsSubmitting(true);
-    setShowConfirmation(true);
-  };
+  // Reset all state when dialog closes or on component mount
+  useEffect(() => {
+    if (!isOpen) {
+      resetState();
+    }
+  }, [isOpen]);
 
-  const handleConfirmSubmit = () => {
+  // Define resetState function using useCallback to prevent unnecessary recreations
+  const resetState = useCallback(() => {
+    setSelectedReason(null);
+    setOtherReason('');
+    setShowConfirmation(false);
+  }, []);
+
+  // Handle initial submit - just show confirmation dialog
+  const handleSubmit = useCallback(() => {
+    if (!selectedReason) return;
+    setShowConfirmation(true);
+  }, [selectedReason]);
+
+  // Handle final submit after confirmation
+  const handleConfirmSubmit = useCallback(() => {
     // Here you would normally send the report to your backend
     console.log('Report submitted:', {
       user: userName,
       reason: selectedReason === 'Other' ? otherReason : selectedReason
     });
     
+    // Show toast notification
     toast({
       title: "Report submitted",
       description: "Thank you for helping to keep our community safe.",
     });
     
-    resetAndClose();
-  };
-
-  const handleCancel = () => {
-    setShowConfirmation(false);
-    setIsSubmitting(false);
-  };
-
-  const resetAndClose = () => {
-    setSelectedReason(null);
-    setOtherReason('');
-    setShowConfirmation(false);
-    setIsSubmitting(false);
+    // Reset state and close dialog
+    resetState();
     onClose();
-  };
+  }, [userName, selectedReason, otherReason, toast, resetState, onClose]);
 
-  // Reset state when dialog is closed
-  React.useEffect(() => {
-    if (!isOpen) {
-      resetAndClose();
+  // Handle cancellation of confirmation dialog
+  const handleCancel = useCallback(() => {
+    setShowConfirmation(false);
+  }, []);
+
+  // Handle dialog close from parent
+  const handleDialogChange = useCallback((open: boolean) => {
+    if (!open) {
+      resetState();
+      onClose();
     }
-  }, [isOpen]);
+  }, [resetState, onClose]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={resetAndClose}>
+    <Dialog open={isOpen} onOpenChange={handleDialogChange}>
       <DialogContent className="sm:max-w-md">
         {!showConfirmation ? (
           <>
@@ -134,7 +143,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({ isOpen, onClose, userName }
             <DialogFooter className="sm:justify-center gap-3 mt-6">
               <Button
                 variant="outline"
-                onClick={resetAndClose}
+                onClick={onClose}
                 type="button"
               >
                 Cancel
@@ -155,7 +164,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({ isOpen, onClose, userName }
                 variant="ghost" 
                 size="icon" 
                 className="h-6 w-6" 
-                onClick={resetAndClose}
+                onClick={onClose}
                 type="button"
               >
                 <X className="h-4 w-4" />
