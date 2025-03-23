@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -10,9 +11,7 @@ import {
   X,
   Clock, 
   MoreVertical,
-  History,
-  MessageSquare,
-  Download
+  MessageSquare 
 } from 'lucide-react';
 import MessageBubble, { Message } from './MessageBubble';
 import Logo from '../shared/Logo';
@@ -229,7 +228,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const [imagesRemaining, setImagesRemaining] = useState(15); // For standard users
   const [isTyping, setIsTyping] = useState(false);
   const [currentBot, setCurrentBot] = useState(getRandomBot());
-  const [showUserList, setShowUserList] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState(botProfiles);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -424,12 +422,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
-      {/* Header */}
+      {/* Header - with icons on right side to match reference */}
       <header className="bg-white border-b border-border p-4 shadow-sm flex items-center justify-between">
         <div className="flex items-center">
           <Logo size="sm" variant="image" className="mr-2" />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
+          <button className="p-2 rounded-full hover:bg-muted transition-colors">
+            <MessageSquare className="h-5 w-5" />
+          </button>
+          <button className="p-2 rounded-full hover:bg-muted transition-colors">
+            <Clock className="h-5 w-5" />
+          </button>
           <button
             className="p-2 rounded-full hover:bg-muted transition-colors"
             onClick={handleLogout}
@@ -440,23 +444,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Left sidebar - User list (hidden on mobile) */}
-        <div className="hidden md:flex flex-col w-80 bg-white border-r border-border">
+        {/* Left sidebar - User list */}
+        <div className="hidden md:flex flex-col w-[400px] bg-white border-r border-border overflow-hidden">
           <div className="p-4 border-b">
             <SearchInput 
               value={searchTerm}
               onChange={setSearchTerm}
               placeholder="Search Keyword"
+              className="bg-gray-100"
             />
           </div>
-          <div className="flex items-center justify-between px-4 py-2">
+          
+          <div className="flex items-center justify-between px-4 py-3">
             <h2 className="text-xl font-bold text-orange-500">People</h2>
-            <Button variant="outline" size="sm">Filters</Button>
+            <button className="px-4 py-1.5 rounded-md bg-gray-100 text-gray-700 text-sm hover:bg-gray-200 transition-colors">
+              Filters
+            </button>
           </div>
-          <div className="px-4 py-1">
+          
+          <div className="px-4 pb-2">
             <Badge variant="outline" className="text-sm">{onlineUsers.length} online</Badge>
           </div>
-          <div className="flex-1 overflow-y-auto p-2">
+          
+          <div className="flex-1 overflow-y-auto border-t border-gray-100">
             {filteredUsers.map(user => (
               <UserListItem
                 key={user.id}
@@ -468,18 +478,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           </div>
           
           {/* VIP Upgrade Section */}
-          <div className="p-4 border-t border-border mt-auto">
+          <div className="p-4 border-t border-border bg-white">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center">
-                <Star className="h-5 w-5 text-secondary" />
+              <div className="w-8 h-8 flex items-center justify-center">
+                <Star className="h-5 w-5 text-amber-400" />
               </div>
               <div className="flex-1">
-                <div className="text-sm font-medium">Upgrade to VIP</div>
-                <div className="text-xs text-muted-foreground">Unlock all features</div>
+                <div className="text-sm">Unlock all features</div>
               </div>
-              <Button variant="secondary" size="sm">
+              <button className="px-4 py-1.5 rounded-md bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 transition-colors">
                 Upgrade
-              </Button>
+              </button>
             </div>
           </div>
         </div>
@@ -488,18 +497,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
         <MobileUserList />
 
         {/* Main chat area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col bg-white">
           {/* Chat header */}
-          <div className="p-3 border-b border-border bg-white flex items-center justify-between">
+          <div className="px-4 py-3 border-b border-border bg-white flex items-center justify-between">
             <div className="flex items-center">
-              <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center mr-3 text-orange-500 font-semibold">
-                {currentBot.avatar}
-              </div>
-              <div>
-                <div className="font-semibold">{currentBot.name}</div>
-                <div className="text-sm text-pink-500">
-                  {currentBot.gender === 'female' ? 'Female' : 'Male'}, {currentBot.age}
-                </div>
+              <h2 className="text-lg font-semibold">{currentBot.name}</h2>
+              <div className="ml-2 text-pink-500 text-sm">
+                {currentBot.gender === 'female' ? 'Female' : 'Male'}, {currentBot.age}
               </div>
             </div>
             <div className="flex gap-2">
@@ -513,8 +517,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           </div>
 
           {/* Messages area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-gray-50">
-            {messages.map((message, index) => (
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+            {messages.map((message) => (
               <MessageBubble 
                 key={message.id} 
                 message={message}
@@ -535,8 +539,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
             <div ref={messagesEndRef} />
           </div>
           
-          {/* Message input */}
-          <div className="p-3 border-t border-border bg-white">
+          {/* Message input - styled to match reference */}
+          <div className="p-4 border-t border-border bg-white">
             {imagePreview && (
               <div className="mb-3 relative">
                 <img
@@ -553,10 +557,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
               </div>
             )}
           
-            <div className="flex gap-2 items-center">
+            <div className="flex items-center bg-gray-100 rounded-3xl px-4 py-2">
               <input
                 type="text"
-                className="flex-1 bg-gray-100 border-0 rounded-full px-4 py-3 focus:outline-none"
+                className="flex-1 bg-transparent border-0 focus:outline-none text-gray-700"
                 placeholder="Type a message..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -592,7 +596,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
               </button>
               
               <button
-                className="bg-teal-500 text-white p-3 rounded-full disabled:opacity-50"
+                className="w-10 h-10 bg-teal-500 text-white rounded-full flex items-center justify-center ml-2 disabled:opacity-50"
                 onClick={handleSendMessage}
                 disabled={(!message.trim() && !imagePreview)}
               >

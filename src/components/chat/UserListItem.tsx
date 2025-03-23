@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Badge } from '../ui/badge';
 import { Crown } from 'lucide-react';
 
 interface User {
@@ -22,34 +21,37 @@ interface UserListItemProps {
 }
 
 const UserListItem: React.FC<UserListItemProps> = ({ user, isActive, onClick }) => {
+  const genderColor = user.gender === 'female' ? 'text-pink-500' : 'text-blue-500';
+  
   return (
     <div 
       className={`
-        p-3 rounded-lg mb-2 cursor-pointer transition-colors
-        ${isActive ? 'bg-primary/5 border-l-4 border-primary' : 'hover:bg-muted/50'}
+        p-4 cursor-pointer transition-colors
+        ${isActive ? 'bg-amber-50 border-l-4 border-orange-500' : 'hover:bg-gray-50 border-l-4 border-transparent'}
       `}
       onClick={onClick}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <div className={`
           w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold
           ${isActive ? 'bg-orange-100 text-orange-500' : 'bg-gray-100 text-gray-600'}
+          border-2 border-amber-400
         `}>
           {user.avatar}
         </div>
         
         <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">{user.name}</span>
+          <div className="flex items-center">
+            <span className="font-semibold text-gray-800">{user.name}</span>
             {user.vip && (
-              <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-sm flex items-center">
-                <Crown className="h-3 w-3 mr-1" /> VIP
+              <span className="ml-2 bg-amber-400 text-white text-xs px-2 py-0.5 rounded-sm flex items-center">
+                <Crown className="h-3 w-3 mr-0.5" /> VIP
               </span>
             )}
           </div>
           
-          <div className="flex items-center text-sm">
-            <span className={user.gender === 'female' ? 'text-pink-500' : 'text-blue-500'}>
+          <div className="flex items-center mt-1">
+            <span className={genderColor}>
               {user.gender === 'female' ? 'Female' : 'Male'}, {user.age}
             </span>
           </div>
@@ -63,11 +65,15 @@ const UserListItem: React.FC<UserListItemProps> = ({ user, isActive, onClick }) 
             <span className="text-xs text-gray-600">{user.country}</span>
           </div>
           
-          <div className="flex flex-wrap gap-1 mt-1">
+          <div className="flex flex-wrap gap-1 mt-2">
             {user.interests.map((interest, index) => (
               <span 
                 key={index}
-                className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-600"
+                className={`text-xs px-2 py-0.5 rounded-full ${
+                  index % 3 === 0 ? 'bg-yellow-100 text-yellow-700' : 
+                  index % 3 === 1 ? 'bg-blue-100 text-blue-700' : 
+                  'bg-red-100 text-red-700'
+                }`}
               >
                 {interest}
               </span>
