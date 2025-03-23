@@ -9,6 +9,7 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { X } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 
 interface ReportDialogProps {
   isOpen: boolean;
@@ -27,27 +28,32 @@ const reportReasons = [
 ];
 
 const ReportDialog: React.FC<ReportDialogProps> = ({ isOpen, onClose, userName }) => {
+  const { toast } = useToast();
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [otherReason, setOtherReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   const handleSubmit = () => {
+    if (!selectedReason) return;
+    
     setIsSubmitting(true);
     setShowConfirmation(true);
+  };
+
+  const handleConfirmSubmit = () => {
     // Here you would normally send the report to your backend
     console.log('Report submitted:', {
       user: userName,
       reason: selectedReason === 'Other' ? otherReason : selectedReason
     });
-  };
-
-  const handleConfirmSubmit = () => {
-    setIsSubmitting(false);
-    setSelectedReason(null);
-    setOtherReason('');
-    setShowConfirmation(false);
-    onClose();
+    
+    toast({
+      title: "Report submitted",
+      description: "Thank you for helping to keep our community safe.",
+    });
+    
+    resetAndClose();
   };
 
   const handleCancel = () => {
@@ -59,8 +65,16 @@ const ReportDialog: React.FC<ReportDialogProps> = ({ isOpen, onClose, userName }
     setSelectedReason(null);
     setOtherReason('');
     setShowConfirmation(false);
+    setIsSubmitting(false);
     onClose();
   };
+
+  // Reset state when dialog is closed
+  React.useEffect(() => {
+    if (!isOpen) {
+      resetAndClose();
+    }
+  }, [isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={resetAndClose}>
@@ -121,12 +135,14 @@ const ReportDialog: React.FC<ReportDialogProps> = ({ isOpen, onClose, userName }
               <Button
                 variant="outline"
                 onClick={resetAndClose}
+                type="button"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSubmit}
                 disabled={!selectedReason || (selectedReason === 'Other' && !otherReason.trim())}
+                type="button"
               >
                 Submit Report
               </Button>
@@ -140,6 +156,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({ isOpen, onClose, userName }
                 size="icon" 
                 className="h-6 w-6" 
                 onClick={resetAndClose}
+                type="button"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -150,10 +167,10 @@ const ReportDialog: React.FC<ReportDialogProps> = ({ isOpen, onClose, userName }
                 Are you sure you want to submit this report?
               </p>
               <div className="flex justify-center gap-3 mt-6">
-                <Button variant="outline" onClick={handleCancel}>
+                <Button variant="outline" onClick={handleCancel} type="button">
                   Cancel
                 </Button>
-                <Button onClick={handleConfirmSubmit}>
+                <Button onClick={handleConfirmSubmit} type="button">
                   Submit
                 </Button>
               </div>
