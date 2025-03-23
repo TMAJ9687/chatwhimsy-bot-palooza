@@ -13,14 +13,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to bottom when messages change
+  // Scroll to bottom when messages change or typing status changes
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Use requestAnimationFrame to ensure DOM is updated before scrolling
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    });
   }, [messages, isTyping]);
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-      {messages?.map((message) => (
+      {messages?.map((message, index) => (
         <MessageBubble 
           key={message.id} 
           message={message}

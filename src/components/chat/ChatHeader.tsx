@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { MoreVertical, X } from 'lucide-react';
 import { 
   DropdownMenu,
@@ -23,6 +23,15 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   onOpenReportDialog,
   onOpenBlockDialog,
 }) => {
+  // Use useCallback to prevent unnecessary renders
+  const handleReportClick = useCallback(() => {
+    onOpenReportDialog();
+  }, [onOpenReportDialog]);
+
+  const handleBlockClick = useCallback(() => {
+    onOpenBlockDialog();
+  }, [onOpenBlockDialog]);
+
   return (
     <div className="px-4 py-3 border-b border-gray-200 bg-white flex items-center justify-between">
       <div className="flex items-center">
@@ -39,10 +48,10 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onOpenReportDialog}>
+            <DropdownMenuItem onClick={handleReportClick}>
               Report
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onOpenBlockDialog}>
+            <DropdownMenuItem onClick={handleBlockClick}>
               Block
             </DropdownMenuItem>
           </DropdownMenuContent>

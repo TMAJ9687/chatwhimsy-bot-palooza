@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,6 +10,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../ui/alert-dialog';
+import { Button } from '../ui/button';
+import { useToast } from "@/hooks/use-toast";
 
 interface BlockUserDialogProps {
   isOpen: boolean;
@@ -24,14 +26,24 @@ const BlockUserDialog: React.FC<BlockUserDialogProps> = ({
   onConfirm,
   userName,
 }) => {
-  // Handle confirm action with proper state management
-  const handleConfirm = () => {
-    // Call onConfirm first then let the parent handle closing
+  const { toast } = useToast();
+  
+  // Create a proper confirm handler that doesn't cause state update issues
+  const handleConfirm = useCallback(() => {
+    // Call onConfirm to handle the blocking logic
     onConfirm();
-  };
+    
+    // Show a toast notification
+    toast({
+      title: "User blocked",
+      description: `You have blocked ${userName}.`,
+    });
+    
+    // Dialog will be closed by parent component
+  }, [onConfirm, userName, toast]);
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={onClose}>
+    <AlertDialog open={isOpen}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Block User</AlertDialogTitle>
@@ -41,10 +53,22 @@ const BlockUserDialog: React.FC<BlockUserDialogProps> = ({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel asChild>
-            <button type="button" onClick={onClose}>No</button>
+            <Button 
+              variant="outline" 
+              onClick={onClose}
+              type="button"
+            >
+              No, Cancel
+            </Button>
           </AlertDialogCancel>
           <AlertDialogAction asChild>
-            <button type="button" onClick={handleConfirm}>Yes</button>
+            <Button 
+              variant="destructive"
+              onClick={handleConfirm}
+              type="button"
+            >
+              Yes, Block User
+            </Button>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

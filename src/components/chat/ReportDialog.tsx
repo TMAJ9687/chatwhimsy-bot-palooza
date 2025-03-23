@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -33,60 +33,63 @@ const ReportDialog: React.FC<ReportDialogProps> = ({ isOpen, onClose, userName }
   const [otherReason, setOtherReason] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  // Reset all state when dialog closes or on component mount
-  useEffect(() => {
-    if (!isOpen) {
-      resetState();
-    }
-  }, [isOpen]);
-
-  // Define resetState function using useCallback to prevent unnecessary recreations
+  // Reset function to clear state
   const resetState = useCallback(() => {
     setSelectedReason(null);
     setOtherReason('');
     setShowConfirmation(false);
   }, []);
 
-  // Handle initial submit - just show confirmation dialog
+  // Close handler that ensures state is reset
+  const handleClose = useCallback(() => {
+    resetState();
+    onClose();
+  }, [resetState, onClose]);
+
+  // First step submission
   const handleSubmit = useCallback(() => {
     if (!selectedReason) return;
     setShowConfirmation(true);
   }, [selectedReason]);
 
-  // Handle final submit after confirmation
+  // Final submission after confirmation
   const handleConfirmSubmit = useCallback(() => {
-    // Here you would normally send the report to your backend
+    // Log the report data
     console.log('Report submitted:', {
       user: userName,
       reason: selectedReason === 'Other' ? otherReason : selectedReason
     });
     
-    // Show toast notification
+    // Show toast confirmation
     toast({
       title: "Report submitted",
       description: "Thank you for helping to keep our community safe.",
     });
     
-    // Reset state and close dialog
+    // Reset and close
     resetState();
     onClose();
   }, [userName, selectedReason, otherReason, toast, resetState, onClose]);
 
-  // Handle cancellation of confirmation dialog
+  // Handle cancellation of confirmation step
   const handleCancel = useCallback(() => {
     setShowConfirmation(false);
   }, []);
 
-  // Handle dialog close from parent
-  const handleDialogChange = useCallback((open: boolean) => {
-    if (!open) {
-      resetState();
-      onClose();
-    }
-  }, [resetState, onClose]);
+  // Select a reason
+  const handleSelectReason = useCallback((reason: string) => {
+    setSelectedReason(reason);
+  }, []);
+  
+  // Update other reason text
+  const handleOtherReasonChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setOtherReason(e.target.value.slice(0, 100));
+  }, []);
+
+  if (!isOpen) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleDialogChange}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         {!showConfirmation ? (
           <>
@@ -105,7 +108,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({ isOpen, onClose, userName }
                       ? 'border-teal-500 bg-teal-50' 
                       : 'border-gray-200 hover:border-teal-300'
                   }`}
-                  onClick={() => setSelectedReason(reason)}
+                  onClick={() => handleSelectReason(reason)}
                 >
                   <div className="flex items-center">
                     <div 
@@ -130,7 +133,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({ isOpen, onClose, userName }
                     placeholder="Please describe the issue (max 100 characters)"
                     className="w-full p-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
                     value={otherReason}
-                    onChange={(e) => setOtherReason(e.target.value.slice(0, 100))}
+                    onChange={handleOtherReasonChange}
                     maxLength={100}
                     rows={3}
                   />
@@ -143,7 +146,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({ isOpen, onClose, userName }
             <DialogFooter className="sm:justify-center gap-3 mt-6">
               <Button
                 variant="outline"
-                onClick={onClose}
+                onClick={handleClose}
                 type="button"
               >
                 Cancel
@@ -164,7 +167,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({ isOpen, onClose, userName }
                 variant="ghost" 
                 size="icon" 
                 className="h-6 w-6" 
-                onClick={onClose}
+                onClick={handleClose}
                 type="button"
               >
                 <X className="h-4 w-4" />
