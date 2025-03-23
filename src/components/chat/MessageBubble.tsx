@@ -5,7 +5,7 @@ import { Check, Clock } from 'lucide-react';
 export interface Message {
   id: string;
   content: string;
-  sender: 'user' | 'bot';
+  sender: 'user' | 'bot' | 'system';
   timestamp: Date;
   status?: 'sending' | 'sent' | 'delivered' | 'read';
   isImage?: boolean;
@@ -22,6 +22,15 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 }) => {
   const { sender, content, timestamp, status, isImage } = message;
   const isUser = sender === 'user';
+  
+  // If this is a system message, render differently
+  if (sender === 'system') {
+    return (
+      <div className="text-center text-muted-foreground text-sm py-2">
+        {content}
+      </div>
+    );
+  }
   
   const formattedTime = new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',

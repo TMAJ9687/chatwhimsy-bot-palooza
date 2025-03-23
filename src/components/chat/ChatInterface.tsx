@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -425,6 +424,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
+      {/* Header */}
       <header className="bg-white border-b border-border p-4 shadow-sm flex items-center justify-between">
         <div className="flex items-center">
           <Logo size="sm" variant="image" className="mr-2" />
@@ -514,23 +514,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 
           {/* Messages area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-gray-50">
-            {messages.map((message, index) => {
-              if (message.sender === 'system') {
-                return (
-                  <div key={message.id} className="text-center text-muted-foreground text-sm">
-                    {message.content}
-                  </div>
-                );
-              }
-              
-              return (
-                <MessageBubble 
-                  key={message.id} 
-                  message={message}
-                  isLastInGroup={true}
-                />
-              );
-            })}
+            {messages.map((message, index) => (
+              <MessageBubble 
+                key={message.id} 
+                message={message}
+                isLastInGroup={true}
+              />
+            ))}
             
             {isTyping && (
               <div className="flex items-start animate-pulse">
