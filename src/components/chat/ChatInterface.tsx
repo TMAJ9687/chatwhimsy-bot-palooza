@@ -15,6 +15,7 @@ import VipUpgradeSection from './VipUpgradeSection';
 import NotificationSidebar from './NotificationSidebar';
 import { DialogProvider, useDialog } from '@/context/DialogContext';
 import DialogContainer from '@/components/dialogs/DialogContainer';
+import { FilterState } from './FilterMenu';
 
 // Enhanced bot profiles with more diverse options
 const botProfiles = [
@@ -227,7 +228,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const [currentBot, setCurrentBot] = useState(getRandomBot());
   const [onlineUsers, setOnlineUsers] = useState(botProfiles);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<FilterState>({
     gender: 'any',
     ageRange: [18, 80],
     countries: []
@@ -390,17 +391,20 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
         // Get the messages for this specific bot
         const botMessages = [...(prev[botId] || [])];
         
-        // Update status and add new message ONLY to this bot's chat
+        // Update message status (specifying the exact type)
+        const updatedMessages = botMessages.map(msg => 
+          msg.sender === 'user' ? { ...msg, status: 'read' as const } : msg
+        );
+        
+        // Add bot's message
         return {
           ...prev,
           [botId]: [
-            ...botMessages.map(msg => 
-              msg.sender === 'user' ? { ...msg, status: 'read' } : msg
-            ),
+            ...updatedMessages,
             {
               id: `bot-${Date.now()}`,
               content: getRandomBotResponse(botId),
-              sender: 'bot',
+              sender: 'bot' as const,
               timestamp: new Date(),
             }
           ]
@@ -429,7 +433,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   }, [currentBot.id, userChats]);
 
   // Filter change handler - optimized with useCallback
-  const handleFilterChange = useCallback((newFilters: typeof filters) => {
+  const handleFilterChange = useCallback((newFilters: FilterState) => {
     setFilters(newFilters);
   }, []);
 

@@ -24,8 +24,8 @@ const ToastItem = memo(({
   action?: React.ReactNode,
   [key: string]: any 
 }) => {
-  // Use ref to avoid layout thrashing
-  const toastRef = useRef<HTMLDivElement>(null);
+  // Use ref to avoid layout thrashing - changed to HTMLLIElement
+  const toastRef = useRef<HTMLLIElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   
   // Apply animation after mount to avoid jank
