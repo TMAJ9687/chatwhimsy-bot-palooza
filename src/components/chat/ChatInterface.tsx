@@ -9,6 +9,8 @@ import {
   Send, 
   Smile, 
   Image as ImageIcon, 
+  Filter,
+  Bell,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MessageBubble, { Message } from './MessageBubble';
@@ -19,6 +21,18 @@ import SearchInput from './SearchInput';
 import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import ThemeToggle from '../shared/ThemeToggle';
+import FilterMenu, { FilterState } from './FilterMenu';
+import ReportDialog from './ReportDialog';
+import BlockUserDialog from './BlockUserDialog';
+import SiteRulesDialog from './SiteRulesDialog';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '../ui/dropdown-menu';
+import NotificationSidebar, { Notification } from './NotificationSidebar';
 
 // Enhanced bot profiles with more diverse options
 const botProfiles = [
@@ -221,7 +235,7 @@ interface ChatInterfaceProps {
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const { user } = useUser();
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [userChats, setUserChats] = useState<Record<string, Message[]>>({});
   const [message, setMessage] = useState('');
   const [imagesRemaining, setImagesRemaining] = useState(15);
   const [isTyping, setIsTyping] = useState(false);
@@ -231,31 +245,85 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  
-  // Filter online users based on search term
-  const filteredUsers = onlineUsers.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  useEffect(() => {
-    // Set a welcome message when the component mounts
-    if (messages.length === 0) {
-      const initialMessage: Message = {
-        id: 'initial-greeting',
-        content: `Start a conversation with ${currentBot.name}`,
-        sender: 'system',
-        timestamp: new Date(),
-      };
-      
-      setMessages([initialMessage]);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [filters, setFilters] = useState<FilterState>({
+    gender: 'any',
+    ageRange: [18, 80],
+    countries: []
+  });
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
+  const [showSiteRules, setShowSiteRules] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState<Notification[]>([
+    {
+      id: '1',
+      title: 'Welcome to Chat App',
+      message: 'We hope you enjoy connecting with people around the world!',
+      time: new Date(),
+      read: false
+    },
+    {
+      id: '2',
+      title: 'New Feature',
+      message: 'You can now share images with your chat partners!',
+      time: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
+      read: false
     }
-  }, [currentBot.name, messages.length]);
+  ]);
+  const [chatHistory, setChatHistory] = useState<Notification[]>([]);
+  const [showInbox, setShowInbox] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  
+  // Filter online users based on search term and filters
+  const filteredUsers = onlineUsers.filter(user => {
+    // Filter by search term
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Filter by gender
+    const matchesGender = filters.gender === 'any' || user.gender === filters.gender;
+    
+    // Filter by age
+    const matchesAge = user.age >= filters.ageRange[0] && user.age <= filters.ageRange[1];
+    
+    // Filter by countries (if any selected)
+    const matchesCountry = filters.countries.length === 0 || 
+      filters.countries.includes(user.country);
+    
+    return matchesSearch && matchesGender && matchesAge && matchesCountry;
+  });
 
+  // Initialize chat for current bot if it doesn't exist
+  useEffect(() => {
+    if (!userChats[currentBot.id]) {
+      setUserChats(prev => ({
+        ...prev,
+        [currentBot.id]: [{
+          id: `system-${Date.now()}`,
+          content: `Start a conversation with ${currentBot.name}`,
+          sender: 'system',
+          timestamp: new Date(),
+        }]
+      }));
+    }
+  }, [currentBot.id, userChats]);
+
+  // Show site rules dialog after 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSiteRules(true);
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [userChats, currentBot.id]);
 
   const handleSendMessage = () => {
+    const currentMessages = userChats[currentBot.id] || [];
+
     if (imagePreview) {
       const newMessage: Message = {
         id: `user-${Date.now()}`,
@@ -266,11 +334,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
         isImage: true,
       };
       
-      setMessages(prev => [...prev, newMessage]);
+      setUserChats(prev => ({
+        ...prev,
+        [currentBot.id]: [...currentMessages, newMessage]
+      }));
+      
       setImagePreview(null);
       setImagesRemaining(prev => prev - 1);
       
-      simulateBotResponse(newMessage.id);
+      simulateBotResponse(newMessage.id, currentBot.id);
       return;
     }
 
@@ -283,29 +355,50 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
         status: 'sending',
       };
       
-      setMessages(prev => [...prev, newMessage]);
+      setUserChats(prev => ({
+        ...prev,
+        [currentBot.id]: [...currentMessages, newMessage]
+      }));
+      
       setMessage('');
       
-      simulateBotResponse(newMessage.id);
+      simulateBotResponse(newMessage.id, currentBot.id);
     }
   };
 
-  const simulateBotResponse = (messageId: string) => {
+  const simulateBotResponse = (messageId: string, botId: string) => {
+    // Add to chat history
+    setChatHistory(prev => [{
+      id: Date.now().toString(),
+      title: `Message to ${currentBot.name}`,
+      message: 'You sent a message',
+      time: new Date(),
+      read: true
+    }, ...prev]);
+
     // Simulate message sending status updates
     setTimeout(() => {
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === messageId ? { ...msg, status: 'sent' as const } : msg
-        )
-      );
+      setUserChats(prev => {
+        const botMessages = [...(prev[botId] || [])];
+        return {
+          ...prev,
+          [botId]: botMessages.map(msg => 
+            msg.id === messageId ? { ...msg, status: 'sent' as const } : msg
+          )
+        };
+      });
     }, 500);
 
     setTimeout(() => {
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === messageId ? { ...msg, status: 'delivered' as const } : msg
-        )
-      );
+      setUserChats(prev => {
+        const botMessages = [...(prev[botId] || [])];
+        return {
+          ...prev,
+          [botId]: botMessages.map(msg => 
+            msg.id === messageId ? { ...msg, status: 'delivered' as const } : msg
+          )
+        };
+      });
     }, 1000);
 
     // Bot starts typing
@@ -317,17 +410,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     setTimeout(() => {
       setIsTyping(false);
       
-      setMessages(prev => [
-        ...prev.map(msg => 
-          msg.sender === 'user' ? { ...msg, status: 'read' as const } : msg
-        ),
-        {
-          id: `bot-${Date.now()}`,
-          content: getRandomBotResponse(currentBot.id),
-          sender: 'bot',
-          timestamp: new Date(),
-        }
-      ]);
+      setUserChats(prev => {
+        const botMessages = [...(prev[botId] || [])];
+        return {
+          ...prev,
+          [botId]: [
+            ...botMessages.map(msg => 
+              msg.sender === 'user' ? { ...msg, status: 'read' as const } : msg
+            ),
+            {
+              id: `bot-${Date.now()}`,
+              content: getRandomBotResponse(botId),
+              sender: 'bot',
+              timestamp: new Date(),
+            }
+          ]
+        };
+      });
     }, 3000);
   };
 
@@ -347,14 +446,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     if (user.id !== currentBot.id) {
       setCurrentBot(user);
       
-      setMessages([
-        {
-          id: `system-${Date.now()}`,
-          content: `Start a conversation with ${user.name}`,
-          sender: 'system',
-          timestamp: new Date(),
-        }
-      ]);
+      if (!userChats[user.id]) {
+        setUserChats(prev => ({
+          ...prev,
+          [user.id]: [{
+            id: `system-${Date.now()}`,
+            content: `Start a conversation with ${user.name}`,
+            sender: 'system',
+            timestamp: new Date(),
+          }]
+        }));
+      }
     }
   };
 
@@ -375,6 +477,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 
   const triggerFileInput = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleFilterChange = (newFilters: FilterState) => {
+    setFilters(newFilters);
+  };
+
+  const handleBlockUser = () => {
+    // Remove user from online users
+    setOnlineUsers(prev => prev.filter(user => user.id !== currentBot.id));
+    
+    // Select a new user if available
+    if (filteredUsers.length > 1) {
+      const newUser = filteredUsers.find(user => user.id !== currentBot.id);
+      if (newUser) selectUser(newUser);
+    }
+    
+    setShowBlockDialog(false);
+  };
+
+  const handleNotificationRead = (id: string) => {
+    setUnreadNotifications(prev => 
+      prev.map(notif => 
+        notif.id === id ? { ...notif, read: true } : notif
+      )
+    );
+  };
+
+  const handleAcceptRules = () => {
+    setShowSiteRules(false);
   };
 
   // Mobile responsive user list using Sheet component
@@ -401,7 +532,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           </div>
           <div className="flex items-center justify-between px-4 py-2">
             <h2 className="text-xl font-bold text-orange-500">People</h2>
-            <Badge variant="outline">{onlineUsers.length} online</Badge>
+            <Badge variant="outline">{filteredUsers.length} online</Badge>
           </div>
           <div className="flex-1 overflow-y-auto">
             {filteredUsers.map(user => (
@@ -423,12 +554,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       {/* Header with icons */}
       <header className="bg-white py-2 px-4 border-b border-border flex items-center justify-end">
         <div className="flex items-center gap-5">
-          <button className="p-1 rounded-full hover:bg-gray-100">
-            <MessageSquare className="h-5 w-5 text-gray-700" />
+          <button 
+            className="p-1 rounded-full hover:bg-gray-100 relative"
+            onClick={() => {
+              setShowInbox(true);
+              setShowHistory(false);
+            }}
+          >
+            <Bell className="h-5 w-5 text-gray-700" />
+            {unreadNotifications.filter(n => !n.read).length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                {unreadNotifications.filter(n => !n.read).length}
+              </span>
+            )}
           </button>
-          <button className="p-1 rounded-full hover:bg-gray-100">
+          <button 
+            className="p-1 rounded-full hover:bg-gray-100"
+            onClick={() => {
+              setShowHistory(true);
+              setShowInbox(false);
+            }}
+          >
             <Clock className="h-5 w-5 text-gray-700" />
           </button>
+          <ThemeToggle />
           <button
             className="p-1 rounded-full hover:bg-gray-100"
             onClick={handleLogout}
@@ -451,13 +600,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           
           <div className="flex items-center justify-between px-4 pb-3">
             <h2 className="text-xl font-bold text-orange-500">People</h2>
-            <button className="px-4 py-1 rounded-md bg-gray-100 text-gray-700 text-sm hover:bg-gray-200 transition-colors">
-              Filters
-            </button>
+            <div className="relative">
+              <button 
+                className="px-4 py-1 rounded-md bg-gray-100 text-gray-700 text-sm hover:bg-gray-200 transition-colors flex items-center gap-1"
+                onClick={() => setShowFilterMenu(!showFilterMenu)}
+              >
+                <Filter className="w-3 h-3" />
+                <span>Filters</span>
+              </button>
+              
+              {showFilterMenu && (
+                <FilterMenu 
+                  isOpen={showFilterMenu}
+                  onClose={() => setShowFilterMenu(false)}
+                  onFilterChange={handleFilterChange}
+                  initialFilters={filters}
+                />
+              )}
+            </div>
           </div>
           
           <div className="px-4 pb-2">
-            <Badge variant="outline" className="text-sm">{onlineUsers.length} online</Badge>
+            <Badge variant="outline" className="text-sm">{filteredUsers.length} online</Badge>
           </div>
           
           <div className="flex-1 overflow-y-auto border-t border-gray-100">
@@ -503,9 +667,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">
-                <MoreVertical className="h-5 w-5 text-gray-600" />
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">
+                    <MoreVertical className="h-5 w-5 text-gray-600" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setShowReportDialog(true)}>
+                    Report
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowBlockDialog(true)}>
+                    Block
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <button className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">
                 <X className="h-5 w-5 text-gray-600" />
               </button>
@@ -514,7 +690,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 
           {/* Messages area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-            {messages.map((message) => (
+            {userChats[currentBot.id]?.map((message) => (
               <MessageBubble 
                 key={message.id} 
                 message={message}
@@ -602,6 +778,45 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           </div>
         </div>
       </div>
+
+      {/* Report Dialog */}
+      <ReportDialog 
+        isOpen={showReportDialog}
+        onClose={() => setShowReportDialog(false)}
+        userName={currentBot.name}
+      />
+
+      {/* Block User Dialog */}
+      <BlockUserDialog
+        isOpen={showBlockDialog}
+        onClose={() => setShowBlockDialog(false)}
+        onConfirm={handleBlockUser}
+        userName={currentBot.name}
+      />
+
+      {/* Site Rules Dialog */}
+      <SiteRulesDialog
+        isOpen={showSiteRules}
+        onAccept={handleAcceptRules}
+      />
+
+      {/* Notification Sidebar */}
+      <NotificationSidebar
+        isOpen={showInbox}
+        onClose={() => setShowInbox(false)}
+        notifications={unreadNotifications}
+        onNotificationRead={handleNotificationRead}
+        type="inbox"
+      />
+
+      {/* History Sidebar */}
+      <NotificationSidebar
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+        notifications={chatHistory}
+        onNotificationRead={() => {}}
+        type="history"
+      />
     </div>
   );
 };
