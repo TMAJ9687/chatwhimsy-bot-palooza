@@ -17,14 +17,24 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
   const [gender, setGender] = useState<string>('');
   const [age, setAge] = useState<number>(25);
   const [country, setCountry] = useState<string>('');
+  const [countryFlag, setCountryFlag] = useState<string>('');
   const [interests, setInterests] = useState<string[]>([]);
-  const [selectedInterest, setSelectedInterest] = useState<string>('');
+  const [ageOptions, setAgeOptions] = useState<number[]>([]);
 
   const popularInterests = [
     'Music', 'Movies', 'Travel', 'Sports', 'Gaming',
     'Photography', 'Cooking', 'Art', 'Reading', 'Technology',
     'Fashion', 'Fitness', 'Nature', 'Science', 'Animals'
   ];
+
+  // Generate age options from 18 to 90
+  useEffect(() => {
+    const options = [];
+    for (let i = 18; i <= 90; i++) {
+      options.push(i);
+    }
+    setAgeOptions(options);
+  }, []);
 
   // Auto detect country
   useEffect(() => {
@@ -33,35 +43,36 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
         const response = await fetch('https://ipapi.co/json/');
         const data = await response.json();
         if (data.country_name) {
-          setCountry(data.country_name);
+          // Skip Israel
+          if (data.country_name.toLowerCase() === 'israel') {
+            setCountry('Palestine');
+            setCountryFlag('ps');
+          } else {
+            setCountry(data.country_name);
+            setCountryFlag(data.country_code.toLowerCase());
+          }
         } else {
-          setCountry('United States'); // Default fallback
+          setCountry('United States');
+          setCountryFlag('us');
         }
       } catch (error) {
         console.error('Error detecting country:', error);
-        setCountry('United States'); // Default fallback
+        setCountry('United States');
+        setCountryFlag('us');
       }
     };
 
     detectCountry();
   }, []);
 
-  const handleAddInterest = () => {
-    if (selectedInterest && !interests.includes(selectedInterest)) {
-      setInterests([...interests, selectedInterest]);
-      setSelectedInterest('');
-    }
-  };
-
-  const handleRemoveInterest = (interest: string) => {
-    setInterests(interests.filter(i => i !== interest));
-  };
-
   const handleInterestClick = (interest: string) => {
     if (interests.includes(interest)) {
-      handleRemoveInterest(interest);
+      setInterests(interests.filter(i => i !== interest));
     } else {
-      setInterests([...interests, interest]);
+      // Limit to 2 interests for standard users
+      if (interests.length < 2) {
+        setInterests([...interests, interest]);
+      }
     }
   };
 
@@ -82,16 +93,16 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
     <div className="animate-slide-up space-y-6">
       <div className="text-center mb-4">
         <h2 className="text-2xl font-semibold mb-2">Complete Your Profile</h2>
-        <p className="text-muted-foreground">
-          Hi <span className="font-medium text-primary">{nickname}</span>, tell us a bit about yourself
+        <p className="text-primary font-medium">
+          Hi {nickname}
         </p>
       </div>
 
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-2">Gender</label>
-          <div className="grid grid-cols-3 gap-3">
-            {['Male', 'Female', 'Other'].map((option) => (
+          <div className="grid grid-cols-2 gap-3">
+            {['Male', 'Female'].map((option) => (
               <button
                 key={option}
                 type="button"
@@ -100,7 +111,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
                   p-3 rounded-lg text-center transition-all duration-300
                   ${gender === option.toLowerCase() 
                     ? 'bg-primary text-white shadow-sm' 
-                    : 'bg-white border border-border hover:border-primary/50'}
+                    : 'bg-card border border-border hover:border-primary/50'}
                 `}
               >
                 {option}
@@ -111,35 +122,37 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
 
         <div>
           <label className="block text-sm font-medium mb-2">Age</label>
-          <div className="glass rounded-lg p-4">
-            <input
-              type="range"
-              min="18"
-              max="80"
-              value={age}
-              onChange={(e) => setAge(parseInt(e.target.value))}
-              className="w-full accent-primary"
-            />
-            <div className="text-center mt-2 font-medium text-lg">
-              {age} years
-            </div>
-          </div>
+          <select
+            value={age}
+            onChange={(e) => setAge(parseInt(e.target.value))}
+            className="w-full bg-card border border-border rounded-lg p-3 text-foreground"
+          >
+            {ageOptions.map((option) => (
+              <option key={option} value={option}>
+                {option} years
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-2">Country</label>
-          <div className="glass rounded-lg p-4 flex items-center justify-between">
-            <span className="text-lg">{country || 'Detecting...'}</span>
-            {country && (
-              <span className="text-primary">
-                <Check className="h-5 w-5" />
-              </span>
+          <div className="bg-card rounded-lg p-4 flex items-center gap-3 border border-border">
+            {countryFlag && (
+              <img 
+                src={`https://flagcdn.com/w40/${countryFlag}.png`} 
+                alt={country} 
+                className="h-6 w-auto"
+              />
             )}
+            <span className="text-lg">{country || 'Detecting...'}</span>
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Interests (Optional)</label>
+          <label className="block text-sm font-medium mb-2">
+            Interests (Select up to 2)
+          </label>
           <div className="flex flex-wrap gap-2 mb-3">
             {popularInterests.map((interest) => (
               <button
@@ -149,49 +162,19 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
                   text-sm px-3 py-1.5 rounded-full transition-all duration-300
                   ${interests.includes(interest)
                     ? 'bg-primary/90 text-white'
-                    : 'bg-white border border-border hover:border-primary/50'}
+                    : 'bg-card border border-border hover:border-primary/50'}
+                  ${interests.length >= 2 && !interests.includes(interest) ? 'opacity-50 cursor-not-allowed' : ''}
                 `}
+                disabled={interests.length >= 2 && !interests.includes(interest)}
               >
                 {interest}
               </button>
             ))}
           </div>
-
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              placeholder="Add custom interest..."
-              value={selectedInterest}
-              onChange={(e) => setSelectedInterest(e.target.value)}
-              className="input-primary flex-1"
-              onKeyDown={(e) => e.key === 'Enter' && handleAddInterest()}
-            />
-            <Button 
-              onClick={handleAddInterest}
-              disabled={!selectedInterest}
-              variant="outline"
-            >
-              Add
-            </Button>
-          </div>
-
-          {interests.length > 0 && (
-            <div className="mt-3">
-              <div className="text-sm font-medium mb-2">Your interests:</div>
-              <div className="flex flex-wrap gap-2">
-                {interests.map((interest) => (
-                  <div key={interest} className="badge-primary">
-                    {interest}
-                    <button
-                      onClick={() => handleRemoveInterest(interest)}
-                      className="ml-1.5 hover:text-accent"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {interests.length === 2 && (
+            <p className="text-xs text-muted-foreground mb-3">
+              Standard users can select up to 2 interests. Upgrade to VIP for more!
+            </p>
           )}
         </div>
       </div>
