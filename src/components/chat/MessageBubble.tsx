@@ -26,7 +26,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   // If this is a system message, render differently
   if (sender === 'system') {
     return (
-      <div className="text-center text-muted-foreground text-sm py-2">
+      <div className="text-center text-gray-500 text-sm py-2">
         {content}
       </div>
     );
@@ -43,19 +43,19 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     
     switch (status) {
       case 'sending':
-        return <Clock className="h-3 w-3 text-white/70" />;
+        return <Clock className="h-3 w-3 text-gray-400" />;
       case 'sent':
-        return <Check className="h-3 w-3 text-white/70" />;
+        return <Check className="h-3 w-3 text-gray-400" />;
       case 'delivered':
         return (
           <div className="flex -space-x-1">
-            <Check className="h-3 w-3 text-white/70" />
-            <Check className="h-3 w-3 text-white/70" />
+            <Check className="h-3 w-3 text-gray-400" />
+            <Check className="h-3 w-3 text-gray-400" />
           </div>
         );
       case 'read':
         return (
-          <div className="flex -space-x-1 text-secondary">
+          <div className="flex -space-x-1 text-teal-500">
             <Check className="h-3 w-3" />
             <Check className="h-3 w-3" />
           </div>
@@ -66,13 +66,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   };
 
   return (
-    <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1 animate-scale`}>
+    <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}>
       <div
         className={`
-          relative px-4 py-2 rounded-2xl max-w-[280px] sm:max-w-[320px] shadow-sm
+          relative px-3 py-2 rounded-2xl max-w-[80%]
           ${isUser 
             ? 'bg-teal-500 text-white rounded-br-none' 
-            : 'bg-white text-foreground rounded-bl-none'}
+            : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'}
         `}
       >
         {isImage ? (
@@ -85,12 +85,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             />
           </div>
         ) : (
-          <div className="whitespace-pre-wrap break-words">{content}</div>
+          <div className="whitespace-pre-wrap break-words text-sm">{content}</div>
         )}
       </div>
       
       {isLastInGroup && (
-        <div className={`flex items-center mt-1 text-xs text-muted-foreground ${isUser ? 'mr-1' : 'ml-1'}`}>
+        <div className={`flex items-center mt-0.5 text-xs text-gray-500 ${isUser ? 'mr-1' : 'ml-1'}`}>
           <span>{formattedTime}</span>
           {getStatusIcon() && <span className="ml-1">{getStatusIcon()}</span>}
         </div>

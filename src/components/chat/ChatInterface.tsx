@@ -1,26 +1,24 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
-  LogOut, 
-  Star, 
-  Search, 
-  Image as ImageIcon, 
-  Send, 
-  Smile, 
+  MoreVertical, 
   X,
   Clock, 
-  MoreVertical,
-  MessageSquare 
+  MessageSquare,
+  LogOut, 
+  Send, 
+  Smile, 
+  Image as ImageIcon, 
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import MessageBubble, { Message } from './MessageBubble';
 import Logo from '../shared/Logo';
-import Button from '../shared/Button';
 import { useUser } from '../../context/UserContext';
 import UserListItem from './UserListItem';
 import SearchInput from './SearchInput';
 import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
 import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
 
 // Enhanced bot profiles with more diverse options
 const botProfiles = [
@@ -61,7 +59,7 @@ const botProfiles = [
     ]
   },
   {
-    id: 'mei',
+    id: 'sakura',
     name: 'Sakura',
     age: 24,
     gender: 'female',
@@ -76,42 +74,6 @@ const botProfiles = [
       "I love anime and manga. Do you have any favorites?",
       "What's your favorite season of the year?",
       "I'm planning to travel next month. Any destination suggestions?"
-    ]
-  },
-  {
-    id: 'carlos',
-    name: 'Carlos',
-    age: 31,
-    gender: 'male',
-    country: 'Brazil',
-    countryCode: 'br',
-    vip: false,
-    interests: ['Football', 'Dancing', 'Cooking'],
-    avatar: 'C',
-    responses: [
-      "Olá! That means hello in Portuguese!",
-      "I'm a big football fan. Do you follow any sports?",
-      "The weather here is amazing today. How is it where you are?",
-      "I'm thinking about learning a new language. Any suggestions?",
-      "What's your favorite type of cuisine?"
-    ]
-  },
-  {
-    id: 'zara',
-    name: 'Zara',
-    age: 28,
-    gender: 'female',
-    country: 'South Africa',
-    countryCode: 'za',
-    vip: true,
-    interests: ['Wildlife', 'Photography', 'Hiking'],
-    avatar: 'Z',
-    responses: [
-      "Namaste! How are you doing today?",
-      "I love dancing and music. What about you?",
-      "Have you ever tried Indian food? It's amazing!",
-      "What kind of hobbies do you enjoy?",
-      "I'm a software developer. What do you do?"
     ]
   },
   {
@@ -130,6 +92,42 @@ const botProfiles = [
       "What brings you to this chat today?",
       "Soccer is huge here in Egypt. Do you follow any sports?",
       "I'd love to know more about your country and culture."
+    ]
+  },
+  {
+    id: 'zara',
+    name: 'Zara',
+    age: 28,
+    gender: 'female',
+    country: 'South Africa',
+    countryCode: 'za',
+    vip: true,
+    interests: ['Wildlife', 'Photography', 'Hiking'],
+    avatar: 'Z',
+    responses: [
+      "Hello! How are you doing today?",
+      "I love nature and wildlife photography. What about you?",
+      "Have you ever been to Africa? It's beautiful here.",
+      "What kind of hobbies do you enjoy?",
+      "I'm planning a hiking trip next weekend. Do you enjoy outdoor activities?"
+    ]
+  },
+  {
+    id: 'carlos',
+    name: 'Carlos',
+    age: 31,
+    gender: 'male',
+    country: 'Brazil',
+    countryCode: 'br',
+    vip: false,
+    interests: ['Football', 'Dancing', 'Cooking'],
+    avatar: 'C',
+    responses: [
+      "Olá! That means hello in Portuguese!",
+      "I'm a big football fan. Do you follow any sports?",
+      "The weather here is amazing today. How is it where you are?",
+      "I'm thinking about learning a new language. Any suggestions?",
+      "What's your favorite type of cuisine?"
     ]
   },
   {
@@ -225,7 +223,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [message, setMessage] = useState('');
-  const [imagesRemaining, setImagesRemaining] = useState(15); // For standard users
+  const [imagesRemaining, setImagesRemaining] = useState(15);
   const [isTyping, setIsTyping] = useState(false);
   const [currentBot, setCurrentBot] = useState(getRandomBot());
   const [onlineUsers, setOnlineUsers] = useState(botProfiles);
@@ -402,7 +400,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
             />
           </div>
           <div className="flex items-center justify-between px-4 py-2">
-            <h2 className="text-xl font-bold text-primary">People</h2>
+            <h2 className="text-xl font-bold text-orange-500">People</h2>
             <Badge variant="outline">{onlineUsers.length} online</Badge>
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -422,42 +420,38 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
-      {/* Header - with icons on right side to match reference */}
-      <header className="bg-white border-b border-border p-4 shadow-sm flex items-center justify-between">
-        <div className="flex items-center">
-          <Logo size="sm" variant="image" className="mr-2" />
-        </div>
-        <div className="flex items-center gap-4">
-          <button className="p-2 rounded-full hover:bg-muted transition-colors">
-            <MessageSquare className="h-5 w-5" />
+      {/* Header with icons */}
+      <header className="bg-white py-2 px-4 border-b border-border flex items-center justify-end">
+        <div className="flex items-center gap-5">
+          <button className="p-1 rounded-full hover:bg-gray-100">
+            <MessageSquare className="h-5 w-5 text-gray-700" />
           </button>
-          <button className="p-2 rounded-full hover:bg-muted transition-colors">
-            <Clock className="h-5 w-5" />
+          <button className="p-1 rounded-full hover:bg-gray-100">
+            <Clock className="h-5 w-5 text-gray-700" />
           </button>
           <button
-            className="p-2 rounded-full hover:bg-muted transition-colors"
+            className="p-1 rounded-full hover:bg-gray-100"
             onClick={handleLogout}
           >
-            <LogOut className="h-5 w-5" />
+            <LogOut className="h-5 w-5 text-red-500" />
           </button>
         </div>
       </header>
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left sidebar - User list */}
-        <div className="hidden md:flex flex-col w-[400px] bg-white border-r border-border overflow-hidden">
-          <div className="p-4 border-b">
+        <div className="hidden md:flex flex-col w-[350px] bg-white border-r border-gray-200 overflow-hidden">
+          <div className="p-4">
             <SearchInput 
               value={searchTerm}
               onChange={setSearchTerm}
               placeholder="Search Keyword"
-              className="bg-gray-100"
             />
           </div>
           
-          <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center justify-between px-4 pb-3">
             <h2 className="text-xl font-bold text-orange-500">People</h2>
-            <button className="px-4 py-1.5 rounded-md bg-gray-100 text-gray-700 text-sm hover:bg-gray-200 transition-colors">
+            <button className="px-4 py-1 rounded-md bg-gray-100 text-gray-700 text-sm hover:bg-gray-200 transition-colors">
               Filters
             </button>
           </div>
@@ -478,15 +472,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           </div>
           
           {/* VIP Upgrade Section */}
-          <div className="p-4 border-t border-border bg-white">
+          <div className="p-4 border-t border-gray-200 bg-white">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 flex items-center justify-center">
-                <Star className="h-5 w-5 text-amber-400" />
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-amber-400">
+                  <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+                </svg>
               </div>
               <div className="flex-1">
                 <div className="text-sm">Unlock all features</div>
               </div>
-              <button className="px-4 py-1.5 rounded-md bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 transition-colors">
+              <button className="px-3 py-1 rounded-md bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 transition-colors">
                 Upgrade
               </button>
             </div>
@@ -499,7 +495,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
         {/* Main chat area */}
         <div className="flex-1 flex flex-col bg-white">
           {/* Chat header */}
-          <div className="px-4 py-3 border-b border-border bg-white flex items-center justify-between">
+          <div className="px-4 py-3 border-b border-gray-200 bg-white flex items-center justify-between">
             <div className="flex items-center">
               <h2 className="text-lg font-semibold">{currentBot.name}</h2>
               <div className="ml-2 text-pink-500 text-sm">
@@ -507,11 +503,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="p-1.5 hover:bg-muted rounded-full transition-colors">
-                <MoreVertical className="h-5 w-5" />
+              <button className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">
+                <MoreVertical className="h-5 w-5 text-gray-600" />
               </button>
-              <button className="p-1.5 hover:bg-muted rounded-full transition-colors">
-                <X className="h-5 w-5" />
+              <button className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">
+                <X className="h-5 w-5 text-gray-600" />
               </button>
             </div>
           </div>
@@ -527,11 +523,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
             ))}
             
             {isTyping && (
-              <div className="flex items-start animate-pulse">
-                <div className="bg-white text-foreground rounded-2xl rounded-bl-none px-4 py-2 shadow-sm inline-flex space-x-1">
-                  <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                  <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '600ms' }}></div>
+              <div className="flex items-start">
+                <div className="bg-white border border-gray-200 text-gray-800 rounded-2xl rounded-bl-none px-3 py-2 shadow-sm inline-flex space-x-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '600ms' }}></div>
                 </div>
               </div>
             )}
@@ -539,28 +535,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
             <div ref={messagesEndRef} />
           </div>
           
-          {/* Message input - styled to match reference */}
-          <div className="p-4 border-t border-border bg-white">
+          {/* Message input */}
+          <div className="p-3 border-t border-gray-200 bg-white">
             {imagePreview && (
               <div className="mb-3 relative">
                 <img
                   src={imagePreview}
                   alt="Preview"
-                  className="h-32 object-contain rounded-lg border border-border"
+                  className="h-32 object-contain rounded-lg border border-gray-200"
                 />
                 <button
                   onClick={() => setImagePreview(null)}
-                  className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-md hover:bg-muted transition-colors"
+                  className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-sm hover:bg-gray-100"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
             )}
           
-            <div className="flex items-center bg-gray-100 rounded-3xl px-4 py-2">
+            <div className="flex items-center bg-gray-100 rounded-full px-4 py-1">
               <input
                 type="text"
-                className="flex-1 bg-transparent border-0 focus:outline-none text-gray-700"
+                className="flex-1 bg-transparent border-0 focus:outline-none text-gray-700 py-2 text-sm"
                 placeholder="Type a message..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -573,10 +569,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
               </div>
               
               <button 
-                className="p-2 text-gray-500 hover:text-gray-700"
+                className="p-1.5 text-gray-500 hover:text-gray-700"
                 onClick={() => {}}
               >
-                <Smile className="h-6 w-6" />
+                <Smile className="h-5 w-5" />
               </button>
               
               <input
@@ -588,15 +584,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
               />
               
               <button
-                className="p-2 text-gray-500 hover:text-gray-700"
+                className="p-1.5 text-gray-500 hover:text-gray-700"
                 onClick={triggerFileInput}
                 disabled={imagesRemaining <= 0 || !!imagePreview}
               >
-                <ImageIcon className="h-6 w-6" />
+                <ImageIcon className="h-5 w-5" />
               </button>
               
               <button
-                className="w-10 h-10 bg-teal-500 text-white rounded-full flex items-center justify-center ml-2 disabled:opacity-50"
+                className="ml-1 w-10 h-10 bg-teal-500 text-white rounded-full flex items-center justify-center disabled:opacity-50"
                 onClick={handleSendMessage}
                 disabled={(!message.trim() && !imagePreview)}
               >

@@ -12,7 +12,7 @@ interface SearchInputProps {
 const SearchInput: React.FC<SearchInputProps> = ({ 
   value, 
   onChange, 
-  placeholder = 'Search...',
+  placeholder = 'Search...', 
   className = ''
 }) => {
   return (
@@ -22,7 +22,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
       </div>
       <input
         type="text"
-        className={`w-full rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-primary placeholder-gray-400 ${className}`}
+        className={`w-full rounded-lg py-2.5 pl-10 pr-4 focus:outline-none placeholder-gray-400 bg-gray-100 ${className}`}
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
