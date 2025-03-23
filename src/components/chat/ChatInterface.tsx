@@ -252,6 +252,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const [chatHistory, setChatHistory] = useState<Notification[]>([]);
   const [showInbox, setShowInbox] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [rulesAccepted, setRulesAccepted] = useState(false);
 
   // Memoized filtered users to prevent recalculation on every render
   const filteredUsers = useMemo(() => {
@@ -288,14 +289,22 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     }
   }, [currentBot.id, userChats]);
 
-  // Show site rules dialog after 3 seconds
+  // Show site rules dialog after 3 seconds, but only if rules haven't been accepted yet
   useEffect(() => {
-    const timer = setTimeout(() => {
-      openDialog('siteRules', { onAccept: () => {} });
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, [openDialog]);
+    // Only show the dialog if rules haven't been accepted yet
+    if (!rulesAccepted) {
+      const timer = setTimeout(() => {
+        openDialog('siteRules', { 
+          onAccept: () => {
+            // Mark rules as accepted when user clicks Accept
+            setRulesAccepted(true);
+          } 
+        });
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [openDialog, rulesAccepted]);
 
   // Handle blocking a user - optimized with useCallback
   const handleBlockUser = useCallback(() => {

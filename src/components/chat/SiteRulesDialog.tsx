@@ -94,9 +94,11 @@ const SiteRulesDialog = () => {
   
   // Memoized handlers
   const handleAccept = useCallback(() => {
+    // Call the onAccept callback if it exists
     if (state.data?.onAccept) {
       state.data.onAccept();
     }
+    // Close the dialog
     closeDialog();
   }, [state.data, closeDialog]);
 

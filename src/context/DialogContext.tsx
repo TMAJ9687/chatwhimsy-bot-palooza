@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useReducer, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useMemo, useCallback } from 'react';
 
 // Define dialog types
 type DialogType = 'report' | 'block' | 'siteRules' | null;
@@ -50,7 +49,9 @@ function dialogReducer(state: DialogState, action: DialogAction): DialogState {
       }
       return {
         ...state,
-        isOpen: false
+        isOpen: false,
+        // Keep type and data in state but mark as closed
+        // This helps prevent re-renders when toggling the same dialog
       };
     default:
       return state;
@@ -62,12 +63,20 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(dialogReducer, initialState);
 
   // Memoize functions to prevent unnecessary re-renders
+  const openDialog = useCallback((type: DialogType, data?: Record<string, any>) => {
+    dispatch({ type: 'OPEN_DIALOG', payload: { type, data } });
+  }, []);
+  
+  const closeDialog = useCallback(() => {
+    dispatch({ type: 'CLOSE_DIALOG' });
+  }, []);
+
+  // Memoize the context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
     state,
-    openDialog: (type: DialogType, data?: Record<string, any>) => 
-      dispatch({ type: 'OPEN_DIALOG', payload: { type, data } }),
-    closeDialog: () => dispatch({ type: 'CLOSE_DIALOG' })
-  }), [state]);
+    openDialog,
+    closeDialog
+  }), [state, openDialog, closeDialog]);
 
   return (
     <DialogContext.Provider value={contextValue}>
