@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
@@ -213,21 +212,22 @@ const getRandomBotResponse = (botId: string) => {
   return bot.responses[Math.floor(Math.random() * bot.responses.length)];
 };
 
-// Function to sort users based on the requirements
+// Function to sort users properly
 const sortUsers = (users: typeof botProfiles, userCountry: string): typeof botProfiles => {
   return [...users].sort((a, b) => {
     // VIP users are always first
     if (a.vip && !b.vip) return -1;
     if (!a.vip && b.vip) return 1;
     
-    // If both are VIP or both are not VIP, sort by country with user's country first
+    // If both are VIP or both are not VIP, sort by country
+    // User's country comes first
     if (a.country === userCountry && b.country !== userCountry) return -1;
     if (a.country !== userCountry && b.country === userCountry) return 1;
     
-    // Then sort alphabetically by country
+    // If neither is user's country or both are user's country, sort alphabetically by country
     if (a.country !== b.country) return a.country.localeCompare(b.country);
     
-    // If countries are the same, sort by name
+    // If countries are the same, sort alphabetically by name
     return a.name.localeCompare(b.name);
   });
 };
@@ -289,6 +289,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   // Sort online users whenever the user's country changes
   useEffect(() => {
     if (userCountry) {
+      console.log('Sorting users based on country:', userCountry);
       const sortedUsers = sortUsers(botProfiles, userCountry);
       setOnlineUsers(sortedUsers);
     }
@@ -372,7 +373,8 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 
   // Handle sending text messages - optimized with useCallback
   const handleSendTextMessage = useCallback((text: string) => {
-    const currentMessages = userChats[currentBot.id] || [];
+    const currentBotId = currentBot.id;
+    const currentMessages = userChats[currentBotId] || [];
     
     const newMessage: Message = {
       id: `user-${Date.now()}`,
@@ -384,15 +386,16 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     
     setUserChats(prev => ({
       ...prev,
-      [currentBot.id]: [...currentMessages, newMessage]
+      [currentBotId]: [...currentMessages, newMessage]
     }));
     
-    simulateBotResponse(newMessage.id, currentBot.id);
+    simulateBotResponse(newMessage.id, currentBotId);
   }, [currentBot.id, userChats]);
 
   // Handle sending image messages - optimized with useCallback
   const handleSendImageMessage = useCallback(async (imageDataUrl: string) => {
-    const currentMessages = userChats[currentBot.id] || [];
+    const currentBotId = currentBot.id;
+    const currentMessages = userChats[currentBotId] || [];
     
     const newMessage: Message = {
       id: `user-${Date.now()}`,
@@ -405,7 +408,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     
     setUserChats(prev => ({
       ...prev,
-      [currentBot.id]: [...currentMessages, newMessage]
+      [currentBotId]: [...currentMessages, newMessage]
     }));
     
     // Track the upload and update remaining count
@@ -416,7 +419,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       console.error('Error tracking image upload:', error);
     }
     
-    simulateBotResponse(newMessage.id, currentBot.id);
+    simulateBotResponse(newMessage.id, currentBotId);
   }, [currentBot.id, userChats]);
 
   // Simulate bot response - optimized to prevent state thrashing
@@ -515,9 +518,13 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 
   // Navigation handlers - optimized with useCallback
   const handleLogout = useCallback(() => {
-    onLogout();
-    navigate('/');
-  }, [onLogout, navigate]);
+    openDialog('logout', { 
+      onConfirm: () => {
+        onLogout();
+        navigate('/');
+      }
+    });
+  }, [onLogout, navigate, openDialog]);
 
   const handleOpenInbox = useCallback(() => {
     setShowInbox(true);

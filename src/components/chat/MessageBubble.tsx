@@ -103,8 +103,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               <img 
                 src={content} 
                 alt="Shared image" 
-                className={`w-full h-auto object-cover transition-all duration-300 ${isBlurred ? 'blur-xl' : ''}`}
+                className={`w-full h-auto object-cover transition-all duration-300 ${isBlurred ? 'blur-3xl' : ''}`}
                 loading="lazy"
+                style={{ maxWidth: '100%' }}
               />
               {isBlurred && (
                 <button 
@@ -114,20 +115,20 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                   <Eye className="h-5 w-5 text-gray-700" />
                 </button>
               )}
-              {!isBlurred && !isFullScreen && (
+              {!isBlurred && (
                 <button 
-                  className="absolute top-2 right-2 bg-black/40 p-1 rounded-full opacity-0 hover:opacity-100 transition-opacity"
-                  onClick={handleToggleFullscreen}
+                  className="absolute top-2 left-2 bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                  onClick={handleToggleBlur}
                 >
-                  <Maximize className="h-4 w-4 text-white" />
+                  <EyeOff className="h-4 w-4 text-white" />
                 </button>
               )}
               {!isBlurred && (
                 <button 
-                  className="absolute top-2 left-2 bg-black/40 p-1 rounded-full opacity-0 hover:opacity-100 transition-opacity"
-                  onClick={handleToggleBlur}
+                  className="absolute top-2 right-2 bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                  onClick={handleToggleFullscreen}
                 >
-                  <EyeOff className="h-4 w-4 text-white" />
+                  <Maximize className="h-4 w-4 text-white" />
                 </button>
               )}
             </div>

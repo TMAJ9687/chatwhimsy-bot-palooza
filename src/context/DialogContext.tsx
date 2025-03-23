@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, ReactNode, useMemo, useCallback } from 'react';
 
 // Define dialog types
-type DialogType = 'report' | 'block' | 'siteRules' | null;
+type DialogType = 'report' | 'block' | 'siteRules' | 'logout' | null;
 
 // Define dialog state
 interface DialogState {

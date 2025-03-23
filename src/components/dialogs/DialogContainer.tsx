@@ -6,6 +6,7 @@ import { useDialog } from '@/context/DialogContext';
 const ReportDialog = lazy(() => import('./ReportDialog'));
 const BlockUserDialog = lazy(() => import('./BlockUserDialog'));
 const SiteRulesDialog = lazy(() => import('../chat/SiteRulesDialog'));
+const LogoutConfirmationDialog = lazy(() => import('./LogoutConfirmationDialog'));
 
 // Loading fallback component
 const DialogLoading = () => (
@@ -26,6 +27,7 @@ const DialogContainer = () => {
       {state.type === 'report' && <ReportDialog />}
       {state.type === 'block' && <BlockUserDialog />}
       {state.type === 'siteRules' && <SiteRulesDialog />}
+      {state.type === 'logout' && <LogoutConfirmationDialog />}
     </Suspense>
   );
 };
