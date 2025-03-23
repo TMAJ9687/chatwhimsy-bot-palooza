@@ -5,11 +5,15 @@ import MessageBubble, { Message } from './MessageBubble';
 interface ChatMessagesProps {
   messages: Message[];
   isTyping: boolean;
+  showStatus?: boolean;
+  showTyping?: boolean;
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({ 
   messages, 
-  isTyping 
+  isTyping,
+  showStatus = true,
+  showTyping = true
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -39,10 +43,11 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
           key={message.id} 
           message={message}
           isLastInGroup={true}
+          showStatus={showStatus}
         />
       ))}
       
-      {isTyping && (
+      {isTyping && showTyping && (
         <div className="flex items-start">
           <div className="bg-white border border-gray-200 text-gray-800 rounded-2xl rounded-bl-none px-3 py-2 shadow-sm inline-flex space-x-1">
             <div className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '0ms' }}></div>

@@ -14,11 +14,13 @@ export interface Message {
 interface MessageBubbleProps {
   message: Message;
   isLastInGroup?: boolean;
+  showStatus?: boolean;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ 
   message, 
-  isLastInGroup = false 
+  isLastInGroup = false,
+  showStatus = true
 }) => {
   const { sender, content, timestamp, status, isImage } = message;
   const isUser = sender === 'user';
@@ -42,7 +44,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   }).format(timestamp);
 
   const getStatusIcon = () => {
-    if (!isUser) return null;
+    if (!isUser || !showStatus) return null;
     
     switch (status) {
       case 'sending':
@@ -100,37 +102,38 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               className="rounded-lg overflow-hidden cursor-pointer"
               onClick={isBlurred ? handleToggleBlur : handleToggleFullscreen}
             >
-              <img 
-                src={content} 
-                alt="Shared image" 
-                className={`w-full h-auto object-cover transition-all duration-300 ${isBlurred ? 'blur-3xl' : ''}`}
-                loading="lazy"
-                style={{ maxWidth: '100%' }}
-              />
-              {isBlurred && (
-                <button 
-                  className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full"
-                  onClick={handleToggleBlur}
-                >
-                  <Eye className="h-5 w-5 text-gray-700" />
-                </button>
-              )}
-              {!isBlurred && (
-                <button 
-                  className="absolute top-2 left-2 bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
-                  onClick={handleToggleBlur}
-                >
-                  <EyeOff className="h-4 w-4 text-white" />
-                </button>
-              )}
-              {!isBlurred && (
-                <button 
-                  className="absolute top-2 right-2 bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
-                  onClick={handleToggleFullscreen}
-                >
-                  <Maximize className="h-4 w-4 text-white" />
-                </button>
-              )}
+              <div className="w-[250px] h-[250px] relative overflow-hidden">
+                <img 
+                  src={content} 
+                  alt="Shared image" 
+                  className={`w-full h-full object-cover transition-all duration-300 ${isBlurred ? 'blur-xl' : ''}`}
+                  loading="lazy"
+                />
+                {isBlurred && (
+                  <button 
+                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full"
+                    onClick={handleToggleBlur}
+                  >
+                    <Eye className="h-5 w-5 text-gray-700" />
+                  </button>
+                )}
+                {!isBlurred && (
+                  <button 
+                    className="absolute top-2 left-2 bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                    onClick={handleToggleBlur}
+                  >
+                    <EyeOff className="h-4 w-4 text-white" />
+                  </button>
+                )}
+                {!isBlurred && (
+                  <button 
+                    className="absolute top-2 right-2 bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                    onClick={handleToggleFullscreen}
+                  >
+                    <Maximize className="h-4 w-4 text-white" />
+                  </button>
+                )}
+              </div>
             </div>
             
             {/* Fullscreen image modal */}
@@ -163,7 +166,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       {isLastInGroup && (
         <div className={`flex items-center mt-0.5 text-xs text-gray-500 ${isUser ? 'mr-1' : 'ml-1'}`}>
           <span>{formattedTime}</span>
-          {getStatusIcon() && <span className="ml-1">{getStatusIcon()}</span>}
+          {showStatus && getStatusIcon() && <span className="ml-1">{getStatusIcon()}</span>}
         </div>
       )}
     </div>

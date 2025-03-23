@@ -213,22 +213,14 @@ const getRandomBotResponse = (botId: string) => {
 };
 
 // Function to sort users properly
-const sortUsers = (users: typeof botProfiles, userCountry: string): typeof botProfiles => {
+const sortUsers = (users: typeof botProfiles): typeof botProfiles => {
   return [...users].sort((a, b) => {
     // VIP users are always first
     if (a.vip && !b.vip) return -1;
     if (!a.vip && b.vip) return 1;
     
-    // If both are VIP or both are not VIP, sort by country
-    // User's country comes first
-    if (a.country === userCountry && b.country !== userCountry) return -1;
-    if (a.country !== userCountry && b.country === userCountry) return 1;
-    
-    // If neither is user's country or both are user's country, sort alphabetically by country
-    if (a.country !== b.country) return a.country.localeCompare(b.country);
-    
-    // If countries are the same, sort alphabetically by name
-    return a.name.localeCompare(b.name);
+    // If both are VIP or both are not VIP, sort by country alphabetically
+    return a.country.localeCompare(b.country) || a.name.localeCompare(b.name);
   });
 };
 
@@ -247,7 +239,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const [imagesRemaining, setImagesRemaining] = useState(IMAGE_UPLOAD_LIMIT);
   const [isTyping, setIsTyping] = useState(false);
   const [currentBot, setCurrentBot] = useState(getRandomBot());
-  const [onlineUsers, setOnlineUsers] = useState(botProfiles);
+  const [onlineUsers, setOnlineUsers] = useState(sortUsers(botProfiles));
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<FilterState>({
     gender: 'any',
@@ -260,6 +252,17 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const [showHistory, setShowHistory] = useState(false);
   const [rulesAccepted, setRulesAccepted] = useState(false);
   const [userCountry, setUserCountry] = useState<string>('');
+  
+  // Track if a bot is currently typing in each chat
+  const [typingBots, setTypingBots] = useState<Record<string, boolean>>({});
+  
+  // Use a ref to track the current bot ID to handle async operations
+  const currentBotIdRef = useRef<string>(currentBot.id);
+  
+  // Update the ref whenever currentBot changes
+  useEffect(() => {
+    currentBotIdRef.current = currentBot.id;
+  }, [currentBot.id]);
   
   // Get user's country for sorting and fetch remaining uploads
   useEffect(() => {
@@ -290,7 +293,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   useEffect(() => {
     if (userCountry) {
       console.log('Sorting users based on country:', userCountry);
-      const sortedUsers = sortUsers(botProfiles, userCountry);
+      const sortedUsers = sortUsers(botProfiles);
       setOnlineUsers(sortedUsers);
     }
   }, [userCountry]);
@@ -388,9 +391,20 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       ...prev,
       [currentBotId]: [...currentMessages, newMessage]
     }));
+
+    // Add notification for this message
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      title: `Message to ${currentBot.name}`,
+      message: text.slice(0, 30) + (text.length > 30 ? '...' : ''),
+      time: new Date(),
+      read: true
+    };
+    
+    setChatHistory(prev => [newNotification, ...prev]);
     
     simulateBotResponse(newMessage.id, currentBotId);
-  }, [currentBot.id, userChats]);
+  }, [currentBot.id, currentBot.name, userChats]);
 
   // Handle sending image messages - optimized with useCallback
   const handleSendImageMessage = useCallback(async (imageDataUrl: string) => {
@@ -419,19 +433,27 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       console.error('Error tracking image upload:', error);
     }
     
-    simulateBotResponse(newMessage.id, currentBotId);
-  }, [currentBot.id, userChats]);
-
-  // Simulate bot response - optimized to prevent state thrashing
-  const simulateBotResponse = useCallback((messageId: string, botId: string) => {
-    // Add to chat history
-    setChatHistory(prev => [{
+    // Add notification for this image message
+    const newNotification: Notification = {
       id: Date.now().toString(),
-      title: `Message to ${currentBot.name}`,
-      message: 'You sent a message',
+      title: `Image sent to ${currentBot.name}`,
+      message: 'You sent an image',
       time: new Date(),
       read: true
-    }, ...prev]);
+    };
+    
+    setChatHistory(prev => [newNotification, ...prev]);
+    
+    simulateBotResponse(newMessage.id, currentBotId);
+  }, [currentBot.id, currentBot.name, userChats]);
+
+  // Simulate bot response - improved to prevent state thrashing and track current bot
+  const simulateBotResponse = useCallback((messageId: string, botId: string) => {
+    // Track which bot is typing
+    setTypingBots(prev => ({
+      ...prev,
+      [botId]: true
+    }));
 
     // Use a single setState for all status updates
     const updateMessageStatus = (status: 'sending' | 'sent' | 'delivered' | 'read') => {
@@ -450,12 +472,16 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     setTimeout(() => updateMessageStatus('sent'), 500);
     setTimeout(() => updateMessageStatus('delivered'), 1000);
     
-    // Bot starts typing
-    setTimeout(() => setIsTyping(true), 1500);
-
     // Bot sends response
     setTimeout(() => {
-      setIsTyping(false);
+      // Only update if this is still the current bot OR if user is VIP
+      const isCurrent = currentBotIdRef.current === botId;
+      
+      // Update typing status
+      setTypingBots(prev => ({
+        ...prev,
+        [botId]: false
+      }));
       
       setUserChats(prev => {
         // Get the messages for this specific bot
@@ -466,22 +492,38 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           msg.sender === 'user' ? { ...msg, status: 'read' as const } : msg
         );
         
+        // Generate bot response
+        const botResponse = {
+          id: `bot-${Date.now()}`,
+          content: getRandomBotResponse(botId),
+          sender: 'bot' as const,
+          timestamp: new Date(),
+        };
+        
+        // Add notification for new message from bot
+        if (!isCurrent) {
+          const newNotification: Notification = {
+            id: Date.now().toString(),
+            title: `New message from ${botProfiles.find(b => b.id === botId)?.name || 'User'}`,
+            message: botResponse.content.slice(0, 30) + (botResponse.content.length > 30 ? '...' : ''),
+            time: new Date(),
+            read: false
+          };
+          
+          setUnreadNotifications(prev => [newNotification, ...prev]);
+        }
+        
         // Add bot's message
         return {
           ...prev,
           [botId]: [
             ...updatedMessages,
-            {
-              id: `bot-${Date.now()}`,
-              content: getRandomBotResponse(botId),
-              sender: 'bot' as const,
-              timestamp: new Date(),
-            }
+            botResponse
           ]
         };
       });
     }, 3000);
-  }, [currentBot.name]);
+  }, []);
 
   // Handle user selection - optimized with useCallback
   const selectUser = useCallback((user: typeof botProfiles[0]) => {
@@ -542,6 +584,9 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     [unreadNotifications]
   );
 
+  // Check if current user is VIP
+  const isVip = currentBot.vip;
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       {/* Header with icons */}
@@ -592,7 +637,9 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           {/* Messages area component */}
           <ChatMessages 
             messages={userChats[currentBot.id] || []}
-            isTyping={isTyping}
+            isTyping={typingBots[currentBot.id] || false}
+            showStatus={isVip}
+            showTyping={isVip}
           />
           
           {/* Message input component */}
