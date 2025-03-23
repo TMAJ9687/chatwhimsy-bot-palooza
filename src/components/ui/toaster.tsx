@@ -40,7 +40,8 @@ const ToastItem = memo(({
 
 ToastItem.displayName = "ToastItem"
 
-export function Toaster() {
+// Wrap the entire Toaster component with memo for better performance
+const ToasterComponent = () => {
   const { toasts } = useToast()
 
   return (
@@ -61,3 +62,6 @@ export function Toaster() {
     </ToastProvider>
   )
 }
+
+// Memoize the whole component to prevent unnecessary re-renders
+export const Toaster = memo(ToasterComponent)

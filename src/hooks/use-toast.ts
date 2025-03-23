@@ -7,7 +7,7 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 5000 // Significantly reduced from 1000000 to 5000ms (5 seconds)
+const TOAST_REMOVE_DELAY = 3000 // Reduced to 3 seconds
 
 type ToasterToast = ToastProps & {
   id: string
@@ -54,11 +54,15 @@ interface State {
   toasts: ToasterToast[]
 }
 
+// Map to store timeouts
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
+// Clear existing timeout before adding to remove queue
 const addToRemoveQueue = (toastId: string) => {
+  // Clear existing timeout if it exists
   if (toastTimeouts.has(toastId)) {
-    return
+    clearTimeout(toastTimeouts.get(toastId));
+    toastTimeouts.delete(toastId);
   }
 
   const timeout = setTimeout(() => {
@@ -72,13 +76,22 @@ const addToRemoveQueue = (toastId: string) => {
   toastTimeouts.set(toastId, timeout)
 }
 
+// More efficient reducer that minimizes state updates
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
-    case "ADD_TOAST":
+    case "ADD_TOAST": {
+      // Immediately dismiss any existing toasts to prevent stacking
+      state.toasts.forEach(toast => {
+        if (toast.open) {
+          addToRemoveQueue(toast.id);
+        }
+      });
+      
       return {
         ...state,
         toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
-      }
+      };
+    }
 
     case "UPDATE_TOAST":
       return {
@@ -91,7 +104,7 @@ export const reducer = (state: State, action: Action): State => {
     case "DISMISS_TOAST": {
       const { toastId } = action
 
-      // Side effects
+      // Dismiss specific toast or all toasts
       if (toastId) {
         addToRemoveQueue(toastId)
       } else {
@@ -113,16 +126,25 @@ export const reducer = (state: State, action: Action): State => {
       }
     }
     case "REMOVE_TOAST":
+      // Optimize by avoiding unnecessary object creation if no toasts to remove
       if (action.toastId === undefined) {
         return {
           ...state,
           toasts: [],
         }
       }
+      
+      // If the toasts array is empty, return the current state
+      if (state.toasts.length === 0) {
+        return state;
+      }
+      
       return {
         ...state,
         toasts: state.toasts.filter((t) => t.id !== action.toastId),
       }
+    default:
+      return state;
   }
 }
 
@@ -139,7 +161,8 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
-function toast({ ...props }: Toast) {
+// Optimize toast function with default duration
+function toast({ duration = TOAST_REMOVE_DELAY, ...props }: Toast & { duration?: number }) {
   const id = genId()
 
   const update = (props: ToasterToast) =>
@@ -147,6 +170,7 @@ function toast({ ...props }: Toast) {
       type: "UPDATE_TOAST",
       toast: { ...props, id },
     })
+  
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
 
   dispatch({
@@ -155,6 +179,7 @@ function toast({ ...props }: Toast) {
       ...props,
       id,
       open: true,
+      duration, // Use the provided duration or default
       onOpenChange: (open) => {
         if (!open) dismiss()
       },
@@ -168,6 +193,7 @@ function toast({ ...props }: Toast) {
   }
 }
 
+// Optimize useToast with useMemo
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
@@ -179,13 +205,15 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+  }, [])
 
-  return {
+  const memoizedValue = React.useMemo(() => ({
     ...state,
     toast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
-  }
+  }), [state]);
+
+  return memoizedValue;
 }
 
 export { useToast, toast }

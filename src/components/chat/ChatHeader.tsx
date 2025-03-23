@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { MoreVertical, X } from 'lucide-react';
 import { 
   DropdownMenu,
@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '../ui/dropdown-menu';
+import { useDialog } from '@/context/DialogContext';
 
 interface ChatHeaderProps {
   currentUser: {
@@ -14,16 +15,30 @@ interface ChatHeaderProps {
     gender: string;
     age: number;
   };
-  onOpenReportDialog: () => void;
-  onOpenBlockDialog: () => void;
+  onBlockUser: () => void;
+  onCloseChat?: () => void;
 }
 
 // Simplified implementation with fewer callback recreations
 const ChatHeader: React.FC<ChatHeaderProps> = ({
   currentUser,
-  onOpenReportDialog,
-  onOpenBlockDialog,
+  onBlockUser,
+  onCloseChat,
 }) => {
+  const { openDialog } = useDialog();
+
+  // Using useCallback to prevent unnecessary recreations
+  const handleOpenReportDialog = useCallback(() => {
+    openDialog('report', { userName: currentUser.name });
+  }, [openDialog, currentUser.name]);
+
+  const handleOpenBlockDialog = useCallback(() => {
+    openDialog('block', { 
+      userName: currentUser.name,
+      onBlockUser: onBlockUser
+    });
+  }, [openDialog, currentUser.name, onBlockUser]);
+
   return (
     <div className="px-4 py-3 border-b border-gray-200 bg-white flex items-center justify-between">
       <div className="flex items-center">
@@ -44,21 +59,24 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onOpenReportDialog}>
+            <DropdownMenuItem onClick={handleOpenReportDialog}>
               Report
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onOpenBlockDialog}>
+            <DropdownMenuItem onClick={handleOpenBlockDialog}>
               Block
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <button 
-          className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
-          aria-label="Close"
-          type="button"
-        >
-          <X className="h-5 w-5 text-gray-600" />
-        </button>
+        {onCloseChat && (
+          <button 
+            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label="Close"
+            type="button"
+            onClick={onCloseChat}
+          >
+            <X className="h-5 w-5 text-gray-600" />
+          </button>
+        )}
       </div>
     </div>
   );
