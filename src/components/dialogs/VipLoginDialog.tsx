@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Dialog, 
@@ -9,7 +10,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { Crown, KeyRound, AtSign } from 'lucide-react';
@@ -18,7 +18,6 @@ import { useDialog } from '@/context/DialogContext';
 import { useUser } from '@/context/UserContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useNavigate } from 'react-router-dom';
 
 // Form schema
 const loginSchema = z.object({
@@ -33,7 +32,6 @@ const VipLoginDialog = () => {
   const { toast } = useToast();
   const { updateUserProfile } = useUser();
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -70,8 +68,8 @@ const VipLoginDialog = () => {
         
         closeDialog();
         
-        // Redirect to VIP Profile setup page
-        navigate('/vip-profile');
+        // Use window.location for navigation instead of useNavigate
+        window.location.href = '/vip-profile';
       } else {
         // Failed login
         form.setError('password', { 

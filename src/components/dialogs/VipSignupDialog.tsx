@@ -18,7 +18,6 @@ import { useDialog } from '@/context/DialogContext';
 import { useUser } from '@/context/UserContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useNavigate } from 'react-router-dom';
 
 // Form schema
 const signupSchema = z.object({
@@ -38,7 +37,6 @@ const VipSignupDialog = () => {
   const { toast } = useToast();
   const { updateUserProfile } = useUser();
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
   
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -75,8 +73,8 @@ const VipSignupDialog = () => {
       
       closeDialog();
       
-      // Redirect to VIP Profile setup page
-      navigate('/vip-profile');
+      // Use window.location for navigation instead of useNavigate
+      window.location.href = '/vip-profile';
     }, 1500);
   };
 

@@ -10,15 +10,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Crown, Check, Mail } from 'lucide-react';
 import { useDialog } from '@/context/DialogContext';
-import { useNavigate } from 'react-router-dom';
 
 const VipConfirmationDialog = () => {
   const { state, closeDialog } = useDialog();
-  const navigate = useNavigate();
   
   const handleStartVip = () => {
     closeDialog();
-    navigate('/vip-profile');
+    // Use window.location for navigation instead of useNavigate
+    window.location.href = '/vip-profile';
   };
   
   return (
