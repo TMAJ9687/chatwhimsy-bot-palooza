@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { Message } from '@/components/chat/MessageBubble';
 import { Notification } from '@/components/chat/NotificationSidebar';
@@ -223,7 +224,7 @@ interface ChatContextType {
   userChats: Record<string, Message[]>;
   imagesRemaining: number;
   typingBots: Record<string, boolean>;
-  currentBot: Bot | null;
+  currentBot: Bot;
   onlineUsers: Bot[];
   searchTerm: string;
   filters: FilterState;
@@ -247,7 +248,6 @@ interface ChatContextType {
   selectUser: (user: Bot) => void;
   handleFilterChange: (newFilters: FilterState) => void;
   handleNotificationRead: (id: string) => void;
-  openConversationFromNotification: (senderId: string) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -257,7 +257,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [userChats, setUserChats] = useState<Record<string, Message[]>>({});
   const [imagesRemaining, setImagesRemaining] = useState(IMAGE_UPLOAD_LIMIT);
   const [isTyping, setIsTyping] = useState(false);
-  const [currentBot, setCurrentBot] = useState<Bot | null>(null);
+  const [currentBot, setCurrentBot] = useState(getRandomBot());
   const [onlineUsers, setOnlineUsers] = useState(sortUsers(botProfiles));
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<FilterState>({
@@ -276,12 +276,12 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [typingBots, setTypingBots] = useState<Record<string, boolean>>({});
   
   // Use a ref to track the current bot ID to handle async operations
-  const currentBotIdRef = useRef<string | null>(currentBot?.id || null);
+  const currentBotIdRef = useRef<string>(currentBot.id);
   
   // Update the ref whenever currentBot changes
   useEffect(() => {
-    currentBotIdRef.current = currentBot?.id || null;
-  }, [currentBot]);
+    currentBotIdRef.current = currentBot.id;
+  }, [currentBot.id]);
   
   // Get user's country for sorting and fetch remaining uploads
   useEffect(() => {
@@ -358,47 +358,21 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Initialize chat for current bot if it doesn't exist
   useEffect(() => {
-    if (currentBot && !userChats[currentBot.id]) {
+    if (!userChats[currentBot.id]) {
       setUserChats(prev => ({
         ...prev,
         [currentBot.id]: [{
           id: `system-${Date.now()}`,
           content: `Start a conversation with ${currentBot.name}`,
-          senderId: 'system',
-          senderName: 'System',
+          sender: 'system',
           timestamp: new Date(),
-          isUser: false,
         }]
       }));
     }
-  }, [currentBot, userChats]);
-
-  // Define selectUser before it's used in any other function
-  // Handle user selection - optimized with useCallback
-  const selectUser = useCallback((user: Bot) => {
-    if (!user.id || (currentBot && user.id === currentBot.id)) return;
-    
-    setCurrentBot(user);
-    
-    if (!userChats[user.id]) {
-      setUserChats(prev => ({
-        ...prev,
-        [user.id]: [{
-          id: `system-${Date.now()}`,
-          content: `Start a conversation with ${user.name}`,
-          senderId: 'system',
-          senderName: 'System',
-          timestamp: new Date(),
-          isUser: false,
-        }]
-      }));
-    }
-  }, [currentBot, userChats]);
+  }, [currentBot.id, userChats]);
 
   // Handle blocking a user - optimized with useCallback
   const handleBlockUser = useCallback(() => {
-    if (!currentBot) return;
-    
     // Remove user from online users
     setOnlineUsers(prev => prev.filter(user => user.id !== currentBot.id));
     
@@ -406,30 +380,28 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (filteredUsers.length > 1) {
       const newUser = filteredUsers.find(user => user.id !== currentBot.id);
       if (newUser) selectUser(newUser);
-    } else {
-      // No users left to select
-      setCurrentBot(null);
     }
-  }, [currentBot, filteredUsers, selectUser]);
+  }, [currentBot.id, filteredUsers]);
 
   // Handle closing a chat
   const handleCloseChat = useCallback(() => {
-    setCurrentBot(null);
-  }, []);
+    // If there are other users, select a new one
+    if (filteredUsers.length > 1) {
+      const newUser = filteredUsers.find(user => user.id !== currentBot.id);
+      if (newUser) selectUser(newUser);
+    }
+  }, [currentBot.id, filteredUsers]);
 
   // Handle sending text messages - optimized with useCallback
   const handleSendTextMessage = useCallback((text: string) => {
-    const currentBotId = currentBot?.id;
-    if (!currentBotId) return;
+    const currentBotId = currentBot.id;
     const currentMessages = userChats[currentBotId] || [];
     
     const newMessage: Message = {
       id: `user-${Date.now()}`,
       content: text,
-      senderId: 'user',
-      senderName: 'You',
+      sender: 'user',
       timestamp: new Date(),
-      isUser: true,
       status: 'sending',
     };
     
@@ -443,28 +415,25 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       id: Date.now().toString(),
       title: `Message to ${currentBot.name}`,
       message: text.slice(0, 30) + (text.length > 30 ? '...' : ''),
-      timestamp: new Date(),
+      time: new Date(),
       read: true
     };
     
     setChatHistory(prev => [newNotification, ...prev]);
     
     simulateBotResponse(newMessage.id, currentBotId);
-  }, [currentBot, userChats]);
+  }, [currentBot.id, currentBot.name, userChats]);
 
   // Handle sending image messages - optimized with useCallback
   const handleSendImageMessage = useCallback(async (imageDataUrl: string) => {
-    const currentBotId = currentBot?.id;
-    if (!currentBotId) return;
+    const currentBotId = currentBot.id;
     const currentMessages = userChats[currentBotId] || [];
     
     const newMessage: Message = {
       id: `user-${Date.now()}`,
       content: imageDataUrl,
-      senderId: 'user',
-      senderName: 'You',
+      sender: 'user',
       timestamp: new Date(),
-      isUser: true,
       status: 'sending',
       isImage: true,
     };
@@ -487,46 +456,16 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       id: Date.now().toString(),
       title: `Image sent to ${currentBot.name}`,
       message: 'You sent an image',
-      timestamp: new Date(),
+      time: new Date(),
       read: true
     };
     
     setChatHistory(prev => [newNotification, ...prev]);
     
     simulateBotResponse(newMessage.id, currentBotId);
-  }, [currentBot, userChats]);
+  }, [currentBot.id, currentBot.name, userChats]);
 
-  // New function to open a conversation from notification
-  const openConversationFromNotification = useCallback((senderId: string) => {
-    // Find the bot with the matching ID
-    const bot = onlineUsers.find(user => user.id === senderId);
-    if (bot) {
-      // Select this user to open their conversation
-      selectUser(bot);
-      // Close the inbox
-      setShowInbox(false);
-    }
-  }, [onlineUsers, selectUser, setShowInbox]);
-
-  // Modified notification handling to prevent duplicates
-  useEffect(() => {
-    if (!typingBots) return;
-    
-    // Mark notifications as read when viewing that user's conversation
-    if (currentBot) {
-      setUnreadNotifications(prev => 
-        prev.map(notif => {
-          // Find notifications that match the current bot's name
-          if (notif.title.includes(currentBot.name)) {
-            return { ...notif, read: true };
-          }
-          return notif;
-        })
-      );
-    }
-  }, [currentBot, typingBots]);
-
-  // Modified function to handle bot responses
+  // Simulate bot response - improved to prevent state thrashing and track current bot
   const simulateBotResponse = useCallback((messageId: string, botId: string) => {
     // Track which bot is typing
     setTypingBots(prev => ({
@@ -547,15 +486,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
     };
 
-    // Only show status updates for VIP users
-    const botProfile = botProfiles.find(b => b.id === botId);
-    const isVipChat = botProfile?.vip || false;
-    
-    // Schedule status updates only for VIP users
-    if (isVipChat) {
-      setTimeout(() => updateMessageStatus('sent'), 500);
-      setTimeout(() => updateMessageStatus('delivered'), 1000);
-    }
+    // Schedule status updates
+    setTimeout(() => updateMessageStatus('sent'), 500);
+    setTimeout(() => updateMessageStatus('delivered'), 1000);
     
     // Bot sends response
     setTimeout(() => {
@@ -572,56 +505,32 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Get the messages for this specific bot
         const botMessages = [...(prev[botId] || [])];
         
-        // Update message status (specifying the exact type) - only for VIP users
+        // Update message status (specifying the exact type)
         const updatedMessages = botMessages.map(msg => 
-          (msg.isUser && isVipChat) ? { ...msg, status: 'read' as const } : msg
+          msg.sender === 'user' ? { ...msg, status: 'read' as const } : msg
         );
         
         // Generate bot response
-        const botResponse: Message = {
+        const botResponse = {
           id: `bot-${Date.now()}`,
           content: getRandomBotResponse(botId),
-          senderId: botId,
-          senderName: botProfiles.find(b => b.id === botId)?.name || 'Bot',
+          sender: 'bot' as const,
           timestamp: new Date(),
-          isUser: false,
         };
         
-        // Add notification for new message from bot, but only if not already present
+        // Add notification for new message from bot
         if (!isCurrent) {
           const botProfile = botProfiles.find(b => b.id === botId);
           
-          if (botProfile) {
-            // Check if we already have a notification from this sender
-            const existingNotifIndex = unreadNotifications.findIndex(
-              n => n.title.includes(botProfile.name)
-            );
-            
-            if (existingNotifIndex >= 0) {
-              // Update existing notification instead of creating a new one
-              const updatedNotifications = [...unreadNotifications];
-              updatedNotifications[existingNotifIndex] = {
-                ...updatedNotifications[existingNotifIndex],
-                message: `${botProfile.name} sent you a new message`,
-                timestamp: new Date(),
-                read: false
-              };
-              
-              setUnreadNotifications(updatedNotifications);
-            } else {
-              // Create new notification
-              const newNotification: Notification = {
-                id: Date.now().toString(),
-                title: `New message from ${botProfile.name}`,
-                message: `${botProfile.name} sent you a new message`,
-                timestamp: new Date(),
-                read: false,
-                senderId: botProfile.id
-              };
-              
-              setUnreadNotifications(prev => [newNotification, ...prev]);
-            }
-          }
+          const newNotification: Notification = {
+            id: Date.now().toString(),
+            title: `New message from ${botProfile?.name || 'User'}`,
+            message: botResponse.content.slice(0, 30) + (botResponse.content.length > 30 ? '...' : ''),
+            time: new Date(),
+            read: false
+          };
+          
+          setUnreadNotifications(prev => [newNotification, ...prev]);
         }
         
         // Add bot's message
@@ -634,7 +543,26 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
       });
     }, 3000);
-}, [unreadNotifications]);
+  }, []);
+
+  // Handle user selection - optimized with useCallback
+  const selectUser = useCallback((user: Bot) => {
+    if (user.id !== currentBot.id) {
+      setCurrentBot(user);
+      
+      if (!userChats[user.id]) {
+        setUserChats(prev => ({
+          ...prev,
+          [user.id]: [{
+            id: `system-${Date.now()}`,
+            content: `Start a conversation with ${user.name}`,
+            sender: 'system',
+            timestamp: new Date(),
+          }]
+        }));
+      }
+    }
+  }, [currentBot.id, userChats]);
 
   // Filter change handler - optimized with useCallback
   const handleFilterChange = useCallback((newFilters: FilterState) => {
@@ -657,7 +585,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 
   // Check if current user is VIP
-  const isVip = currentBot?.vip || false;
+  const isVip = currentBot.vip;
 
   // Context value
   const contextValue = {
@@ -687,8 +615,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     handleSendImageMessage,
     selectUser,
     handleFilterChange,
-    handleNotificationRead,
-    openConversationFromNotification
+    handleNotificationRead
   };
 
   return (

@@ -63,7 +63,7 @@ const VipSubscriptionDialog = () => {
 
   return (
     <Dialog open={state.isOpen && state.type === 'vipSubscription'} onOpenChange={closeDialog}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader className="text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900">
             <Crown className="h-6 w-6 text-amber-500" />
@@ -139,7 +139,7 @@ const VipSubscriptionDialog = () => {
           </div>
         </div>
         
-        <DialogFooter className="mt-6 sticky bottom-0 pt-4 bg-background">
+        <DialogFooter className="mt-6">
           <Button
             onClick={handleContinue}
             className="w-full bg-amber-500 hover:bg-amber-600"

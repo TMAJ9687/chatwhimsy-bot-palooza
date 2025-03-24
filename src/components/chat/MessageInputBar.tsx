@@ -1,270 +1,204 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Send, Image as ImageIcon, X } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { Message } from './MessageBubble';
-import { useUser } from '@/context/UserContext';
-import VoiceMessageRecorder from './VoiceMessageRecorder';
+import { Send, Smile, Image as ImageIcon, X, Eye, EyeOff } from 'lucide-react';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 
 interface MessageInputBarProps {
   onSendMessage: (text: string) => void;
-  onSendImage?: (imageDataUrl: string) => void;
-  onSendVoice?: (audioUrl: string) => void;
-  replyTo?: Message | null;
-  onCancelReply?: () => void;
-  imagesRemaining?: number;
+  onSendImage: (imageDataUrl: string) => void;
+  imagesRemaining: number;
 }
 
 const MessageInputBar: React.FC<MessageInputBarProps> = ({
   onSendMessage,
   onSendImage,
-  onSendVoice,
-  replyTo,
-  onCancelReply,
-  imagesRemaining = 0
+  imagesRemaining
 }) => {
   const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { toast } = useToast();
-  const { isVip, userRole } = useUser();
-  
-  // Get max message length based on user type
-  const MAX_MESSAGE_LENGTH = isVip ? 200 : 120;
+  const emojiButtonRef = useRef<HTMLButtonElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const [theme, setTheme] = useState('light');
 
-  // Handle textarea resize when content changes
+  // Detect theme for emoji picker
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = 
-        Math.min(textareaRef.current.scrollHeight, 150) + 'px';
-    }
-  }, [message]);
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    setTheme(isDarkMode ? 'dark' : 'light');
+    
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          const isDark = document.documentElement.classList.contains('dark');
+          setTheme(isDark ? 'dark' : 'light');
+        }
+      });
+    });
+    
+    observer.observe(document.documentElement, { attributes: true });
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
-  // Focus textarea when reply is set
+  // Close emoji picker when clicking outside
   useEffect(() => {
-    if (replyTo && textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, [replyTo]);
-
-  // Handle text input
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    if (newValue.length <= MAX_MESSAGE_LENGTH) {
-      setMessage(newValue);
-    }
-  };
-
-  // Handle key press - send on Enter (without shift)
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  // Handle file selection for image upload
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    // Check if uploads are remaining
-    if (imagesRemaining <= 0 && !isVip) {
-      toast({
-        title: "Upload limit reached",
-        description: "You've used all your free image uploads. Upgrade to VIP for unlimited uploads.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Check file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid File",
-        description: "Please select an image file.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Check file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Images must be smaller than 5MB.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Read and preview the image
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setPreviewImage(event.target.result as string);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        emojiPickerRef.current && 
+        !emojiPickerRef.current.contains(event.target as Node) &&
+        emojiButtonRef.current && 
+        !emojiButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowEmojiPicker(false);
       }
     };
-    reader.readAsDataURL(file);
-  };
 
-  // Cancel image upload
-  const handleCancelImage = () => {
-    setPreviewImage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
-  // Send the message
-  const handleSendMessage = () => {
-    const trimmedMessage = message.trim();
-    
-    // If we have an image preview, send it
-    if (previewImage && onSendImage) {
-      onSendImage(previewImage);
-      setPreviewImage(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+  const handleSend = () => {
+    if (imagePreview) {
+      onSendImage(imagePreview);
+      setImagePreview(null);
       return;
     }
-    
-    // Otherwise send text message if not empty
-    if (trimmedMessage) {
-      setIsLoading(true);
-      
-      onSendMessage(trimmedMessage);
-      
+
+    if (message.trim()) {
+      onSendMessage(message);
       setMessage('');
-      setIsLoading(false);
-      
-      // Reset textarea height
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setImagePreview(event.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        alert('Please select an image file');
       }
     }
   };
 
-  // Handle sending voice message
-  const handleSendVoice = (audioUrl: string) => {
-    if (onSendVoice) {
-      onSendVoice(audioUrl);
-    }
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleEmojiSelect = (emoji: { native: string }) => {
+    setMessage(prev => prev + emoji.native);
+    setShowEmojiPicker(false);
+  };
+
+  const toggleEmojiPicker = () => {
+    setShowEmojiPicker(prev => !prev);
   };
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
-      {/* Reply indicator */}
-      {replyTo && (
-        <div className="flex items-center mb-2 py-1 px-3 bg-gray-100 dark:bg-gray-700 rounded-md">
-          <div className="flex-1 flex items-center overflow-hidden">
-            <span className="text-sm font-medium mr-2">
-              Replying to {replyTo.isUser ? 'yourself' : replyTo.senderName}:
-            </span>
-            <p className="text-sm truncate text-muted-foreground">
-              {replyTo.content}
-            </p>
-          </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-6 w-6 p-0"
-            onClick={onCancelReply}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-      
-      {/* Image preview */}
-      {previewImage && (
-        <div className="mb-2 p-2 bg-gray-100 dark:bg-gray-700 rounded-md relative">
-          <img 
-            src={previewImage} 
-            alt="Preview" 
-            className="max-h-40 rounded mx-auto"
+    <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      {imagePreview && (
+        <div className="mb-3 relative">
+          <img
+            src={imagePreview}
+            alt="Preview"
+            className="h-32 object-contain rounded-lg border border-gray-200 dark:border-gray-700"
           />
-          <Button 
-            variant="destructive" 
-            size="sm" 
-            className="absolute top-1 right-1 h-6 w-6 p-0 rounded-full"
-            onClick={handleCancelImage}
+          <button
+            onClick={() => setImagePreview(null)}
+            className="absolute top-1 right-1 bg-white dark:bg-gray-900 rounded-full p-1 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-800"
           >
-            <X className="h-4 w-4" />
-          </Button>
+            <X className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+          </button>
         </div>
       )}
-      
-      <div className="flex items-end space-x-2">
-        {/* Image upload button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          disabled={isLoading || !onSendImage}
-          onClick={() => fileInputRef.current?.click()}
-          className="rounded-full h-10 w-10 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors"
-        >
-          <ImageIcon className="h-5 w-5" />
-          {!isVip && imagesRemaining > 0 && (
-            <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-              {imagesRemaining}
-            </span>
+    
+      <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full px-4 py-1">
+        <input
+          type="text"
+          className="flex-1 bg-transparent border-0 focus:outline-none text-gray-700 dark:text-gray-200 py-2 text-sm"
+          placeholder="Type a message..."
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={!!imagePreview}
+        />
+        
+        <div className="text-xs text-gray-400 mr-2">
+          {message.length}/120
+        </div>
+        
+        <div className="relative">
+          <button 
+            ref={emojiButtonRef}
+            className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            onClick={toggleEmojiPicker}
+          >
+            <Smile className="h-5 w-5" />
+          </button>
+          
+          {showEmojiPicker && (
+            <div 
+              ref={emojiPickerRef}
+              className="absolute bottom-12 right-0 z-10"
+            >
+              <Picker 
+                data={data} 
+                onEmojiSelect={handleEmojiSelect}
+                theme={theme}
+                previewPosition="none"
+              />
+            </div>
           )}
-        </Button>
+        </div>
         
-        {/* Voice message recorder (VIP only) */}
-        {isVip && onSendVoice && (
-          <VoiceMessageRecorder onSendVoice={handleSendVoice} disabled={isLoading} />
-        )}
-        
-        {/* Hidden file input */}
         <input
           type="file"
           ref={fileInputRef}
-          className="hidden"
-          accept="image/*"
           onChange={handleFileChange}
+          accept="image/*"
+          className="hidden"
         />
         
-        {/* Message input */}
-        <div className="flex-1 relative">
-          <Textarea
-            ref={textareaRef}
-            placeholder="Type a message..."
-            value={message}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyPress}
-            disabled={isLoading}
-            rows={1}
-            className="resize-none py-2 pl-3 pr-10 max-h-32 overflow-y-auto rounded-xl"
-          />
-          
-          {/* Character counter */}
-          <div className={`absolute bottom-2 right-3 text-xs ${
-            message.length > MAX_MESSAGE_LENGTH * 0.8 
-              ? 'text-amber-500' 
-              : 'text-gray-400 dark:text-gray-500'
-          }`}>
-            {message.length}/{MAX_MESSAGE_LENGTH}
-          </div>
-        </div>
+        <button
+          className={`p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 ${imagesRemaining <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+          onClick={triggerFileInput}
+          disabled={imagesRemaining <= 0 || !!imagePreview}
+        >
+          <ImageIcon className="h-5 w-5" />
+        </button>
         
-        {/* Send button */}
-        <Button
-          variant="default"
-          size="icon"
-          disabled={(!message.trim() && !previewImage) || isLoading}
-          onClick={handleSendMessage}
-          className="rounded-full h-10 w-10"
+        <button
+          className="ml-1 w-10 h-10 bg-teal-500 text-white rounded-full flex items-center justify-center disabled:opacity-50"
+          onClick={handleSend}
+          disabled={(!message.trim() && !imagePreview)}
         >
           <Send className="h-5 w-5" />
-        </Button>
+        </button>
       </div>
+      
+      {/* Display images remaining */}
+      {imagesRemaining < 10 && (
+        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+          {imagesRemaining} images remaining today
+        </div>
+      )}
     </div>
   );
 };

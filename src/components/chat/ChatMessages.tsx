@@ -2,7 +2,6 @@
 import React, { useRef, useEffect, useCallback, memo } from 'react';
 import MessageBubble, { Message } from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
-import { useUser } from '@/context/UserContext';
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -14,12 +13,11 @@ interface ChatMessagesProps {
 const ChatMessages: React.FC<ChatMessagesProps> = ({ 
   messages, 
   isTyping,
-  showStatus = false,  // Default to false (non-VIP)
-  showTyping = false   // Default to false (non-VIP)
+  showStatus = true,
+  showTyping = true
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { isVip } = useUser();
   
   // Optimized scroll to bottom implementation
   const scrollToBottom = useCallback(() => {
@@ -45,11 +43,12 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
         <MessageBubble 
           key={message.id} 
           message={message}
-          showStatus={isVip && showStatus}
+          isLastInGroup={true}
+          showStatus={showStatus}
         />
       ))}
       
-      {isTyping && isVip && showTyping && <TypingIndicator />}
+      {isTyping && showTyping && <TypingIndicator />}
       
       <div ref={messagesEndRef} />
     </div>

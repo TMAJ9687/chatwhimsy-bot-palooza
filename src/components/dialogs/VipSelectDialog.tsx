@@ -10,12 +10,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Crown, LogIn } from 'lucide-react';
 import { useDialog } from '@/context/DialogContext';
-import { useUser } from '@/context/UserContext';
 
 const VipSelectDialog = () => {
-  const { state, closeDialog, openDialog } = useDialog();
-  const { isVip } = useUser();
-  
+  const { state, closeDialog } = useDialog();
+
   const handleLoginClick = () => {
     closeDialog();
     // Use window.location instead of navigate
@@ -24,8 +22,8 @@ const VipSelectDialog = () => {
 
   const handleSignupClick = () => {
     closeDialog();
-    // Open VIP subscription dialog to choose a plan first
-    openDialog('vipSubscription');
+    // Use window.location instead of navigate
+    window.location.href = '/vip-signup';
   };
 
   return (

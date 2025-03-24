@@ -1,325 +1,200 @@
 
 import React, { useState } from 'react';
-import { format, isToday, isYesterday } from 'date-fns';
-import { Check, Clock, Download, Globe, Reply, X } from 'lucide-react';
-import { useUser } from '@/context/UserContext';
-import { translateText, SUPPORTED_LANGUAGES } from '@/utils/translationService';
-import { useToast } from '@/hooks/use-toast';
+import { Check, Clock, Eye, EyeOff, Maximize, X } from 'lucide-react';
 
 export interface Message {
   id: string;
-  senderId: string;
-  senderName: string;
   content: string;
+  sender: 'user' | 'bot' | 'system';
   timestamp: Date;
-  isUser: boolean;
-  status?: 'sent' | 'delivered' | 'read' | 'sending';
+  status?: 'sending' | 'sent' | 'delivered' | 'read';
   isImage?: boolean;
-  isVoice?: boolean;
-  voiceUrl?: string;
-  replyTo?: Message | null;
-  reactions?: Array<{
-    emoji: string;
-    userId: string;
-    userName: string;
-  }>;
-  translated?: {
-    content: string;
-    language: string;
-  } | null;
 }
 
 interface MessageBubbleProps {
   message: Message;
+  isLastInGroup?: boolean;
   showStatus?: boolean;
-  isLast?: boolean;
-  onReply?: (message: Message) => void;
-  onReact?: (message: Message, emoji: string) => void;
 }
 
-// Common emojis for quick reactions
-const COMMON_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '👏', '🔥', '🙏'];
-
-const MessageBubble: React.FC<MessageBubbleProps> = ({
-  message,
-  showStatus = false,
-  isLast = false,
-  onReply,
-  onReact
+const MessageBubble: React.FC<MessageBubbleProps> = ({ 
+  message, 
+  isLastInGroup = false,
+  showStatus = true
 }) => {
-  const { isVip } = useUser();
-  const { toast } = useToast();
-  const [showReactions, setShowReactions] = useState(false);
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [showTranslationOptions, setShowTranslationOptions] = useState(false);
-
-  // Get formatted time
-  const formattedTime = formatTimestamp(message.timestamp);
+  const { sender, content, timestamp, status, isImage } = message;
+  const isUser = sender === 'user';
   
-  // Handle emoji reaction click
-  const handleReact = (emoji: string) => {
-    if (onReact) {
-      onReact(message, emoji);
-    }
-    setShowReactions(false);
-  };
+  const [isBlurred, setIsBlurred] = useState(isImage ? true : false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  
+  // If this is a system message, render differently
+  if (sender === 'system') {
+    return (
+      <div className="text-center text-gray-500 dark:text-gray-400 text-sm py-2">
+        {content}
+      </div>
+    );
+  }
+  
+  const formattedTime = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: true
+  }).format(timestamp);
 
-  // Handle reply click
-  const handleReply = () => {
-    if (onReply) {
-      onReply(message);
-    }
-  };
-
-  // Handle translation
-  const handleTranslate = async (languageCode: string) => {
-    setIsTranslating(true);
-    setShowTranslationOptions(false);
+  const getStatusIcon = () => {
+    if (!isUser || !showStatus) return null;
     
-    try {
-      const result = await translateText(message.content, languageCode);
-      
-      // Update message with translation
-      message.translated = {
-        content: result.translatedText,
-        language: languageCode
-      };
-      
-      // Force re-render
-      setIsTranslating(false);
-    } catch (error) {
-      console.error('Translation error:', error);
-      toast({
-        title: "Translation Failed",
-        description: "Could not translate the message. Please try again.",
-        variant: "destructive"
-      });
-      setIsTranslating(false);
+    switch (status) {
+      case 'sending':
+        return <Clock className="h-3 w-3 text-gray-400" />;
+      case 'sent':
+        return <Check className="h-3 w-3 text-gray-400" />;
+      case 'delivered':
+        return (
+          <div className="flex -space-x-1">
+            <Check className="h-3 w-3 text-gray-400" />
+            <Check className="h-3 w-3 text-gray-400" />
+          </div>
+        );
+      case 'read':
+        return (
+          <div className="flex -space-x-1 text-teal-500">
+            <Check className="h-3 w-3" />
+            <Check className="h-3 w-3" />
+          </div>
+        );
+      default:
+        return null;
     }
   };
 
-  // Clear translation
-  const handleClearTranslation = () => {
-    message.translated = null;
-    // Force re-render
-    setIsTranslating(false);
+  const handleToggleBlur = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsBlurred(!isBlurred);
+  };
+
+  const handleToggleFullscreen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isBlurred) {
+      setIsFullScreen(!isFullScreen);
+    }
+  };
+
+  const handleCloseFullscreen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsFullScreen(false);
+  };
+
+  // Function to enhance the size of emojis in the message content
+  const renderContent = () => {
+    // Simple regex to detect emoji characters
+    const emojiRegex = /(\p{Emoji})/gu;
+    
+    if (!content.match(emojiRegex)) {
+      return <div className="whitespace-pre-wrap break-words text-sm">{content}</div>;
+    }
+    
+    // Split content by emoji and non-emoji parts
+    const parts = content.split(emojiRegex);
+    
+    return (
+      <div className="whitespace-pre-wrap break-words text-sm">
+        {parts.map((part, index) => {
+          // If this part matches an emoji, render it with larger font
+          if (part.match(emojiRegex)) {
+            return <span key={index} className="text-xl inline-block">{part}</span>;
+          }
+          return part;
+        })}
+      </div>
+    );
   };
 
   return (
-    <div className={`mb-4 ${message.isUser ? 'ml-12 lg:ml-24' : 'mr-12 lg:mr-24'}`}>
-      {/* Replied message, if any */}
-      {message.replyTo && (
-        <div className={`mb-1 text-xs flex items-center rounded-t-md pl-2 py-1
-          ${message.isUser ? 'bg-primary-foreground ml-auto rounded-l-md' : 'bg-muted mr-auto rounded-r-md'}`}
-        >
-          <Reply className="h-3 w-3 mr-1 text-muted-foreground" />
-          <span className="text-muted-foreground mr-1">
-            Replying to {message.replyTo.isUser ? 'yourself' : message.replyTo.senderName}:
-          </span>
-          <span className="truncate max-w-[150px]">
-            {message.replyTo.content}
-          </span>
-        </div>
-      )}
-      
-      {/* Main message bubble */}
-      <div className={`group relative flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
-        {/* Avatar or icon */}
-        <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center 
-          ${message.isUser ? 'order-last ml-2' : 'order-first mr-2'}
-          ${message.isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
-        >
-          {message.senderName.charAt(0).toUpperCase()}
-        </div>
-        
-        {/* Message content */}
-        <div
-          className={`relative px-4 py-2 rounded-lg max-w-[80%] sm:max-w-[70%] break-words
-            ${message.isUser 
-              ? 'bg-primary text-primary-foreground rounded-br-none' 
-              : 'bg-muted text-foreground rounded-bl-none'}`}
-        >
-          {/* Message reactions */}
-          {message.reactions && message.reactions.length > 0 && (
-            <div className="absolute -top-6 left-0 bg-background border border-border rounded-full py-1 px-2 flex space-x-1">
-              {message.reactions.map((reaction, i) => (
-                <div key={`${reaction.userId}-${i}`} title={`${reaction.userName}`} className="cursor-default">
-                  {reaction.emoji}
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {/* Sender name for non-user messages */}
-          {!message.isUser && (
-            <div className="font-medium text-sm mb-1">{message.senderName}</div>
-          )}
-          
-          {/* Message content */}
-          {message.isImage ? (
-            <img 
-              src={message.content} 
-              alt="Shared media" 
-              className="max-h-40 rounded object-contain cursor-pointer"
-              onClick={() => {
-                // Expand image or open in viewer
-                window.open(message.content, '_blank');
-              }}
-            />
-          ) : message.isVoice ? (
-            <div className="w-48 sm:w-56">
-              <audio controls src={message.voiceUrl} className="w-full" />
-            </div>
-          ) : (
-            <div>
-              <p className={`whitespace-pre-wrap ${message.translated ? 'pb-1' : ''}`}>
-                {message.content}
-              </p>
-              
-              {/* Translated content */}
-              {message.translated && (
-                <div className="mt-1 pt-1 border-t border-white/20 dark:border-gray-700">
-                  <div className="flex justify-between items-center mb-1">
-                    <div className="flex items-center text-xs text-primary-foreground/70">
-                      <Globe className="h-3 w-3 mr-1" />
-                      <span>Translated to {
-                        SUPPORTED_LANGUAGES.find(lang => lang.code === message.translated?.language)?.name || 
-                        message.translated?.language
-                      }</span>
-                    </div>
+    <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}>
+      <div
+        className={`
+          relative px-3 py-2 rounded-2xl max-w-[80%]
+          ${isUser 
+            ? 'bg-teal-500 text-white rounded-br-none' 
+            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'}
+        `}
+      >
+        {isImage ? (
+          <div className="relative">
+            <div className="rounded-lg overflow-hidden">
+              <div className="w-[250px] h-[250px] relative overflow-hidden" onClick={e => e.stopPropagation()}>
+                <img 
+                  src={content} 
+                  alt="Shared image" 
+                  className={`w-full h-full object-cover transition-all duration-300 ${isBlurred ? 'blur-xl' : ''}`}
+                  loading="lazy"
+                />
+                {isBlurred ? (
+                  <button 
+                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/80 dark:bg-black/60 p-2 rounded-full flex items-center gap-1"
+                    onClick={handleToggleBlur}
+                  >
+                    <Eye className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+                    <span className="text-gray-700 dark:text-gray-200 text-sm font-medium">Reveal</span>
+                  </button>
+                ) : (
+                  <div className="absolute top-2 right-2 flex space-x-2">
                     <button 
-                      onClick={handleClearTranslation}
-                      className="text-primary-foreground/70 hover:text-primary-foreground"
+                      className="bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity flex items-center gap-1 px-2"
+                      onClick={handleToggleBlur}
                     >
-                      <X className="h-3 w-3" />
+                      <EyeOff className="h-4 w-4 text-white" />
+                      <span className="text-white text-xs">Hide</span>
                     </button>
-                  </div>
-                  <p className="text-sm">{message.translated.content}</p>
-                </div>
-              )}
-            </div>
-          )}
-          
-          {/* Message timestamp and status */}
-          <div className={`text-xs mt-1 flex items-center justify-end
-            ${message.isUser ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}
-          >
-            <span>{formattedTime}</span>
-            
-            {/* Message status for user messages */}
-            {message.isUser && showStatus && (
-              <span className="ml-1 flex items-center">
-                {message.status === 'sending' && <Clock className="h-3 w-3 ml-1" />}
-                {message.status === 'sent' && <Check className="h-3 w-3 ml-1" />}
-                {message.status === 'delivered' && <Check className="h-3 w-3 ml-1" />}
-                {message.status === 'read' && <Check className="h-3 w-3 ml-1" />}
-              </span>
-            )}
-          </div>
-        </div>
-        
-        {/* VIP Only: Message actions */}
-        {isVip && (
-          <div className={`absolute -top-10 ${message.isUser ? 'right-10' : 'left-10'} 
-                           opacity-0 group-hover:opacity-100 transition-opacity flex gap-1`}>
-            {/* Reply button */}
-            <button 
-              onClick={handleReply}
-              className="bg-background hover:bg-muted h-8 w-8 rounded-full flex items-center justify-center border border-border shadow-sm"
-              title="Reply"
-            >
-              <Reply className="h-4 w-4 text-muted-foreground" />
-            </button>
-            
-            {/* Reactions button */}
-            <div className="relative">
-              <button 
-                onClick={() => setShowReactions(!showReactions)}
-                className="bg-background hover:bg-muted h-8 w-8 rounded-full flex items-center justify-center border border-border shadow-sm"
-                title="React"
-              >
-                <span className="text-lg leading-none">😊</span>
-              </button>
-              
-              {/* Reactions popup */}
-              {showReactions && (
-                <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-background rounded-full py-1 px-2 border border-border shadow-md flex">
-                  {COMMON_EMOJIS.map(emoji => (
                     <button 
-                      key={emoji}
-                      className="h-8 w-8 flex items-center justify-center hover:bg-muted rounded-full transition-colors"
-                      onClick={() => handleReact(emoji)}
+                      className="bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                      onClick={handleToggleFullscreen}
                     >
-                      <span className="text-xl">{emoji}</span>
+                      <Maximize className="h-4 w-4 text-white" />
                     </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            {/* Translation button (only for text messages) */}
-            {!message.isImage && !message.isVoice && (
-              <div className="relative">
-                <button 
-                  onClick={() => setShowTranslationOptions(!showTranslationOptions)}
-                  className="bg-background hover:bg-muted h-8 w-8 rounded-full flex items-center justify-center border border-border shadow-sm"
-                  title="Translate"
-                  disabled={isTranslating}
-                >
-                  <Globe className="h-4 w-4 text-muted-foreground" />
-                </button>
-                
-                {/* Translation options */}
-                {showTranslationOptions && (
-                  <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-background rounded-lg py-2 px-1 border border-border shadow-md w-40 max-h-48 overflow-y-auto">
-                    <div className="text-xs font-medium px-2 pb-1 mb-1 border-b border-border">
-                      Translate to:
-                    </div>
-                    {SUPPORTED_LANGUAGES.map(lang => (
-                      <button 
-                        key={lang.code}
-                        className="w-full text-left px-2 py-1 text-sm hover:bg-muted rounded"
-                        onClick={() => handleTranslate(lang.code)}
-                      >
-                        {lang.name}
-                      </button>
-                    ))}
                   </div>
                 )}
               </div>
-            )}
+            </div>
             
-            {/* Download button for images */}
-            {message.isImage && (
-              <button 
-                onClick={() => {
-                  const a = document.createElement('a');
-                  a.href = message.content;
-                  a.download = `image-${Date.now()}.jpg`;
-                  a.click();
-                }}
-                className="bg-background hover:bg-muted h-8 w-8 rounded-full flex items-center justify-center border border-border shadow-sm"
-                title="Download"
+            {/* Fullscreen image modal */}
+            {isFullScreen && (
+              <div 
+                className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+                onClick={handleCloseFullscreen}
               >
-                <Download className="h-4 w-4 text-muted-foreground" />
-              </button>
+                <div className="relative max-w-4xl max-h-full">
+                  <img 
+                    src={content} 
+                    alt="Fullscreen image" 
+                    className="max-w-full max-h-[90vh] object-contain"
+                  />
+                  <button 
+                    className="absolute top-2 right-2 bg-white/20 p-2 rounded-full hover:bg-white/40 transition-colors"
+                    onClick={handleCloseFullscreen}
+                  >
+                    <X className="h-6 w-6 text-white" />
+                  </button>
+                </div>
+              </div>
             )}
           </div>
+        ) : (
+          renderContent()
         )}
       </div>
+      
+      {isLastInGroup && showStatus && (
+        <div className={`flex items-center mt-0.5 text-xs text-gray-500 dark:text-gray-400 ${isUser ? 'mr-1' : 'ml-1'}`}>
+          <span>{formattedTime}</span>
+          {getStatusIcon() && <span className="ml-1">{getStatusIcon()}</span>}
+        </div>
+      )}
     </div>
   );
 };
 
-// Helper function to format timestamp
-const formatTimestamp = (timestamp: Date): string => {
-  if (isToday(timestamp)) {
-    return format(timestamp, 'h:mm a');
-  } else if (isYesterday(timestamp)) {
-    return 'Yesterday ' + format(timestamp, 'h:mm a');
-  } else {
-    return format(timestamp, 'MMM d, h:mm a');
-  }
-};
-
-export default MessageBubble;
+export default React.memo(MessageBubble);

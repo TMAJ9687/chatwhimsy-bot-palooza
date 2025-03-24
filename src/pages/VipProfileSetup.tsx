@@ -9,8 +9,6 @@ import VipPasswordSection from '@/components/profile/VipPasswordSection';
 import { Crown, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ThemeToggle from '@/components/shared/ThemeToggle';
-import { DialogProvider } from '@/context/DialogContext';
-import DialogContainer from '@/components/dialogs/DialogContainer';
 
 const VipProfileSetup = () => {
   const { user, isVip, updateUserProfile } = useUser();
@@ -82,50 +80,47 @@ const VipProfileSetup = () => {
   }
 
   return (
-    <DialogProvider>
-      <div className="min-h-screen pb-20 bg-gradient-to-b from-background to-secondary/20">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-amber-500 to-orange-500 py-6 px-4 md:px-8 shadow-md">
-          <div className="max-w-5xl mx-auto flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                <Crown className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white">VIP Profile Setup</h1>
+    <div className="min-h-screen pb-20 bg-gradient-to-b from-background to-secondary/20">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-amber-500 to-orange-500 py-6 px-4 md:px-8 shadow-md">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+              <Crown className="w-6 h-6 text-white" />
             </div>
-            <div className="flex items-center space-x-3">
-              <ThemeToggle className="bg-white/10 text-white hover:bg-white/20" />
-              <Button 
-                onClick={handleGoToChat} 
-                variant="outline" 
-                className="border-white/30 bg-white/10 hover:bg-white/20 text-white"
-              >
-                Go to Chat
-              </Button>
-            </div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">VIP Profile Setup</h1>
           </div>
-        </div>
-
-        <div className="max-w-5xl mx-auto px-4 md:px-8 mt-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main content - 2/3 width on desktop */}
-            <div className="lg:col-span-2 space-y-8">
-              <VipProfileForm 
-                onChange={() => setHasUnsavedChanges(true)} 
-                onSave={() => setHasUnsavedChanges(false)}
-              />
-              <VipPasswordSection />
-            </div>
-            
-            {/* Sidebar - 1/3 width on desktop */}
-            <div className="lg:col-span-1">
-              <VipMembershipInfo />
-            </div>
+          <div className="flex items-center space-x-3">
+            <ThemeToggle className="bg-white/10 text-white hover:bg-white/20" />
+            <Button 
+              onClick={handleGoToChat} 
+              variant="outline" 
+              className="border-white/30 bg-white/10 hover:bg-white/20 text-white"
+            >
+              Go to Chat
+            </Button>
           </div>
         </div>
       </div>
-      <DialogContainer />
-    </DialogProvider>
+
+      <div className="max-w-5xl mx-auto px-4 md:px-8 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main content - 2/3 width on desktop */}
+          <div className="lg:col-span-2 space-y-8">
+            <VipProfileForm 
+              onChange={() => setHasUnsavedChanges(true)} 
+              onSave={() => setHasUnsavedChanges(false)}
+            />
+            <VipPasswordSection />
+          </div>
+          
+          {/* Sidebar - 1/3 width on desktop */}
+          <div className="lg:col-span-1">
+            <VipMembershipInfo />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -125,7 +125,7 @@ const VipPaymentDialog = () => {
 
   return (
     <Dialog open={state.isOpen && state.type === 'vipPayment'} onOpenChange={closeDialog}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900">
             <Crown className="h-6 w-6 text-amber-500" />
@@ -142,7 +142,7 @@ const VipPaymentDialog = () => {
           <div className="text-sm text-muted-foreground">{planDetails.billing}</div>
         </div>
         
-        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-3">
             <label className="text-sm font-medium">Payment Method</label>
             <RadioGroup 

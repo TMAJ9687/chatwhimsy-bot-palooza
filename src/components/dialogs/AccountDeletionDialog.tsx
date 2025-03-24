@@ -26,7 +26,7 @@ import { useUser } from '@/context/UserContext';
 import { useToast } from '@/hooks/use-toast';
 import { AlertTriangle, Shield, Mail, Trash } from 'lucide-react';
 
-type DeletionStep = 'initial' | 'warning' | 'password' | 'confirmPassword' | 'emailSent';
+type DeletionStep = 'initial' | 'warning' | 'password' | 'emailSent';
 
 const AccountDeletionDialog = () => {
   const { state, closeDialog } = useDialog();
@@ -34,7 +34,6 @@ const AccountDeletionDialog = () => {
   const { toast } = useToast();
   const [step, setStep] = useState<DeletionStep>('initial');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -55,23 +54,6 @@ const AccountDeletionDialog = () => {
       
       if (password.trim() === '') {
         setError('Please enter your password');
-        return;
-      }
-      
-      // Move to confirm password step
-      setStep('confirmPassword');
-    }, 1000);
-  };
-
-  const handleConfirmPasswordSubmit = () => {
-    setIsLoading(true);
-    setError('');
-    
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      if (confirmPassword !== password) {
-        setError('Passwords do not match');
         return;
       }
       
@@ -96,12 +78,10 @@ const AccountDeletionDialog = () => {
     if (state.isOpen && state.type === 'accountDeletion') {
       setStep('initial');
       setPassword('');
-      setConfirmPassword('');
       setError('');
     }
   }, [state.isOpen, state.type]);
 
-  // If dialog is not open or not accountDeletion type, don't render anything
   if (!state.isOpen || state.type !== 'accountDeletion') {
     return null;
   }
@@ -215,54 +195,6 @@ const AccountDeletionDialog = () => {
             <Button 
               variant="destructive" 
               onClick={handlePasswordSubmit}
-              disabled={isLoading}
-              className="sm:flex-1"
-            >
-              {isLoading ? 'Verifying...' : 'Continue'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  if (step === 'confirmPassword') {
-    return (
-      <Dialog open={true} onOpenChange={closeDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900 mb-4">
-              <Shield className="h-6 w-6 text-red-500" />
-            </div>
-            <DialogTitle className="text-red-500 text-center">Confirm Your Password</DialogTitle>
-            <DialogDescription className="text-center">
-              Please re-enter your password to confirm.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Re-enter your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
-              {error && <p className="text-sm text-red-500">{error}</p>}
-            </div>
-          </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setStep('password')}
-              className="sm:flex-1"
-            >
-              Back
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleConfirmPasswordSubmit}
               disabled={isLoading}
               className="sm:flex-1"
             >
