@@ -7,11 +7,16 @@ const ReportDialog = lazy(() => import('./ReportDialog'));
 const BlockUserDialog = lazy(() => import('./BlockUserDialog'));
 const SiteRulesDialog = lazy(() => import('../chat/SiteRulesDialog'));
 const LogoutConfirmationDialog = lazy(() => import('./LogoutConfirmationDialog'));
+const VipLoginDialog = lazy(() => import('./VipLoginDialog'));
+const VipSignupDialog = lazy(() => import('./VipSignupDialog'));
+const VipSubscriptionDialog = lazy(() => import('./VipSubscriptionDialog'));
+const VipPaymentDialog = lazy(() => import('./VipPaymentDialog'));
+const VipConfirmationDialog = lazy(() => import('./VipConfirmationDialog'));
 
 // Loading fallback component
 const DialogLoading = () => (
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-    <div className="bg-white p-4 rounded-md">Loading...</div>
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-md text-foreground">Loading...</div>
   </div>
 );
 
@@ -28,6 +33,11 @@ const DialogContainer = () => {
       {state.type === 'block' && <BlockUserDialog />}
       {state.type === 'siteRules' && <SiteRulesDialog />}
       {state.type === 'logout' && <LogoutConfirmationDialog />}
+      {state.type === 'vipLogin' && <VipLoginDialog />}
+      {state.type === 'vipSignup' && <VipSignupDialog />}
+      {state.type === 'vipSubscription' && <VipSubscriptionDialog />}
+      {state.type === 'vipPayment' && <VipPaymentDialog />}
+      {state.type === 'vipConfirmation' && <VipConfirmationDialog />}
     </Suspense>
   );
 };

@@ -33,16 +33,12 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
       onClick={toggleTheme}
       className={`p-1.5 rounded-full transition-colors ${
         isDark 
-          ? 'hover:bg-gray-700 bg-gray-800/50' 
-          : 'hover:bg-gray-100 bg-white/50'
+          ? 'text-gray-200 hover:bg-gray-700' 
+          : 'text-gray-700 hover:bg-gray-100'
       } ${className}`}
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
-      {isDark ? (
-        <Moon className="h-5 w-5 text-gray-200" />
-      ) : (
-        <Sun className="h-5 w-5 text-gray-700" />
-      )}
+      {isDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
     </button>
   );
 };

@@ -9,6 +9,8 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ChatInterface from "./components/chat/ChatInterface";
 import { useEffect, useState } from "react";
+import { DialogProvider } from "./context/DialogContext";
+import DialogContainer from "./components/dialogs/DialogContainer";
 
 const queryClient = new QueryClient();
 
@@ -34,17 +36,20 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <MainLayout>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </MainLayout>
+        <DialogProvider>
+          <Toaster />
+          <Sonner />
+          <MainLayout>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+            <DialogContainer />
+          </MainLayout>
+        </DialogProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
