@@ -1,8 +1,23 @@
+
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { Message } from '@/components/chat/MessageBubble';
 import { Notification } from '@/components/chat/NotificationSidebar';
 import { FilterState } from '@/components/chat/FilterMenu';
 import { trackImageUpload, getRemainingUploads, IMAGE_UPLOAD_LIMIT } from '@/utils/imageUploadLimiter';
+
+// Define the Bot type that was missing
+interface Bot {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  country: string;
+  countryCode: string;
+  vip: boolean;
+  interests: string[];
+  avatar: string;
+  responses: string[];
+}
 
 const botProfiles = [
   // Bot profiles remain unchanged
@@ -83,6 +98,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [userCountry, setUserCountry] = useState<string>('');
   const [typingBots, setTypingBots] = useState<Record<string, boolean>>({});
   const currentBotIdRef = useRef<string>(currentBot.id);
+
+  // Define isVip here, before it's used
+  const isVip = currentBot.vip;
 
   useEffect(() => {
     currentBotIdRef.current = currentBot.id;
@@ -348,8 +366,6 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     unreadNotifications.filter(n => !n.read).length, 
     [unreadNotifications]
   );
-
-  const isVip = currentBot.vip;
 
   const contextValue = {
     userChats,
