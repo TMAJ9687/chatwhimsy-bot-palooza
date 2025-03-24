@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 
-type Gender = 'male' | 'female' | 'other';
+type Gender = 'male' | 'female';
 type Interest = string;
 type SubscriptionTier = 'none' | 'monthly' | 'semiannual' | 'annual';
 
