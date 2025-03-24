@@ -37,7 +37,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   return (
     <div 
       ref={containerRef}
-      className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900"
+      className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50"
     >
       {messages?.map((message) => (
         <MessageBubble 
