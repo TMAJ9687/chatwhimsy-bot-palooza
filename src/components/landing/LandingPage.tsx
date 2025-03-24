@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Crown, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -7,10 +6,12 @@ import Button from '../shared/Button';
 import ProfileSetup from '../profile/ProfileSetup';
 import { useUser } from '../../context/UserContext';
 import ThemeToggle from '../shared/ThemeToggle';
+import { useDialog } from '@/context/DialogContext';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { updateUserProfile } = useUser();
+  const { openDialog } = useDialog();
   const [step, setStep] = useState<'nickname' | 'profile'>('nickname');
   const [nickname, setNickname] = useState('');
   const [nicknameError, setNicknameError] = useState('');
@@ -114,6 +115,10 @@ const LandingPage: React.FC = () => {
     }
   };
 
+  const handleVipClick = () => {
+    openDialog('vipLogin');
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-background dark:from-background dark:to-background">
       {/* Header */}
@@ -125,6 +130,7 @@ const LandingPage: React.FC = () => {
             variant="primary" 
             size="sm"
             className="bg-gradient-to-r from-yellow-400 to-amber-500 text-white font-semibold rounded-md py-2 px-6 flex items-center gap-2"
+            onClick={handleVipClick}
           >
             <Crown className="h-4 w-4" />
             VIP

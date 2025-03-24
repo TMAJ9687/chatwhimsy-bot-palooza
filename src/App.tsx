@@ -11,6 +11,7 @@ import ChatInterface from "./components/chat/ChatInterface";
 import { useEffect, useState } from "react";
 import { DialogProvider } from "./context/DialogContext";
 import DialogContainer from "./components/dialogs/DialogContainer";
+import { UserProvider } from "./context/UserContext";
 
 const queryClient = new QueryClient();
 
@@ -36,20 +37,22 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <DialogProvider>
-          <Toaster />
-          <Sonner />
-          <MainLayout>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-            <DialogContainer />
-          </MainLayout>
-        </DialogProvider>
+        <UserProvider>
+          <DialogProvider>
+            <Toaster />
+            <Sonner />
+            <MainLayout>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+              <DialogContainer />
+            </MainLayout>
+          </DialogProvider>
+        </UserProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
