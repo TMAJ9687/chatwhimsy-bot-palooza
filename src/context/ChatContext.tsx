@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { Message } from '@/components/chat/MessageBubble';
 import { Notification } from '@/components/chat/NotificationSidebar';
@@ -248,6 +247,7 @@ interface ChatContextType {
   selectUser: (user: Bot) => void;
   handleFilterChange: (newFilters: FilterState) => void;
   handleNotificationRead: (id: string) => void;
+  openConversationFromNotification: (senderId: string) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -465,7 +465,37 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     simulateBotResponse(newMessage.id, currentBotId);
   }, [currentBot.id, currentBot.name, userChats]);
 
-  // Simulate bot response - improved to prevent state thrashing and track current bot
+  // New function to open a conversation from notification
+  const openConversationFromNotification = useCallback((senderId: string) => {
+    // Find the bot with the matching ID
+    const bot = onlineUsers.find(user => user.id === senderId);
+    if (bot) {
+      // Select this user to open their conversation
+      selectUser(bot);
+      // Close the inbox
+      setShowInbox(false);
+    }
+  }, [onlineUsers, selectUser]);
+
+  // Modified notification handling to prevent duplicates
+  useEffect(() => {
+    if (!typingBots) return;
+    
+    // Mark notifications as read when viewing that user's conversation
+    if (currentBot) {
+      setUnreadNotifications(prev => 
+        prev.map(notif => {
+          // Find notifications that match the current bot's name
+          if (notif.title.includes(currentBot.name)) {
+            return { ...notif, read: true };
+          }
+          return notif;
+        })
+      );
+    }
+  }, [currentBot, typingBots]);
+
+  // Modified function to handle bot responses
   const simulateBotResponse = useCallback((messageId: string, botId: string) => {
     // Track which bot is typing
     setTypingBots(prev => ({
@@ -486,9 +516,15 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
     };
 
-    // Schedule status updates
-    setTimeout(() => updateMessageStatus('sent'), 500);
-    setTimeout(() => updateMessageStatus('delivered'), 1000);
+    // Only show status updates for VIP users
+    const botProfile = botProfiles.find(b => b.id === botId);
+    const isVipChat = botProfile?.vip || false;
+    
+    // Schedule status updates only for VIP users
+    if (isVipChat) {
+      setTimeout(() => updateMessageStatus('sent'), 500);
+      setTimeout(() => updateMessageStatus('delivered'), 1000);
+    }
     
     // Bot sends response
     setTimeout(() => {
@@ -505,9 +541,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Get the messages for this specific bot
         const botMessages = [...(prev[botId] || [])];
         
-        // Update message status (specifying the exact type)
+        // Update message status (specifying the exact type) - only for VIP users
         const updatedMessages = botMessages.map(msg => 
-          msg.sender === 'user' ? { ...msg, status: 'read' as const } : msg
+          (msg.sender === 'user' && isVipChat) ? { ...msg, status: 'read' as const } : msg
         );
         
         // Generate bot response
@@ -518,19 +554,41 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           timestamp: new Date(),
         };
         
-        // Add notification for new message from bot
+        // Add notification for new message from bot, but only if not already present
         if (!isCurrent) {
           const botProfile = botProfiles.find(b => b.id === botId);
           
-          const newNotification: Notification = {
-            id: Date.now().toString(),
-            title: `New message from ${botProfile?.name || 'User'}`,
-            message: botResponse.content.slice(0, 30) + (botResponse.content.length > 30 ? '...' : ''),
-            time: new Date(),
-            read: false
-          };
-          
-          setUnreadNotifications(prev => [newNotification, ...prev]);
+          if (botProfile) {
+            // Check if we already have a notification from this sender
+            const existingNotifIndex = unreadNotifications.findIndex(
+              n => n.title.includes(botProfile.name)
+            );
+            
+            if (existingNotifIndex >= 0) {
+              // Update existing notification instead of creating a new one
+              const updatedNotifications = [...unreadNotifications];
+              updatedNotifications[existingNotifIndex] = {
+                ...updatedNotifications[existingNotifIndex],
+                message: `${botProfile.name} sent you a new message`,
+                time: new Date(),
+                read: false
+              };
+              
+              setUnreadNotifications(updatedNotifications);
+            } else {
+              // Create new notification
+              const newNotification: Notification = {
+                id: Date.now().toString(),
+                title: `New message from ${botProfile.name}`,
+                message: `${botProfile.name} sent you a new message`,
+                time: new Date(),
+                read: false,
+                senderId: botProfile.id
+              };
+              
+              setUnreadNotifications(prev => [newNotification, ...prev]);
+            }
+          }
         }
         
         // Add bot's message
@@ -543,7 +601,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
       });
     }, 3000);
-  }, []);
+  }, [unreadNotifications]);
 
   // Handle user selection - optimized with useCallback
   const selectUser = useCallback((user: Bot) => {
@@ -615,7 +673,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     handleSendImageMessage,
     selectUser,
     handleFilterChange,
-    handleNotificationRead
+    handleNotificationRead,
+    openConversationFromNotification
   };
 
   return (

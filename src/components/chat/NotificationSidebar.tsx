@@ -8,6 +8,7 @@ export interface Notification {
   message: string;
   time: Date;
   read: boolean;
+  senderId?: string; // Added senderId to link notifications to users
 }
 
 interface NotificationSidebarProps {
@@ -16,6 +17,7 @@ interface NotificationSidebarProps {
   notifications: Notification[];
   onNotificationRead: (id: string) => void;
   type: 'inbox' | 'history';
+  onClickNotification?: (senderId: string) => void; // Added new prop for handling clicks
 }
 
 const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
@@ -23,7 +25,8 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
   onClose,
   notifications,
   onNotificationRead,
-  type
+  type,
+  onClickNotification
 }) => {
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -47,6 +50,15 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen, onClose]);
+
+  const handleNotificationClick = (notification: Notification) => {
+    onNotificationRead(notification.id);
+    
+    // Open the conversation if senderId is provided and we have a click handler
+    if (notification.senderId && onClickNotification) {
+      onClickNotification(notification.senderId);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -79,7 +91,7 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
                 <div 
                   key={notification.id}
                   className={`p-4 hover:bg-gray-50 cursor-pointer ${!notification.read ? 'bg-blue-50' : ''}`}
-                  onClick={() => onNotificationRead(notification.id)}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex justify-between">
                     <h4 className="font-medium text-sm">{notification.title}</h4>

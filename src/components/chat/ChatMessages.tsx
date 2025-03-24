@@ -2,6 +2,7 @@
 import React, { useRef, useEffect, useCallback, memo } from 'react';
 import MessageBubble, { Message } from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
+import { useUser } from '@/context/UserContext';
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -13,8 +14,8 @@ interface ChatMessagesProps {
 const ChatMessages: React.FC<ChatMessagesProps> = ({ 
   messages, 
   isTyping,
-  showStatus = true,
-  showTyping = true
+  showStatus = false,  // Default to false (non-VIP)
+  showTyping = false   // Default to false (non-VIP)
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

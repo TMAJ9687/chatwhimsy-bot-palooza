@@ -54,7 +54,8 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     handleSendImageMessage,
     selectUser,
     handleFilterChange,
-    handleNotificationRead
+    handleNotificationRead,
+    openConversationFromNotification
   } = useChat();
 
   // Show site rules dialog after 3 seconds, but only if rules haven't been accepted yet
@@ -165,6 +166,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
         notifications={unreadNotifications}
         onNotificationRead={handleNotificationRead}
         type="inbox"
+        onClickNotification={openConversationFromNotification}
       />
 
       {/* History Sidebar */}

@@ -11,8 +11,8 @@ const VipUpgradeSection = () => {
   const navigate = useNavigate();
 
   const handleUpgradeClick = () => {
-    // Show the VIP selection dialog instead of going directly to subscription
-    openDialog('vipSelect');
+    // Show the VIP subscription dialog with plans
+    openDialog('vipSubscription');
   };
 
   const handleProfileClick = () => {
