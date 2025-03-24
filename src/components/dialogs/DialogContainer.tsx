@@ -9,9 +9,15 @@ import SharedMediaDialog from '../chat/SharedMediaDialog';
 import ConfirmationDialog from './ConfirmationDialog';
 import DeleteConversationDialog from './DeleteConversationDialog';
 import VipSelectDialog from './VipSelectDialog';
-// Import other dialogs as needed
+import { useChat } from '@/context/ChatContext';
 
 const DialogContainer = () => {
+  const { currentBot, userChats } = useChat();
+  
+  // Get messages for the current bot
+  const currentMessages = currentBot && currentBot.id ? userChats[currentBot.id] || [] : [];
+  const contactName = currentBot?.name || 'Contact';
+
   return (
     <>
       <AccountDeletionDialog />
@@ -19,7 +25,7 @@ const DialogContainer = () => {
       <VipSignupDialog />
       <VipPaymentDialog />
       <VipConfirmationDialog />
-      <SharedMediaDialog messages={[]} contactName="Contact" />
+      <SharedMediaDialog messages={currentMessages} contactName={contactName} />
       <ConfirmationDialog />
       <DeleteConversationDialog />
       <VipSelectDialog />

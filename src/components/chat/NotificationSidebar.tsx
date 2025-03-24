@@ -6,12 +6,11 @@ export interface Notification {
   id: string;
   senderId?: string;
   senderName?: string;
-  title: string;
   message: string;
   timestamp: Date;
-  time?: Date;
   read: boolean;
   type?: 'message' | 'system' | 'image';
+  title?: string; // Make title optional but available
 }
 
 interface NotificationSidebarProps {
@@ -100,11 +99,13 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
                   }`}
                   onClick={() => {
                     onNotificationRead(notification.id);
-                    onClickNotification(notification.senderId);
+                    if (notification.senderId) {
+                      onClickNotification(notification.senderId);
+                    }
                   }}
                 >
                   <div className="flex justify-between items-start">
-                    <h3 className="font-medium">{notification.senderName}</h3>
+                    <h3 className="font-medium">{notification.senderName || (notification.title || 'Notification')}</h3>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
                       {new Date(notification.timestamp).toLocaleTimeString([], {
                         hour: '2-digit',

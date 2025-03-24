@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useReducer, ReactNode, useMemo, useCallback } from 'react';
 
 // Define dialog types
@@ -6,7 +7,7 @@ type DialogType = 'report' | 'block' | 'siteRules' | 'logout' | 'vipLogin' | 'vi
 // Define dialog state
 interface DialogState {
   isOpen: boolean;
-  type: DialogType;
+  type: DialogType | null;
   data: Record<string, any>;
 }
 

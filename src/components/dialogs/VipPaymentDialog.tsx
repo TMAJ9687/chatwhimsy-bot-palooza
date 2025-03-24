@@ -142,7 +142,7 @@ const VipPaymentDialog = () => {
           <div className="text-sm text-muted-foreground">{planDetails.billing}</div>
         </div>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto">
           <div className="space-y-3">
             <label className="text-sm font-medium">Payment Method</label>
             <RadioGroup 

@@ -15,6 +15,15 @@ export const containsDisallowedWord = (nickname: string): boolean => {
   return DISALLOWED_WORDS.some(word => lowerNickname.includes(word));
 };
 
+// Check if user is trying to type a disallowed word
+export const isTypingDisallowedWord = (nickname: string): boolean => {
+  const lowerNickname = nickname.toLowerCase();
+  return DISALLOWED_WORDS.some(word => {
+    // Check if nickname is a prefix of any disallowed word
+    return word.startsWith(lowerNickname);
+  });
+};
+
 // Check if a string has more than N consecutive identical characters
 export const hasConsecutiveChars = (nickname: string): boolean => {
   const regex = new RegExp(`([a-zA-Z0-9])\\1{${MAX_CONSECUTIVE_CHARS},}`, 'g');
@@ -71,6 +80,11 @@ export const validateNicknameInput = (
   currentNickname: string,
   isVip: boolean = false
 ): string => {
+  // Block typing if it would lead to a disallowed word
+  if (isTypingDisallowedWord(nickname)) {
+    return currentNickname;
+  }
+  
   // If we're typing a disallowed word, don't allow it
   if (DISALLOWED_WORDS.some(word => {
     const partial = word.substring(0, nickname.length);

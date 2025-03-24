@@ -20,14 +20,7 @@ const ConfirmationDialog = () => {
     return null;
   }
   
-  const {
-    title = 'Confirm Action',
-    description = 'Are you sure you want to proceed with this action?',
-    confirmText = 'Confirm',
-    cancelText = 'Cancel',
-    destructive = false,
-    onConfirm
-  } = state.data || {};
+  const { title, description, confirmText, cancelText, onConfirm, danger } = state.data || {};
 
   const handleConfirm = () => {
     if (onConfirm && typeof onConfirm === 'function') {
@@ -40,16 +33,18 @@ const ConfirmationDialog = () => {
     <AlertDialog open={true} onOpenChange={closeDialog}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
+          <AlertDialogTitle>{title || 'Confirm Action'}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {description || 'Are you sure you want to continue?'}
+          </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{cancelText}</AlertDialogCancel>
+          <AlertDialogCancel>{cancelText || 'Cancel'}</AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleConfirm}
-            className={destructive ? 'bg-red-500 hover:bg-red-600 text-white' : undefined}
+            className={danger ? 'bg-red-500 hover:bg-red-600 text-white' : ''}
           >
-            {confirmText}
+            {confirmText || 'Continue'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

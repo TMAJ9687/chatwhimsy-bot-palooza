@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
-import { Check, Clock, MessageSquare, Repeat, X } from 'lucide-react';
+import { format, isToday, isYesterday } from 'date-fns';
+import { Check, Clock, Download, Globe, Reply, X } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
-
-// Common reaction emojis
-const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥'];
+import { translateText, SUPPORTED_LANGUAGES } from '@/utils/translationService';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Message {
   id: string;
@@ -31,244 +31,295 @@ export interface Message {
 
 interface MessageBubbleProps {
   message: Message;
-  isLastInGroup?: boolean;
   showStatus?: boolean;
+  isLast?: boolean;
   onReply?: (message: Message) => void;
   onReact?: (message: Message, emoji: string) => void;
-  onTranslate?: (message: Message) => void;
 }
+
+// Common emojis for quick reactions
+const COMMON_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '👏', '🔥', '🙏'];
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
-  isLastInGroup = false,
   showStatus = false,
+  isLast = false,
   onReply,
-  onReact,
-  onTranslate
+  onReact
 }) => {
   const { isVip } = useUser();
+  const { toast } = useToast();
   const [showReactions, setShowReactions] = useState(false);
-  const [showTranslated, setShowTranslated] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [showTranslationOptions, setShowTranslationOptions] = useState(false);
+
+  // Get formatted time
+  const formattedTime = formatTimestamp(message.timestamp);
   
-  const timestamp = new Date(message.timestamp);
-  const formattedTime = timestamp.toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-  
-  const handleLongPress = () => {
-    if (isVip && onReply) {
-      setShowReactions(true);
-    }
-  };
-  
+  // Handle emoji reaction click
   const handleReact = (emoji: string) => {
-    if (isVip && onReact) {
+    if (onReact) {
       onReact(message, emoji);
-      setShowReactions(false);
     }
+    setShowReactions(false);
   };
-  
+
+  // Handle reply click
   const handleReply = () => {
-    if (isVip && onReply) {
+    if (onReply) {
       onReply(message);
-      setShowReactions(false);
-    }
-  };
-  
-  const handleTranslate = () => {
-    if (isVip && onTranslate) {
-      onTranslate(message);
-      setShowReactions(false);
-    }
-  };
-  
-  const toggleTranslation = () => {
-    if (message.translated) {
-      setShowTranslated(!showTranslated);
     }
   };
 
+  // Handle translation
+  const handleTranslate = async (languageCode: string) => {
+    setIsTranslating(true);
+    setShowTranslationOptions(false);
+    
+    try {
+      const result = await translateText(message.content, languageCode);
+      
+      // Update message with translation
+      message.translated = {
+        content: result.translatedText,
+        language: languageCode
+      };
+      
+      // Force re-render
+      setIsTranslating(false);
+    } catch (error) {
+      console.error('Translation error:', error);
+      toast({
+        title: "Translation Failed",
+        description: "Could not translate the message. Please try again.",
+        variant: "destructive"
+      });
+      setIsTranslating(false);
+    }
+  };
+
+  // Clear translation
+  const handleClearTranslation = () => {
+    message.translated = null;
+    // Force re-render
+    setIsTranslating(false);
+  };
+
   return (
-    <div className={`flex flex-col ${message.isUser ? 'items-end' : 'items-start'}`}>
-      {/* Reply reference if present */}
+    <div className={`mb-4 ${message.isUser ? 'ml-12 lg:ml-24' : 'mr-12 lg:mr-24'}`}>
+      {/* Replied message, if any */}
       {message.replyTo && (
-        <div 
-          className={`flex items-center text-xs mb-1 px-2 py-1 rounded ${
-            message.isUser 
-              ? 'mr-3 bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-300' 
-              : 'ml-3 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
-          }`}
+        <div className={`mb-1 text-xs flex items-center rounded-t-md pl-2 py-1
+          ${message.isUser ? 'bg-primary-foreground ml-auto rounded-l-md' : 'bg-muted mr-auto rounded-r-md'}`}
         >
-          <Repeat className="h-3 w-3 mr-1" />
-          <span>Reply to {message.replyTo.senderName}</span>
+          <Reply className="h-3 w-3 mr-1 text-muted-foreground" />
+          <span className="text-muted-foreground mr-1">
+            Replying to {message.replyTo.isUser ? 'yourself' : message.replyTo.senderName}:
+          </span>
+          <span className="truncate max-w-[150px]">
+            {message.replyTo.content}
+          </span>
         </div>
       )}
       
       {/* Main message bubble */}
-      <div className="group relative">
-        <div 
-          className={`px-4 py-2 rounded-2xl max-w-xs md:max-w-md break-words ${
-            message.isUser 
-              ? 'bg-teal-500 text-white ml-8' 
-              : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 mr-8'
-          }`}
-          onContextMenu={(e) => {
-            if (isVip) {
-              e.preventDefault();
-              handleLongPress();
-            }
-          }}
+      <div className={`group relative flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
+        {/* Avatar or icon */}
+        <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center 
+          ${message.isUser ? 'order-last ml-2' : 'order-first mr-2'}
+          ${message.isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
         >
-          {/* Message content */}
-          {message.isImage ? (
-            <div className="rounded overflow-hidden">
-              <img 
-                src={message.content} 
-                alt="Message attachment" 
-                className="max-w-full rounded"
-              />
+          {message.senderName.charAt(0).toUpperCase()}
+        </div>
+        
+        {/* Message content */}
+        <div
+          className={`relative px-4 py-2 rounded-lg max-w-[80%] sm:max-w-[70%] break-words
+            ${message.isUser 
+              ? 'bg-primary text-primary-foreground rounded-br-none' 
+              : 'bg-muted text-foreground rounded-bl-none'}`}
+        >
+          {/* Message reactions */}
+          {message.reactions && message.reactions.length > 0 && (
+            <div className="absolute -top-6 left-0 bg-background border border-border rounded-full py-1 px-2 flex space-x-1">
+              {message.reactions.map((reaction, i) => (
+                <div key={`${reaction.userId}-${i}`} title={`${reaction.userName}`} className="cursor-default">
+                  {reaction.emoji}
+                </div>
+              ))}
             </div>
-          ) : message.isVoice && message.voiceUrl ? (
-            <div className="w-full">
-              <audio controls className="w-full">
-                <source src={message.voiceUrl} type="audio/webm" />
-                Your browser does not support the audio element.
-              </audio>
-            </div>
-          ) : (
-            <>
-              <p className="whitespace-pre-wrap">{
-                showTranslated && message.translated 
-                  ? message.translated.content 
-                  : message.content
-              }</p>
-              
-              {message.translated && (
-                <button 
-                  onClick={toggleTranslation}
-                  className="mt-1 text-xs underline opacity-70 hover:opacity-100"
-                >
-                  {showTranslated 
-                    ? 'Show original' 
-                    : `Show translated (${message.translated.language})`
-                  }
-                </button>
-              )}
-            </>
           )}
           
-          {/* Timestamp */}
-          <div 
-            className={`text-xs mt-1 ${
-              message.isUser ? 'text-teal-100' : 'text-gray-500 dark:text-gray-400'
-            }`}
+          {/* Sender name for non-user messages */}
+          {!message.isUser && (
+            <div className="font-medium text-sm mb-1">{message.senderName}</div>
+          )}
+          
+          {/* Message content */}
+          {message.isImage ? (
+            <img 
+              src={message.content} 
+              alt="Shared media" 
+              className="max-h-40 rounded object-contain cursor-pointer"
+              onClick={() => {
+                // Expand image or open in viewer
+                window.open(message.content, '_blank');
+              }}
+            />
+          ) : message.isVoice ? (
+            <div className="w-48 sm:w-56">
+              <audio controls src={message.voiceUrl} className="w-full" />
+            </div>
+          ) : (
+            <div>
+              <p className={`whitespace-pre-wrap ${message.translated ? 'pb-1' : ''}`}>
+                {message.content}
+              </p>
+              
+              {/* Translated content */}
+              {message.translated && (
+                <div className="mt-1 pt-1 border-t border-white/20 dark:border-gray-700">
+                  <div className="flex justify-between items-center mb-1">
+                    <div className="flex items-center text-xs text-primary-foreground/70">
+                      <Globe className="h-3 w-3 mr-1" />
+                      <span>Translated to {
+                        SUPPORTED_LANGUAGES.find(lang => lang.code === message.translated?.language)?.name || 
+                        message.translated?.language
+                      }</span>
+                    </div>
+                    <button 
+                      onClick={handleClearTranslation}
+                      className="text-primary-foreground/70 hover:text-primary-foreground"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <p className="text-sm">{message.translated.content}</p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Message timestamp and status */}
+          <div className={`text-xs mt-1 flex items-center justify-end
+            ${message.isUser ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}
           >
-            {formattedTime}
+            <span>{formattedTime}</span>
+            
+            {/* Message status for user messages */}
+            {message.isUser && showStatus && (
+              <span className="ml-1 flex items-center">
+                {message.status === 'sending' && <Clock className="h-3 w-3 ml-1" />}
+                {message.status === 'sent' && <Check className="h-3 w-3 ml-1" />}
+                {message.status === 'delivered' && <Check className="h-3 w-3 ml-1" />}
+                {message.status === 'read' && <Check className="h-3 w-3 ml-1" />}
+              </span>
+            )}
           </div>
         </div>
         
-        {/* Message status indicator for the user's messages */}
-        {message.isUser && showStatus && isVip && (
-          <div className="absolute -bottom-4 right-2 text-xs text-gray-500 flex items-center">
-            {message.status === 'sent' && (
-              <span className="flex items-center">
-                <Check className="h-3 w-3 mr-0.5" />
-                Sent
-              </span>
-            )}
-            {message.status === 'delivered' && (
-              <span className="flex items-center">
-                <Check className="h-3 w-3 mr-0.5" />
-                <Check className="h-3 w-3 -ml-1 mr-0.5" />
-                Delivered
-              </span>
-            )}
-            {message.status === 'read' && (
-              <span className="flex items-center text-teal-500">
-                <Check className="h-3 w-3 mr-0.5" />
-                <Check className="h-3 w-3 -ml-1 mr-0.5" />
-                Read
-              </span>
-            )}
-          </div>
-        )}
-        
-        {/* Message reactions */}
-        {message.reactions && message.reactions.length > 0 && (
-          <div 
-            className={`absolute ${message.isUser ? 'left-0 -translate-x-1/2' : 'right-0 translate-x-1/2'} bottom-2 
-              bg-white dark:bg-gray-800 shadow-sm rounded-full px-1.5 py-0.5 flex`}
-          >
-            {/* Group and count identical reactions */}
-            {Object.entries(
-              message.reactions.reduce((acc, { emoji }) => {
-                acc[emoji] = (acc[emoji] || 0) + 1;
-                return acc;
-              }, {} as Record<string, number>)
-            ).map(([emoji, count]) => (
-              <div key={emoji} className="flex items-center">
-                <span>{emoji}</span>
-                {count > 1 && <span className="text-xs ml-0.5">{count}</span>}
+        {/* VIP Only: Message actions */}
+        {isVip && (
+          <div className={`absolute -top-10 ${message.isUser ? 'right-10' : 'left-10'} 
+                           opacity-0 group-hover:opacity-100 transition-opacity flex gap-1`}>
+            {/* Reply button */}
+            <button 
+              onClick={handleReply}
+              className="bg-background hover:bg-muted h-8 w-8 rounded-full flex items-center justify-center border border-border shadow-sm"
+              title="Reply"
+            >
+              <Reply className="h-4 w-4 text-muted-foreground" />
+            </button>
+            
+            {/* Reactions button */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowReactions(!showReactions)}
+                className="bg-background hover:bg-muted h-8 w-8 rounded-full flex items-center justify-center border border-border shadow-sm"
+                title="React"
+              >
+                <span className="text-lg leading-none">😊</span>
+              </button>
+              
+              {/* Reactions popup */}
+              {showReactions && (
+                <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-background rounded-full py-1 px-2 border border-border shadow-md flex">
+                  {COMMON_EMOJIS.map(emoji => (
+                    <button 
+                      key={emoji}
+                      className="h-8 w-8 flex items-center justify-center hover:bg-muted rounded-full transition-colors"
+                      onClick={() => handleReact(emoji)}
+                    >
+                      <span className="text-xl">{emoji}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Translation button (only for text messages) */}
+            {!message.isImage && !message.isVoice && (
+              <div className="relative">
+                <button 
+                  onClick={() => setShowTranslationOptions(!showTranslationOptions)}
+                  className="bg-background hover:bg-muted h-8 w-8 rounded-full flex items-center justify-center border border-border shadow-sm"
+                  title="Translate"
+                  disabled={isTranslating}
+                >
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                </button>
+                
+                {/* Translation options */}
+                {showTranslationOptions && (
+                  <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-background rounded-lg py-2 px-1 border border-border shadow-md w-40 max-h-48 overflow-y-auto">
+                    <div className="text-xs font-medium px-2 pb-1 mb-1 border-b border-border">
+                      Translate to:
+                    </div>
+                    {SUPPORTED_LANGUAGES.map(lang => (
+                      <button 
+                        key={lang.code}
+                        className="w-full text-left px-2 py-1 text-sm hover:bg-muted rounded"
+                        onClick={() => handleTranslate(lang.code)}
+                      >
+                        {lang.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
+            )}
+            
+            {/* Download button for images */}
+            {message.isImage && (
+              <button 
+                onClick={() => {
+                  const a = document.createElement('a');
+                  a.href = message.content;
+                  a.download = `image-${Date.now()}.jpg`;
+                  a.click();
+                }}
+                className="bg-background hover:bg-muted h-8 w-8 rounded-full flex items-center justify-center border border-border shadow-sm"
+                title="Download"
+              >
+                <Download className="h-4 w-4 text-muted-foreground" />
+              </button>
+            )}
           </div>
         )}
       </div>
-      
-      {/* Reaction panel - only shown when user long-presses a message */}
-      {showReactions && isVip && (
-        <div 
-          className="absolute z-10 bg-white dark:bg-gray-800 shadow-lg rounded-lg p-2 mt-2"
-          style={{
-            [message.isUser ? 'right' : 'left']: '0',
-          }}
-        >
-          <div className="flex space-x-1 mb-2">
-            {REACTIONS.map(emoji => (
-              <button
-                key={emoji}
-                className="hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full p-1.5"
-                onClick={() => handleReact(emoji)}
-              >
-                <span className="text-xl">{emoji}</span>
-              </button>
-            ))}
-          </div>
-          
-          <div className="flex border-t border-gray-200 dark:border-gray-700 pt-2 space-x-4">
-            <button
-              className="flex items-center text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-              onClick={handleReply}
-            >
-              <MessageSquare className="h-4 w-4 mr-1" />
-              Reply
-            </button>
-            
-            {!message.isImage && !message.isVoice && (
-              <button
-                className="flex items-center text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                onClick={handleTranslate}
-              >
-                <svg className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
-                </svg>
-                Translate
-              </button>
-            )}
-            
-            <button
-              className="flex items-center text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-              onClick={() => setShowReactions(false)}
-            >
-              <X className="h-4 w-4 mr-1" />
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
+};
+
+// Helper function to format timestamp
+const formatTimestamp = (timestamp: Date): string => {
+  if (isToday(timestamp)) {
+    return format(timestamp, 'h:mm a');
+  } else if (isYesterday(timestamp)) {
+    return 'Yesterday ' + format(timestamp, 'h:mm a');
+  } else {
+    return format(timestamp, 'MMM d, h:mm a');
+  }
 };
 
 export default MessageBubble;
