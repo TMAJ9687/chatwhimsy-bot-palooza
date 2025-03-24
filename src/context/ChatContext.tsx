@@ -371,6 +371,26 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [currentBot.id, userChats]);
 
+  // Define selectUser before it's used in any other function
+  // Handle user selection - optimized with useCallback
+  const selectUser = useCallback((user: Bot) => {
+    if (user.id !== currentBot.id) {
+      setCurrentBot(user);
+      
+      if (!userChats[user.id]) {
+        setUserChats(prev => ({
+          ...prev,
+          [user.id]: [{
+            id: `system-${Date.now()}`,
+            content: `Start a conversation with ${user.name}`,
+            sender: 'system',
+            timestamp: new Date(),
+          }]
+        }));
+      }
+    }
+  }, [currentBot.id, userChats]);
+
   // Handle blocking a user - optimized with useCallback
   const handleBlockUser = useCallback(() => {
     // Remove user from online users
@@ -381,7 +401,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const newUser = filteredUsers.find(user => user.id !== currentBot.id);
       if (newUser) selectUser(newUser);
     }
-  }, [currentBot.id, filteredUsers]);
+  }, [currentBot.id, filteredUsers, selectUser]);
 
   // Handle closing a chat
   const handleCloseChat = useCallback(() => {
@@ -390,7 +410,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const newUser = filteredUsers.find(user => user.id !== currentBot.id);
       if (newUser) selectUser(newUser);
     }
-  }, [currentBot.id, filteredUsers]);
+  }, [currentBot.id, filteredUsers, selectUser]);
 
   // Handle sending text messages - optimized with useCallback
   const handleSendTextMessage = useCallback((text: string) => {
@@ -475,7 +495,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Close the inbox
       setShowInbox(false);
     }
-  }, [onlineUsers, selectUser]);
+  }, [onlineUsers, selectUser, setShowInbox]);
 
   // Modified notification handling to prevent duplicates
   useEffect(() => {
@@ -602,25 +622,6 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
     }, 3000);
   }, [unreadNotifications]);
-
-  // Handle user selection - optimized with useCallback
-  const selectUser = useCallback((user: Bot) => {
-    if (user.id !== currentBot.id) {
-      setCurrentBot(user);
-      
-      if (!userChats[user.id]) {
-        setUserChats(prev => ({
-          ...prev,
-          [user.id]: [{
-            id: `system-${Date.now()}`,
-            content: `Start a conversation with ${user.name}`,
-            sender: 'system',
-            timestamp: new Date(),
-          }]
-        }));
-      }
-    }
-  }, [currentBot.id, userChats]);
 
   // Filter change handler - optimized with useCallback
   const handleFilterChange = useCallback((newFilters: FilterState) => {
