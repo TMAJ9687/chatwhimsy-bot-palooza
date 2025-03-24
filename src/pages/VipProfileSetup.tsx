@@ -8,6 +8,7 @@ import VipMembershipInfo from '@/components/profile/VipMembershipInfo';
 import VipPasswordSection from '@/components/profile/VipPasswordSection';
 import { Crown, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ThemeToggle from '@/components/shared/ThemeToggle';
 
 const VipProfileSetup = () => {
   const { user, isVip, updateUserProfile } = useUser();
@@ -49,7 +50,7 @@ const VipProfileSetup = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  const handleBackToChat = () => {
+  const handleGoToChat = () => {
     if (hasUnsavedChanges) {
       if (window.confirm("You have unsaved changes. Save before leaving?")) {
         // Save changes logic would go here
@@ -89,13 +90,16 @@ const VipProfileSetup = () => {
             </div>
             <h1 className="text-2xl md:text-3xl font-bold text-white">VIP Profile Setup</h1>
           </div>
-          <Button 
-            onClick={handleBackToChat} 
-            variant="outline" 
-            className="border-white/30 bg-white/10 hover:bg-white/20 text-white"
-          >
-            Back to Chat
-          </Button>
+          <div className="flex items-center space-x-3">
+            <ThemeToggle className="bg-white/10 text-white hover:bg-white/20" />
+            <Button 
+              onClick={handleGoToChat} 
+              variant="outline" 
+              className="border-white/30 bg-white/10 hover:bg-white/20 text-white"
+            >
+              Go to Chat
+            </Button>
+          </div>
         </div>
       </div>
 

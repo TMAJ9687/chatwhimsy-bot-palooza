@@ -1,15 +1,28 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useUser } from '@/context/UserContext';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useDialog } from '@/context/DialogContext';
-import { Crown, Check, Calendar, CreditCard, Sparkles } from 'lucide-react';
-import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import { Crown, Check, Calendar, CreditCard, Sparkles, Trash2 } from 'lucide-react';
+import { format, addMonths } from 'date-fns';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const VipMembershipInfo = () => {
-  const { user, isVip } = useUser();
-  const { openDialog } = useDialog();
+  const { user, isVip, clearUser } = useUser();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
   // Format dates for display
   const formatDate = (date: Date | undefined) => {
@@ -17,13 +30,29 @@ const VipMembershipInfo = () => {
     return format(date, 'MMM d, yyyy');
   };
   
-  const today = new Date();
-  const subscriptionStart = user?.subscriptionEndDate 
-    ? new Date(user.subscriptionEndDate.getTime()) 
-    : today;
+  const handleDeleteAccount = () => {
+    // In a real app, you would call an API to delete the account
+    clearUser();
+    toast({
+      title: "Account Deleted",
+      description: "Your VIP account has been deleted successfully.",
+      variant: "destructive",
+    });
+    setDeleteDialogOpen(false);
+    
+    // Redirect to home
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 500);
+  };
   
-  // For demo purposes, set start date to 30 days before end date
-  subscriptionStart.setDate(subscriptionStart.getDate() - 30);
+  // Calculate dates
+  const today = new Date();
+  // For the subscription end date, use the one from user context or create a default
+  const subscriptionEndDate = user?.subscriptionEndDate || addMonths(today, 1);
+  // Calculate start date as 30 days before end date
+  const subscriptionStartDate = new Date(subscriptionEndDate);
+  subscriptionStartDate.setDate(subscriptionStartDate.getDate() - 30);
 
   return (
     <Card className="bg-white dark:bg-gray-800 shadow-md border-amber-100 dark:border-amber-900/40">
@@ -54,7 +83,7 @@ const VipMembershipInfo = () => {
               <Calendar className="w-4 h-4 mr-1.5 text-gray-500" />
               Start Date
             </div>
-            <div className="text-base pl-6">{formatDate(subscriptionStart)}</div>
+            <div className="text-base pl-6">{formatDate(subscriptionStartDate)}</div>
           </div>
           
           <div>
@@ -62,7 +91,7 @@ const VipMembershipInfo = () => {
               <Calendar className="w-4 h-4 mr-1.5 text-gray-500" />
               Expiration Date
             </div>
-            <div className="text-base pl-6">{formatDate(user?.subscriptionEndDate)}</div>
+            <div className="text-base pl-6">{formatDate(subscriptionEndDate)}</div>
           </div>
           
           <div className="pt-2">
@@ -102,18 +131,40 @@ const VipMembershipInfo = () => {
           </div>
         </div>
         
-        {/* Management buttons */}
+        {/* Account deletion */}
         <div className="space-y-3">
           <Button 
-            onClick={() => openDialog('vipSubscription')}
+            onClick={() => setDeleteDialogOpen(true)}
             variant="outline" 
-            className="w-full border-amber-200 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-900/20"
+            className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-300"
           >
-            <CreditCard className="mr-2 h-4 w-4 text-amber-500" />
-            Manage Subscription
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete Account
           </Button>
         </div>
       </CardContent>
+
+      {/* Delete Account Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your
+              account and remove your data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteAccount}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              Delete Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

@@ -14,11 +14,11 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { User, Calendar, MapPin, Heart, Shield, Save, Check } from 'lucide-react';
+import { User, Calendar, MapPin, Heart, Save, Check } from 'lucide-react';
 
 // Define form schema with validation
 const profileFormSchema = z.object({
-  gender: z.enum(['male', 'female', 'other'], {
+  gender: z.enum(['male', 'female'], {
     required_error: "Please select a gender",
   }),
   age: z.string().min(1, "Age is required"),
@@ -58,20 +58,28 @@ const interestOptions = [
   { id: 'fitness', label: 'Fitness' },
 ];
 
-// Sample country options with flags
+// Country options with flags from flagpedia.net
 const countryOptions = [
-  { value: 'us', label: '🇺🇸 United States' },
-  { value: 'ca', label: '🇨🇦 Canada' },
-  { value: 'gb', label: '🇬🇧 United Kingdom' },
-  { value: 'au', label: '🇦🇺 Australia' },
-  { value: 'de', label: '🇩🇪 Germany' },
-  { value: 'fr', label: '🇫🇷 France' },
-  { value: 'jp', label: '🇯🇵 Japan' },
-  { value: 'br', label: '🇧🇷 Brazil' },
-  { value: 'in', label: '🇮🇳 India' },
-  { value: 'kr', label: '🇰🇷 South Korea' },
-  { value: 'sg', label: '🇸🇬 Singapore' },
-  { value: 'mx', label: '🇲🇽 Mexico' },
+  { value: 'us', label: 'United States', code: 'us' },
+  { value: 'ca', label: 'Canada', code: 'ca' },
+  { value: 'gb', label: 'United Kingdom', code: 'gb' },
+  { value: 'au', label: 'Australia', code: 'au' },
+  { value: 'de', label: 'Germany', code: 'de' },
+  { value: 'fr', label: 'France', code: 'fr' },
+  { value: 'jp', label: 'Japan', code: 'jp' },
+  { value: 'br', label: 'Brazil', code: 'br' },
+  { value: 'in', label: 'India', code: 'in' },
+  { value: 'kr', label: 'South Korea', code: 'kr' },
+  { value: 'sg', label: 'Singapore', code: 'sg' },
+  { value: 'mx', label: 'Mexico', code: 'mx' },
+  { value: 'ps', label: 'Palestine', code: 'ps' },
+  { value: 'it', label: 'Italy', code: 'it' },
+  { value: 'es', label: 'Spain', code: 'es' },
+  { value: 'ru', label: 'Russia', code: 'ru' },
+  { value: 'ua', label: 'Ukraine', code: 'ua' },
+  { value: 'nl', label: 'Netherlands', code: 'nl' },
+  { value: 'se', label: 'Sweden', code: 'se' },
+  { value: 'no', label: 'Norway', code: 'no' },
 ];
 
 interface VipProfileFormProps {
@@ -144,7 +152,7 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
       age: parseInt(data.age),
       country: data.country,
       interests: data.interests,
-      // Add other fields as needed
+      isVip: true, // Make sure we keep the VIP status
     });
     
     // Store form data in localStorage and sessionStorage for persistence
@@ -152,6 +160,7 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
       ...data,
       age: parseInt(data.age),
       avatarId: selectedAvatar,
+      isVip: true, // Keep VIP status
     };
     
     localStorage.setItem('vipUserProfile', JSON.stringify(profileData));
@@ -191,7 +200,7 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
               </div>
             </div>
 
-            {/* Gender selection */}
+            {/* Gender selection - Male and Female only */}
             <FormField
               control={form.control}
               name="gender"
@@ -213,10 +222,6 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="female" id="female" />
                         <FormLabel htmlFor="female" className="font-normal">Female</FormLabel>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="other" id="other" />
-                        <FormLabel htmlFor="other" className="font-normal">Other</FormLabel>
                       </div>
                     </RadioGroup>
                   </FormControl>
@@ -289,7 +294,7 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
               </div>
             </div>
 
-            {/* Country selection */}
+            {/* Country selection with flags from flagpedia.net */}
             <FormField
               control={form.control}
               name="country"
@@ -305,13 +310,26 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select your country" />
+                        <SelectValue placeholder="Select your country">
+                          {field.value && (
+                            <div className="flex items-center">
+                              {countryOptions.find(c => c.value === field.value)?.label}
+                            </div>
+                          )}
+                        </SelectValue>
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {countryOptions.map((country) => (
                         <SelectItem key={country.value} value={country.value}>
-                          {country.label}
+                          <div className="flex items-center">
+                            <img 
+                              src={`https://flagcdn.com/w20/${country.code}.png`} 
+                              alt={country.label} 
+                              className="h-3 w-auto mr-2" 
+                            />
+                            {country.label}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>

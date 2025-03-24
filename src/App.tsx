@@ -9,6 +9,8 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ChatInterface from "./components/chat/ChatInterface";
 import VipProfileSetup from "./pages/VipProfileSetup";
+import VipSignup from "./pages/VipSignup";
+import VipLogin from "./pages/VipLogin";
 import { useEffect, useState } from "react";
 import { DialogProvider } from "./context/DialogContext";
 import DialogContainer from "./components/dialogs/DialogContainer";
@@ -48,6 +50,8 @@ const App = () => {
                   <Route path="/" element={<Index />} />
                   <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
                   <Route path="/vip-profile" element={<VipProfileSetup />} />
+                  <Route path="/vip-signup" element={<VipSignup />} />
+                  <Route path="/vip-login" element={<VipLogin />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
