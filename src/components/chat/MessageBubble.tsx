@@ -87,6 +87,31 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     setIsFullScreen(false);
   };
 
+  // Function to enhance the size of emojis in the message content
+  const renderContent = () => {
+    // Simple regex to detect emoji characters
+    const emojiRegex = /(\p{Emoji})/gu;
+    
+    if (!content.match(emojiRegex)) {
+      return <div className="whitespace-pre-wrap break-words text-sm">{content}</div>;
+    }
+    
+    // Split content by emoji and non-emoji parts
+    const parts = content.split(emojiRegex);
+    
+    return (
+      <div className="whitespace-pre-wrap break-words text-sm">
+        {parts.map((part, index) => {
+          // If this part matches an emoji, render it with larger font
+          if (part.match(emojiRegex)) {
+            return <span key={index} className="text-xl inline-block">{part}</span>;
+          }
+          return part;
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}>
       <div
@@ -158,7 +183,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             )}
           </div>
         ) : (
-          <div className="whitespace-pre-wrap break-words text-sm">{content}</div>
+          renderContent()
         )}
       </div>
       

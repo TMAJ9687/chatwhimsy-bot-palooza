@@ -20,6 +20,19 @@ const VipMembershipInfo = () => {
     openDialog('accountDeletion');
   };
 
+  const getSubscriptionLabel = (tier: string | undefined) => {
+    switch(tier) {
+      case 'monthly':
+        return 'Monthly Plan';
+      case 'semiannual':
+        return '6-Month Plan';
+      case 'annual':
+        return 'Annual Plan';
+      default:
+        return 'None';
+    }
+  };
+
   return (
     <Card className="bg-white dark:bg-gray-800 shadow-md border-amber-100 dark:border-amber-900/40">
       <CardHeader className="bg-gradient-to-r from-amber-500 to-orange-500 text-white">
@@ -38,8 +51,8 @@ const VipMembershipInfo = () => {
             <Award className="h-5 w-5 text-amber-500 mt-0.5" />
             <div>
               <h3 className="font-medium">Subscription Tier</h3>
-              <p className="text-sm text-muted-foreground capitalize">
-                {user?.subscriptionTier || 'None'}
+              <p className="text-sm text-muted-foreground">
+                {getSubscriptionLabel(user?.subscriptionTier)}
               </p>
             </div>
           </div>
@@ -97,6 +110,18 @@ const VipMembershipInfo = () => {
             <li className="flex items-start">
               <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 h-5 w-5 rounded-full flex items-center justify-center text-xs mr-2 mt-0.5">✓</span>
               <span>Read receipts</span>
+            </li>
+            <li className="flex items-start">
+              <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 h-5 w-5 rounded-full flex items-center justify-center text-xs mr-2 mt-0.5">✓</span>
+              <span>Message delivery status</span>
+            </li>
+            <li className="flex items-start">
+              <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 h-5 w-5 rounded-full flex items-center justify-center text-xs mr-2 mt-0.5">✓</span>
+              <span>Typing indicators</span>
+            </li>
+            <li className="flex items-start">
+              <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 h-5 w-5 rounded-full flex items-center justify-center text-xs mr-2 mt-0.5">✓</span>
+              <span>Premium conversation starters</span>
             </li>
           </ul>
         </div>

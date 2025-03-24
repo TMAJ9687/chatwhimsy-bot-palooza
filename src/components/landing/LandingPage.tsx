@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Crown, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -116,7 +117,7 @@ const LandingPage: React.FC = () => {
   };
 
   const handleVipClick = () => {
-    openDialog('vipLogin');
+    openDialog('vipSelect');
   };
 
   return (
