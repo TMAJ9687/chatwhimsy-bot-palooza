@@ -45,7 +45,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
         <MessageBubble 
           key={message.id} 
           message={message}
-          isLastInGroup={true}
           showStatus={isVip && showStatus}
         />
       ))}

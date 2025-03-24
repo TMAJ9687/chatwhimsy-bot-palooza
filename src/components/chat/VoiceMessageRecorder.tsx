@@ -190,7 +190,7 @@ const VoiceMessageRecorder: React.FC<VoiceMessageRecorderProps> = ({
             <Trash className="h-4 w-4" />
           </Button>
           <Button 
-            variant="primary" 
+            variant="default" 
             size="sm" 
             onClick={sendVoiceMessage}
             className="h-8 w-8 p-0"
