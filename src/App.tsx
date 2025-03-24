@@ -7,7 +7,7 @@ import { Toaster } from './components/ui/toaster';
 
 // Import your pages
 import HomePage from './pages/Index'; // Changed from './pages/Home'
-import ChatPage from './pages/Chat.tsx'; // Add .tsx extension to help resolver
+import ChatPage from './pages/Chat'; // Remove .tsx extension
 import VipProfileSetup from './pages/VipProfileSetup';
 import VipLogin from './pages/VipLogin';
 import VipSignup from './pages/VipSignup';
