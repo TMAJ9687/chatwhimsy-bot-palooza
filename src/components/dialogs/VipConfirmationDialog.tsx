@@ -10,9 +10,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { Crown, Check, Mail } from 'lucide-react';
 import { useDialog } from '@/context/DialogContext';
+import { useNavigate } from 'react-router-dom';
 
 const VipConfirmationDialog = () => {
   const { state, closeDialog } = useDialog();
+  const navigate = useNavigate();
+  
+  const handleStartVip = () => {
+    closeDialog();
+    navigate('/vip-profile');
+  };
   
   return (
     <Dialog open={state.isOpen && state.type === 'vipConfirmation'} onOpenChange={closeDialog}>
@@ -64,7 +71,7 @@ const VipConfirmationDialog = () => {
         
         <DialogFooter>
           <Button 
-            onClick={closeDialog}
+            onClick={handleStartVip}
             className="w-full bg-amber-500 hover:bg-amber-600"
           >
             Start Enjoying VIP

@@ -15,18 +15,20 @@ import { useForm } from 'react-hook-form';
 import { Crown, KeyRound, AtSign, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDialog } from '@/context/DialogContext';
+import { useUser } from '@/context/UserContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useNavigate } from 'react-router-dom';
 
 // Form schema
 const signupSchema = z.object({
-  nickname: z.string().min(3, "Nickname is required"),
-  email: z.string().email("Valid email is required"),
+  nickname: z.string().min(3, "Nickname must be at least 3 characters"),
+  email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(6, "Please confirm your password"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
+  confirmPassword: z.string()
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"]
 });
 
 type SignupFormValues = z.infer<typeof signupSchema>;
@@ -34,7 +36,9 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 const VipSignupDialog = () => {
   const { state, closeDialog, openDialog } = useDialog();
   const { toast } = useToast();
+  const { updateUserProfile } = useUser();
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -42,11 +46,10 @@ const VipSignupDialog = () => {
       nickname: '',
       email: '',
       password: '',
-      confirmPassword: '',
+      confirmPassword: ''
     },
   });
 
-  // Mock signup function - in a real app, this would connect to an API
   const handleSignup = (values: SignupFormValues) => {
     setIsLoading(true);
     
@@ -54,15 +57,27 @@ const VipSignupDialog = () => {
     setTimeout(() => {
       setIsLoading(false);
       
-      toast({
-        title: "Account Created",
-        description: "Now let's set up your VIP subscription",
+      // Success case
+      updateUserProfile({
+        nickname: values.nickname,
+        email: values.email,
+        isVip: true,
+        subscriptionTier: 'monthly',
+        subscriptionEndDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+        imagesRemaining: Infinity,
+        voiceMessagesRemaining: Infinity
       });
       
-      // Proceed to subscription selection
+      toast({
+        title: "VIP Account Created",
+        description: "Your VIP account has been created successfully!",
+      });
+      
       closeDialog();
-      openDialog('vipSubscription');
-    }, 1000);
+      
+      // Redirect to VIP Profile setup page
+      navigate('/vip-profile');
+    }, 1500);
   };
 
   const handleLoginClick = () => {
@@ -79,7 +94,7 @@ const VipSignupDialog = () => {
           </div>
           <DialogTitle className="text-center text-xl">Create VIP Account</DialogTitle>
           <DialogDescription className="text-center">
-            Sign up to get exclusive VIP features and benefits
+            Sign up for a VIP account to access premium features
           </DialogDescription>
         </DialogHeader>
         
@@ -117,7 +132,7 @@ const VipSignupDialog = () => {
                       <AtSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input 
                         type="email" 
-                        placeholder="Enter your email" 
+                        placeholder="your@email.com" 
                         className="pl-10"
                         {...field} 
                       />
@@ -139,7 +154,7 @@ const VipSignupDialog = () => {
                       <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input 
                         type="password" 
-                        placeholder="Create a password" 
+                        placeholder="••••••••" 
                         className="pl-10"
                         {...field} 
                       />
@@ -161,7 +176,7 @@ const VipSignupDialog = () => {
                       <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input 
                         type="password" 
-                        placeholder="Confirm your password" 
+                        placeholder="••••••••" 
                         className="pl-10"
                         {...field} 
                       />
@@ -174,12 +189,12 @@ const VipSignupDialog = () => {
             
             <DialogFooter className="flex flex-col space-y-3 sm:space-y-0">
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Creating Account...' : 'Continue to Subscription'}
+                {isLoading ? 'Creating account...' : 'Create VIP Account'}
               </Button>
               
               <div className="flex items-center justify-center w-full mt-4">
                 <span className="text-sm text-muted-foreground">
-                  Already have an account?
+                  Already have a VIP account?
                 </span>
                 <Button 
                   type="button" 
@@ -187,7 +202,7 @@ const VipSignupDialog = () => {
                   className="text-sm"
                   onClick={handleLoginClick}
                 >
-                  Login
+                  Log in
                 </Button>
               </div>
             </DialogFooter>

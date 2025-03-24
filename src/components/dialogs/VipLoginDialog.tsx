@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Dialog, 
@@ -19,6 +18,7 @@ import { useDialog } from '@/context/DialogContext';
 import { useUser } from '@/context/UserContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useNavigate } from 'react-router-dom';
 
 // Form schema
 const loginSchema = z.object({
@@ -33,6 +33,7 @@ const VipLoginDialog = () => {
   const { toast } = useToast();
   const { updateUserProfile } = useUser();
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -68,6 +69,9 @@ const VipLoginDialog = () => {
         });
         
         closeDialog();
+        
+        // Redirect to VIP Profile setup page
+        navigate('/vip-profile');
       } else {
         // Failed login
         form.setError('password', { 
