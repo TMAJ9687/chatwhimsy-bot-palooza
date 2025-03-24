@@ -6,8 +6,8 @@ import SessionManager from './components/shared/SessionManager';
 import { Toaster } from './components/ui/toaster';
 
 // Import your pages
-import HomePage from './pages/Index'; // Changed from './pages/Home'
-import ChatPage from './pages/Chat'; // Remove .tsx extension
+import HomePage from './pages/Index'; 
+import ChatPage from './pages/Chat'; 
 import VipProfileSetup from './pages/VipProfileSetup';
 import VipLogin from './pages/VipLogin';
 import VipSignup from './pages/VipSignup';
