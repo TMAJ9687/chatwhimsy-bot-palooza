@@ -10,20 +10,20 @@ import {
 import { Button } from '@/components/ui/button';
 import { Crown, LogIn } from 'lucide-react';
 import { useDialog } from '@/context/DialogContext';
-import { useNavigate } from 'react-router-dom';
 
 const VipSelectDialog = () => {
   const { state, closeDialog } = useDialog();
-  const navigate = useNavigate();
 
   const handleLoginClick = () => {
     closeDialog();
-    navigate('/vip-login');
+    // Use window.location instead of navigate
+    window.location.href = '/vip-login';
   };
 
   const handleSignupClick = () => {
     closeDialog();
-    navigate('/vip-signup');
+    // Use window.location instead of navigate
+    window.location.href = '/vip-signup';
   };
 
   return (
