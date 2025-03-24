@@ -1,16 +1,22 @@
 
 import React, { memo } from 'react';
-import { Crown, Sparkles } from 'lucide-react';
+import { Crown, Sparkles, User } from 'lucide-react';
 import { useDialog } from '@/context/DialogContext';
 import { useUser } from '@/context/UserContext';
+import { useNavigate } from 'react-router-dom';
 
 const VipUpgradeSection = () => {
   const { openDialog } = useDialog();
   const { isVip } = useUser();
+  const navigate = useNavigate();
 
   const handleUpgradeClick = () => {
     // Take users straight to subscription options
     openDialog('vipSubscription');
+  };
+
+  const handleProfileClick = () => {
+    navigate('/vip-profile');
   };
 
   if (isVip) {
@@ -24,12 +30,21 @@ const VipUpgradeSection = () => {
             <div className="text-sm font-medium">VIP Status Active</div>
             <div className="text-xs text-muted-foreground">All premium features unlocked</div>
           </div>
-          <button 
-            onClick={() => openDialog('vipSubscription')}
-            className="px-3 py-1 rounded-md bg-amber-500 text-white text-sm font-medium hover:bg-amber-600 transition-colors"
-          >
-            Manage
-          </button>
+          <div className="flex space-x-2">
+            <button 
+              onClick={handleProfileClick}
+              className="px-3 py-1 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-colors flex items-center gap-1"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Profile</span>
+            </button>
+            <button 
+              onClick={() => openDialog('vipSubscription')}
+              className="px-3 py-1 rounded-md border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-sm font-medium hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+            >
+              Manage
+            </button>
+          </div>
         </div>
       </div>
     );
