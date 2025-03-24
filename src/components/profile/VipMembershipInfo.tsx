@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useUser } from '@/context/UserContext';
 import { useDialog } from '@/context/DialogContext';
 import { format } from 'date-fns';
-import { Crown, Calendar, Sparkles, Award, ImageIcon, Mic, Trash } from 'lucide-react';
+import { Crown, Calendar, Award, Trash, Shield, Globe, MessageSquare, Search, HeartHandshake, Clock, UserCheck } from 'lucide-react';
 
 const VipMembershipInfo = () => {
   const { user, isVip } = useUser();
@@ -53,32 +53,12 @@ const VipMembershipInfo = () => {
               </p>
             </div>
           </div>
-
-          <div className="flex items-start space-x-3">
-            <ImageIcon className="h-5 w-5 text-amber-500 mt-0.5" />
-            <div>
-              <h3 className="font-medium">Images Remaining</h3>
-              <p className="text-sm text-muted-foreground">
-                {user?.imagesRemaining === Infinity ? 'Unlimited' : user?.imagesRemaining || 0}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start space-x-3">
-            <Mic className="h-5 w-5 text-amber-500 mt-0.5" />
-            <div>
-              <h3 className="font-medium">Voice Messages</h3>
-              <p className="text-sm text-muted-foreground">
-                {user?.voiceMessagesRemaining === Infinity ? 'Unlimited' : user?.voiceMessagesRemaining || 0}
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Feature list */}
         <div className="border-t pt-4">
           <h3 className="font-medium flex items-center mb-3">
-            <Sparkles className="h-4 w-4 text-amber-500 mr-2" />
+            <Crown className="h-4 w-4 text-amber-500 mr-2" />
             VIP Features
           </h3>
           <ul className="space-y-2 text-sm">
@@ -92,11 +72,31 @@ const VipMembershipInfo = () => {
             </li>
             <li className="flex items-start">
               <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 h-5 w-5 rounded-full flex items-center justify-center text-xs mr-2 mt-0.5">✓</span>
-              <span>Priority matching</span>
+              <span>Chat history view</span>
+            </li>
+            <li className="flex items-start">
+              <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 h-5 w-5 rounded-full flex items-center justify-center text-xs mr-2 mt-0.5">✓</span>
+              <span>Find matches by interests</span>
+            </li>
+            <li className="flex items-start">
+              <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 h-5 w-5 rounded-full flex items-center justify-center text-xs mr-2 mt-0.5">✓</span>
+              <span>Priority customer support</span>
             </li>
             <li className="flex items-start">
               <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 h-5 w-5 rounded-full flex items-center justify-center text-xs mr-2 mt-0.5">✓</span>
               <span>Ad-free experience</span>
+            </li>
+            <li className="flex items-start">
+              <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 h-5 w-5 rounded-full flex items-center justify-center text-xs mr-2 mt-0.5">✓</span>
+              <span>Appear at top of the list</span>
+            </li>
+            <li className="flex items-start">
+              <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 h-5 w-5 rounded-full flex items-center justify-center text-xs mr-2 mt-0.5">✓</span>
+              <span>Customized avatars</span>
+            </li>
+            <li className="flex items-start">
+              <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 h-5 w-5 rounded-full flex items-center justify-center text-xs mr-2 mt-0.5">✓</span>
+              <span>Read receipts</span>
             </li>
           </ul>
         </div>

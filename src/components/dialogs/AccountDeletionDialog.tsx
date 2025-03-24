@@ -24,12 +24,13 @@ import { Label } from '@/components/ui/label';
 import { useDialog } from '@/context/DialogContext';
 import { useUser } from '@/context/UserContext';
 import { useToast } from '@/hooks/use-toast';
+import { AlertTriangle, Shield, Mail } from 'lucide-react';
 
-// Step 1: Initial confirmation dialog
+// Step 1: Initial warning dialog
 // Step 2: Password confirmation dialog
 // Step 3: Final confirmation email sent
 
-type DeletionStep = 'initial' | 'password' | 'emailSent';
+type DeletionStep = 'initial' | 'warning' | 'password' | 'emailSent';
 
 const AccountDeletionDialog = () => {
   const { state, closeDialog } = useDialog();
@@ -41,6 +42,10 @@ const AccountDeletionDialog = () => {
   const [error, setError] = useState('');
 
   const handleInitialConfirm = () => {
+    setStep('warning');
+  };
+
+  const handleWarningConfirm = () => {
     setStep('password');
   };
 
@@ -79,6 +84,15 @@ const AccountDeletionDialog = () => {
     window.location.href = '/';
   };
 
+  // Reset the state when dialog opens
+  React.useEffect(() => {
+    if (state.isOpen && state.type === 'accountDeletion') {
+      setStep('initial');
+      setPassword('');
+      setError('');
+    }
+  }, [state.isOpen, state.type]);
+
   // If dialog is not open or not of type 'accountDeletion', return null
   if (!state.isOpen || state.type !== 'accountDeletion') {
     return null;
@@ -89,7 +103,10 @@ const AccountDeletionDialog = () => {
       <AlertDialog open={true} onOpenChange={closeDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-500">Delete VIP Account?</AlertDialogTitle>
+            <AlertDialogTitle className="text-red-500 flex items-center">
+              <Trash className="h-5 w-5 mr-2" />
+              Delete VIP Account?
+            </AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. You will lose all your VIP benefits, 
               preferences, and personal data. Are you sure you want to continue?
@@ -101,7 +118,51 @@ const AccountDeletionDialog = () => {
               onClick={handleInitialConfirm}
               className="bg-red-500 hover:bg-red-600 text-white"
             >
-              Yes, Delete My Account
+              Yes, Proceed
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+  }
+
+  if (step === 'warning') {
+    return (
+      <AlertDialog open={true} onOpenChange={closeDialog}>
+        <AlertDialogContent className="border-red-200 dark:border-red-900">
+          <AlertDialogHeader>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900 mb-4">
+              <AlertTriangle className="h-6 w-6 text-red-500" />
+            </div>
+            <AlertDialogTitle className="text-red-500 text-center">Warning: Permanent Action</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              <p className="mb-2">
+                Deleting your VIP account will immediately:
+              </p>
+              <ul className="text-left space-y-1 mx-auto max-w-xs mb-2">
+                <li className="flex items-start">
+                  <span className="text-red-500 mr-2">•</span>
+                  <span>Permanently delete all your chat history</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-red-500 mr-2">•</span>
+                  <span>Cancel your subscription without refund</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-red-500 mr-2">•</span>
+                  <span>Remove all your personal data from our systems</span>
+                </li>
+              </ul>
+              <p>This action <strong>cannot</strong> be reversed.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="sm:flex-1">Keep My Account</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleWarningConfirm}
+              className="bg-red-500 hover:bg-red-600 text-white sm:flex-1"
+            >
+              Continue With Deletion
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -114,9 +175,12 @@ const AccountDeletionDialog = () => {
       <Dialog open={true} onOpenChange={closeDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-red-500">Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              Please enter your password to confirm your identity.
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900 mb-4">
+              <Shield className="h-6 w-6 text-red-500" />
+            </div>
+            <DialogTitle className="text-red-500 text-center">Confirm Your Identity</DialogTitle>
+            <DialogDescription className="text-center">
+              For security, please enter your password to confirm account deletion.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -132,12 +196,19 @@ const AccountDeletionDialog = () => {
               {error && <p className="text-sm text-red-500">{error}</p>}
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => closeDialog()}>Cancel</Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => closeDialog()}
+              className="sm:flex-1"
+            >
+              Cancel
+            </Button>
             <Button 
               variant="destructive" 
               onClick={handlePasswordSubmit}
               disabled={isLoading}
+              className="sm:flex-1"
             >
               {isLoading ? 'Verifying...' : 'Confirm Deletion'}
             </Button>
@@ -152,22 +223,29 @@ const AccountDeletionDialog = () => {
       <Dialog open={true} onOpenChange={closeDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmation Email Sent</DialogTitle>
-            <DialogDescription>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900 mb-4">
+              <Mail className="h-6 w-6 text-amber-500" />
+            </div>
+            <DialogTitle className="text-center">Check Your Email</DialogTitle>
+            <DialogDescription className="text-center">
               We've sent a confirmation email to your registered email address. 
               Please check your inbox and click the link to confirm the deletion of your account.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              For demo purposes, you can click the button below to simulate clicking the email confirmation link.
-            </p>
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-lg p-4 text-sm">
+              <p className="font-medium mb-1">Important:</p>
+              <p className="text-muted-foreground">
+                For demonstration purposes, you can click the button below to simulate clicking the email confirmation link.
+              </p>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => closeDialog()}>Close</Button>
+            <Button variant="outline" onClick={() => closeDialog()} className="sm:flex-1">Close</Button>
             <Button 
               variant="destructive" 
               onClick={handleFinalConfirm}
+              className="sm:flex-1"
             >
               Simulate Email Confirmation
             </Button>

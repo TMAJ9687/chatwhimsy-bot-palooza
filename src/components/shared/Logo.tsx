@@ -30,7 +30,7 @@ const Logo: React.FC<LogoProps> = ({
   
   return (
     <img 
-      src="/lovable-uploads/0d758ce3-525d-4cab-b5ff-da29d0055980.png" 
+      src="/lovable-uploads/256dbc64-d9d8-43a3-9bb3-3f12281d43d0.png" 
       alt="chatwii logo" 
       className={`${sizes[size]} ${className} object-contain`}
       style={{ 
