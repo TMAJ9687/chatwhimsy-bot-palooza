@@ -4,10 +4,12 @@ import { Bell, Clock, X } from 'lucide-react';
 
 export interface Notification {
   id: string;
-  senderId: string;
-  senderName: string;
+  senderId?: string;
+  senderName?: string;
+  title: string;
   message: string;
   timestamp: Date;
+  time?: Date;
   read: boolean;
   type?: 'message' | 'system' | 'image';
 }

@@ -364,8 +364,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         [currentBot.id]: [{
           id: `system-${Date.now()}`,
           content: `Start a conversation with ${currentBot.name}`,
-          sender: 'system',
+          senderId: 'system',
+          senderName: 'System',
           timestamp: new Date(),
+          isUser: false,
         }]
       }));
     }
@@ -384,8 +386,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         [user.id]: [{
           id: `system-${Date.now()}`,
           content: `Start a conversation with ${user.name}`,
-          sender: 'system',
+          senderId: 'system',
+          senderName: 'System',
           timestamp: new Date(),
+          isUser: false,
         }]
       }));
     }
@@ -422,8 +426,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const newMessage: Message = {
       id: `user-${Date.now()}`,
       content: text,
-      sender: 'user',
+      senderId: 'user',
+      senderName: 'You',
       timestamp: new Date(),
+      isUser: true,
       status: 'sending',
     };
     
@@ -437,7 +443,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       id: Date.now().toString(),
       title: `Message to ${currentBot.name}`,
       message: text.slice(0, 30) + (text.length > 30 ? '...' : ''),
-      time: new Date(),
+      timestamp: new Date(),
       read: true
     };
     
@@ -455,8 +461,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const newMessage: Message = {
       id: `user-${Date.now()}`,
       content: imageDataUrl,
-      sender: 'user',
+      senderId: 'user',
+      senderName: 'You',
       timestamp: new Date(),
+      isUser: true,
       status: 'sending',
       isImage: true,
     };
@@ -479,7 +487,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       id: Date.now().toString(),
       title: `Image sent to ${currentBot.name}`,
       message: 'You sent an image',
-      time: new Date(),
+      timestamp: new Date(),
       read: true
     };
     
@@ -566,15 +574,17 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         // Update message status (specifying the exact type) - only for VIP users
         const updatedMessages = botMessages.map(msg => 
-          (msg.sender === 'user' && isVipChat) ? { ...msg, status: 'read' as const } : msg
+          (msg.isUser && isVipChat) ? { ...msg, status: 'read' as const } : msg
         );
         
         // Generate bot response
-        const botResponse = {
+        const botResponse: Message = {
           id: `bot-${Date.now()}`,
           content: getRandomBotResponse(botId),
-          sender: 'bot' as const,
+          senderId: botId,
+          senderName: botProfiles.find(b => b.id === botId)?.name || 'Bot',
           timestamp: new Date(),
+          isUser: false,
         };
         
         // Add notification for new message from bot, but only if not already present
@@ -593,7 +603,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               updatedNotifications[existingNotifIndex] = {
                 ...updatedNotifications[existingNotifIndex],
                 message: `${botProfile.name} sent you a new message`,
-                time: new Date(),
+                timestamp: new Date(),
                 read: false
               };
               
@@ -604,7 +614,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 id: Date.now().toString(),
                 title: `New message from ${botProfile.name}`,
                 message: `${botProfile.name} sent you a new message`,
-                time: new Date(),
+                timestamp: new Date(),
                 read: false,
                 senderId: botProfile.id
               };
@@ -624,7 +634,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
       });
     }, 3000);
-  }, [unreadNotifications]);
+}, [unreadNotifications]);
 
   // Filter change handler - optimized with useCallback
   const handleFilterChange = useCallback((newFilters: FilterState) => {

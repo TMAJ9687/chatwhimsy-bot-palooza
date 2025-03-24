@@ -8,6 +8,7 @@ import VipConfirmationDialog from './VipConfirmationDialog';
 import SharedMediaDialog from '../chat/SharedMediaDialog';
 import ConfirmationDialog from './ConfirmationDialog';
 import DeleteConversationDialog from './DeleteConversationDialog';
+import VipSelectDialog from './VipSelectDialog';
 // Import other dialogs as needed
 
 const DialogContainer = () => {
@@ -21,6 +22,7 @@ const DialogContainer = () => {
       <SharedMediaDialog messages={[]} contactName="Contact" />
       <ConfirmationDialog />
       <DeleteConversationDialog />
+      <VipSelectDialog />
     </>
   );
 };

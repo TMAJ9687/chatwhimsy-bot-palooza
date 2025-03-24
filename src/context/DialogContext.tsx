@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, ReactNode, useMemo, useCallback } from 'react';
 
 // Define dialog types
-type DialogType = 'report' | 'block' | 'siteRules' | 'logout' | 'vipLogin' | 'vipSignup' | 'vipSubscription' | 'vipPayment' | 'vipConfirmation' | 'accountDeletion' | 'vipSelect' | null;
+type DialogType = 'report' | 'block' | 'siteRules' | 'logout' | 'vipLogin' | 'vipSignup' | 'vipSubscription' | 'vipPayment' | 'vipConfirmation' | 'accountDeletion' | 'vipSelect' | 'confirmation' | 'deleteConversation' | 'sharedMedia';
 
 // Define dialog state
 interface DialogState {

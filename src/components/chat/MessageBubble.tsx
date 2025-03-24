@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Check, Clock, MessageSquare, Repeat } from 'lucide-react';
+import { Check, Clock, MessageSquare, Repeat, X } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 
 // Common reaction emojis
@@ -13,7 +13,7 @@ export interface Message {
   content: string;
   timestamp: Date;
   isUser: boolean;
-  status?: 'sent' | 'delivered' | 'read';
+  status?: 'sent' | 'delivered' | 'read' | 'sending';
   isImage?: boolean;
   isVoice?: boolean;
   voiceUrl?: string;
