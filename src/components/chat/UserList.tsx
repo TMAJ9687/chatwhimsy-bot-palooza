@@ -60,12 +60,12 @@ const UserList = ({
           </button>
           
           {showFilterMenu && (
-            <FilterMenu 
-              isOpen={showFilterMenu}
-              onClose={() => setShowFilterMenu(false)}
-              onFilterChange={onFilterChange}
-              initialFilters={filters}
-            />
+            <div className="absolute right-0 top-full mt-1 z-10 w-72">
+              <FilterMenu 
+                filters={filters}
+                onChange={onFilterChange}
+              />
+            </div>
           )}
         </div>
       </div>

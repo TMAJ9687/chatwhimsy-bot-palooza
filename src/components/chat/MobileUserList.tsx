@@ -75,12 +75,12 @@ const MobileUserList = ({
               </button>
               
               {showFilterMenu && (
-                <FilterMenu 
-                  isOpen={showFilterMenu}
-                  onClose={() => setShowFilterMenu(false)}
-                  onFilterChange={onFilterChange}
-                  initialFilters={filters}
-                />
+                <div className="absolute right-4 top-24 z-10 w-72">
+                  <FilterMenu 
+                    filters={filters}
+                    onChange={onFilterChange}
+                  />
+                </div>
               )}
             </div>
           </div>

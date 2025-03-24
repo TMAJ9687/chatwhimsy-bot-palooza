@@ -6,8 +6,11 @@ interface Country {
   value: string;
   label: string;
   code: string;
+  name?: string;
+  flag?: string;
 }
 
+// Export both as countriesData (original name) and countries (new name for compatibility)
 export const countriesData: Country[] = [
   { value: 'af', label: 'Afghanistan', code: 'af' },
   { value: 'al', label: 'Albania', code: 'al' },
@@ -203,3 +206,19 @@ export const countriesData: Country[] = [
   { value: 'zm', label: 'Zambia', code: 'zm' },
   { value: 'zw', label: 'Zimbabwe', code: 'zw' },
 ];
+
+// Create a formatted version of the countries with flags
+export const countries = countriesData.map(country => ({
+  name: country.label,
+  flag: getFlag(country.code),
+  code: country.code
+}));
+
+// Helper function to get emoji flag from country code
+function getFlag(code: string): string {
+  // Convert country code to regional indicator symbols (emoji flags)
+  const codePoints = [...code.toUpperCase()].map(char => 
+    char.charCodeAt(0) + 127397 // This converts A-Z to regional indicator symbols
+  );
+  return String.fromCodePoint(...codePoints);
+}
