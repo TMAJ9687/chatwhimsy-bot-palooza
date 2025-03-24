@@ -1,26 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
-import { Crown, RefreshCw, Moon, Sun } from 'lucide-react';
+import { Crown, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../shared/Logo';
 import Button from '../shared/Button';
 import ProfileSetup from '../profile/ProfileSetup';
 import { useUser } from '../../context/UserContext';
-import { Switch } from "../ui/switch";
+import ThemeToggle from '../shared/ThemeToggle';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { updateUserProfile } = useUser();
   const [step, setStep] = useState<'nickname' | 'profile'>('nickname');
   const [nickname, setNickname] = useState('');
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Check for saved preference or system preference
-    if (typeof window !== 'undefined') {
-      return document.documentElement.classList.contains('dark') ||
-        (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-    return false;
-  });
   const [nicknameError, setNicknameError] = useState('');
 
   // Function to validate nickname input
@@ -121,33 +113,6 @@ const LandingPage: React.FC = () => {
       setStep('profile');
     }
   };
-  
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-  };
-
-  // Apply dark mode on initial load and when toggled
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDarkMode]);
-
-  // Check for saved theme preference on initial load
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      setIsDarkMode(true);
-      document.documentElement.classList.add('dark');
-    } else if (savedTheme === 'light') {
-      setIsDarkMode(false);
-      document.documentElement.classList.remove('dark');
-    }
-  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-background dark:from-background dark:to-background">
@@ -155,14 +120,7 @@ const LandingPage: React.FC = () => {
       <header className="py-6 px-8 flex justify-between items-center">
         <Logo variant="image" />
         <div className="flex items-center gap-4">
-          <div className="flex items-center space-x-2">
-            <Sun className="h-4 w-4 text-foreground" />
-            <Switch 
-              checked={isDarkMode}
-              onCheckedChange={toggleDarkMode}
-            />
-            <Moon className="h-4 w-4 text-foreground" />
-          </div>
+          <ThemeToggle />
           <Button
             variant="primary" 
             size="sm"

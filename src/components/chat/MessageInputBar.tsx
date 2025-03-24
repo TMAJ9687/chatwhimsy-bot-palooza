@@ -21,6 +21,28 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const [theme, setTheme] = useState('light');
+
+  // Detect theme for emoji picker
+  useEffect(() => {
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    setTheme(isDarkMode ? 'dark' : 'light');
+    
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          const isDark = document.documentElement.classList.contains('dark');
+          setTheme(isDark ? 'dark' : 'light');
+        }
+      });
+    });
+    
+    observer.observe(document.documentElement, { attributes: true });
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   // Close emoji picker when clicking outside
   useEffect(() => {
@@ -90,27 +112,27 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
   };
 
   return (
-    <div className="p-3 border-t border-gray-200 bg-white">
+    <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
       {imagePreview && (
         <div className="mb-3 relative">
           <img
             src={imagePreview}
             alt="Preview"
-            className="h-32 object-contain rounded-lg border border-gray-200"
+            className="h-32 object-contain rounded-lg border border-gray-200 dark:border-gray-700"
           />
           <button
             onClick={() => setImagePreview(null)}
-            className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-sm hover:bg-gray-100"
+            className="absolute top-1 right-1 bg-white dark:bg-gray-900 rounded-full p-1 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-800"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 text-gray-700 dark:text-gray-300" />
           </button>
         </div>
       )}
     
-      <div className="flex items-center bg-gray-100 rounded-full px-4 py-1">
+      <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full px-4 py-1">
         <input
           type="text"
-          className="flex-1 bg-transparent border-0 focus:outline-none text-gray-700 py-2 text-sm"
+          className="flex-1 bg-transparent border-0 focus:outline-none text-gray-700 dark:text-gray-200 py-2 text-sm"
           placeholder="Type a message..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -125,7 +147,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
         <div className="relative">
           <button 
             ref={emojiButtonRef}
-            className="p-1.5 text-gray-500 hover:text-gray-700"
+            className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
             onClick={toggleEmojiPicker}
           >
             <Smile className="h-5 w-5" />
@@ -139,7 +161,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
               <Picker 
                 data={data} 
                 onEmojiSelect={handleEmojiSelect}
-                theme="light"
+                theme={theme}
                 previewPosition="none"
               />
             </div>
@@ -155,7 +177,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
         />
         
         <button
-          className={`p-1.5 text-gray-500 hover:text-gray-700 ${imagesRemaining <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 ${imagesRemaining <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
           onClick={triggerFileInput}
           disabled={imagesRemaining <= 0 || !!imagePreview}
         >
@@ -173,7 +195,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
       
       {/* Display images remaining */}
       {imagesRemaining < 10 && (
-        <div className="mt-2 text-xs text-gray-500 text-center">
+        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
           {imagesRemaining} images remaining today
         </div>
       )}

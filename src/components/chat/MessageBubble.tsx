@@ -31,7 +31,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   // If this is a system message, render differently
   if (sender === 'system') {
     return (
-      <div className="text-center text-gray-500 text-sm py-2">
+      <div className="text-center text-gray-500 dark:text-gray-400 text-sm py-2">
         {content}
       </div>
     );
@@ -94,13 +94,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           relative px-3 py-2 rounded-2xl max-w-[80%]
           ${isUser 
             ? 'bg-teal-500 text-white rounded-br-none' 
-            : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'}
+            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'}
         `}
       >
         {isImage ? (
           <div className="relative">
             <div className="rounded-lg overflow-hidden">
-              <div className="w-[250px] h-[250px] relative overflow-hidden">
+              <div className="w-[250px] h-[250px] relative overflow-hidden" onClick={e => e.stopPropagation()}>
                 <img 
                   src={content} 
                   alt="Shared image" 
@@ -109,11 +109,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 />
                 {isBlurred ? (
                   <button 
-                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full flex items-center gap-1"
+                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/80 dark:bg-black/60 p-2 rounded-full flex items-center gap-1"
                     onClick={handleToggleBlur}
                   >
-                    <Eye className="h-5 w-5 text-gray-700" />
-                    <span className="text-gray-700 text-sm font-medium">Reveal</span>
+                    <Eye className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+                    <span className="text-gray-700 dark:text-gray-200 text-sm font-medium">Reveal</span>
                   </button>
                 ) : (
                   <div className="absolute top-2 right-2 flex space-x-2">
@@ -163,7 +163,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       </div>
       
       {isLastInGroup && showStatus && (
-        <div className={`flex items-center mt-0.5 text-xs text-gray-500 ${isUser ? 'mr-1' : 'ml-1'}`}>
+        <div className={`flex items-center mt-0.5 text-xs text-gray-500 dark:text-gray-400 ${isUser ? 'mr-1' : 'ml-1'}`}>
           <span>{formattedTime}</span>
           {getStatusIcon() && <span className="ml-1">{getStatusIcon()}</span>}
         </div>

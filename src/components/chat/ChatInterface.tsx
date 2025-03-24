@@ -95,7 +95,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   }, [setShowHistory, setShowInbox]);
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
+    <div className="flex flex-col h-screen overflow-hidden bg-background dark:bg-gray-950">
       {/* Header with icons */}
       <ChatAppHeader 
         unreadCount={unreadCount}
@@ -106,7 +106,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left sidebar - User list (desktop) */}
-        <div className="hidden md:flex flex-col w-[350px] bg-white border-r border-gray-200 overflow-hidden">
+        <div className="hidden md:flex flex-col w-[350px] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-hidden">
           <UserList 
             users={filteredUsers}
             currentUserId={currentBot.id}
@@ -133,7 +133,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
         />
 
         {/* Main chat area */}
-        <div className="flex-1 flex flex-col bg-white">
+        <div className="flex-1 flex flex-col bg-white dark:bg-gray-900">
           {/* Chat header component */}
           <ChatHeader 
             currentUser={currentBot}
