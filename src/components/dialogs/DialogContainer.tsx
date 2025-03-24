@@ -1,46 +1,49 @@
 
-import React, { memo, lazy, Suspense } from 'react';
+import React from 'react';
 import { useDialog } from '@/context/DialogContext';
+import ReportDialog from './ReportDialog';
+import BlockUserDialog from './BlockUserDialog';
+import SiteRulesDialog from './SiteRulesDialog';
+import LogoutConfirmationDialog from './LogoutConfirmationDialog';
+import VipLoginDialog from './VipLoginDialog';
+import VipSignupDialog from './VipSignupDialog';
+import VipSubscriptionDialog from './VipSubscriptionDialog';
+import VipPaymentDialog from './VipPaymentDialog';
+import VipConfirmationDialog from './VipConfirmationDialog';
+import AccountDeletionDialog from './AccountDeletionDialog';
 
-// Lazy load dialogs to reduce initial bundle size
-const ReportDialog = lazy(() => import('./ReportDialog'));
-const BlockUserDialog = lazy(() => import('./BlockUserDialog'));
-const SiteRulesDialog = lazy(() => import('./SiteRulesDialog'));
-const LogoutConfirmationDialog = lazy(() => import('./LogoutConfirmationDialog'));
-const VipLoginDialog = lazy(() => import('./VipLoginDialog'));
-const VipSignupDialog = lazy(() => import('./VipSignupDialog'));
-const VipSubscriptionDialog = lazy(() => import('./VipSubscriptionDialog'));
-const VipPaymentDialog = lazy(() => import('./VipPaymentDialog'));
-const VipConfirmationDialog = lazy(() => import('./VipConfirmationDialog'));
-
-// Loading fallback component
-const DialogLoading = () => (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-md text-foreground">Loading...</div>
-  </div>
-);
-
-// Memoized dialog container to prevent unnecessary re-renders
+// This component renders the appropriate dialog based on the current dialog state
 const DialogContainer = () => {
   const { state } = useDialog();
-  
-  // Only render when dialog is open
-  if (!state.isOpen) return null;
-  
-  return (
-    <Suspense fallback={<DialogLoading />}>
-      {state.type === 'report' && <ReportDialog />}
-      {state.type === 'block' && <BlockUserDialog />}
-      {state.type === 'siteRules' && <SiteRulesDialog />}
-      {state.type === 'logout' && <LogoutConfirmationDialog />}
-      {state.type === 'vipLogin' && <VipLoginDialog />}
-      {state.type === 'vipSignup' && <VipSignupDialog />}
-      {state.type === 'vipSubscription' && <VipSubscriptionDialog />}
-      {state.type === 'vipPayment' && <VipPaymentDialog />}
-      {state.type === 'vipConfirmation' && <VipConfirmationDialog />}
-    </Suspense>
-  );
+
+  if (!state.isOpen) {
+    return null;
+  }
+
+  switch (state.type) {
+    case 'report':
+      return <ReportDialog />;
+    case 'block':
+      return <BlockUserDialog />;
+    case 'siteRules':
+      return <SiteRulesDialog />;
+    case 'logout':
+      return <LogoutConfirmationDialog />;
+    case 'vipLogin':
+      return <VipLoginDialog />;
+    case 'vipSignup':
+      return <VipSignupDialog />;
+    case 'vipSubscription':
+      return <VipSubscriptionDialog />;
+    case 'vipPayment':
+      return <VipPaymentDialog />;
+    case 'vipConfirmation':
+      return <VipConfirmationDialog />;
+    case 'accountDeletion':
+      return <AccountDeletionDialog />;
+    default:
+      return null;
+  }
 };
 
-// Use memo to prevent unnecessary re-renders
-export default memo(DialogContainer);
+export default DialogContainer;

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,6 +14,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { User, Calendar, MapPin, Heart, Save, Check } from 'lucide-react';
+import { countriesData } from '@/data/countries';
 
 // Define form schema with validation
 const profileFormSchema = z.object({
@@ -56,30 +56,6 @@ const interestOptions = [
   { id: 'reading', label: 'Reading' },
   { id: 'photography', label: 'Photography' },
   { id: 'fitness', label: 'Fitness' },
-];
-
-// Country options with flags from flagpedia.net
-const countryOptions = [
-  { value: 'us', label: 'United States', code: 'us' },
-  { value: 'ca', label: 'Canada', code: 'ca' },
-  { value: 'gb', label: 'United Kingdom', code: 'gb' },
-  { value: 'au', label: 'Australia', code: 'au' },
-  { value: 'de', label: 'Germany', code: 'de' },
-  { value: 'fr', label: 'France', code: 'fr' },
-  { value: 'jp', label: 'Japan', code: 'jp' },
-  { value: 'br', label: 'Brazil', code: 'br' },
-  { value: 'in', label: 'India', code: 'in' },
-  { value: 'kr', label: 'South Korea', code: 'kr' },
-  { value: 'sg', label: 'Singapore', code: 'sg' },
-  { value: 'mx', label: 'Mexico', code: 'mx' },
-  { value: 'ps', label: 'Palestine', code: 'ps' },
-  { value: 'it', label: 'Italy', code: 'it' },
-  { value: 'es', label: 'Spain', code: 'es' },
-  { value: 'ru', label: 'Russia', code: 'ru' },
-  { value: 'ua', label: 'Ukraine', code: 'ua' },
-  { value: 'nl', label: 'Netherlands', code: 'nl' },
-  { value: 'se', label: 'Sweden', code: 'se' },
-  { value: 'no', label: 'Norway', code: 'no' },
 ];
 
 interface VipProfileFormProps {
@@ -294,7 +270,7 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
               </div>
             </div>
 
-            {/* Country selection with flags from flagpedia.net */}
+            {/* Country selection with flags from flagpedia.net - updated with all countries */}
             <FormField
               control={form.control}
               name="country"
@@ -313,20 +289,27 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
                         <SelectValue placeholder="Select your country">
                           {field.value && (
                             <div className="flex items-center">
-                              {countryOptions.find(c => c.value === field.value)?.label}
+                              {countriesData.find(c => c.value === field.value) && (
+                                <img 
+                                  src={`https://flagcdn.com/w20/${countriesData.find(c => c.value === field.value)?.code}.png`}
+                                  alt={countriesData.find(c => c.value === field.value)?.label || ''}
+                                  className="h-4 w-auto mr-2"
+                                />
+                              )}
+                              {countriesData.find(c => c.value === field.value)?.label}
                             </div>
                           )}
                         </SelectValue>
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
-                      {countryOptions.map((country) => (
+                    <SelectContent className="max-h-[300px]">
+                      {countriesData.map((country) => (
                         <SelectItem key={country.value} value={country.value}>
                           <div className="flex items-center">
                             <img 
                               src={`https://flagcdn.com/w20/${country.code}.png`} 
                               alt={country.label} 
-                              className="h-3 w-auto mr-2" 
+                              className="h-4 w-auto mr-2" 
                             />
                             {country.label}
                           </div>
