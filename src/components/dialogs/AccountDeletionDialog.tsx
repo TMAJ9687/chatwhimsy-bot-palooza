@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   AlertDialog,
@@ -24,11 +23,7 @@ import { Label } from '@/components/ui/label';
 import { useDialog } from '@/context/DialogContext';
 import { useUser } from '@/context/UserContext';
 import { useToast } from '@/hooks/use-toast';
-import { AlertTriangle, Shield, Mail } from 'lucide-react';
-
-// Step 1: Initial warning dialog
-// Step 2: Password confirmation dialog
-// Step 3: Final confirmation email sent
+import { AlertTriangle, Shield, Mail, Trash } from 'lucide-react';
 
 type DeletionStep = 'initial' | 'warning' | 'password' | 'emailSent';
 
@@ -53,24 +48,19 @@ const AccountDeletionDialog = () => {
     setIsLoading(true);
     setError('');
     
-    // Simulate API call to verify password
     setTimeout(() => {
       setIsLoading(false);
       
-      // For demo purposes, accept any password that's not empty
       if (password.trim() === '') {
         setError('Please enter your password');
         return;
       }
       
-      // Simulate sending confirmation email
       setStep('emailSent');
     }, 1000);
   };
 
   const handleFinalConfirm = () => {
-    // In a real app, this would happen when the user clicks the confirmation link in their email
-    // For now, we'll just clear the user and close the dialog
     toast({
       title: "Account Deleted",
       description: "Your VIP account has been successfully deleted.",
@@ -80,11 +70,9 @@ const AccountDeletionDialog = () => {
     clearUser();
     closeDialog();
     
-    // Redirect to homepage
     window.location.href = '/';
   };
 
-  // Reset the state when dialog opens
   React.useEffect(() => {
     if (state.isOpen && state.type === 'accountDeletion') {
       setStep('initial');
@@ -93,7 +81,6 @@ const AccountDeletionDialog = () => {
     }
   }, [state.isOpen, state.type]);
 
-  // If dialog is not open or not of type 'accountDeletion', return null
   if (!state.isOpen || state.type !== 'accountDeletion') {
     return null;
   }
