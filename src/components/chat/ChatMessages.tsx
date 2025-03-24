@@ -19,6 +19,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { isVip } = useUser();
   
   // Optimized scroll to bottom implementation
   const scrollToBottom = useCallback(() => {
@@ -45,11 +46,11 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
           key={message.id} 
           message={message}
           isLastInGroup={true}
-          showStatus={showStatus}
+          showStatus={isVip && showStatus}
         />
       ))}
       
-      {isTyping && showTyping && <TypingIndicator />}
+      {isTyping && isVip && showTyping && <TypingIndicator />}
       
       <div ref={messagesEndRef} />
     </div>

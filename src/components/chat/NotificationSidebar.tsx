@@ -51,12 +51,33 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
     };
   }, [isOpen, onClose]);
 
+  // Extract sender ID from history notifications
+  const extractSenderId = (notification: Notification): string | undefined => {
+    if (notification.senderId) return notification.senderId;
+    
+    // For history items, try to extract from title if it follows format "Message to Sender"
+    if (type === 'history') {
+      const match = notification.title.match(/Message to (.+?)$/);
+      if (match && match[1]) {
+        // Find the bot ID by name
+        const botName = match[1];
+        // This would require access to the bots list, so here we'll just extract and lowercase
+        // In a real implementation, you would map this to a valid sender ID
+        return botName.toLowerCase();
+      }
+    }
+    return undefined;
+  };
+
   const handleNotificationClick = (notification: Notification) => {
     onNotificationRead(notification.id);
     
+    // Extract senderId for both inbox and history items
+    const senderId = extractSenderId(notification);
+    
     // Open the conversation if senderId is provided and we have a click handler
-    if (notification.senderId && onClickNotification) {
-      onClickNotification(notification.senderId);
+    if (senderId && onClickNotification) {
+      onClickNotification(senderId);
     }
   };
 

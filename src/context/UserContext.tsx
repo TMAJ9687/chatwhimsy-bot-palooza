@@ -4,6 +4,7 @@ import React, { createContext, useState, useContext, ReactNode } from 'react';
 type Gender = 'male' | 'female';
 type Interest = string;
 type SubscriptionTier = 'none' | 'monthly' | 'semiannual' | 'annual';
+type UserRole = 'standard' | 'vip' | 'admin';
 
 interface UserProfile {
   nickname: string;
@@ -17,6 +18,7 @@ interface UserProfile {
   subscriptionEndDate?: Date;
   imagesRemaining?: number;
   voiceMessagesRemaining?: number;
+  role?: UserRole;
 }
 
 interface UserContextType {
@@ -26,6 +28,8 @@ interface UserContextType {
   updateUserProfile: (profile: Partial<UserProfile>) => void;
   clearUser: () => void;
   isVip: boolean;
+  isAdmin: boolean;
+  userRole: UserRole;
   subscribeToVip: (tier: SubscriptionTier) => void;
   cancelVipSubscription: () => void;
 }
@@ -40,6 +44,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 
   const isVip = Boolean(user?.isVip);
+  const isAdmin = user?.role === 'admin';
+  const userRole = user?.role || 'standard';
 
   const updateUserProfile = (profile: Partial<UserProfile>) => {
     setUser((prev) => {
@@ -74,7 +80,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       subscriptionTier: tier,
       subscriptionEndDate: endDate,
       imagesRemaining: Infinity,
-      voiceMessagesRemaining: Infinity
+      voiceMessagesRemaining: Infinity,
+      role: 'vip'
     });
   };
   
@@ -84,7 +91,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       subscriptionTier: 'none',
       subscriptionEndDate: undefined,
       imagesRemaining: 15,
-      voiceMessagesRemaining: 0
+      voiceMessagesRemaining: 0,
+      role: 'standard'
     });
   };
 
@@ -97,6 +105,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         updateUserProfile,
         clearUser,
         isVip,
+        isAdmin,
+        userRole,
         subscribeToVip,
         cancelVipSubscription
       }}
