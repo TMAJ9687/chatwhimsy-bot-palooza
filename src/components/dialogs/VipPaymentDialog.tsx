@@ -125,7 +125,7 @@ const VipPaymentDialog = () => {
 
   return (
     <Dialog open={state.isOpen && state.type === 'vipPayment'} onOpenChange={closeDialog}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900">
             <Crown className="h-6 w-6 text-amber-500" />

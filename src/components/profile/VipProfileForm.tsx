@@ -15,6 +15,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { User, Calendar, MapPin, Heart, Save, Check } from 'lucide-react';
 import { countriesData } from '@/data/countries';
+import CountryFlag from '@/components/ui/country-flag';
+import { validateNicknameInput } from '@/utils/nicknameValidator';
 
 // Define form schema with validation
 const profileFormSchema = z.object({
@@ -26,6 +28,7 @@ const profileFormSchema = z.object({
   interests: z.array(z.string()).max(4, "You can select up to 4 interests"),
   isVisible: z.boolean(),
   avatarId: z.string(),
+  nickname: z.string().min(3, "Nickname must be at least 3 characters"),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -78,6 +81,7 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
       interests: user?.interests || [],
       isVisible: true,
       avatarId: 'avatar1',
+      nickname: user?.nickname || 'VIP User',
     },
   });
 
@@ -96,6 +100,7 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
           interests: userData.interests || [],
           isVisible: userData.isVisible !== undefined ? userData.isVisible : true,
           avatarId: userData.avatarId || 'avatar1',
+          nickname: userData.nickname || 'VIP User',
         });
         setSelectedAvatar(userData.avatarId || 'avatar1');
       } else {
@@ -111,6 +116,7 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
             interests: userData.interests || [],
             isVisible: userData.isVisible !== undefined ? userData.isVisible : true,
             avatarId: userData.avatarId || 'avatar1',
+            nickname: userData.nickname || 'VIP User',
           });
           setSelectedAvatar(userData.avatarId || 'avatar1');
         }
@@ -119,6 +125,23 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
     
     loadUserData();
   }, [form]);
+
+  // Override the nickname field change handler to prevent disallowed values
+  const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    const validatedValue = validateNicknameInput(newValue, form.getValues().nickname, true);
+    
+    if (validatedValue !== newValue) {
+      toast({
+        title: "Invalid nickname",
+        description: "Nickname cannot contain 'admin' or similar reserved words",
+        variant: "destructive"
+      });
+    }
+    
+    form.setValue('nickname', validatedValue);
+    onChange();
+  };
 
   // Handle form submission
   const onSubmit = (data: ProfileFormValues) => {
@@ -129,6 +152,7 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
       country: data.country,
       interests: data.interests,
       isVip: true, // Make sure we keep the VIP status
+      nickname: data.nickname,
     });
     
     // Store form data in localStorage and sessionStorage for persistence
@@ -166,12 +190,12 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
               <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Your VIP Nickname</FormLabel>
               <div className="mt-1 flex items-center">
                 <Input 
-                  value={user?.nickname || 'VIP User'} 
+                  value={form.getValues().nickname || 'VIP User'} 
                   className="font-semibold border-amber-200 bg-white/50"
-                  readOnly 
+                  onChange={handleNicknameChange}
                 />
                 <div className="ml-2 bg-amber-100 dark:bg-amber-800 px-2 py-1 rounded text-xs font-medium text-amber-800 dark:text-amber-200">
-                  Cannot be changed
+                  VIP User
                 </div>
               </div>
             </div>
@@ -290,10 +314,10 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
                           {field.value && (
                             <div className="flex items-center">
                               {countriesData.find(c => c.value === field.value) && (
-                                <img 
-                                  src={`https://flagcdn.com/w20/${countriesData.find(c => c.value === field.value)?.code}.png`}
-                                  alt={countriesData.find(c => c.value === field.value)?.label || ''}
-                                  className="h-4 w-auto mr-2"
+                                <CountryFlag 
+                                  countryCode={countriesData.find(c => c.value === field.value)?.code || ''}
+                                  size="sm"
+                                  className="mr-2"
                                 />
                               )}
                               {countriesData.find(c => c.value === field.value)?.label}
@@ -306,10 +330,10 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
                       {countriesData.map((country) => (
                         <SelectItem key={country.value} value={country.value}>
                           <div className="flex items-center">
-                            <img 
-                              src={`https://flagcdn.com/w20/${country.code}.png`} 
-                              alt={country.label} 
-                              className="h-4 w-auto mr-2" 
+                            <CountryFlag 
+                              countryCode={country.code} 
+                              size="sm"
+                              className="mr-2"
                             />
                             {country.label}
                           </div>
