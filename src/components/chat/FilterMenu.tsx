@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Check, Search } from 'lucide-react';
 import { Badge } from '../ui/badge';
@@ -23,8 +22,8 @@ import { countriesData } from '@/data/countries';
 // Format countries data for the filter menu
 const availableCountries = countriesData.map(country => ({
   name: country.label,
-  code: country.code,
-  flag: `https://flagcdn.com/w20/${country.code}.png`
+  code: country.code.toLowerCase(), // Convert code to lowercase for flag URLs
+  flag: country.code.toLowerCase() // Store code for flag rendering
 })).sort((a, b) => a.name.localeCompare(b.name));
 
 const FilterMenu: React.FC<FilterMenuProps> = ({ 
@@ -248,7 +247,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
                   onClick={() => toggleCountry(country.name)}
                 >
                   <div className="flex items-center">
-                    <span className="mr-2 text-lg">{country.flag}</span>
+                    <span className="mr-2 text-lg">{country.flag ? getCountryFlag(country.flag) : ''}</span>
                     <span className="text-sm">{country.name}</span>
                   </div>
                   {filters.countries.includes(country.name) && (
@@ -276,7 +275,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
                     className="bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400 hover:bg-teal-200 dark:hover:bg-teal-900/40"
                     onClick={() => toggleCountry(country)}
                   >
-                    {countryInfo?.flag} {country}
+                    {countryInfo?.flag ? getCountryFlag(countryInfo.flag) : ''} {country}
                     <X className="w-3 h-3 ml-1 cursor-pointer" />
                   </Badge>
                 );
@@ -296,6 +295,14 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
         </button>
       </div>
     </div>
+  );
+};
+
+// Helper function to render country flags correctly
+const getCountryFlag = (countryCode: string) => {
+  // Convert country codes to regional indicator symbols (flag emoji)
+  return countryCode.toUpperCase().replace(/./g, char => 
+    String.fromCodePoint(char.charCodeAt(0) + 127397)
   );
 };
 

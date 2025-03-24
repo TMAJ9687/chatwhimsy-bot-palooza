@@ -82,6 +82,7 @@ const AccountDeletionDialog = () => {
     }
   }, [state.isOpen, state.type]);
 
+  // If dialog is not open or not accountDeletion type, don't render anything
   if (!state.isOpen || state.type !== 'accountDeletion') {
     return null;
   }
