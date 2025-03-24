@@ -12,15 +12,43 @@ import VipPaymentDialog from './VipPaymentDialog';
 import VipConfirmationDialog from './VipConfirmationDialog';
 import AccountDeletionDialog from './AccountDeletionDialog';
 import VipSelectDialog from './VipSelectDialog';
+import { useLocation } from 'react-router-dom';
 
 // This component renders the appropriate dialog based on the current dialog state
 const DialogContainer = () => {
   const { state } = useDialog();
+  const location = useLocation();
+  
+  // Determine if we're on the chat page
+  const isChatPage = location.pathname === '/chat';
 
   if (!state.isOpen) {
     return null;
   }
 
+  // Only allow certain dialogs when not on chat page
+  if (!isChatPage) {
+    switch (state.type) {
+      case 'vipLogin':
+        return <VipLoginDialog />;
+      case 'vipSignup':
+        return <VipSignupDialog />;
+      case 'vipSubscription':
+        return <VipSubscriptionDialog />;
+      case 'vipPayment':
+        return <VipPaymentDialog />;
+      case 'vipConfirmation':
+        return <VipConfirmationDialog />;
+      case 'siteRules':
+        return <SiteRulesDialog />;
+      case 'vipSelect':
+        return <VipSelectDialog />;
+      default:
+        return null;
+    }
+  }
+
+  // All dialogs available on chat page
   switch (state.type) {
     case 'report':
       return <ReportDialog />;

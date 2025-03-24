@@ -22,8 +22,8 @@ const VipSelectDialog = () => {
 
   const handleSignupClick = () => {
     closeDialog();
-    // Use window.location instead of navigate
-    window.location.href = '/vip-signup';
+    // Now redirect to the VIP Subscription page to select a plan first
+    window.location.href = '/vip-subscription';
   };
 
   return (

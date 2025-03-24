@@ -1,6 +1,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { useChat } from '@/context/ChatContext';
 
 export interface Notification {
   id: string;
@@ -8,6 +9,7 @@ export interface Notification {
   message: string;
   time: Date;
   read: boolean;
+  botId?: string; // Add botId to connect notification to a specific conversation
 }
 
 interface NotificationSidebarProps {
@@ -26,6 +28,7 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
   type
 }) => {
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const { selectUser, onlineUsers } = useChat();
 
   // Handle clicking outside the sidebar
   useEffect(() => {
@@ -48,6 +51,46 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
     };
   }, [isOpen, onClose]);
 
+  // Group notifications by sender/title to avoid duplicates
+  const groupedNotifications = React.useMemo(() => {
+    if (type === 'history') return notifications;
+    
+    const groups: Record<string, Notification> = {};
+    
+    notifications.forEach(notif => {
+      // Extract the name from the title (e.g., "New message from Sophia" -> "Sophia")
+      const sender = notif.title.replace('New message from ', '');
+      
+      if (!groups[sender] || new Date(notif.time) > new Date(groups[sender].time)) {
+        groups[sender] = notif;
+      }
+    });
+    
+    return Object.values(groups);
+  }, [notifications, type]);
+
+  // Handle notification click - open conversation with that user
+  const handleNotificationClick = (notification: Notification) => {
+    onNotificationRead(notification.id);
+    
+    if (notification.botId) {
+      // Find the bot by ID and select them
+      const bot = onlineUsers.find(user => user.id === notification.botId);
+      if (bot) {
+        selectUser(bot);
+        onClose(); // Close sidebar after selecting
+      }
+    } else if (type === 'inbox') {
+      // Try to find bot by name in title
+      const senderName = notification.title.replace('New message from ', '');
+      const bot = onlineUsers.find(user => user.name === senderName);
+      if (bot) {
+        selectUser(bot);
+        onClose(); // Close sidebar after selecting
+      }
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -69,17 +112,17 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
         </div>
         
         <div className="flex-1 overflow-y-auto">
-          {notifications.length === 0 ? (
+          {groupedNotifications.length === 0 ? (
             <div className="flex items-center justify-center h-full text-gray-500 text-sm">
               No {type === 'inbox' ? 'messages' : 'history'} to display
             </div>
           ) : (
             <div className="divide-y">
-              {notifications.map((notification) => (
+              {groupedNotifications.map((notification) => (
                 <div 
                   key={notification.id}
                   className={`p-4 hover:bg-gray-50 cursor-pointer ${!notification.read ? 'bg-blue-50' : ''}`}
-                  onClick={() => onNotificationRead(notification.id)}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex justify-between">
                     <h4 className="font-medium text-sm">{notification.title}</h4>

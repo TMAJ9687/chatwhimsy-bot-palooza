@@ -1,183 +1,201 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { X } from 'lucide-react';
-import { Badge } from '../ui/badge';
-
-interface FilterMenuProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onFilterChange: (filters: FilterState) => void;
-  initialFilters: FilterState;
-}
+import React, { useState } from 'react';
+import { Slider } from '@/components/ui/slider';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { Filter, ChevronDown, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { countries } from '@/data/countries';
 
 export interface FilterState {
-  gender: 'male' | 'female' | 'any';
+  gender: 'any' | 'male' | 'female';
   ageRange: [number, number];
   countries: string[];
 }
 
-const FilterMenu: React.FC<FilterMenuProps> = ({ 
-  isOpen, 
-  onClose, 
-  onFilterChange,
-  initialFilters 
-}) => {
-  const [filters, setFilters] = useState<FilterState>(initialFilters);
-  const menuRef = useRef<HTMLDivElement>(null);
+interface FilterMenuProps {
+  filters: FilterState;
+  onChange: (filters: FilterState) => void;
+}
 
-  // Handle outside clicks
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen, onClose]);
-
-  const handleFilterChange = (newFilters: Partial<FilterState>) => {
-    const updatedFilters = { ...filters, ...newFilters };
-    setFilters(updatedFilters);
-    onFilterChange(updatedFilters);
+const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [tempFilters, setTempFilters] = useState<FilterState>(filters);
+  
+  // Count active filters (excluding default values)
+  const activeFilterCount = React.useMemo(() => {
+    let count = 0;
+    if (tempFilters.gender !== 'any') count++;
+    if (tempFilters.ageRange[0] > 18 || tempFilters.ageRange[1] < 80) count++;
+    if (tempFilters.countries.length > 0) count++;
+    return count;
+  }, [tempFilters]);
+  
+  const handleApplyFilters = () => {
+    onChange(tempFilters);
+    setIsOpen(false);
   };
-
-  const handleGenderChange = (gender: 'male' | 'female' | 'any') => {
-    handleFilterChange({ gender });
-  };
-
-  const handleAgeChange = (value: number) => {
-    const [min, _] = filters.ageRange;
-    handleFilterChange({ ageRange: [min, value] });
-  };
-
-  const handleClear = () => {
-    const defaultFilters: FilterState = {
-      gender: 'any',
-      ageRange: [18, 80],
+  
+  const handleClearFilters = () => {
+    const defaultFilters = {
+      gender: 'any' as const,
+      ageRange: [18, 80] as [number, number],
       countries: []
     };
-    setFilters(defaultFilters);
-    onFilterChange(defaultFilters);
+    setTempFilters(defaultFilters);
+    onChange(defaultFilters);
   };
-
-  if (!isOpen) return null;
-
+  
+  const handleCountrySelect = (country: string) => {
+    if (tempFilters.countries.includes(country)) {
+      setTempFilters(prev => ({
+        ...prev,
+        countries: prev.countries.filter(c => c !== country)
+      }));
+    } else {
+      setTempFilters(prev => ({
+        ...prev,
+        countries: [...prev.countries, country]
+      }));
+    }
+  };
+  
+  const handleRemoveCountry = (country: string) => {
+    setTempFilters(prev => ({
+      ...prev,
+      countries: prev.countries.filter(c => c !== country)
+    }));
+  };
+  
   return (
-    <div 
-      className="absolute right-0 top-12 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-5"
-      ref={menuRef}
-    >
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Filters</h3>
-        <button 
-          onClick={onClose}
-          className="p-1 hover:bg-gray-100 rounded-full"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Gender Filter */}
-      <div className="mb-6">
-        <h4 className="text-sm font-medium mb-2">Gender</h4>
-        <div className="flex space-x-4">
-          <label className="flex items-center">
-            <div className={`w-5 h-5 rounded-full border flex items-center justify-center mr-2 ${filters.gender === 'male' ? 'border-teal-500' : 'border-gray-300'}`}>
-              {filters.gender === 'male' && (
-                <div className="w-3 h-3 rounded-full bg-teal-500"></div>
+    <div className="w-full">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <div className="flex items-center justify-between bg-white dark:bg-gray-800 p-2.5 rounded-lg border shadow-sm">
+          <CollapsibleTrigger asChild>
+            <button className="flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+              <Filter size={18} className="mr-2" />
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <Badge variant="secondary" className="ml-2 px-1.5 py-0 text-xs">
+                  {activeFilterCount}
+                </Badge>
               )}
-            </div>
-            <span>Male</span>
-            <input 
-              type="radio" 
-              name="gender" 
-              className="hidden" 
-              checked={filters.gender === 'male'} 
-              onChange={() => handleGenderChange('male')} 
-            />
-          </label>
+              <ChevronDown size={16} className={`ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+          </CollapsibleTrigger>
+        </div>
+        
+        <CollapsibleContent className="mt-2 bg-white dark:bg-gray-800 p-4 rounded-lg border shadow-sm space-y-4">
+          {/* Gender filter */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Gender</label>
+            <Select 
+              value={tempFilters.gender} 
+              onValueChange={(value: any) => setTempFilters(prev => ({ ...prev, gender: value }))}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Any gender" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any gender</SelectItem>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           
-          <label className="flex items-center">
-            <div className={`w-5 h-5 rounded-full border flex items-center justify-center mr-2 ${filters.gender === 'female' ? 'border-teal-500' : 'border-gray-300'}`}>
-              {filters.gender === 'female' && (
-                <div className="w-3 h-3 rounded-full bg-teal-500"></div>
-              )}
+          {/* Age range filter */}
+          <div>
+            <div className="flex justify-between mb-2">
+              <label className="text-sm font-medium">Age range</label>
+              <span className="text-sm text-gray-500">
+                {tempFilters.ageRange[0]} - {tempFilters.ageRange[1]}
+              </span>
             </div>
-            <span>Female</span>
-            <input 
-              type="radio" 
-              name="gender" 
-              className="hidden" 
-              checked={filters.gender === 'female'} 
-              onChange={() => handleGenderChange('female')} 
-            />
-          </label>
+            <div className="px-1">
+              <Slider 
+                value={tempFilters.ageRange}
+                min={18}
+                max={80}
+                step={1}
+                onValueChange={(value: number[]) => 
+                  setTempFilters(prev => ({ ...prev, ageRange: value as [number, number] }))
+                }
+                className="[&>.relative_.absolute]:bg-green-500 [&>.relative_.absolute]:opacity-100"
+              />
+            </div>
+          </div>
           
-          <label className="flex items-center">
-            <div className={`w-5 h-5 rounded-full border flex items-center justify-center mr-2 ${filters.gender === 'any' ? 'border-teal-500' : 'border-gray-300'}`}>
-              {filters.gender === 'any' && (
-                <div className="w-3 h-3 rounded-full bg-teal-500"></div>
-              )}
-            </div>
-            <span>Any</span>
-            <input 
-              type="radio" 
-              name="gender" 
-              className="hidden" 
-              checked={filters.gender === 'any'} 
-              onChange={() => handleGenderChange('any')} 
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* Age Range */}
-      <div className="mb-6">
-        <div className="flex justify-between mb-2">
-          <h4 className="text-sm font-medium">Age Range</h4>
-          <span className="text-sm text-gray-500">18 - {filters.ageRange[1]}</span>
-        </div>
-        <input
-          type="range"
-          min="18"
-          max="80"
-          value={filters.ageRange[1]}
-          onChange={(e) => handleAgeChange(parseInt(e.target.value))}
-          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-500"
-        />
-      </div>
-
-      {/* Countries */}
-      <div className="mb-6">
-        <h4 className="text-sm font-medium mb-2">Countries (max 2)</h4>
-        <div className="relative">
-          <button 
-            className="w-full py-2 px-3 border border-gray-200 rounded-lg text-left text-gray-600 bg-gray-50 flex justify-between items-center"
-          >
-            <span>{filters.countries.length ? filters.countries.join(', ') : 'Select countries'}</span>
-            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Buttons */}
-      <div className="flex justify-between">
-        <button
-          onClick={handleClear}
-          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 text-sm"
-        >
-          Clear
-        </button>
-      </div>
+          {/* Country filter */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Country</label>
+            <Select onValueChange={handleCountrySelect}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select countries" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[200px]">
+                {countries.map(country => (
+                  <SelectItem key={country.name} value={country.name}>
+                    <div className="flex items-center">
+                      <span className="mr-2">{country.flag}</span>
+                      <span>{country.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {/* Selected countries */}
+            {tempFilters.countries.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {tempFilters.countries.map(country => {
+                  const countryData = countries.find(c => c.name === country);
+                  return (
+                    <Badge key={country} variant="outline" className="px-2 py-1 flex items-center gap-1.5">
+                      {countryData?.flag} {country}
+                      <button 
+                        onClick={() => handleRemoveCountry(country)}
+                        className="ml-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 p-0.5"
+                      >
+                        <X size={12} />
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          
+          {/* Filter actions */}
+          <div className="flex justify-between pt-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleClearFilters}
+            >
+              Clear all
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={handleApplyFilters}
+              className="bg-primary"
+            >
+              Apply filters
+            </Button>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 };

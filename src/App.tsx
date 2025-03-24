@@ -11,6 +11,9 @@ import ChatInterface from "./components/chat/ChatInterface";
 import VipProfileSetup from "./pages/VipProfileSetup";
 import VipSignup from "./pages/VipSignup";
 import VipLogin from "./pages/VipLogin";
+import VipSubscription from "./pages/VipSubscription";
+import VipPayment from "./pages/VipPayment";
+import VipConfirmation from "./pages/VipConfirmation";
 import { useEffect, useState } from "react";
 import { DialogProvider } from "./context/DialogContext";
 import DialogContainer from "./components/dialogs/DialogContainer";
@@ -52,6 +55,9 @@ const App = () => {
                   <Route path="/vip-profile" element={<VipProfileSetup />} />
                   <Route path="/vip-signup" element={<VipSignup />} />
                   <Route path="/vip-login" element={<VipLogin />} />
+                  <Route path="/vip-subscription" element={<VipSubscription />} />
+                  <Route path="/vip-payment" element={<VipPayment />} />
+                  <Route path="/vip-confirmation" element={<VipConfirmation />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
