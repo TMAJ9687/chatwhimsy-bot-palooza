@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
-import { Message } from './MessageBubble';
-import { Notification } from './NotificationSidebar';
-import { trackImageUpload, getRemainingUploads, IMAGE_UPLOAD_LIMIT } from '@/utils/imageUploadLimiter';
+import { useDialog } from '@/context/DialogContext';
+import { DialogProvider } from '@/context/DialogContext';
+import DialogContainer from '@/components/dialogs/DialogContainer';
+import { ChatProvider, useChat } from '@/context/ChatContext';
 
-// Import our new components
+// Import our components
 import ChatHeader from './ChatHeader';
 import ChatMessages from './ChatMessages';
 import MessageInputBar from './MessageInputBar';
@@ -14,220 +16,6 @@ import MobileUserList from './MobileUserList';
 import ChatAppHeader from './ChatAppHeader';
 import VipUpgradeSection from './VipUpgradeSection';
 import NotificationSidebar from './NotificationSidebar';
-import { DialogProvider, useDialog } from '@/context/DialogContext';
-import DialogContainer from '@/components/dialogs/DialogContainer';
-import { FilterState } from './FilterMenu';
-
-// Enhanced bot profiles with more diverse options
-const botProfiles = [
-  {
-    id: 'sophia',
-    name: 'Sophia',
-    age: 27,
-    gender: 'female',
-    country: 'Italy',
-    countryCode: 'it',
-    vip: true,
-    interests: ['Cooking', 'Fashion', 'Travel'],
-    avatar: 'S',
-    responses: [
-      "Hi there! How's your day going?",
-      "That's interesting! Tell me more about it.",
-      "I've never thought about it that way before.",
-      "What do you like to do in your free time?",
-      "Have you seen any good movies lately?",
-    ]
-  },
-  {
-    id: 'alex',
-    name: 'Alex',
-    age: 29,
-    gender: 'male',
-    country: 'UK',
-    countryCode: 'gb',
-    vip: false,
-    interests: ['Music', 'Gaming', 'Football'],
-    avatar: 'A',
-    responses: [
-      "Hey, nice to meet you! What brings you here today?",
-      "That's cool! I've been into photography lately.",
-      "Have you traveled anywhere interesting recently?",
-      "What kind of music do you listen to?",
-      "Do you have any recommendations for good books?"
-    ]
-  },
-  {
-    id: 'sakura',
-    name: 'Sakura',
-    age: 24,
-    gender: 'female',
-    country: 'Japan',
-    countryCode: 'jp',
-    vip: true,
-    interests: ['Photography', 'Art', 'Anime'],
-    avatar: 'S',
-    responses: [
-      "こんにちは! Oh sorry, I meant hello!",
-      "I'm learning how to cook traditional dishes. Do you like cooking?",
-      "I love anime and manga. Do you have any favorites?",
-      "What's your favorite season of the year?",
-      "I'm planning to travel next month. Any destination suggestions?"
-    ]
-  },
-  {
-    id: 'mohammed',
-    name: 'Mohammed',
-    age: 34,
-    gender: 'male',
-    country: 'Egypt',
-    countryCode: 'eg',
-    vip: true,
-    interests: ['History', 'Soccer', 'Photography'],
-    avatar: 'M',
-    responses: [
-      "Marhaba! That's hello in Arabic!",
-      "I'm fascinated by ancient history. Have you ever visited any historical sites?",
-      "What brings you to this chat today?",
-      "Soccer is huge here in Egypt. Do you follow any sports?",
-      "I'd love to know more about your country and culture."
-    ]
-  },
-  {
-    id: 'zara',
-    name: 'Zara',
-    age: 28,
-    gender: 'female',
-    country: 'South Africa',
-    countryCode: 'za',
-    vip: true,
-    interests: ['Wildlife', 'Photography', 'Hiking'],
-    avatar: 'Z',
-    responses: [
-      "Hello! How are you doing today?",
-      "I love nature and wildlife photography. What about you?",
-      "Have you ever been to Africa? It's beautiful here.",
-      "What kind of hobbies do you enjoy?",
-      "I'm planning a hiking trip next weekend. Do you enjoy outdoor activities?"
-    ]
-  },
-  {
-    id: 'carlos',
-    name: 'Carlos',
-    age: 31,
-    gender: 'male',
-    country: 'Brazil',
-    countryCode: 'br',
-    vip: false,
-    interests: ['Football', 'Dancing', 'Cooking'],
-    avatar: 'C',
-    responses: [
-      "Olá! That means hello in Portuguese!",
-      "I'm a big football fan. Do you follow any sports?",
-      "The weather here is amazing today. How is it where you are?",
-      "I'm thinking about learning a new language. Any suggestions?",
-      "What's your favorite type of cuisine?"
-    ]
-  },
-  {
-    id: 'emma',
-    name: 'Emma',
-    age: 26,
-    gender: 'female',
-    country: 'France',
-    countryCode: 'fr',
-    vip: false,
-    interests: ['Painting', 'Wine Tasting', 'Literature'],
-    avatar: 'E',
-    responses: [
-      "Bonjour! How are you doing today?",
-      "I love discussing art and literature. Any favorite books?",
-      "Paris is beautiful in the spring. Have you ever visited?",
-      "What do you enjoy doing on weekends?",
-      "I'm learning to cook traditional French cuisine. Do you enjoy cooking?"
-    ]
-  },
-  {
-    id: 'diego',
-    name: 'Diego',
-    age: 30,
-    gender: 'male',
-    country: 'Argentina',
-    countryCode: 'ar',
-    vip: true,
-    interests: ['Tango', 'Football', 'Guitar'],
-    avatar: 'D',
-    responses: [
-      "Hola! How's everything going?",
-      "I'm passionate about tango dancing. Do you dance?",
-      "Messi is my hero! Who's your favorite athlete?",
-      "Have you ever tried mate? It's our traditional drink here.",
-      "I'd love to travel the world someday. What places would you recommend?"
-    ]
-  },
-  {
-    id: 'liu',
-    name: 'Liu',
-    age: 27,
-    gender: 'male',
-    country: 'China',
-    countryCode: 'cn',
-    vip: false,
-    interests: ['Calligraphy', 'Technology', 'Hiking'],
-    avatar: 'L',
-    responses: [
-      "Ni hao! That's hello in Mandarin!",
-      "I work in tech and love exploring new gadgets. What about you?",
-      "Chinese calligraphy is an ancient art. Do you have any artistic hobbies?",
-      "I enjoy hiking in the mountains when I get time off work.",
-      "What's your favorite food? I could tell you about some amazing Chinese dishes!"
-    ]
-  },
-  {
-    id: 'aisha',
-    name: 'Aisha',
-    age: 25,
-    gender: 'female',
-    country: 'UAE',
-    countryCode: 'ae',
-    vip: true,
-    interests: ['Fashion Design', 'Travel', 'Cooking'],
-    avatar: 'A',
-    responses: [
-      "Marhaba! How's your day going?",
-      "I'm studying fashion design. What are you passionate about?",
-      "Dubai has amazing architecture. Have you ever visited?",
-      "I love trying cuisines from different countries. What's your favorite food?",
-      "What places are on your travel bucket list?"
-    ]
-  }
-];
-
-const getRandomBot = () => {
-  return botProfiles[Math.floor(Math.random() * botProfiles.length)];
-};
-
-const getRandomBotResponse = (botId: string) => {
-  const bot = botProfiles.find(b => b.id === botId);
-  if (!bot) return "Hello there!";
-  return bot.responses[Math.floor(Math.random() * bot.responses.length)];
-};
-
-// Function to sort users properly
-const sortUsers = (users: typeof botProfiles): typeof botProfiles => {
-  return [...users].sort((a, b) => {
-    // VIP users are always first
-    if (a.vip && !b.vip) return -1;
-    if (!a.vip && b.vip) return 1;
-    
-    // If both are VIP or both are not VIP, sort by country alphabetically
-    if (a.country !== b.country) {
-      return a.country.localeCompare(b.country);
-    }
-    
-    // If countries are the same, sort by name
-    return a.name.localeCompare(b.name);
-  });
-};
 
 interface ChatInterfaceProps {
   onLogout: () => void;
@@ -239,110 +27,38 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const navigate = useNavigate();
   const { openDialog } = useDialog();
   
-  // State management
-  const [userChats, setUserChats] = useState<Record<string, Message[]>>({});
-  const [imagesRemaining, setImagesRemaining] = useState(IMAGE_UPLOAD_LIMIT);
-  const [isTyping, setIsTyping] = useState(false);
-  const [currentBot, setCurrentBot] = useState(getRandomBot());
-  const [onlineUsers, setOnlineUsers] = useState(sortUsers(botProfiles));
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState<FilterState>({
-    gender: 'any',
-    ageRange: [18, 80],
-    countries: []
-  });
-  const [unreadNotifications, setUnreadNotifications] = useState<Notification[]>([]);
-  const [chatHistory, setChatHistory] = useState<Notification[]>([]);
-  const [showInbox, setShowInbox] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-  const [rulesAccepted, setRulesAccepted] = useState(false);
-  const [userCountry, setUserCountry] = useState<string>('');
-  
-  // Track if a bot is currently typing in each chat
-  const [typingBots, setTypingBots] = useState<Record<string, boolean>>({});
-  
-  // Use a ref to track the current bot ID to handle async operations
-  const currentBotIdRef = useRef<string>(currentBot.id);
-  
-  // Update the ref whenever currentBot changes
-  useEffect(() => {
-    currentBotIdRef.current = currentBot.id;
-  }, [currentBot.id]);
-  
-  // Get user's country for sorting and fetch remaining uploads
-  useEffect(() => {
-    const fetchUserCountry = async () => {
-      try {
-        const response = await fetch('https://ipapi.co/json/');
-        const data = await response.json();
-        setUserCountry(data.country_name || '');
-      } catch (error) {
-        console.error('Error fetching user country:', error);
-      }
-    };
-    
-    const fetchRemainingUploads = async () => {
-      try {
-        const remaining = await getRemainingUploads(false); // Assuming standard user
-        setImagesRemaining(remaining);
-      } catch (error) {
-        console.error('Error fetching remaining uploads:', error);
-      }
-    };
-    
-    fetchUserCountry();
-    fetchRemainingUploads();
-  }, []);
-
-  // Sort online users whenever the user's country changes
-  useEffect(() => {
-    if (userCountry) {
-      console.log('Sorting users based on country:', userCountry);
-      const sortedUsers = sortUsers(botProfiles);
-      setOnlineUsers(sortedUsers);
-    }
-  }, [userCountry]);
-
-  // Memoized filtered users to prevent recalculation on every render
-  const filteredUsers = useMemo(() => {
-    const filtered = onlineUsers.filter(user => {
-      // Filter by search term
-      const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      // Filter by gender
-      const matchesGender = filters.gender === 'any' || user.gender === filters.gender;
-      
-      // Filter by age
-      const matchesAge = user.age >= filters.ageRange[0] && user.age <= filters.ageRange[1];
-      
-      // Filter by countries (if any selected)
-      const matchesCountry = filters.countries.length === 0 || 
-        filters.countries.includes(user.country);
-      
-      return matchesSearch && matchesGender && matchesAge && matchesCountry;
-    });
-    
-    // Return sorted list
-    return filtered;
-  }, [onlineUsers, searchTerm, filters]);
-
-  // Initialize chat for current bot if it doesn't exist
-  useEffect(() => {
-    if (!userChats[currentBot.id]) {
-      setUserChats(prev => ({
-        ...prev,
-        [currentBot.id]: [{
-          id: `system-${Date.now()}`,
-          content: `Start a conversation with ${currentBot.name}`,
-          sender: 'system',
-          timestamp: new Date(),
-        }]
-      }));
-    }
-  }, [currentBot.id, userChats]);
+  const {
+    userChats,
+    imagesRemaining,
+    typingBots,
+    currentBot,
+    onlineUsers,
+    searchTerm,
+    filters,
+    unreadNotifications,
+    chatHistory,
+    showInbox,
+    showHistory,
+    rulesAccepted,
+    filteredUsers,
+    unreadCount,
+    isVip,
+    setSearchTerm,
+    setFilters,
+    setShowInbox,
+    setShowHistory,
+    setRulesAccepted,
+    handleBlockUser,
+    handleCloseChat,
+    handleSendTextMessage,
+    handleSendImageMessage,
+    selectUser,
+    handleFilterChange,
+    handleNotificationRead
+  } = useChat();
 
   // Show site rules dialog after 3 seconds, but only if rules haven't been accepted yet
-  useEffect(() => {
+  React.useEffect(() => {
     // Only show the dialog if rules haven't been accepted yet
     if (!rulesAccepted) {
       const timer = setTimeout(() => {
@@ -356,214 +72,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       
       return () => clearTimeout(timer);
     }
-  }, [openDialog, rulesAccepted]);
-
-  // Handle blocking a user - optimized with useCallback
-  const handleBlockUser = useCallback(() => {
-    // Remove user from online users
-    setOnlineUsers(prev => prev.filter(user => user.id !== currentBot.id));
-    
-    // Select a new user if available
-    if (filteredUsers.length > 1) {
-      const newUser = filteredUsers.find(user => user.id !== currentBot.id);
-      if (newUser) selectUser(newUser);
-    }
-  }, [currentBot.id, filteredUsers]);
-
-  // Handle closing a chat
-  const handleCloseChat = useCallback(() => {
-    // If there are other users, select a new one
-    if (filteredUsers.length > 1) {
-      const newUser = filteredUsers.find(user => user.id !== currentBot.id);
-      if (newUser) selectUser(newUser);
-    }
-  }, [currentBot.id, filteredUsers]);
-
-  // Handle sending text messages - optimized with useCallback
-  const handleSendTextMessage = useCallback((text: string) => {
-    const currentBotId = currentBot.id;
-    const currentMessages = userChats[currentBotId] || [];
-    
-    const newMessage: Message = {
-      id: `user-${Date.now()}`,
-      content: text,
-      sender: 'user',
-      timestamp: new Date(),
-      status: 'sending',
-    };
-    
-    setUserChats(prev => ({
-      ...prev,
-      [currentBotId]: [...currentMessages, newMessage]
-    }));
-
-    // Add notification for this message
-    const newNotification: Notification = {
-      id: Date.now().toString(),
-      title: `Message to ${currentBot.name}`,
-      message: text.slice(0, 30) + (text.length > 30 ? '...' : ''),
-      time: new Date(),
-      read: true
-    };
-    
-    setChatHistory(prev => [newNotification, ...prev]);
-    
-    simulateBotResponse(newMessage.id, currentBotId);
-  }, [currentBot.id, currentBot.name, userChats]);
-
-  // Handle sending image messages - optimized with useCallback
-  const handleSendImageMessage = useCallback(async (imageDataUrl: string) => {
-    const currentBotId = currentBot.id;
-    const currentMessages = userChats[currentBotId] || [];
-    
-    const newMessage: Message = {
-      id: `user-${Date.now()}`,
-      content: imageDataUrl,
-      sender: 'user',
-      timestamp: new Date(),
-      status: 'sending',
-      isImage: true,
-    };
-    
-    setUserChats(prev => ({
-      ...prev,
-      [currentBotId]: [...currentMessages, newMessage]
-    }));
-    
-    // Track the upload and update remaining count
-    try {
-      const remaining = await trackImageUpload();
-      setImagesRemaining(remaining);
-    } catch (error) {
-      console.error('Error tracking image upload:', error);
-    }
-    
-    // Add notification for this image message
-    const newNotification: Notification = {
-      id: Date.now().toString(),
-      title: `Image sent to ${currentBot.name}`,
-      message: 'You sent an image',
-      time: new Date(),
-      read: true
-    };
-    
-    setChatHistory(prev => [newNotification, ...prev]);
-    
-    simulateBotResponse(newMessage.id, currentBotId);
-  }, [currentBot.id, currentBot.name, userChats]);
-
-  // Simulate bot response - improved to prevent state thrashing and track current bot
-  const simulateBotResponse = useCallback((messageId: string, botId: string) => {
-    // Track which bot is typing
-    setTypingBots(prev => ({
-      ...prev,
-      [botId]: true
-    }));
-
-    // Use a single setState for all status updates
-    const updateMessageStatus = (status: 'sending' | 'sent' | 'delivered' | 'read') => {
-      setUserChats(prev => {
-        const botMessages = [...(prev[botId] || [])];
-        return {
-          ...prev,
-          [botId]: botMessages.map(msg => 
-            msg.id === messageId ? { ...msg, status } : msg
-          )
-        };
-      });
-    };
-
-    // Schedule status updates
-    setTimeout(() => updateMessageStatus('sent'), 500);
-    setTimeout(() => updateMessageStatus('delivered'), 1000);
-    
-    // Bot sends response
-    setTimeout(() => {
-      // Check if this is still the current bot
-      const isCurrent = currentBotIdRef.current === botId;
-      
-      // Update typing status
-      setTypingBots(prev => ({
-        ...prev,
-        [botId]: false
-      }));
-      
-      setUserChats(prev => {
-        // Get the messages for this specific bot
-        const botMessages = [...(prev[botId] || [])];
-        
-        // Update message status (specifying the exact type)
-        const updatedMessages = botMessages.map(msg => 
-          msg.sender === 'user' ? { ...msg, status: 'read' as const } : msg
-        );
-        
-        // Generate bot response
-        const botResponse = {
-          id: `bot-${Date.now()}`,
-          content: getRandomBotResponse(botId),
-          sender: 'bot' as const,
-          timestamp: new Date(),
-        };
-        
-        // Add notification for new message from bot
-        if (!isCurrent) {
-          const botProfile = botProfiles.find(b => b.id === botId);
-          
-          const newNotification: Notification = {
-            id: Date.now().toString(),
-            title: `New message from ${botProfile?.name || 'User'}`,
-            message: botResponse.content.slice(0, 30) + (botResponse.content.length > 30 ? '...' : ''),
-            time: new Date(),
-            read: false
-          };
-          
-          setUnreadNotifications(prev => [newNotification, ...prev]);
-        }
-        
-        // Add bot's message
-        return {
-          ...prev,
-          [botId]: [
-            ...updatedMessages,
-            botResponse
-          ]
-        };
-      });
-    }, 3000);
-  }, []);
-
-  // Handle user selection - optimized with useCallback
-  const selectUser = useCallback((user: typeof botProfiles[0]) => {
-    if (user.id !== currentBot.id) {
-      setCurrentBot(user);
-      
-      if (!userChats[user.id]) {
-        setUserChats(prev => ({
-          ...prev,
-          [user.id]: [{
-            id: `system-${Date.now()}`,
-            content: `Start a conversation with ${user.name}`,
-            sender: 'system',
-            timestamp: new Date(),
-          }]
-        }));
-      }
-    }
-  }, [currentBot.id, userChats]);
-
-  // Filter change handler - optimized with useCallback
-  const handleFilterChange = useCallback((newFilters: FilterState) => {
-    setFilters(newFilters);
-  }, []);
-
-  // Notification read handler - optimized with useCallback
-  const handleNotificationRead = useCallback((id: string) => {
-    setUnreadNotifications(prev => 
-      prev.map(notif => 
-        notif.id === id ? { ...notif, read: true } : notif
-      )
-    );
-  }, []);
+  }, [openDialog, rulesAccepted, setRulesAccepted]);
 
   // Navigation handlers - optimized with useCallback
   const handleLogout = useCallback(() => {
@@ -578,21 +87,12 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const handleOpenInbox = useCallback(() => {
     setShowInbox(true);
     setShowHistory(false);
-  }, []);
+  }, [setShowInbox, setShowHistory]);
 
   const handleOpenHistory = useCallback(() => {
     setShowHistory(true);
     setShowInbox(false);
-  }, []);
-
-  // Calculate unread notification count
-  const unreadCount = useMemo(() => 
-    unreadNotifications.filter(n => !n.read).length, 
-    [unreadNotifications]
-  );
-
-  // Check if current user is VIP
-  const isVip = currentBot.vip;
+  }, [setShowHistory, setShowInbox]);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
@@ -679,12 +179,14 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   );
 };
 
-// Create a wrapper component that provides the dialog context
+// Create a wrapper component that provides the dialog context and chat context
 const ChatInterface: React.FC<ChatInterfaceProps> = (props) => {
   return (
     <DialogProvider>
-      <ChatInterfaceContent {...props} />
-      <DialogContainer />
+      <ChatProvider>
+        <ChatInterfaceContent {...props} />
+        <DialogContainer />
+      </ChatProvider>
     </DialogProvider>
   );
 };

@@ -1,6 +1,7 @@
 
 import React, { useRef, useEffect, useCallback, memo } from 'react';
 import MessageBubble, { Message } from './MessageBubble';
+import TypingIndicator from './TypingIndicator';
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -32,19 +33,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     const timeoutId = setTimeout(scrollToBottom, 0);
     return () => clearTimeout(timeoutId);
   }, [messages, isTyping, scrollToBottom]);
-
-  // Create a typing indicator component
-  const TypingIndicator = memo(() => (
-    <div className="flex items-start">
-      <div className="bg-white border border-gray-200 text-gray-800 rounded-2xl rounded-bl-none px-3 py-2 shadow-sm inline-flex space-x-1">
-        <div className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '0ms' }}></div>
-        <div className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '300ms' }}></div>
-        <div className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '600ms' }}></div>
-      </div>
-    </div>
-  ));
-  
-  TypingIndicator.displayName = 'TypingIndicator';
 
   return (
     <div 

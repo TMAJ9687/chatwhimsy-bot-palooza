@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Check, Clock, Eye, EyeOff, X, Maximize } from 'lucide-react';
+import { Check, Clock, Eye, EyeOff, Maximize, X } from 'lucide-react';
 
 export interface Message {
   id: string;
@@ -70,7 +70,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   };
 
-  const handleToggleBlur = () => {
+  const handleToggleBlur = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setIsBlurred(!isBlurred);
   };
 
@@ -98,10 +99,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       >
         {isImage ? (
           <div className="relative">
-            <div 
-              className="rounded-lg overflow-hidden cursor-pointer"
-              onClick={isBlurred ? handleToggleBlur : handleToggleFullscreen}
-            >
+            <div className="rounded-lg overflow-hidden">
               <div className="w-[250px] h-[250px] relative overflow-hidden">
                 <img 
                   src={content} 
@@ -109,21 +107,22 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                   className={`w-full h-full object-cover transition-all duration-300 ${isBlurred ? 'blur-xl' : ''}`}
                   loading="lazy"
                 />
-                {isBlurred && (
+                {isBlurred ? (
                   <button 
-                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full"
+                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full flex items-center gap-1"
                     onClick={handleToggleBlur}
                   >
                     <Eye className="h-5 w-5 text-gray-700" />
+                    <span className="text-gray-700 text-sm font-medium">Reveal</span>
                   </button>
-                )}
-                {!isBlurred && (
+                ) : (
                   <div className="absolute top-2 right-2 flex space-x-2">
                     <button 
-                      className="bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
+                      className="bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity flex items-center gap-1 px-2"
                       onClick={handleToggleBlur}
                     >
                       <EyeOff className="h-4 w-4 text-white" />
+                      <span className="text-white text-xs">Hide</span>
                     </button>
                     <button 
                       className="bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
