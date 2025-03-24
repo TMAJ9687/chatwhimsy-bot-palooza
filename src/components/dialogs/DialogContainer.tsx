@@ -5,7 +5,7 @@ import { useDialog } from '@/context/DialogContext';
 // Lazy load dialogs to reduce initial bundle size
 const ReportDialog = lazy(() => import('./ReportDialog'));
 const BlockUserDialog = lazy(() => import('./BlockUserDialog'));
-const SiteRulesDialog = lazy(() => import('../chat/SiteRulesDialog'));
+const SiteRulesDialog = lazy(() => import('./SiteRulesDialog'));
 const LogoutConfirmationDialog = lazy(() => import('./LogoutConfirmationDialog'));
 const VipLoginDialog = lazy(() => import('./VipLoginDialog'));
 const VipSignupDialog = lazy(() => import('./VipSignupDialog'));
