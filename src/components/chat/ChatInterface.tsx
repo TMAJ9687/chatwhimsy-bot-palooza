@@ -3,8 +3,6 @@ import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { useDialog } from '@/context/DialogContext';
-import { DialogProvider } from '@/context/DialogContext';
-import DialogContainer from '@/components/dialogs/DialogContainer';
 import { ChatProvider, useChat } from '@/context/ChatContext';
 
 // Import our components
@@ -23,7 +21,7 @@ interface ChatInterfaceProps {
 
 // Main component that uses our new dialog context
 const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
-  const { user } = useUser();
+  const { user, isVip } = useUser();
   const navigate = useNavigate();
   const { openDialog } = useDialog();
   
@@ -42,7 +40,6 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     rulesAccepted,
     filteredUsers,
     unreadCount,
-    isVip,
     setSearchTerm,
     setFilters,
     setShowInbox,
@@ -179,15 +176,12 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   );
 };
 
-// Create a wrapper component that provides the dialog context and chat context
+// Create a wrapper component that provides the chat context
 const ChatInterface: React.FC<ChatInterfaceProps> = (props) => {
   return (
-    <DialogProvider>
-      <ChatProvider>
-        <ChatInterfaceContent {...props} />
-        <DialogContainer />
-      </ChatProvider>
-    </DialogProvider>
+    <ChatProvider>
+      <ChatInterfaceContent {...props} />
+    </ChatProvider>
   );
 };
 

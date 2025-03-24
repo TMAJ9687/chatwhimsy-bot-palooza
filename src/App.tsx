@@ -44,11 +44,11 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <UserProvider>
-          <DialogProvider>
-            <Toaster />
-            <Sonner />
-            <MainLayout>
-              <BrowserRouter>
+          <BrowserRouter>
+            <DialogProvider>
+              <MainLayout>
+                <Toaster />
+                <Sonner />
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
@@ -60,10 +60,10 @@ const App = () => {
                   <Route path="/vip-confirmation" element={<VipConfirmation />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-              </BrowserRouter>
-              <DialogContainer />
-            </MainLayout>
-          </DialogProvider>
+                <DialogContainer />
+              </MainLayout>
+            </DialogProvider>
+          </BrowserRouter>
         </UserProvider>
       </TooltipProvider>
     </QueryClientProvider>
