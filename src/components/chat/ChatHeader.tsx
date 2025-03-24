@@ -40,10 +40,10 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   }, [openDialog, currentUser.name, onBlockUser]);
 
   return (
-    <div className="px-4 py-3 border-b border-gray-200 bg-white flex items-center justify-between">
+    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between">
       <div className="flex items-center">
-        <h2 className="text-lg font-semibold">{currentUser.name}</h2>
-        <div className="ml-2 text-pink-500 text-sm">
+        <h2 className="text-lg font-semibold dark:text-white">{currentUser.name}</h2>
+        <div className="ml-2 text-pink-500 dark:text-pink-400 text-sm">
           {currentUser.gender === 'female' ? 'Female' : 'Male'}, {currentUser.age}
         </div>
       </div>
@@ -51,11 +51,11 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button 
-              className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
               aria-label="Menu"
               type="button"
             >
-              <MoreVertical className="h-5 w-5 text-gray-600" />
+              <MoreVertical className="h-5 w-5 text-gray-600 dark:text-gray-300" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -69,12 +69,12 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         </DropdownMenu>
         
         <button 
-          className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+          className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
           aria-label="Close chat"
           type="button"
           onClick={onCloseChat}
         >
-          <X className="h-5 w-5 text-gray-600" />
+          <X className="h-5 w-5 text-gray-600 dark:text-gray-300" />
         </button>
       </div>
     </div>

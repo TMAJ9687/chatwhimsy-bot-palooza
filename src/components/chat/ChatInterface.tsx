@@ -23,16 +23,15 @@ interface ChatInterfaceProps {
 
 // Main component that uses our new dialog context
 const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
-  const { user } = useUser();
-  const navigate = useNavigate();
   const { openDialog } = useDialog();
+  const navigate = useNavigate();
   
   const {
     userChats,
     imagesRemaining,
     typingBots,
     currentBot,
-    onlineUsers,
+    filteredUsers,
     searchTerm,
     filters,
     unreadNotifications,
@@ -40,7 +39,6 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     showInbox,
     showHistory,
     rulesAccepted,
-    filteredUsers,
     unreadCount,
     isVip,
     setSearchTerm,
@@ -95,7 +93,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   }, [setShowHistory, setShowInbox]);
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
+    <div className="flex flex-col h-screen overflow-hidden bg-background dark:bg-gray-900">
       {/* Header with icons */}
       <ChatAppHeader 
         unreadCount={unreadCount}
@@ -106,7 +104,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left sidebar - User list (desktop) */}
-        <div className="hidden md:flex flex-col w-[350px] bg-white border-r border-gray-200 overflow-hidden">
+        <div className="hidden md:flex flex-col w-[350px] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-hidden">
           <UserList 
             users={filteredUsers}
             currentUserId={currentBot.id}
@@ -133,7 +131,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
         />
 
         {/* Main chat area */}
-        <div className="flex-1 flex flex-col bg-white">
+        <div className="flex-1 flex flex-col bg-white dark:bg-gray-800">
           {/* Chat header component */}
           <ChatHeader 
             currentUser={currentBot}
