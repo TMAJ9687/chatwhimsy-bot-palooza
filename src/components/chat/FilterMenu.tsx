@@ -17,13 +17,15 @@ export interface FilterState {
   countries: string[];
 }
 
-// Import the full list of countries
-import { countries } from '@/data/countries';
+// Import the correct export name from countries.ts
+import { countriesData } from '@/data/countries';
 
-// Filter out Israel from the countries list
-const availableCountries = countries.filter(country => 
-  country.name.toLowerCase() !== 'israel'
-).sort((a, b) => a.name.localeCompare(b.name));
+// Format countries data for the filter menu
+const availableCountries = countriesData.map(country => ({
+  name: country.label,
+  code: country.code,
+  flag: `https://flagcdn.com/w20/${country.code}.png`
+})).sort((a, b) => a.name.localeCompare(b.name));
 
 const FilterMenu: React.FC<FilterMenuProps> = ({ 
   isOpen, 
