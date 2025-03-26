@@ -144,25 +144,40 @@ export const submitReport = async (reportData: any) => {
 };
 
 // Chat related functions
-export const sendMessage = async (senderId: string, receiverId: string, content: string, isImage: boolean = false) => {
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  isImage?: boolean;
+  status: string;
+  timestamp: Date;
+}
+
+export const sendMessage = async (chatId: string, messageData: {
+  content: string;
+  sender: 'user' | 'bot' | 'system';
+  isImage?: boolean;
+  status?: string;
+}) => {
   try {
     const chatRef = collection(db, 'chats');
     const messageRef = await addDoc(chatRef, {
-      senderId,
-      receiverId,
-      content,
-      isImage,
-      status: 'sent',
+      chatId,
+      content: messageData.content,
+      sender: messageData.sender,
+      isImage: messageData.isImage || false,
+      status: messageData.status || 'sent',
       timestamp: serverTimestamp(),
     });
     
     return {
       id: messageRef.id,
-      senderId,
-      receiverId,
-      content,
-      isImage,
-      status: 'sent',
+      chatId,
+      content: messageData.content,
+      sender: messageData.sender,
+      isImage: messageData.isImage || false,
+      status: messageData.status || 'sent',
       timestamp: new Date(),
     };
   } catch (error) {
@@ -171,15 +186,14 @@ export const sendMessage = async (senderId: string, receiverId: string, content:
   }
 };
 
-export const getChatMessages = async (userId: string, otherId: string) => {
+export const getChatMessages = async (chatId: string) => {
   try {
     const chatRef = collection(db, 'chats');
     
-    // Get messages where the current user is either the sender or receiver
+    // Get messages where the chatId matches
     const q = query(
       chatRef, 
-      where('senderId', 'in', [userId, otherId]),
-      where('receiverId', 'in', [userId, otherId])
+      where('chatId', '==', chatId)
     );
     
     const snapshot = await getDocs(q);
@@ -198,15 +212,9 @@ export const getChatMessages = async (userId: string, otherId: string) => {
 };
 
 // Blocked users related functions
-export const blockUser = async (blockedUserId: string) => {
+export const blockUser = async (userId: string, blockedUserId: string) => {
   try {
-    const currentUser = auth.currentUser;
-    
-    if (!currentUser) {
-      throw new Error('User not authenticated');
-    }
-    
-    const blockRef = doc(db, 'users', currentUser.uid, 'blockedUsers', blockedUserId);
+    const blockRef = doc(db, 'users', userId, 'blockedUsers', blockedUserId);
     await setDoc(blockRef, {
       blockedAt: serverTimestamp(),
     });
@@ -218,15 +226,9 @@ export const blockUser = async (blockedUserId: string) => {
   }
 };
 
-export const unblockUser = async (blockedUserId: string) => {
+export const unblockUser = async (userId: string, blockedUserId: string) => {
   try {
-    const currentUser = auth.currentUser;
-    
-    if (!currentUser) {
-      throw new Error('User not authenticated');
-    }
-    
-    const blockRef = doc(db, 'users', currentUser.uid, 'blockedUsers', blockedUserId);
+    const blockRef = doc(db, 'users', userId, 'blockedUsers', blockedUserId);
     await deleteDoc(blockRef);
     
     return true;
@@ -250,23 +252,18 @@ export const getBlockedUsers = async () => {
     return snapshot.docs.map(doc => doc.id);
   } catch (error) {
     console.error('Error getting blocked users:', error);
-    throw error;
+    return [];
   }
 };
 
 // Additional functions
-export const reportUser = async (userId: string, reason: string) => {
+export const reportUser = async (reporterId: string, reportedUserId: string, reason: string, details?: string) => {
   try {
-    const currentUser = auth.currentUser;
-    
-    if (!currentUser) {
-      throw new Error('User not authenticated');
-    }
-    
     const reportRef = await addDoc(collection(db, 'reports'), {
-      reporterId: currentUser.uid,
-      reportedUserId: userId,
+      reporterId,
+      reportedUserId,
       reason,
+      details: details || '',
       status: 'pending',
       createdAt: serverTimestamp(),
     });
@@ -279,9 +276,9 @@ export const reportUser = async (userId: string, reason: string) => {
 };
 
 // Image upload function
-export const uploadImage = async (file: File, path: string): Promise<string> => {
+export const uploadImage = async (userId: string, file: File, path: string): Promise<string> => {
   try {
-    const storageRef = ref(storage, path);
+    const storageRef = ref(storage, `${userId}/${path}/${file.name}`);
     const snapshot = await uploadBytes(storageRef, file);
     const downloadURL = await getDownloadURL(snapshot.ref);
     

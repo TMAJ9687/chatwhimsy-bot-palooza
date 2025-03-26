@@ -1,6 +1,5 @@
 
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
-import { Message } from '@/components/chat/MessageBubble';
 import { Notification } from '@/components/chat/NotificationSidebar';
 import { FilterState } from '@/components/chat/FilterMenu';
 import { useAuth } from './FirebaseAuthContext';
@@ -11,10 +10,21 @@ import {
   blockUser, 
   getBlockedUsers, 
   reportUser,
-  uploadImage as fbUploadImage
+  uploadImage as fbUploadImage,
+  ChatMessage
 } from '@/services/firebaseService';
 import { ref, onValue, off } from 'firebase/database';
 import { rtdb } from '@/lib/firebase';
+
+// Define the Message type
+export interface Message {
+  id: string;
+  content: string;
+  sender: 'user' | 'bot' | 'system';
+  timestamp: Date;
+  status?: 'sending' | 'sent' | 'delivered' | 'read';
+  isImage?: boolean;
+}
 
 // Define the Bot type
 interface Bot {
@@ -136,7 +146,7 @@ interface ChatContextType {
   selectUser: (user: Bot) => void;
   handleFilterChange: (newFilters: FilterState) => void;
   handleNotificationRead: (id: string) => void;
-  reportCurrentUser: (reason: string, details?: string) => void;
+  reportCurrentUser: (reason: string, details?: string) => Promise<boolean>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -179,11 +189,15 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const fetchBlockedUsers = async () => {
       if (currentUser) {
-        const blocked = await getBlockedUsers(currentUser.uid);
-        setBlockedUsers(blocked);
-        
-        // Filter out blocked users from online users
-        setOnlineUsers(prev => prev.filter(user => !blocked.includes(user.id)));
+        try {
+          const blocked = await getBlockedUsers();
+          setBlockedUsers(blocked);
+          
+          // Filter out blocked users from online users
+          setOnlineUsers(prev => prev.filter(user => !blocked.includes(user.id)));
+        } catch (error) {
+          console.error("Error fetching blocked users:", error);
+        }
       }
     };
     
@@ -201,8 +215,11 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (snapshot.exists()) {
         const messages = Object.entries(snapshot.val()).map(([id, message]: [string, any]) => ({
           id,
-          ...message,
-          timestamp: new Date(message.timestamp)
+          content: message.content,
+          sender: message.sender as 'user' | 'bot' | 'system',
+          timestamp: new Date(message.timestamp),
+          status: message.status,
+          isImage: message.isImage
         }));
         
         setUserChats(prev => ({
@@ -225,24 +242,39 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (!currentUser || !currentBot.id) return;
       
       const chatId = `${currentUser.uid}_${currentBot.id}`;
-      const messages = await getChatMessages(chatId);
       
-      if (messages.length > 0) {
-        setUserChats(prev => ({
-          ...prev,
-          [currentBot.id]: messages
-        }));
-      } else {
-        // Initialize with system message if no messages exist
-        setUserChats(prev => ({
-          ...prev,
-          [currentBot.id]: [{
-            id: `system-${Date.now()}`,
-            content: `Start a conversation with ${currentBot.name}`,
-            sender: 'system',
-            timestamp: new Date(),
-          }]
-        }));
+      try {
+        const messages = await getChatMessages(chatId);
+        
+        if (messages.length > 0) {
+          // Transform to Message type
+          const typedMessages: Message[] = messages.map(msg => ({
+            id: msg.id,
+            content: msg.content,
+            sender: (msg.sender as 'user' | 'bot' | 'system') || 'system',
+            timestamp: new Date(msg.timestamp),
+            status: msg.status,
+            isImage: msg.isImage
+          }));
+          
+          setUserChats(prev => ({
+            ...prev,
+            [currentBot.id]: typedMessages
+          }));
+        } else {
+          // Initialize with system message if no messages exist
+          setUserChats(prev => ({
+            ...prev,
+            [currentBot.id]: [{
+              id: `system-${Date.now()}`,
+              content: `Start a conversation with ${currentBot.name}`,
+              sender: 'system',
+              timestamp: new Date(),
+            }]
+          }));
+        }
+      } catch (error) {
+        console.error("Error loading chat messages:", error);
       }
     };
     
@@ -341,7 +373,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const currentBotId = currentBot.id;
     const chatId = `${currentUser.uid}_${currentBotId}`;
     
-    const newMessage = {
+    const newMessage: Message = {
       id: `user-${Date.now()}`,
       content: text,
       sender: 'user',
@@ -372,7 +404,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return {
           ...prev,
           [currentBotId]: messages.map(msg => 
-            msg.id === newMessage.id ? { ...msg, status: 'sent' as const } : msg
+            msg.id === newMessage.id ? { ...msg, status: 'sent' } : msg
           )
         };
       });
@@ -417,7 +449,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     const file = dataURLToFile(imageDataUrl, `image_${Date.now()}.jpg`);
     
-    const newMessage = {
+    const newMessage: Message = {
       id: `user-${Date.now()}`,
       content: imageDataUrl,
       sender: 'user',
@@ -456,7 +488,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             msg.id === newMessage.id ? { 
               ...msg, 
               content: imageUrl, 
-              status: 'sent' as const 
+              status: 'sent'
             } : msg
           )
         };
@@ -516,16 +548,15 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }));
       
       // Prepare bot response
-      const botResponse = {
-        content: getRandomBotResponse(botId),
-        sender: 'bot' as const,
-      };
+      const botResponseContent = getRandomBotResponse(botId);
       
       // Send bot response to Firebase
       if (currentUser) {
         const chatId = `${currentUser.uid}_${botId}`;
-        fbSendMessage(chatId, botResponse)
-          .catch(err => console.error('Error sending bot response:', err));
+        fbSendMessage(chatId, {
+          content: botResponseContent,
+          sender: 'bot',
+        }).catch(err => console.error('Error sending bot response:', err));
       }
       
       setUserChats(prev => {
@@ -533,7 +564,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         const updatedMessages = isVip ? 
           botMessages.map(msg => 
-            msg.sender === 'user' ? { ...msg, status: 'read' as const } : msg
+            msg.sender === 'user' ? { ...msg, status: 'read' } : msg
           ) : botMessages;
         
         // We don't need to add the bot response here as it will come through the Firebase listener
@@ -549,7 +580,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const newNotification: Notification = {
           id: Date.now().toString(),
           title: `New message from ${botProfile?.name || 'User'}`,
-          message: botResponse.content.slice(0, 30) + (botResponse.content.length > 30 ? '...' : ''),
+          message: botResponseContent.slice(0, 30) + (botResponseContent.length > 30 ? '...' : ''),
           time: new Date(),
           read: false,
           botId: botId
@@ -590,8 +621,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
   }, []);
 
-  const reportCurrentUser = useCallback(async (reason: string, details?: string) => {
-    if (!currentUser) return;
+  const reportCurrentUser = useCallback(async (reason: string, details?: string): Promise<boolean> => {
+    if (!currentUser) return false;
     
     try {
       await reportUser(currentUser.uid, currentBot.id, reason, details);

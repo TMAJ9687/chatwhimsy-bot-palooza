@@ -19,7 +19,7 @@ const REPORT_REASONS = [
 ];
 
 const ReportDialog = () => {
-  const { currentDialog, closeDialog } = useDialog();
+  const { state, closeDialog } = useDialog();
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const [selectedReason, setSelectedReason] = useState<string>('inappropriate');
@@ -27,11 +27,11 @@ const ReportDialog = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   
   // If this isn't a report dialog or we don't have data, don't render
-  if (currentDialog?.id !== 'report' || !currentDialog.data) {
+  if (state.type !== 'report' || !state.data) {
     return null;
   }
 
-  const { userId, userName } = currentDialog.data;
+  const { userId, userName } = state.data;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
