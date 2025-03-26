@@ -3,9 +3,12 @@
 import { getUserProfile, createUserProfile, updateUserProfile } from './firebaseAuth';
 import { getSubscription, createSubscription, cancelSubscription } from './firebaseSubscription';
 import { submitReport, reportUser } from './firebaseReport';
-import { sendMessage, getChatMessages, type ChatMessage } from './firebaseChat';
+import { sendMessage, getChatMessages } from './firebaseChat';
 import { uploadImage } from './firebaseStorage';
 import { blockUser, unblockUser, getBlockedUsers } from './firebaseBlockedUsers';
+
+// Import types
+import type { ChatMessage } from './firebaseChat';
 
 // Re-export user-related functions
 export {

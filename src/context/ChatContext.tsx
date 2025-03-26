@@ -2,7 +2,6 @@
 import React, { createContext, useContext } from 'react';
 import { useAuth } from './FirebaseAuthContext';
 import { useUser } from './UserContext';
-import { Bot } from './chat/useChatState';
 import { useChatState } from './chat/useChatState';
 import { useChatEffects } from './chat/useChatEffects';
 import { useChatActions } from './chat/useChatActions';
@@ -20,6 +19,15 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Use our custom hooks to manage state, effects, and actions
   const state = useChatState(userIsVip, user?.imagesRemaining);
+  
+  // Calculate filtered users before passing to actions
+  const filteredUsers = state.onlineUsers.filter(user => 
+    !state.blockedUsers.includes(user.id) &&
+    user.name.toLowerCase().includes(state.searchTerm.toLowerCase()) &&
+    (state.filters.gender === 'any' || user.gender === state.filters.gender) &&
+    (user.age >= state.filters.ageRange[0] && user.age <= state.filters.ageRange[1]) &&
+    (state.filters.countries.length === 0 || state.filters.countries.includes(user.country))
+  );
   
   // Setup effects
   useChatEffects({
@@ -41,7 +49,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     currentUser,
     userIsVip,
     currentBot: state.currentBot,
-    filteredUsers: state.filteredUsers,
+    filteredUsers, // Directly pass the calculated filteredUsers
     userChats: state.userChats,
     setUserChats: state.setUserChats,
     setTypingBots: state.setTypingBots,
