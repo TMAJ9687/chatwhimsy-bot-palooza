@@ -10,12 +10,26 @@ import { blockUser, unblockUser, getBlockedUsers } from './firebaseBlockedUsers'
 // Import types
 import type { ChatMessage } from './firebaseChat';
 
-// Re-export user-related functions
-export {
-  getUserProfile,
-  createUserProfile,
-  updateUserProfile
+// Safe wrapper for API calls to prevent DataCloneError
+const safeApiCall = async <T>(apiFn: (...args: any[]) => Promise<T>, ...args: any[]): Promise<T> => {
+  try {
+    const result = await apiFn(...args);
+    return result;
+  } catch (error) {
+    console.error('API call failed:', error);
+    throw error;
+  }
 };
+
+// Re-export user-related functions with safe wrappers
+export const getUserProfile = (...args: Parameters<typeof import('./firebaseAuth').getUserProfile>) => 
+  safeApiCall(import('./firebaseAuth').then(m => m.getUserProfile), ...args);
+
+export const createUserProfile = (...args: Parameters<typeof import('./firebaseAuth').createUserProfile>) => 
+  safeApiCall(import('./firebaseAuth').then(m => m.createUserProfile), ...args);
+
+export const updateUserProfile = (...args: Parameters<typeof import('./firebaseAuth').updateUserProfile>) => 
+  safeApiCall(import('./firebaseAuth').then(m => m.updateUserProfile), ...args);
 
 // Re-export subscription-related functions
 export {

@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect } from 'react';
+
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { useDialog } from '@/context/DialogContext';
@@ -112,6 +113,16 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     return null;
   }
 
+  // Memoize the current messages to prevent unnecessary re-renders
+  const currentMessages = useMemo(() => {
+    return userChats[currentBot.id] || [];
+  }, [userChats, currentBot.id]);
+
+  // Memoize whether the current bot is typing
+  const isCurrentBotTyping = useMemo(() => {
+    return typingBots[currentBot.id] || false;
+  }, [typingBots, currentBot.id]);
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background dark:bg-gray-950">
       {/* Header with icons */}
@@ -170,8 +181,8 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           {/* Messages area component */}
           <ErrorBoundary>
             <ChatMessages 
-              messages={userChats[currentBot.id] || []}
-              isTyping={typingBots[currentBot.id] || false}
+              messages={currentMessages}
+              isTyping={isCurrentBotTyping}
               showStatus={isVip}
               showTyping={isVip}
             />

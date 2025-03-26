@@ -83,26 +83,62 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
     }
   };
 
+  // Safely handle file changes to prevent DataCloneError
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.type.startsWith('image/')) {
-        // Use a safer approach to read file data
-        const reader = new FileReader();
-        reader.onload = () => {
-          // Ensure we're getting a string result
-          const result = typeof reader.result === 'string' ? reader.result : null;
-          setImagePreview(result);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        alert('Please select an image file');
+    if (!file) return;
+    
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
-      
-      // Clear the input to ensure it can be selected again
-      if (e.target) {
-        e.target.value = '';
+      return;
+    }
+    
+    // Size check to prevent large files
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert('Image size should be less than 5MB');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
+      return;
+    }
+    
+    // Use FileReader in a safe way
+    const reader = new FileReader();
+    
+    reader.onload = () => {
+      try {
+        // Make sure we get a string result and not anything complex
+        if (typeof reader.result === 'string') {
+          setImagePreview(reader.result);
+        } else {
+          console.error('File read result is not a string');
+          setImagePreview(null);
+        }
+      } catch (error) {
+        console.error('Error processing image:', error);
+        setImagePreview(null);
+      }
+    };
+    
+    reader.onerror = () => {
+      console.error('Error reading file');
+      setImagePreview(null);
+    };
+    
+    // Start reading the file
+    try {
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error initiating file read:', error);
+    }
+    
+    // Always clear the input value to ensure it can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -133,6 +169,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
           <button
             onClick={() => setImagePreview(null)}
             className="absolute top-1 right-1 bg-white dark:bg-gray-900 rounded-full p-1 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-800"
+            type="button"
           >
             <X className="h-4 w-4 text-gray-700 dark:text-gray-300" />
           </button>
@@ -159,6 +196,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
             ref={emojiButtonRef}
             className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
             onClick={toggleEmojiPicker}
+            type="button"
           >
             <Smile className="h-5 w-5" />
           </button>
@@ -190,6 +228,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
           className={`p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 ${imagesRemaining <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
           onClick={triggerFileInput}
           disabled={imagesRemaining <= 0 || !!imagePreview}
+          type="button"
         >
           <ImageIcon className="h-5 w-5" />
         </button>
@@ -198,6 +237,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
           className="ml-1 w-10 h-10 bg-teal-500 text-white rounded-full flex items-center justify-center disabled:opacity-50"
           onClick={handleSend}
           disabled={(!message.trim() && !imagePreview)}
+          type="button"
         >
           <Send className="h-5 w-5" />
         </button>
