@@ -3,30 +3,23 @@ import React, { useRef, useEffect, useCallback, memo } from 'react';
 import MessageBubble, { Message } from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import { useUser } from '@/context/UserContext';
-import { useChat } from '@/context/ChatContext';
-import { ShieldAlert } from 'lucide-react';
 
 interface ChatMessagesProps {
   messages: Message[];
   isTyping: boolean;
   showStatus?: boolean;
   showTyping?: boolean;
-  currentBotId: string;
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({ 
   messages, 
   isTyping,
   showStatus = true,
-  showTyping = true,
-  currentBotId
+  showTyping = true
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { isVip } = useUser();
-  const { blockedUsers } = useChat();
-  
-  const isBlocked = blockedUsers.includes(currentBotId);
   
   // Optimized scroll to bottom implementation
   const scrollToBottom = useCallback(() => {
@@ -48,28 +41,15 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       ref={containerRef}
       className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900"
     >
-      {isBlocked && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 my-4 text-center">
-          <div className="flex items-center justify-center mb-2">
-            <ShieldAlert className="h-5 w-5 text-red-500 mr-2" />
-            <span className="font-medium text-red-600">User Blocked</span>
-          </div>
-          <p className="text-sm text-red-600">
-            You have blocked this user. You won't receive any new messages from them.
-          </p>
-        </div>
-      )}
-      
       {messages?.map((message) => (
         <MessageBubble 
           key={message.id} 
           message={message}
           showStatus={isVip && showStatus}
-          isBlocked={isBlocked && message.sender === 'bot'}
         />
       ))}
       
-      {isTyping && showTyping && isVip && !isBlocked && <TypingIndicator />}
+      {isTyping && showTyping && isVip && <TypingIndicator />}
       
       <div ref={messagesEndRef} />
     </div>

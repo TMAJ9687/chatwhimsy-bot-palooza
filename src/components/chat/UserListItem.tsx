@@ -1,7 +1,6 @@
 
 import React from 'react';
-import { Crown, ShieldAlert } from 'lucide-react';
-import { useChat } from '@/context/ChatContext';
+import { Crown } from 'lucide-react';
 
 interface User {
   id: string;
@@ -22,8 +21,6 @@ interface UserListItemProps {
 }
 
 const UserListItem: React.FC<UserListItemProps> = ({ user, isActive, onClick }) => {
-  const { blockedUsers } = useChat();
-  const isBlocked = blockedUsers.includes(user.id);
   const genderColor = user.gender === 'female' ? 'text-pink-500' : 'text-blue-500';
   
   return (
@@ -31,7 +28,6 @@ const UserListItem: React.FC<UserListItemProps> = ({ user, isActive, onClick }) 
       className={`
         p-4 cursor-pointer transition-colors border-l-4 
         ${isActive ? 'bg-amber-50 border-orange-500' : 'hover:bg-amber-50/50 border-transparent'}
-        ${isBlocked ? 'opacity-60 grayscale' : ''}
       `}
       onClick={onClick}
     >
@@ -46,14 +42,7 @@ const UserListItem: React.FC<UserListItemProps> = ({ user, isActive, onClick }) 
         
         <div className="flex-1">
           <div className="flex items-center">
-            <span className="font-medium text-gray-800">
-              {user.name}
-              {isBlocked && (
-                <span className="ml-2">
-                  <ShieldAlert className="h-3.5 w-3.5 inline text-red-500" />
-                </span>
-              )}
-            </span>
+            <span className="font-medium text-gray-800">{user.name}</span>
             {user.vip && (
               <span className="ml-2 bg-amber-400 text-white text-xs px-1.5 py-0.5 rounded-sm flex items-center">
                 <Crown className="h-3 w-3 mr-0.5" /> VIP
