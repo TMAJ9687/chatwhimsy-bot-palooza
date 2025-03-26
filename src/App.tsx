@@ -2,7 +2,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
-import LandingPage from './components/landing/LandingPage';
 import ChatInterface from './components/chat/ChatInterface';
 import VipProfileSetup from './pages/VipProfileSetup';
 import VipSubscription from './pages/VipSubscription';
@@ -18,7 +17,8 @@ import { UserProvider } from './context/UserContext';
 import { DialogProvider } from './context/DialogContext';
 import { AuthProvider } from './context/FirebaseAuthContext';
 import ProtectedRoute from './components/shared/ProtectedRoute';
-import { useAuth } from './context/FirebaseAuthContext';
+import Index from './pages/Index'; // Import the Index component
+
 import './App.css';
 
 function App() {
@@ -30,7 +30,7 @@ function App() {
             <Router>
               <MainLayout>
                 <Routes>
-                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/" element={<Index />} /> {/* Use Index component here */}
                   {/* Modified to remove the ProtectedRoute wrapper */}
                   <Route path="/chat" element={<ChatInterface onLogout={() => {}} />} />
                   <Route 
