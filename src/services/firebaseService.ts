@@ -3,7 +3,7 @@
 import { getUserProfile, createUserProfile, updateUserProfile } from './firebaseAuth';
 import { getSubscription, createSubscription, cancelSubscription } from './firebaseSubscription';
 import { submitReport, reportUser } from './firebaseReport';
-import { sendMessage, getChatMessages, ChatMessage } from './firebaseChat';
+import { sendMessage, getChatMessages, type ChatMessage } from './firebaseChat';
 import { uploadImage } from './firebaseStorage';
 import { blockUser, unblockUser, getBlockedUsers } from './firebaseBlockedUsers';
 
@@ -26,8 +26,13 @@ export {
   // Chat related
   sendMessage,
   getChatMessages,
-  ChatMessage,
-  
+};
+
+// Re-export types with proper 'export type' syntax
+export type { ChatMessage };
+
+// Re-export all other functions
+export {
   // Storage related
   uploadImage,
   
