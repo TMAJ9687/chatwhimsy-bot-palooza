@@ -64,11 +64,13 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Get subscription data
         const subscription = await getSubscription(currentUser.uid);
         
-        // Combine the data
+        // Combine the data - fixed spread by creating an object first
+        const profileData = userProfile ? { ...userProfile } : {};
+        
         setUser({
           nickname: currentUser.displayName || 'User',
           email: currentUser.email || undefined,
-          ...userProfile,
+          ...profileData,
           isVip: subscription?.status === 'active' || false,
           subscriptionTier: subscription?.plan as SubscriptionTier || 'none',
           subscriptionEndDate: subscription?.endDate ? new Date(subscription.endDate) : undefined
