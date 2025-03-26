@@ -15,7 +15,6 @@ import {
 import { ref, onValue, off } from 'firebase/database';
 import { rtdb } from '@/lib/firebase';
 
-// Define the Message type
 export interface Message {
   id: string;
   content: string;
@@ -25,7 +24,6 @@ export interface Message {
   isImage?: boolean;
 }
 
-// Define the Bot type
 interface Bot {
   id: string;
   name: string;
@@ -39,7 +37,6 @@ interface Bot {
   responses: string[];
 }
 
-// Define sample bot profiles
 const botProfiles: Bot[] = [
   {
     id: 'bot1',
@@ -206,11 +203,11 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const handleNewMessages = (snapshot: any) => {
       if (snapshot.exists()) {
         const messages: Message[] = Object.entries(snapshot.val()).map(([id, messageData]: [string, any]) => {
-          const content = messageData.content || '';
-          const sender = messageData.sender || 'system';
-          const timestamp = messageData.timestamp || Date.now();
-          const status = messageData.status || 'sent';
-          const isImage = messageData.isImage || false;
+          const content = messageData?.content || '';
+          const sender = messageData?.sender || 'system';
+          const timestamp = messageData?.timestamp || Date.now();
+          const status = messageData?.status || 'sent';
+          const isImage = messageData?.isImage || false;
           
           return {
             id,
@@ -246,14 +243,16 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const messages = await getChatMessages(chatId);
         
         if (messages.length > 0) {
-          const typedMessages: Message[] = messages.map(msg => ({
-            id: msg.id || `msg-${Date.now()}-${Math.random()}`,
-            content: msg.content || '',
-            sender: (msg.sender as 'user' | 'bot' | 'system') || 'system',
-            timestamp: new Date(msg.timestamp || Date.now()),
-            status: (msg.status as 'sending' | 'sent' | 'delivered' | 'read') || 'sent',
-            isImage: msg.isImage || false
-          }));
+          const typedMessages: Message[] = messages.map(msg => {
+            return {
+              id: msg.id || `msg-${Date.now()}-${Math.random()}`,
+              content: msg.content || '',
+              sender: (msg.sender as 'user' | 'bot' | 'system') || 'system',
+              timestamp: new Date(msg.timestamp || Date.now()),
+              status: (msg.status as 'sending' | 'sent' | 'delivered' | 'read') || 'sent',
+              isImage: msg.isImage || false
+            };
+          });
           
           setUserChats(prev => ({
             ...prev,
@@ -663,4 +662,3 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
-
