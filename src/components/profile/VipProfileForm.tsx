@@ -14,9 +14,8 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { User, Calendar, MapPin, Heart, Save, Check } from 'lucide-react';
-import { countriesData } from '@/data/countries';
+import { countries } from '@/data/countries';
 
-// Define form schema with validation
 const profileFormSchema = z.object({
   gender: z.enum(['male', 'female'], {
     required_error: "Please select a gender",
@@ -30,7 +29,6 @@ const profileFormSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
-// Sample avatar options for users to choose from
 const avatarOptions = [
   { id: 'avatar1', src: '/placeholder.svg' },
   { id: 'avatar2', src: '/placeholder.svg' },
@@ -42,7 +40,6 @@ const avatarOptions = [
   { id: 'avatar8', src: '/placeholder.svg' },
 ];
 
-// Sample interest options
 const interestOptions = [
   { id: 'music', label: 'Music' },
   { id: 'gaming', label: 'Gaming' },
@@ -68,7 +65,6 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
   const { toast } = useToast();
   const [selectedAvatar, setSelectedAvatar] = useState('avatar1');
   
-  // Initialize form with existing user data or defaults
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
@@ -81,10 +77,8 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
     },
   });
 
-  // Load user data from storage on component mount
   useEffect(() => {
     const loadUserData = async () => {
-      // First try localStorage
       const storedData = localStorage.getItem('vipUserProfile');
       
       if (storedData) {
@@ -99,7 +93,6 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
         });
         setSelectedAvatar(userData.avatarId || 'avatar1');
       } else {
-        // Fallback to sessionStorage
         const sessionData = sessionStorage.getItem('vipUserProfile');
         
         if (sessionData) {
@@ -120,23 +113,20 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
     loadUserData();
   }, [form]);
 
-  // Handle form submission
   const onSubmit = (data: ProfileFormValues) => {
-    // Update user context
     updateUserProfile({
       gender: data.gender,
       age: parseInt(data.age),
       country: data.country,
       interests: data.interests,
-      isVip: true, // Make sure we keep the VIP status
+      isVip: true,
     });
     
-    // Store form data in localStorage and sessionStorage for persistence
     const profileData = {
       ...data,
       age: parseInt(data.age),
       avatarId: selectedAvatar,
-      isVip: true, // Keep VIP status
+      isVip: true,
     };
     
     localStorage.setItem('vipUserProfile', JSON.stringify(profileData));
@@ -161,7 +151,6 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} onChange={onChange} className="space-y-6">
-            {/* Nickname display (read-only) */}
             <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
               <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Your VIP Nickname</FormLabel>
               <div className="mt-1 flex items-center">
@@ -176,7 +165,6 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
               </div>
             </div>
 
-            {/* Gender selection - Male and Female only */}
             <FormField
               control={form.control}
               name="gender"
@@ -206,7 +194,6 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
               )}
             />
 
-            {/* Age selection */}
             <FormField
               control={form.control}
               name="age"
@@ -238,7 +225,6 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
               )}
             />
 
-            {/* Avatar selection grid */}
             <div className="space-y-3">
               <FormLabel className="text-sm font-medium block">Choose Your Avatar</FormLabel>
               <div className="grid grid-cols-4 gap-4">
@@ -270,7 +256,6 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
               </div>
             </div>
 
-            {/* Country selection with flags from flagpedia.net - updated with all countries */}
             <FormField
               control={form.control}
               name="country"
@@ -289,29 +274,29 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
                         <SelectValue placeholder="Select your country">
                           {field.value && (
                             <div className="flex items-center">
-                              {countriesData.find(c => c.value === field.value) && (
+                              {countries.find(c => c.code === field.value) && (
                                 <img 
-                                  src={`https://flagcdn.com/w20/${countriesData.find(c => c.value === field.value)?.code}.png`}
-                                  alt={countriesData.find(c => c.value === field.value)?.label || ''}
+                                  src={`https://flagcdn.com/w20/${field.value.toLowerCase()}.png`}
+                                  alt={countries.find(c => c.code === field.value)?.name || ''}
                                   className="h-4 w-auto mr-2"
                                 />
                               )}
-                              {countriesData.find(c => c.value === field.value)?.label}
+                              {countries.find(c => c.code === field.value)?.name}
                             </div>
                           )}
                         </SelectValue>
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="max-h-[300px]">
-                      {countriesData.map((country) => (
-                        <SelectItem key={country.value} value={country.value}>
+                      {countries.map((country) => (
+                        <SelectItem key={country.code} value={country.code}>
                           <div className="flex items-center">
                             <img 
-                              src={`https://flagcdn.com/w20/${country.code}.png`} 
-                              alt={country.label} 
+                              src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`} 
+                              alt={country.name} 
                               className="h-4 w-auto mr-2" 
                             />
-                            {country.label}
+                            {country.name}
                           </div>
                         </SelectItem>
                       ))}
@@ -322,7 +307,6 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
               )}
             />
 
-            {/* Interests selection */}
             <FormField
               control={form.control}
               name="interests"
@@ -343,13 +327,11 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
                               const currentInterests = field.value || [];
                               
                               if (checked) {
-                                // If less than 4 interests are selected, add the new one
                                 if (currentInterests.length < 4) {
                                   field.onChange([...currentInterests, interest.id]);
                                   onChange();
                                 }
                               } else {
-                                // Remove interest if unchecked
                                 field.onChange(
                                   currentInterests.filter((value) => value !== interest.id)
                                 );
@@ -373,7 +355,6 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
               )}
             />
 
-            {/* Profile visibility toggle */}
             <FormField
               control={form.control}
               name="isVisible"
