@@ -15,6 +15,7 @@ interface UserProfile {
   interests?: Interest[];
   email?: string;
   isVip?: boolean;
+  isAnonymous?: boolean; // Added this property to fix the TypeScript error
   subscriptionTier?: SubscriptionTier;
   subscriptionEndDate?: Date;
   imagesRemaining?: number;
