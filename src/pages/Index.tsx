@@ -2,10 +2,10 @@
 import React from 'react';
 import LandingPage from '../components/landing/LandingPage';
 import AdminButton from '../components/admin/AdminButton';
-import { useAuth } from '@/context/FirebaseAuthContext';
+import { useUser } from '@/context/UserContext';
 
 const Index = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin } = useUser();
   
   return (
     <div className="min-h-screen">

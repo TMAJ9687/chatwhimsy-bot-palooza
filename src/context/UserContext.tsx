@@ -177,9 +177,11 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       
       // Update the user profile
+      const role: UserRole = user?.isAdmin ? 'admin' : 'vip';
+      
       const profileUpdate = makeSerializable({ 
         isVip: true, 
-        role: user?.isAdmin ? 'admin' : 'vip',
+        role: role,
         subscriptionTier: tier,
         subscriptionEndDate: endDate,
         imagesRemaining: Infinity,
@@ -202,7 +204,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       
       // Don't downgrade admin when canceling VIP
-      const role = user?.isAdmin ? 'admin' : 'regular';
+      const role: UserRole = user?.isAdmin ? 'admin' : 'regular';
       const isVip = user?.isAdmin ? true : false;
       
       // Update the user profile

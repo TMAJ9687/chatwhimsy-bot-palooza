@@ -23,6 +23,8 @@ export interface MockUser extends Omit<User, 'delete' | 'getIdToken'> {
   providerData: any[];
   delete: () => Promise<void>;
   getIdToken: () => Promise<string>;
+  getIdTokenResult: () => Promise<any>;
+  reload: () => Promise<void>;
 }
 
 // Create mock users for testing
@@ -50,6 +52,16 @@ const createMockUser = (
     providerData: [],
     delete: async () => Promise.resolve(),
     getIdToken: async () => Promise.resolve("mock-token-" + uid),
+    getIdTokenResult: async () => Promise.resolve({
+      token: "mock-token-" + uid,
+      claims: { role: role, isVip: role === 'vip' || role === 'admin', isAdmin: role === 'admin' },
+      expirationTime: new Date(Date.now() + 3600000).toISOString(),
+      authTime: new Date().toISOString(),
+      issuedAtTime: new Date().toISOString(),
+      signInProvider: isAnonymous ? "anonymous" : "password",
+      signInSecondFactor: null
+    }),
+    reload: async () => Promise.resolve(),
     // Add other required User properties
     phoneNumber: null,
     refreshToken: "mock-refresh-token",
