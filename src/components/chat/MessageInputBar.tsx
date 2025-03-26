@@ -11,6 +11,7 @@ interface MessageInputBarProps {
   onSendImage: (imageDataUrl: string) => void;
   imagesRemaining: number;
   disabled?: boolean;
+  userType?: 'standard' | 'vip'; // Add the userType prop
 }
 
 const MAX_CHAR_LIMIT = 120;
@@ -20,7 +21,8 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   onSendMessage,
   onSendImage,
   imagesRemaining,
-  disabled = false
+  disabled = false,
+  userType = 'standard' // Set a default value
 }) => {
   // State variables
   const [message, setMessage] = useState('');
@@ -28,6 +30,9 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isVip } = useChat();
   const { toast } = useToast();
+  
+  // Use the passed userType prop instead of context
+  const isUserVip = userType === 'vip' || isVip;
   
   // Handle submitting message
   const handleSubmitMessage = () => {
@@ -61,7 +66,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
 
   // Check if message exceeds character limit
   const isExceedingLimit = () => {
-    return !isVip && message.length > MAX_CHAR_LIMIT;
+    return !isUserVip && message.length > MAX_CHAR_LIMIT;
   };
   
   // Handle uploading image
@@ -72,7 +77,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     if (!file) return;
     
     // Check if user has remaining uploads
-    if (imagesRemaining <= 0 && !isVip) {
+    if (imagesRemaining <= 0 && !isUserVip) {
       toast({
         title: "Upload limit reached",
         description: "You have reached your daily image upload limit. Upgrade to VIP to upload unlimited images."
@@ -119,7 +124,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   const handleClickUpload = () => {
     if (disabled) return;
     
-    if (imagesRemaining <= 0 && !isVip) {
+    if (imagesRemaining <= 0 && !isUserVip) {
       toast({
         title: "Upload limit reached",
         description: "You have reached your daily image upload limit. Upgrade to VIP to upload unlimited images."
@@ -152,7 +157,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     const newText = e.target.value;
     
     // Check if exceeding character limit (for non-VIP)
-    if (!isVip && newText.length > MAX_CHAR_LIMIT) {
+    if (!isUserVip && newText.length > MAX_CHAR_LIMIT) {
       toast({
         title: "Character limit reached",
         description: `Messages are limited to ${MAX_CHAR_LIMIT} characters. Upgrade to VIP for unlimited messaging.`,
@@ -183,7 +188,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     const newText = message + emoji;
     
     // Check if exceeding character limit
-    if (!isVip && newText.length > MAX_CHAR_LIMIT) {
+    if (!isUserVip && newText.length > MAX_CHAR_LIMIT) {
       toast({
         title: "Character limit reached",
         description: `Messages are limited to ${MAX_CHAR_LIMIT} characters. Upgrade to VIP for unlimited messaging.`,
@@ -242,7 +247,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
           onClick={handleClickUpload}
           disabled={disabled || !!imagePreview}
           title={
-            isVip 
+            isUserVip 
               ? "Upload image" 
               : `Upload image (${imagesRemaining} remaining today)`
           }
@@ -287,7 +292,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
             style={{paddingTop: '6px', paddingBottom: '6px'}}
             disabled={disabled || !!imagePreview}
           />
-          {!isVip && (
+          {!isUserVip && (
             <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs ${isExceedingLimit() ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
               {message.length}/{MAX_CHAR_LIMIT}
             </div>
@@ -310,8 +315,8 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
       </div>
       
       <div className="text-xs text-center mt-1 text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-1">
-        {!isVip && `${imagesRemaining} image uploads remaining today - `}
-        {isVip ? "VIP Member - Unlimited messaging and uploads" : "Upgrade to VIP for unlimited uploads"}
+        {!isUserVip && `${imagesRemaining} image uploads remaining today - `}
+        {isUserVip ? "VIP Member - Unlimited messaging and uploads" : "Upgrade to VIP for unlimited uploads"}
       </div>
     </div>
   );
