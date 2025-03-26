@@ -206,21 +206,19 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const handleNewMessages = (snapshot: any) => {
       if (snapshot.exists()) {
         const messages: Message[] = Object.entries(snapshot.val()).map(([id, messageData]: [string, any]) => {
-          const typedMessageData = {
-            content: messageData.content || '',
-            sender: messageData.sender || 'system',
-            timestamp: messageData.timestamp || Date.now(),
-            status: messageData.status || 'sent',
-            isImage: messageData.isImage || false
-          };
+          const content = messageData.content || '';
+          const sender = messageData.sender || 'system';
+          const timestamp = messageData.timestamp || Date.now();
+          const status = messageData.status || 'sent';
+          const isImage = messageData.isImage || false;
           
           return {
             id,
-            content: typedMessageData.content,
-            sender: typedMessageData.sender as 'user' | 'bot' | 'system',
-            timestamp: new Date(typedMessageData.timestamp),
-            status: typedMessageData.status as 'sending' | 'sent' | 'delivered' | 'read',
-            isImage: typedMessageData.isImage
+            content,
+            sender: sender as 'user' | 'bot' | 'system',
+            timestamp: new Date(timestamp),
+            status: status as 'sending' | 'sent' | 'delivered' | 'read',
+            isImage
           };
         });
         
@@ -665,3 +663,4 @@ export const useChat = (): ChatContextType => {
   }
   return context;
 };
+

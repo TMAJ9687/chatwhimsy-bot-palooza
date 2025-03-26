@@ -3,9 +3,10 @@ import React, { useRef, useEffect, useCallback, memo } from 'react';
 import MessageBubble, { Message } from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import { useUser } from '@/context/UserContext';
+import { Message as ChatMessage } from '@/context/ChatContext';
 
 interface ChatMessagesProps {
-  messages: Message[];
+  messages: ChatMessage[];
   isTyping: boolean;
   showStatus?: boolean;
   showTyping?: boolean;
