@@ -55,11 +55,15 @@ export const useChatState = (isVip: boolean) => {
     userChats,
     typingBots,
     imagesRemaining,
+    voiceMessagesRemaining,
     setCurrentBotId,
     initializeChat,
     simulateBotResponse,
     handleSendTextMessage,
     handleSendImageMessage,
+    handleSendVoiceMessage,
+    handleSendGifMessage,
+    handleDeleteConversation,
     initializeImageRemaining
   } = useChatMessages(isVip, handleNewNotification);
 
@@ -86,6 +90,13 @@ export const useChatState = (isVip: boolean) => {
   useEffect(() => {
     initializeImageRemaining();
   }, [initializeImageRemaining]);
+
+  // If the user is VIP, mark rules as accepted automatically
+  useEffect(() => {
+    if (isVip && !rulesAccepted) {
+      setRulesAccepted(true);
+    }
+  }, [isVip, rulesAccepted, setRulesAccepted]);
 
   // Handle blocking a user
   const handleBlockUser = useCallback((userId: string) => {
@@ -139,6 +150,53 @@ export const useChatState = (isVip: boolean) => {
     simulateBotResponse(messageId, currentBot.id);
   }, [currentBot.id, currentBot.name, handleSendImageMessage, addHistoryItem, simulateBotResponse]);
 
+  // Handle sending a voice message
+  const handleSendVoiceMessageWrapper = useCallback(async (audioBlob: Blob) => {
+    const messageId = await handleSendVoiceMessage(audioBlob, currentBot.id);
+    
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      title: `Voice message sent to ${currentBot.name}`,
+      message: 'You sent a voice message',
+      time: new Date(),
+      read: true
+    };
+    
+    addHistoryItem(newNotification);
+    simulateBotResponse(messageId, currentBot.id);
+  }, [currentBot.id, currentBot.name, handleSendVoiceMessage, addHistoryItem, simulateBotResponse]);
+
+  // Handle sending a GIF message
+  const handleSendGifMessageWrapper = useCallback(async (gifUrl: string) => {
+    const messageId = await handleSendGifMessage(gifUrl, currentBot.id);
+    
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      title: `GIF sent to ${currentBot.name}`,
+      message: 'You sent a GIF',
+      time: new Date(),
+      read: true
+    };
+    
+    addHistoryItem(newNotification);
+    simulateBotResponse(messageId, currentBot.id);
+  }, [currentBot.id, currentBot.name, handleSendGifMessage, addHistoryItem, simulateBotResponse]);
+
+  // Handle deleting a conversation
+  const handleDeleteConversationWrapper = useCallback((botId: string) => {
+    handleDeleteConversation(botId);
+    
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      title: `Conversation with ${currentBot.name} deleted`,
+      message: 'You deleted the conversation',
+      time: new Date(),
+      read: true
+    };
+    
+    addHistoryItem(newNotification);
+  }, [currentBot.name, handleDeleteConversation, addHistoryItem]);
+
   // Enhanced select user to init chat as well
   const selectUserWithChat = useCallback((user: Bot) => {
     if (user.id !== currentBot.id) {
@@ -150,6 +208,7 @@ export const useChatState = (isVip: boolean) => {
   return {
     userChats,
     imagesRemaining,
+    voiceMessagesRemaining,
     typingBots,
     currentBot,
     onlineUsers,
@@ -174,6 +233,9 @@ export const useChatState = (isVip: boolean) => {
     handleCloseChat,
     handleSendTextMessage: handleSendTextMessageWrapper,
     handleSendImageMessage: handleSendImageMessageWrapper,
+    handleSendVoiceMessage: handleSendVoiceMessageWrapper,
+    handleSendGifMessage: handleSendGifMessageWrapper,
+    handleDeleteConversation: handleDeleteConversationWrapper,
     selectUser: selectUserWithChat,
     handleFilterChange,
     handleNotificationRead,

@@ -25,10 +25,11 @@ const ChatHeader: React.FC<ChatHeaderProps> = memo(({
   onBlockUser, 
   onCloseChat 
 }) => {
-  const { isUserBlocked, handleUnblockUser } = useChat();
+  const { isUserBlocked, handleUnblockUser, userChats, handleDeleteConversation, isVip } = useChat();
   
   // Check if current user is blocked
   const isBlocked = isUserBlocked(currentUser.id);
+  const currentUserMessages = userChats[currentUser.id] || [];
   
   return (
     <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3 flex items-center justify-between">
@@ -52,8 +53,11 @@ const ChatHeader: React.FC<ChatHeaderProps> = memo(({
         userId={currentUser.id}
         userName={currentUser.name}
         isBlocked={isBlocked}
+        isVip={isVip}
+        messages={currentUserMessages}
         onBlockUser={onBlockUser}
         onUnblockUser={handleUnblockUser}
+        onDeleteConversation={handleDeleteConversation}
         onCloseChat={onCloseChat}
       />
     </div>

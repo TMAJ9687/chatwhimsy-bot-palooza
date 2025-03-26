@@ -2,17 +2,30 @@
 import React, { useState, useRef, memo, useEffect } from 'react';
 import { useChat } from '@/context/ChatContext';
 import { Button } from '../ui/button';
-import { Image, Send, Smile, X } from 'lucide-react';
+import { Image, Send, Smile, X, Mic, Gift } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { MAX_CHAR_LIMIT, CONSECUTIVE_LIMIT, validateImageFile, checkCharacterLimit, hasConsecutiveChars } from '@/utils/messageUtils';
+import { 
+  MAX_CHAR_LIMIT, 
+  VIP_CHAR_LIMIT, 
+  CONSECUTIVE_LIMIT, 
+  validateImageFile, 
+  checkCharacterLimit, 
+  hasConsecutiveChars 
+} from '@/utils/messageUtils';
 import ImagePreview from './ImagePreview';
 import EmojiPicker from './EmojiPicker';
+import VoiceMessageRecorder from './VoiceMessageRecorder';
+import GifPicker from './GifPicker';
+import { useVipFeatures } from '@/hooks/useVipFeatures';
 
 interface MessageInputBarProps {
   onSendMessage: (text: string) => void;
   onSendImage: (imageDataUrl: string) => void;
+  onSendVoiceMessage?: (audioBlob: Blob) => void;
+  onSendGif?: (gifUrl: string) => void;
   imagesRemaining: number;
+  voiceMessagesRemaining: number;
   disabled?: boolean;
   userType?: 'standard' | 'vip';
 }
@@ -20,19 +33,27 @@ interface MessageInputBarProps {
 const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   onSendMessage,
   onSendImage,
+  onSendVoiceMessage,
+  onSendGif,
   imagesRemaining,
+  voiceMessagesRemaining,
   disabled = false,
   userType = 'standard'
 }) => {
   // State variables
   const [message, setMessage] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isVip } = useChat();
   const { toast } = useToast();
   
   // Use the passed userType prop instead of context
   const isUserVip = userType === 'vip' || isVip;
+  
+  // Get character limit based on user type
+  const characterLimit = isUserVip ? VIP_CHAR_LIMIT : MAX_CHAR_LIMIT;
   
   // Handle submitting message
   const handleSubmitMessage = () => {
@@ -56,6 +77,22 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     }
   };
   
+  // Handle sending voice message
+  const handleSendVoiceMessage = (audioBlob: Blob) => {
+    if (disabled || !onSendVoiceMessage) return;
+    
+    onSendVoiceMessage(audioBlob);
+    setIsRecording(false);
+  };
+  
+  // Handle sending GIF
+  const handleSendGif = (gifUrl: string) => {
+    if (disabled || !onSendGif) return;
+    
+    onSendGif(gifUrl);
+    setShowGifPicker(false);
+  };
+  
   // Handle pressing enter
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -66,7 +103,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
 
   // Check if message exceeds character limit
   const isExceedingLimit = () => {
-    return !isUserVip && message.length > MAX_CHAR_LIMIT;
+    return message.length > characterLimit;
   };
   
   // Handle uploading image
@@ -113,6 +150,11 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     }
   };
   
+  // Cancel voice recording
+  const handleCancelRecording = () => {
+    setIsRecording(false);
+  };
+  
   // Open file selection dialog
   const handleClickUpload = () => {
     if (disabled) return;
@@ -132,17 +174,18 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
     
-    // Check if exceeding character limit (for non-VIP)
+    // Check if exceeding character limit
     if (!checkCharacterLimit(newText, isUserVip, true)) {
-      setMessage(newText.slice(0, MAX_CHAR_LIMIT));
+      setMessage(newText.slice(0, characterLimit));
       return;
     }
     
     // Check for consecutive characters
-    if (newText.length > message.length && hasConsecutiveChars(newText)) {
+    if (newText.length > message.length && hasConsecutiveChars(newText, isUserVip)) {
+      const limit = isUserVip ? 6 : 3;
       toast({
         title: "Pattern detected",
-        description: "Please avoid sending more than 3 consecutive identical characters.",
+        description: `Please avoid sending more than ${limit} consecutive identical characters.`,
         duration: 3000
       });
       return;
@@ -163,9 +206,6 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     setMessage(newText);
   };
 
-  // Available emoji options
-  const emojis = ["😊", "😂", "❤️", "👍", "😍", "🙏", "😘", "🥰", "😎", "🔥", "😁", "👋", "🤗", "🤔"];
-
   return (
     <div className={`border-t border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-800 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
       {imagePreview && (
@@ -175,90 +215,126 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
           onSend={handleSendImage}
         />
       )}
-
-      <div className="flex items-center gap-2">
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          accept="image/*"
-          onChange={handleImageUpload}
-          disabled={disabled}
+      
+      {isRecording && onSendVoiceMessage && isUserVip && (
+        <VoiceMessageRecorder 
+          onSend={handleSendVoiceMessage}
+          onCancel={handleCancelRecording}
+          isRecording={isRecording}
+          setIsRecording={setIsRecording}
+          voiceMessagesRemaining={voiceMessagesRemaining}
+          isVip={isUserVip}
         />
-        
-        <Button 
-          variant="ghost" 
-          size="icon"
-          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" 
-          onClick={handleClickUpload}
-          disabled={disabled || !!imagePreview}
-          title={
-            isUserVip 
-              ? "Upload image" 
-              : `Upload image (${imagesRemaining} remaining today)`
-          }
-        >
-          <Image className="h-5 w-5" />
-        </Button>
+      )}
 
-        <Popover>
-          <PopoverTrigger asChild>
+      {!isRecording && (
+        <div className="flex items-center gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            onChange={handleImageUpload}
+            disabled={disabled}
+          />
+          
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" 
+            onClick={handleClickUpload}
+            disabled={disabled || !!imagePreview}
+            title={
+              isUserVip 
+                ? "Upload image" 
+                : `Upload image (${imagesRemaining} remaining today)`
+            }
+          >
+            <Image className="h-5 w-5" />
+          </Button>
+
+          {isUserVip && onSendGif && (
+            <Popover open={showGifPicker} onOpenChange={setShowGifPicker}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" 
+                  disabled={disabled || !!imagePreview}
+                  title="Send GIF"
+                >
+                  <Gift className="h-5 w-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <GifPicker 
+                  onSelect={handleSendGif}
+                  onClose={() => setShowGifPicker(false)}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" 
+                disabled={disabled || !!imagePreview}
+                title="Add emoji"
+              >
+                <Smile className="h-5 w-5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-2" align="start">
+              <EmojiPicker onEmojiSelect={handleEmojiClick} />
+            </PopoverContent>
+          </Popover>
+          
+          {isUserVip && onSendVoiceMessage && !isRecording && (
             <Button 
               variant="ghost" 
               size="icon"
               className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" 
+              onClick={() => setIsRecording(true)}
               disabled={disabled || !!imagePreview}
-              title="Add emoji"
+              title="Record voice message"
             >
-              <Smile className="h-5 w-5" />
+              <Mic className="h-5 w-5" />
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-2" align="start">
-            <div className="flex flex-wrap gap-2 max-w-[200px]">
-              {emojis.map(emoji => (
-                <button
-                  key={emoji}
-                  className="w-8 h-8 flex items-center justify-center text-lg hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                  onClick={() => handleEmojiClick(emoji)}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
-        
-        <div className="flex-1 relative">
-          <textarea
-            value={message}
-            onChange={handleMessageChange}
-            onKeyDown={handleKeyDown}
-            placeholder={disabled ? "You can't message a blocked user" : "Type a message..."}
-            className={`w-full py-2 px-3 pr-16 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none text-left h-10 max-h-24 leading-normal ${isExceedingLimit() ? 'border-red-500 border' : ''}`}
-            style={{paddingTop: '6px', paddingBottom: '6px'}}
-            disabled={disabled || !!imagePreview}
-          />
-          {!isUserVip && (
+          )}
+          
+          <div className="flex-1 relative">
+            <textarea
+              value={message}
+              onChange={handleMessageChange}
+              onKeyDown={handleKeyDown}
+              placeholder={disabled ? "You can't message a blocked user" : "Type a message..."}
+              className={`w-full py-2 px-3 pr-16 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none text-left h-10 max-h-24 leading-normal ${isExceedingLimit() ? 'border-red-500 border' : ''}`}
+              style={{paddingTop: '6px', paddingBottom: '6px'}}
+              disabled={disabled || !!imagePreview || isRecording}
+            />
             <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs ${isExceedingLimit() ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
-              {message.length}/{MAX_CHAR_LIMIT}
+              {message.length}/{characterLimit}
             </div>
+          </div>
+          
+          {!imagePreview && !isRecording && (
+            <Button 
+              size="icon"
+              onClick={handleSubmitMessage}
+              className={`
+                rounded-full 
+                ${message.trim() && !isExceedingLimit() ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}
+              `}
+              disabled={!message.trim() || isExceedingLimit() || disabled}
+            >
+              <Send className="h-5 w-5" />
+            </Button>
           )}
         </div>
-        
-        {!imagePreview && (
-          <Button 
-            size="icon"
-            onClick={handleSubmitMessage}
-            className={`
-              rounded-full 
-              ${message.trim() && !isExceedingLimit() ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}
-            `}
-            disabled={!message.trim() || isExceedingLimit() || disabled}
-          >
-            <Send className="h-5 w-5" />
-          </Button>
-        )}
-      </div>
+      )}
       
       <div className="text-xs text-center mt-1 text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-1">
         {!isUserVip && `${imagesRemaining} image uploads remaining today - `}

@@ -10,7 +10,6 @@ import MessageInputBar from './MessageInputBar';
 import UserList from './UserList';
 import MobileUserList from './MobileUserList';
 import ChatAppHeader from './ChatAppHeader';
-import VipUpgradeSection from './VipUpgradeSection';
 import NotificationSidebar from './NotificationSidebar';
 import EmptyChatState from './EmptyChatState';
 
@@ -28,6 +27,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const {
     userChats,
     imagesRemaining,
+    voiceMessagesRemaining,
     typingBots,
     currentBot,
     onlineUsers,
@@ -51,6 +51,8 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     handleCloseChat,
     handleSendTextMessage,
     handleSendImageMessage,
+    handleSendVoiceMessage,
+    handleSendGifMessage,
     selectUser,
     handleFilterChange,
     handleNotificationRead,
@@ -58,9 +60,10 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   } = useChat();
 
   // Show site rules dialog after 3 seconds, but only if rules haven't been accepted yet
+  // and the user is NOT a VIP
   React.useEffect(() => {
-    // Only show the dialog if rules haven't been accepted yet
-    if (!rulesAccepted) {
+    // Only show the dialog if rules haven't been accepted yet and user is not VIP
+    if (!rulesAccepted && !isVip) {
       const timer = setTimeout(() => {
         openDialog('siteRules', { 
           onAccept: () => {
@@ -72,7 +75,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       
       return () => clearTimeout(timer);
     }
-  }, [openDialog, rulesAccepted, setRulesAccepted]);
+  }, [openDialog, rulesAccepted, setRulesAccepted, isVip]);
 
   // Navigation handlers - optimized with useCallback
   const handleLogout = useCallback(() => {
@@ -127,9 +130,6 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
             filters={filters}
             onFilterChange={handleFilterChange}
           />
-          
-          {/* VIP Upgrade Section */}
-          <VipUpgradeSection />
         </div>
 
         {/* Mobile user list trigger */}
@@ -181,7 +181,10 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
               <MessageInputBar
                 onSendMessage={handleSendTextMessage}
                 onSendImage={handleSendImageMessage}
+                onSendVoiceMessage={isVip ? handleSendVoiceMessage : undefined}
+                onSendGif={isVip ? handleSendGifMessage : undefined}
                 imagesRemaining={imagesRemaining}
+                voiceMessagesRemaining={voiceMessagesRemaining}
                 disabled={isCurrentUserBlocked}
                 userType={isVip ? 'vip' : 'standard'}
               />
