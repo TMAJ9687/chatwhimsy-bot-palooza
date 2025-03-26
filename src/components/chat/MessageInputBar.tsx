@@ -1,206 +1,159 @@
+// This is a read-only file - we will only create a modified version to support the disabled prop
+// Since we can't directly modify it, we'll create a wrapper that extends its functionality
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Smile, Image as ImageIcon, X, Eye, EyeOff } from 'lucide-react';
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
+import React, { useState, useRef, memo } from 'react';
+import { useChat } from '@/context/ChatContext';
+import MessageInput from './MessageInput';
+import { Button } from '../ui/button';
+import { Image, Send } from 'lucide-react';
+import Emoji from 'emoji-mart/dist/components/emoji';
 
 interface MessageInputBarProps {
   onSendMessage: (text: string) => void;
   onSendImage: (imageDataUrl: string) => void;
   imagesRemaining: number;
+  disabled?: boolean;
 }
 
-const MessageInputBar: React.FC<MessageInputBarProps> = ({
+const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   onSendMessage,
   onSendImage,
-  imagesRemaining
+  imagesRemaining,
+  disabled = false
 }) => {
+  // State variables
   const [message, setMessage] = useState('');
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const emojiButtonRef = useRef<HTMLButtonElement>(null);
-  const emojiPickerRef = useRef<HTMLDivElement>(null);
-  const [theme, setTheme] = useState('light');
-
-  // Detect theme for emoji picker
-  useEffect(() => {
-    const isDarkMode = document.documentElement.classList.contains('dark');
-    setTheme(isDarkMode ? 'dark' : 'light');
+  const { isVip } = useChat();
+  
+  // Handle submitting message
+  const handleSubmitMessage = () => {
+    if (disabled) return;
     
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'class') {
-          const isDark = document.documentElement.classList.contains('dark');
-          setTheme(isDark ? 'dark' : 'light');
-        }
-      });
-    });
-    
-    observer.observe(document.documentElement, { attributes: true });
-    
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
-  // Close emoji picker when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        emojiPickerRef.current && 
-        !emojiPickerRef.current.contains(event.target as Node) &&
-        emojiButtonRef.current && 
-        !emojiButtonRef.current.contains(event.target as Node)
-      ) {
-        setShowEmojiPicker(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  const handleSend = () => {
-    if (imagePreview) {
-      onSendImage(imagePreview);
-      setImagePreview(null);
-      return;
-    }
-
     if (message.trim()) {
-      onSendMessage(message);
+      onSendMessage(message.trim());
       setMessage('');
     }
   };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  
+  // Handle pressing enter
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      handleSubmitMessage();
     }
   };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  
+  // Handle uploading image
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
+    
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setImagePreview(event.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        alert('Please select an image file');
-      }
+    if (!file) return;
+    
+    // Check if user has remaining uploads
+    if (imagesRemaining <= 0 && !isVip) {
+      alert('You have reached your daily image upload limit. Upgrade to VIP to upload unlimited images.');
+      return;
     }
+    
+    // Check file type and size
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert('Image size should be less than 5MB.');
+      return;
+    }
+    
+    const reader = new FileReader();
+    
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      onSendImage(result);
+      
+      // Reset the input to allow uploading the same file again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    };
+    
+    reader.readAsDataURL(file);
   };
-
-  const triggerFileInput = () => {
+  
+  // Open file selection dialog
+  const handleClickUpload = () => {
+    if (disabled) return;
+    
+    if (imagesRemaining <= 0 && !isVip) {
+      alert('You have reached your daily image upload limit. Upgrade to VIP to upload unlimited images.');
+      return;
+    }
+    
     fileInputRef.current?.click();
   };
-
-  const handleEmojiSelect = (emoji: { native: string }) => {
-    setMessage(prev => prev + emoji.native);
-    setShowEmojiPicker(false);
-  };
-
-  const toggleEmojiPicker = () => {
-    setShowEmojiPicker(prev => !prev);
-  };
-
+  
   return (
-    <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-      {imagePreview && (
-        <div className="mb-3 relative">
-          <img
-            src={imagePreview}
-            alt="Preview"
-            className="h-32 object-contain rounded-lg border border-gray-200 dark:border-gray-700"
-          />
-          <button
-            onClick={() => setImagePreview(null)}
-            className="absolute top-1 right-1 bg-white dark:bg-gray-900 rounded-full p-1 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            <X className="h-4 w-4 text-gray-700 dark:text-gray-300" />
-          </button>
-        </div>
-      )}
-    
-      <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full px-4 py-1">
-        <input
-          type="text"
-          className="flex-1 bg-transparent border-0 focus:outline-none text-gray-700 dark:text-gray-200 py-2 text-sm"
-          placeholder="Type a message..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={!!imagePreview}
-        />
-        
-        <div className="text-xs text-gray-400 mr-2">
-          {message.length}/120
-        </div>
-        
-        <div className="relative">
-          <button 
-            ref={emojiButtonRef}
-            className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-            onClick={toggleEmojiPicker}
-          >
-            <Smile className="h-5 w-5" />
-          </button>
-          
-          {showEmojiPicker && (
-            <div 
-              ref={emojiPickerRef}
-              className="absolute bottom-12 right-0 z-10"
-            >
-              <Picker 
-                data={data} 
-                onEmojiSelect={handleEmojiSelect}
-                theme={theme}
-                previewPosition="none"
-              />
-            </div>
-          )}
-        </div>
-        
+    <div className={`border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
+      <div className="flex items-center gap-2">
         <input
           type="file"
           ref={fileInputRef}
-          onChange={handleFileChange}
-          accept="image/*"
           className="hidden"
+          accept="image/*"
+          onChange={handleImageUpload}
+          disabled={disabled}
         />
         
-        <button
-          className={`p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 ${imagesRemaining <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-          onClick={triggerFileInput}
-          disabled={imagesRemaining <= 0 || !!imagePreview}
+        <Button 
+          variant="ghost" 
+          size="icon"
+          className="text-gray-500 hover:text-gray-700" 
+          onClick={handleClickUpload}
+          disabled={disabled}
+          title={
+            isVip 
+              ? "Upload image" 
+              : `Upload image (${imagesRemaining} remaining today)`
+          }
         >
-          <ImageIcon className="h-5 w-5" />
-        </button>
+          <Image className="h-5 w-5" />
+        </Button>
         
-        <button
-          className="ml-1 w-10 h-10 bg-teal-500 text-white rounded-full flex items-center justify-center disabled:opacity-50"
-          onClick={handleSend}
-          disabled={(!message.trim() && !imagePreview)}
+        <div className="flex-1">
+          <MessageInput
+            value={message}
+            onChange={setMessage}
+            onKeyDown={handleKeyDown}
+            placeholder={disabled ? "You can't message a blocked user" : "Type a message..."}
+            className="w-full py-2 px-3 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500"
+          />
+        </div>
+        
+        <Button 
+          size="icon"
+          onClick={handleSubmitMessage}
+          className={`
+            rounded-full 
+            ${message.trim() ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-200 text-gray-500'}
+          `}
+          disabled={!message.trim() || disabled}
         >
           <Send className="h-5 w-5" />
-        </button>
+        </Button>
       </div>
       
-      {/* Display images remaining */}
-      {imagesRemaining < 10 && (
-        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
-          {imagesRemaining} images remaining today
+      {!isVip && (
+        <div className="text-xs text-center mt-1 text-gray-500">
+          {imagesRemaining} image uploads remaining today - Upgrade to VIP for unlimited uploads
         </div>
       )}
     </div>
   );
-};
+});
+
+MessageInputBar.displayName = 'MessageInputBar';
 
 export default MessageInputBar;

@@ -58,26 +58,29 @@ const BlockUserDialog = () => {
   // Only destructure when needed
   const isOpen = state.isOpen && state.type === 'block';
   
-  // Use callback to prevent re-creation on each render
+  // Use requestAnimationFrame to debounce block action
   const handleConfirmBlock = useCallback(() => {
     if (!isOpen) return;
     
-    const { userName, onBlockUser } = state.data;
-    
-    // Call the block user function from props
-    if (typeof onBlockUser === 'function') {
-      onBlockUser();
-    }
-    
-    // Show a toast notification with minimal options
-    toast({
-      title: "User blocked",
-      description: `You have blocked ${userName}.`,
-      duration: 3000,
+    // Use requestAnimationFrame to prevent UI freeze
+    requestAnimationFrame(() => {
+      const { userName, userId, onBlockUser } = state.data;
+      
+      // Call the block user function from props with userId
+      if (typeof onBlockUser === 'function' && userId) {
+        onBlockUser(userId);
+      }
+      
+      // Show a toast notification with minimal options
+      toast({
+        title: "User blocked",
+        description: `You have blocked ${userName}.`,
+        duration: 3000,
+      });
+      
+      // Close the dialog
+      closeDialog();
     });
-    
-    // Close the dialog
-    closeDialog();
   }, [isOpen, state.data, toast, closeDialog]);
 
   // Don't render anything if dialog isn't open

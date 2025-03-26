@@ -68,16 +68,17 @@ const ReportDialog = () => {
   const [otherReason, setOtherReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { userName } = state.data;
+  const isOpen = state.isOpen && state.type === 'report';
+  const { userName } = state.data || {};
 
   // Reset state when dialog opens
   useEffect(() => {
-    if (state.isOpen && state.type === 'report') {
+    if (isOpen) {
       setSelectedReason(null);
       setOtherReason('');
       setIsSubmitting(false);
     }
-  }, [state.isOpen, state.type]);
+  }, [isOpen]);
 
   // Memoized handlers to prevent recreating functions on every render
   const handleSelectReason = useCallback((reason: string) => {
@@ -93,22 +94,25 @@ const ReportDialog = () => {
     
     setIsSubmitting(true);
     
-    // Show toast notification using a single update
-    toast({
-      title: "Report submitted",
-      description: "Thank you for helping to keep our community safe.",
-      duration: 3000,
+    // Use requestAnimationFrame to prevent UI freezing
+    requestAnimationFrame(() => {
+      // Show toast notification using a single update
+      toast({
+        title: "Report submitted",
+        description: "Thank you for helping to keep our community safe.",
+        duration: 3000,
+      });
+      
+      // Close the dialog
+      closeDialog();
     });
-    
-    // Close the dialog
-    closeDialog();
   }, [selectedReason, closeDialog, toast]);
 
   // Compute this once per render rather than in every invocation
   const isValid = selectedReason && (selectedReason !== 'Other' || otherReason.trim().length > 0);
 
   // If dialog isn't open or isn't the report type, don't render
-  if (!state.isOpen || state.type !== 'report') return null;
+  if (!isOpen) return null;
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && closeDialog()}>

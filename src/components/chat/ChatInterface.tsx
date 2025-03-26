@@ -31,6 +31,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     typingBots,
     currentBot,
     onlineUsers,
+    blockedUsers,
     searchTerm,
     filters,
     unreadNotifications,
@@ -46,12 +47,14 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     setShowHistory,
     setRulesAccepted,
     handleBlockUser,
+    handleUnblockUser,
     handleCloseChat,
     handleSendTextMessage,
     handleSendImageMessage,
     selectUser,
     handleFilterChange,
-    handleNotificationRead
+    handleNotificationRead,
+    isUserBlocked
   } = useChat();
 
   // Show site rules dialog after 3 seconds, but only if rules haven't been accepted yet
@@ -90,6 +93,9 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     setShowHistory(true);
     setShowInbox(false);
   }, [setShowHistory, setShowInbox]);
+
+  // Check if current user is blocked
+  const isCurrentUserBlocked = isUserBlocked(currentBot.id);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background dark:bg-gray-950">
@@ -138,6 +144,18 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
             onCloseChat={handleCloseChat}
           />
 
+          {isCurrentUserBlocked && (
+            <div className="bg-gray-100 p-2 text-center text-gray-600 text-sm border-b border-gray-200">
+              This user is blocked. You won't receive messages from them.
+              <button 
+                onClick={() => handleUnblockUser(currentBot.id)}
+                className="ml-2 text-blue-600 hover:underline"
+              >
+                Unblock
+              </button>
+            </div>
+          )}
+
           {/* Messages area component */}
           <ChatMessages 
             messages={userChats[currentBot.id] || []}
@@ -151,6 +169,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
             onSendMessage={handleSendTextMessage}
             onSendImage={handleSendImageMessage}
             imagesRemaining={imagesRemaining}
+            disabled={isCurrentUserBlocked}
           />
         </div>
       </div>

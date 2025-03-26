@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { Message } from '@/components/chat/MessageBubble';
 import { Notification } from '@/components/chat/NotificationSidebar';
@@ -103,6 +102,7 @@ interface ChatContextType {
   typingBots: Record<string, boolean>;
   currentBot: Bot;
   onlineUsers: Bot[];
+  blockedUsers: Set<string>;
   searchTerm: string;
   filters: FilterState;
   unreadNotifications: Notification[];
@@ -118,13 +118,15 @@ interface ChatContextType {
   setShowInbox: (show: boolean) => void;
   setShowHistory: (show: boolean) => void;
   setRulesAccepted: (accepted: boolean) => void;
-  handleBlockUser: () => void;
+  handleBlockUser: (userId: string) => void;
+  handleUnblockUser: (userId: string) => void;
   handleCloseChat: () => void;
   handleSendTextMessage: (text: string) => void;
   handleSendImageMessage: (imageDataUrl: string) => void;
   selectUser: (user: Bot) => void;
   handleFilterChange: (newFilters: FilterState) => void;
   handleNotificationRead: (id: string) => void;
+  isUserBlocked: (userId: string) => boolean;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -138,6 +140,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [typingBots, setTypingBots] = useState<Record<string, boolean>>({});
   const [currentBot, setCurrentBot] = useState<Bot>(defaultBot);
   const [onlineUsers, setOnlineUsers] = useState<Bot[]>(sortUsers(botProfiles));
+  const [blockedUsers, setBlockedUsers] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<FilterState>({
     gender: 'any',
@@ -158,6 +161,11 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     currentBotIdRef.current = currentBot.id;
   }, [currentBot.id]);
+
+  // Check if a user is blocked
+  const isUserBlocked = useCallback((userId: string) => {
+    return blockedUsers.has(userId);
+  }, [blockedUsers]);
 
   useEffect(() => {
     const fetchUserCountry = async () => {
@@ -216,6 +224,12 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return filtered;
   }, [onlineUsers, searchTerm, filters]);
 
+  // Create a memoized list of visible users (not blocked)
+  const visibleUsers = useMemo(() => 
+    filteredUsers.filter(user => !blockedUsers.has(user.id)),
+    [filteredUsers, blockedUsers]
+  );
+
   useEffect(() => {
     if (!userChats[currentBot.id]) {
       setUserChats(prev => ({
@@ -230,13 +244,29 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [currentBot.id, userChats]);
 
-  const handleBlockUser = useCallback(() => {
-    setOnlineUsers(prev => prev.filter(user => user.id !== currentBot.id));
-    if (filteredUsers.length > 1) {
-      const newUser = filteredUsers.find(user => user.id !== currentBot.id);
+  const handleBlockUser = useCallback((userId: string) => {
+    // Add to blocked users set
+    setBlockedUsers(prev => {
+      const newSet = new Set(prev);
+      newSet.add(userId);
+      return newSet;
+    });
+    
+    // If the blocked user is current, select a different one
+    if (userId === currentBot.id && filteredUsers.length > 1) {
+      // Find the first visible user that isn't blocked
+      const newUser = filteredUsers.find(user => user.id !== userId && !blockedUsers.has(user.id));
       if (newUser) selectUser(newUser);
     }
-  }, [currentBot.id, filteredUsers]);
+  }, [currentBot.id, filteredUsers, blockedUsers]);
+
+  const handleUnblockUser = useCallback((userId: string) => {
+    setBlockedUsers(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(userId);
+      return newSet;
+    });
+  }, []);
 
   const handleCloseChat = useCallback(() => {
     if (filteredUsers.length > 1) {
@@ -426,6 +456,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     typingBots,
     currentBot,
     onlineUsers,
+    blockedUsers,
     searchTerm,
     filters,
     unreadNotifications,
@@ -442,12 +473,14 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setShowHistory,
     setRulesAccepted,
     handleBlockUser,
+    handleUnblockUser,
     handleCloseChat,
     handleSendTextMessage,
     handleSendImageMessage,
     selectUser,
     handleFilterChange,
-    handleNotificationRead
+    handleNotificationRead,
+    isUserBlocked
   };
 
   return (

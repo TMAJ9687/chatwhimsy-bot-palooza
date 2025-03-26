@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useReducer, ReactNode, useMemo, useCallback } from 'react';
 
 // Define dialog types
@@ -29,30 +30,17 @@ const DialogContext = createContext<{
   closeDialog: () => void;
 } | undefined>(undefined);
 
-// Reducer function - optimized to avoid unnecessary renders
+// Optimized reducer - completely reset state on close
 function dialogReducer(state: DialogState, action: DialogAction): DialogState {
   switch (action.type) {
     case 'OPEN_DIALOG':
-      // Only update if dialog is not already open with the same type
-      if (state.isOpen && state.type === action.payload.type) {
-        return state;
-      }
       return {
         isOpen: true,
         type: action.payload.type,
         data: action.payload.data || {}
       };
     case 'CLOSE_DIALOG':
-      // Only update if dialog is actually open
-      if (!state.isOpen) {
-        return state;
-      }
-      return {
-        ...state,
-        isOpen: false,
-        // Keep type and data in state but mark as closed
-        // This helps prevent re-renders when toggling the same dialog
-      };
+      return initialState; // Reset completely to initial state 
     default:
       return state;
   }
