@@ -12,7 +12,11 @@ import {
   QueryDocumentSnapshot
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { makeSerializable, serializeFirestoreData } from '@/utils/serialization';
+import { 
+  makeSerializable, 
+  serializeFirestoreData, 
+  firebaseQueue 
+} from '@/utils/serialization';
 
 export interface ChatMessage {
   id?: string;
@@ -31,34 +35,39 @@ export const sendMessage = async (chatId: string, messageData: {
   isImage?: boolean;
   status?: string;
 }) => {
-  try {
-    // Make sure messageData is serializable
-    const safeMessageData = makeSerializable(messageData);
-    
-    const chatRef = collection(db, 'chats');
-    const messageRef = await addDoc(chatRef, {
-      chatId,
-      content: safeMessageData.content,
-      sender: safeMessageData.sender,
-      isImage: safeMessageData.isImage || false,
-      status: safeMessageData.status || 'sent',
-      timestamp: serverTimestamp(),
-    });
-    
-    // Return a serializable result
-    return makeSerializable({
-      id: messageRef.id,
-      chatId,
-      content: safeMessageData.content,
-      sender: safeMessageData.sender,
-      isImage: safeMessageData.isImage || false,
-      status: safeMessageData.status || 'sent',
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error('Error sending message:', error);
-    throw makeSerializable(error);
-  }
+  return firebaseQueue.add(async () => {
+    try {
+      // First use JSON serialization to guarantee serializability
+      const jsonSafe = JSON.parse(JSON.stringify(messageData));
+      
+      // Then apply our custom serialization for any special types
+      const safeMessageData = makeSerializable(jsonSafe);
+      
+      const chatRef = collection(db, 'chats');
+      const messageRef = await addDoc(chatRef, {
+        chatId,
+        content: safeMessageData.content,
+        sender: safeMessageData.sender,
+        isImage: safeMessageData.isImage || false,
+        status: safeMessageData.status || 'sent',
+        timestamp: serverTimestamp(),
+      });
+      
+      // Return a serializable result with explicitly defined properties
+      return {
+        id: messageRef.id,
+        chatId,
+        content: safeMessageData.content,
+        sender: safeMessageData.sender,
+        isImage: safeMessageData.isImage || false,
+        status: safeMessageData.status || 'sent',
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error sending message:', error);
+      throw makeSerializable(error);
+    }
+  });
 };
 
 // Helper function to safely convert Firestore document to our data type
@@ -79,72 +88,69 @@ const convertDocToMessage = (doc: QueryDocumentSnapshot<DocumentData>): ChatMess
     if (data.timestamp.toDate && typeof data.timestamp.toDate === 'function') {
       // Firestore Timestamp
       try {
-        result.timestamp = data.timestamp.toDate();
+        result.timestamp = data.timestamp.toDate().toISOString();
       } catch (e) {
         console.warn("Error converting timestamp", e);
-        result.timestamp = new Date();
+        result.timestamp = new Date().toISOString();
       }
     } else if (data.timestamp instanceof Date) {
       // Already a Date
-      result.timestamp = data.timestamp;
+      result.timestamp = data.timestamp.toISOString();
     } else if (typeof data.timestamp === 'string') {
       // ISO string
-      try {
-        result.timestamp = new Date(data.timestamp);
-      } catch (e) {
-        console.warn("Error parsing timestamp string", e);
-        result.timestamp = new Date();
-      }
+      result.timestamp = data.timestamp;
     } else if (typeof data.timestamp === 'number') {
       // Unix timestamp
-      result.timestamp = new Date(data.timestamp);
+      result.timestamp = new Date(data.timestamp).toISOString();
     } else {
       // Default
-      result.timestamp = new Date();
+      result.timestamp = new Date().toISOString();
     }
   } else {
-    result.timestamp = new Date();
+    result.timestamp = new Date().toISOString();
   }
   
   return result;
 };
 
 export const getChatMessages = async (chatId: string): Promise<ChatMessage[]> => {
-  try {
-    const chatRef = collection(db, 'chats');
-    
-    // Get messages where the chatId matches
-    const q = query(
-      chatRef, 
-      where('chatId', '==', chatId)
-    );
-    
-    const snapshot = await getDocs(q);
-    
-    if (snapshot.empty) {
+  return firebaseQueue.add(async () => {
+    try {
+      const chatRef = collection(db, 'chats');
+      
+      // Get messages where the chatId matches
+      const q = query(
+        chatRef, 
+        where('chatId', '==', chatId)
+      );
+      
+      const snapshot = await getDocs(q);
+      
+      if (snapshot.empty) {
+        return [];
+      }
+      
+      // Convert documents to messages with safe handling
+      const messages = snapshot.docs.map(doc => convertDocToMessage(doc));
+      
+      // Sort messages by timestamp
+      const sortedMessages = messages.sort((a, b) => {
+        const aTime = a.timestamp instanceof Date ? a.timestamp.getTime() : 
+                      typeof a.timestamp === 'string' ? new Date(a.timestamp).getTime() : 
+                      Number(a.timestamp) || 0;
+        
+        const bTime = b.timestamp instanceof Date ? b.timestamp.getTime() : 
+                      typeof b.timestamp === 'string' ? new Date(b.timestamp).getTime() : 
+                      Number(b.timestamp) || 0;
+        
+        return aTime - bTime;
+      });
+      
+      // Return serializable result
+      return JSON.parse(JSON.stringify(sortedMessages));
+    } catch (error) {
+      console.error('Error getting chat messages:', error);
       return [];
     }
-    
-    // Convert documents to messages with safe handling
-    const messages = snapshot.docs.map(doc => convertDocToMessage(doc));
-    
-    // Sort messages by timestamp
-    const sortedMessages = messages.sort((a, b) => {
-      const aTime = a.timestamp instanceof Date ? a.timestamp.getTime() : 
-                    typeof a.timestamp === 'string' ? new Date(a.timestamp).getTime() : 
-                    Number(a.timestamp) || 0;
-      
-      const bTime = b.timestamp instanceof Date ? b.timestamp.getTime() : 
-                    typeof b.timestamp === 'string' ? new Date(b.timestamp).getTime() : 
-                    Number(b.timestamp) || 0;
-      
-      return aTime - bTime;
-    });
-    
-    // Return serializable result
-    return makeSerializable(sortedMessages);
-  } catch (error) {
-    console.error('Error getting chat messages:', error);
-    return [];
-  }
+  });
 };
