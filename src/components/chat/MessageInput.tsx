@@ -8,17 +8,31 @@ interface MessageInputProps {
   disabled?: boolean;
   userType?: 'standard' | 'vip';
   imagesRemaining?: number;
+  value?: string;
+  onChange?: React.Dispatch<React.SetStateAction<string>>;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
+  placeholder?: string;
+  className?: string;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
   disabled = false,
   userType = 'standard',
-  imagesRemaining = 15
+  imagesRemaining = 15,
+  value,
+  onChange,
+  onKeyDown,
+  placeholder = "Type a message...",
+  className
 }) => {
-  const [message, setMessage] = useState('');
+  // Use internal state only if value and onChange aren't provided
+  const [internalMessage, setInternalMessage] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const message = value !== undefined ? value : internalMessage;
+  const handleChange = onChange || setInternalMessage;
 
   const handleSendMessage = () => {
     if (imagePreview) {
@@ -29,14 +43,20 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
     if (message.trim()) {
       onSendMessage(message);
-      setMessage('');
+      if (!onChange) {
+        setInternalMessage('');
+      }
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDownInternal = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+    
+    if (onKeyDown) {
+      onKeyDown(e);
     }
   };
 
@@ -80,11 +100,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
       <div className="flex items-end gap-2">
         <div className="flex-1 relative">
           <textarea
-            className="w-full rounded-2xl border border-border py-3 pl-4 pr-12 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all min-h-[56px] max-h-32"
-            placeholder="Type a message..."
+            className={`w-full rounded-2xl border border-border py-3 pl-4 pr-12 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all min-h-[56px] max-h-32 ${className || ''}`}
+            placeholder={placeholder}
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onChange={(e) => handleChange(e.target.value)}
+            onKeyDown={handleKeyDownInternal}
             disabled={disabled || !!imagePreview}
             rows={1}
           />

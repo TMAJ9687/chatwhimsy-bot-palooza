@@ -65,7 +65,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = memo(({
     <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3 flex items-center justify-between">
       <div className="flex items-center">
         <div className="w-9 h-9 bg-amber-100 rounded-full flex items-center justify-center font-bold text-amber-500 mr-3">
-          {currentUser.avatar || currentUser.name.charAt(0)}
+          {currentUser.name.charAt(0)}
         </div>
         
         <div>

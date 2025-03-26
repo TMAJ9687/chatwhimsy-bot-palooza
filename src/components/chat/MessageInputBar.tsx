@@ -1,12 +1,9 @@
-// This is a read-only file - we will only create a modified version to support the disabled prop
-// Since we can't directly modify it, we'll create a wrapper that extends its functionality
 
 import React, { useState, useRef, memo } from 'react';
 import { useChat } from '@/context/ChatContext';
 import MessageInput from './MessageInput';
 import { Button } from '../ui/button';
-import { Image, Send } from 'lucide-react';
-import Emoji from 'emoji-mart/dist/components/emoji';
+import { Image, Send, Smile } from 'lucide-react';
 
 interface MessageInputBarProps {
   onSendMessage: (text: string) => void;
@@ -123,12 +120,12 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
         </Button>
         
         <div className="flex-1">
-          <MessageInput
+          <textarea
             value={message}
-            onChange={setMessage}
+            onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={disabled ? "You can't message a blocked user" : "Type a message..."}
-            className="w-full py-2 px-3 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full py-2 px-3 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
           />
         </div>
         
