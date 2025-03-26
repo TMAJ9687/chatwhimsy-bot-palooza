@@ -146,7 +146,9 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
                   setImagePreview(compressedImage);
                 } else {
                   // Fallback if canvas context isn't available
-                  setImagePreview(reader.result);
+                  if (typeof reader.result === 'string') {
+                    setImagePreview(reader.result);
+                  }
                 }
               } catch (err) {
                 console.error('Error compressing image:', err);
@@ -338,4 +340,3 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
 };
 
 export default MessageInputBar;
-
