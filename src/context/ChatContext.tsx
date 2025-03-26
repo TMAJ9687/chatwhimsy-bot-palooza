@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { Notification } from '@/components/chat/NotificationSidebar';
 import { FilterState } from '@/components/chat/FilterMenu';
@@ -10,7 +11,7 @@ import {
   getBlockedUsers, 
   reportUser,
   uploadImage as fbUploadImage,
-  ChatMessage
+  ChatMessage as FirebaseChatMessage
 } from '@/services/firebaseService';
 import { ref, onValue, off } from 'firebase/database';
 import { rtdb } from '@/lib/firebase';
@@ -244,13 +245,14 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         if (messages.length > 0) {
           const typedMessages: Message[] = messages.map(msg => {
+            // Ensure all properties have default values
             return {
               id: msg.id || `msg-${Date.now()}-${Math.random()}`,
               content: msg.content || '',
               sender: (msg.sender as 'user' | 'bot' | 'system') || 'system',
               timestamp: new Date(msg.timestamp || Date.now()),
-              status: (msg.status as 'sending' | 'sent' | 'delivered' | 'read') || 'sent',
-              isImage: msg.isImage || false
+              status: ((msg.status || 'sent') as 'sending' | 'sent' | 'delivered' | 'read'),
+              isImage: Boolean(msg.isImage)
             };
           });
           

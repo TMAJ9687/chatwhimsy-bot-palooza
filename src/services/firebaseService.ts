@@ -1,4 +1,3 @@
-
 import { 
   collection, 
   doc, 
@@ -145,13 +144,14 @@ export const submitReport = async (reportData: any) => {
 
 // Chat related functions
 export interface ChatMessage {
-  id: string;
-  senderId: string;
-  receiverId: string;
-  content: string;
+  id?: string;
+  senderId?: string;
+  receiverId?: string;
+  content?: string;
+  sender?: 'user' | 'bot' | 'system';
   isImage?: boolean;
-  status: string;
-  timestamp: Date;
+  status?: string;
+  timestamp?: Date | number;
 }
 
 export const sendMessage = async (chatId: string, messageData: {
@@ -186,7 +186,7 @@ export const sendMessage = async (chatId: string, messageData: {
   }
 };
 
-export const getChatMessages = async (chatId: string) => {
+export const getChatMessages = async (chatId: string): Promise<ChatMessage[]> => {
   try {
     const chatRef = collection(db, 'chats');
     
@@ -204,7 +204,11 @@ export const getChatMessages = async (chatId: string) => {
         ...doc.data(),
         timestamp: doc.data().timestamp?.toDate() || new Date()
       }))
-      .sort((a, b) => a.timestamp - b.timestamp);
+      .sort((a, b) => {
+        const aTime = a.timestamp instanceof Date ? a.timestamp.getTime() : Number(a.timestamp) || 0;
+        const bTime = b.timestamp instanceof Date ? b.timestamp.getTime() : Number(b.timestamp) || 0;
+        return aTime - bTime;
+      });
   } catch (error) {
     console.error('Error getting chat messages:', error);
     return [];
