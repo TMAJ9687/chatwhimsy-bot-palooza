@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { useDialog } from '@/context/DialogContext';
@@ -24,6 +24,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const { user, isVip } = useUser();
   const navigate = useNavigate();
   const { openDialog } = useDialog();
+  const [chatHidden, setChatHidden] = useState(false);
   
   const {
     userChats,
@@ -96,6 +97,11 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 
   // Check if current user is blocked
   const isCurrentUserBlocked = isUserBlocked(currentBot.id);
+  
+  // Handle completely closing chat
+  const handleCompletelyCloseChat = useCallback(() => {
+    setChatHidden(true);
+  }, []);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background dark:bg-gray-950">
@@ -113,7 +119,10 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           <UserList 
             users={filteredUsers}
             currentUserId={currentBot.id}
-            onSelectUser={selectUser}
+            onSelectUser={(user) => {
+              selectUser(user);
+              setChatHidden(false);
+            }}
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
             filters={filters}
@@ -128,7 +137,10 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
         <MobileUserList 
           users={filteredUsers}
           currentUserId={currentBot.id}
-          onSelectUser={selectUser}
+          onSelectUser={(user) => {
+            selectUser(user);
+            setChatHidden(false);
+          }}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           filters={filters}
@@ -137,40 +149,56 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 
         {/* Main chat area */}
         <div className="flex-1 flex flex-col bg-white dark:bg-gray-900">
-          {/* Chat header component */}
-          <ChatHeader 
-            currentUser={currentBot}
-            onBlockUser={handleBlockUser}
-            onCloseChat={handleCloseChat}
-          />
+          {!chatHidden ? (
+            <>
+              {/* Chat header component */}
+              <ChatHeader 
+                currentUser={currentBot}
+                onBlockUser={handleBlockUser}
+                onCloseChat={handleCompletelyCloseChat}
+              />
 
-          {isCurrentUserBlocked && (
-            <div className="bg-gray-100 p-2 text-center text-gray-600 text-sm border-b border-gray-200">
-              This user is blocked. You won't receive messages from them.
-              <button 
-                onClick={() => handleUnblockUser(currentBot.id)}
-                className="ml-2 text-blue-600 hover:underline"
-              >
-                Unblock
-              </button>
+              {isCurrentUserBlocked && (
+                <div className="bg-gray-100 p-2 text-center text-gray-600 text-sm border-b border-gray-200">
+                  This user is blocked. You won't receive messages from them.
+                  <button 
+                    onClick={() => handleUnblockUser(currentBot.id)}
+                    className="ml-2 text-blue-600 hover:underline"
+                  >
+                    Unblock
+                  </button>
+                </div>
+              )}
+
+              {/* Messages area component */}
+              <ChatMessages 
+                messages={userChats[currentBot.id] || []}
+                isTyping={typingBots[currentBot.id] || false}
+                showStatus={isVip}
+                showTyping={isVip}
+              />
+              
+              {/* Message input component */}
+              <MessageInputBar
+                onSendMessage={handleSendTextMessage}
+                onSendImage={handleSendImageMessage}
+                imagesRemaining={imagesRemaining}
+                disabled={isCurrentUserBlocked}
+              />
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-6">
+              <div className="text-center max-w-md p-8 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+                <h3 className="text-xl font-semibold mb-2">No Active Chat</h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-4">
+                  Select a user from the list to start a conversation.
+                </p>
+                <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs text-gray-400 dark:text-gray-500 text-center">
+                  Google AdSense Placeholder
+                </div>
+              </div>
             </div>
           )}
-
-          {/* Messages area component */}
-          <ChatMessages 
-            messages={userChats[currentBot.id] || []}
-            isTyping={typingBots[currentBot.id] || false}
-            showStatus={isVip}
-            showTyping={isVip}
-          />
-          
-          {/* Message input component */}
-          <MessageInputBar
-            onSendMessage={handleSendTextMessage}
-            onSendImage={handleSendImageMessage}
-            imagesRemaining={imagesRemaining}
-            disabled={isCurrentUserBlocked}
-          />
         </div>
       </div>
 

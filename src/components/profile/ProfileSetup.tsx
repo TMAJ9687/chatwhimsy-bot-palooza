@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Check, ArrowRight } from 'lucide-react';
+import { Check, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 import Button from '../shared/Button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 
 interface ProfileSetupProps {
   nickname: string;
@@ -20,6 +21,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
   const [countryFlag, setCountryFlag] = useState<string>('');
   const [interests, setInterests] = useState<string[]>([]);
   const [ageOptions, setAgeOptions] = useState<number[]>([]);
+  const [isInterestsOpen, setIsInterestsOpen] = useState<boolean>(false);
 
   const popularInterests = [
     'Music', 'Movies', 'Travel', 'Sports', 'Gaming',
@@ -91,8 +93,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="text-center mb-4">
-        <h2 className="text-2xl font-semibold mb-2">Complete Your Profile</h2>
+      <div className="text-center mb-2">
         <p className="text-primary font-medium">
           Hi {nickname}
         </p>
@@ -135,61 +136,61 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-2">Country</label>
-          <div className="bg-card rounded-lg p-4 flex items-center gap-3 border border-border">
-            {countryFlag && (
-              <img 
-                src={`https://flagcdn.com/w40/${countryFlag}.png`} 
-                alt={country} 
-                className="h-6 w-auto"
-              />
-            )}
-            <span className="text-lg">{country || 'Detecting...'}</span>
-          </div>
-        </div>
+        <Button
+          variant="primary"
+          fullWidth
+          size="lg"
+          icon={<ArrowRight className="h-5 w-5" />}
+          iconPosition="right"
+          onClick={handleSubmit}
+          disabled={!isValid}
+        >
+          Start Chatting
+        </Button>
 
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Interests (Select up to 2)
-          </label>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {popularInterests.map((interest) => (
-              <button
-                key={interest}
-                onClick={() => handleInterestClick(interest)}
-                className={`
-                  text-sm px-3 py-1.5 rounded-full transition-all duration-300
-                  ${interests.includes(interest)
-                    ? 'bg-primary/90 text-white'
-                    : 'bg-card border border-border hover:border-primary/50'}
-                  ${interests.length >= 2 && !interests.includes(interest) ? 'opacity-50 cursor-not-allowed' : ''}
-                `}
-                disabled={interests.length >= 2 && !interests.includes(interest)}
-              >
-                {interest}
-              </button>
-            ))}
+        <Collapsible
+          open={isInterestsOpen}
+          onOpenChange={setIsInterestsOpen}
+          className="border border-border rounded-lg p-3 mt-3"
+        >
+          <CollapsibleTrigger className="flex w-full items-center justify-between text-sm font-medium">
+            <span>Interests (optional)</span>
+            {isInterestsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-3">
+            <div className="flex flex-wrap gap-2 mb-3">
+              {popularInterests.map((interest) => (
+                <button
+                  key={interest}
+                  onClick={() => handleInterestClick(interest)}
+                  className={`
+                    text-sm px-3 py-1.5 rounded-full transition-all duration-300
+                    ${interests.includes(interest)
+                      ? 'bg-primary/90 text-white'
+                      : 'bg-card border border-border hover:border-primary/50'}
+                    ${interests.length >= 2 && !interests.includes(interest) ? 'opacity-50 cursor-not-allowed' : ''}
+                  `}
+                  disabled={interests.length >= 2 && !interests.includes(interest)}
+                >
+                  {interest}
+                </button>
+              ))}
+            </div>
+            {interests.length === 2 && (
+              <p className="text-xs text-muted-foreground">
+                Standard users can select up to 2 interests. Upgrade to VIP for more!
+              </p>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* AdSense Placeholder */}
+        <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="h-16 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
+            Google AdSense Placeholder
           </div>
-          {interests.length === 2 && (
-            <p className="text-xs text-muted-foreground mb-3">
-              Standard users can select up to 2 interests. Upgrade to VIP for more!
-            </p>
-          )}
         </div>
       </div>
-
-      <Button
-        variant="primary"
-        fullWidth
-        size="lg"
-        icon={<ArrowRight className="h-5 w-5" />}
-        iconPosition="right"
-        onClick={handleSubmit}
-        disabled={!isValid}
-      >
-        Start Chatting
-      </Button>
     </div>
   );
 };

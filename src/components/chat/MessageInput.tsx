@@ -89,6 +89,13 @@ const MessageInput: React.FC<MessageInputProps> = ({
     handleChange(message + '😊');
   };
 
+  const handleCancelImage = () => {
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 border-t border-border dark:border-gray-700 p-3">
       {imagePreview && (
@@ -98,12 +105,22 @@ const MessageInput: React.FC<MessageInputProps> = ({
             alt="Preview"
             className="h-32 object-contain rounded-lg border border-border dark:border-gray-700"
           />
-          <button
-            onClick={() => setImagePreview(null)}
-            className="absolute top-1 right-1 bg-white dark:bg-gray-800 rounded-full p-1 shadow-md hover:bg-muted dark:hover:bg-gray-700 transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="absolute bottom-2 right-2 flex gap-2">
+            <button
+              onClick={handleCancelImage}
+              className="bg-white dark:bg-gray-800 rounded-full p-2 shadow-md hover:bg-muted dark:hover:bg-gray-700 transition-colors"
+              title="Cancel"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <button
+              onClick={handleSendMessage}
+              className="bg-amber-500 rounded-full p-2 shadow-md hover:bg-amber-600 transition-colors text-white"
+              title="Send image"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -155,15 +172,17 @@ const MessageInput: React.FC<MessageInputProps> = ({
           <Image className="h-5 w-5" />
         </Button>
         
-        <Button
-          variant="primary"
-          size="sm"
-          className={`h-[48px] w-[48px] rounded-full p-0 flex items-center justify-center ${isOverLimit ? 'opacity-50 cursor-not-allowed' : ''}`}
-          onClick={handleSendMessage}
-          disabled={disabled || (!message.trim() && !imagePreview) || isOverLimit}
-        >
-          <Send className="h-5 w-5" />
-        </Button>
+        {!imagePreview && (
+          <Button
+            variant="primary"
+            size="sm"
+            className={`h-[48px] w-[48px] rounded-full p-0 flex items-center justify-center ${isOverLimit ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={handleSendMessage}
+            disabled={disabled || (!message.trim() && !imagePreview) || isOverLimit}
+          >
+            <Send className="h-5 w-5" />
+          </Button>
+        )}
       </div>
       
       {userType === 'standard' && (

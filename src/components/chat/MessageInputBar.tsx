@@ -2,7 +2,7 @@
 import React, { useState, useRef, memo, useEffect } from 'react';
 import { useChat } from '@/context/ChatContext';
 import { Button } from '../ui/button';
-import { Image, Send, Smile } from 'lucide-react';
+import { Image, Send, Smile, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 
@@ -24,6 +24,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
 }) => {
   // State variables
   const [message, setMessage] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isVip } = useChat();
   const { toast } = useToast();
@@ -35,6 +36,18 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     if (message.trim() && !isExceedingLimit()) {
       onSendMessage(message.trim());
       setMessage('');
+    }
+  };
+  
+  // Handle sending image
+  const handleSendImage = () => {
+    if (disabled || !imagePreview) return;
+    
+    onSendImage(imagePreview);
+    setImagePreview(null);
+    // Reset the input to allow uploading the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
   
@@ -88,15 +101,18 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     
     reader.onloadend = () => {
       const result = reader.result as string;
-      onSendImage(result);
-      
-      // Reset the input to allow uploading the same file again
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      setImagePreview(result);
     };
     
     reader.readAsDataURL(file);
+  };
+  
+  // Cancel image upload
+  const handleCancelImage = () => {
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
   
   // Open file selection dialog
@@ -181,6 +197,34 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
 
   return (
     <div className={`border-t border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-800 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
+      {imagePreview && (
+        <div className="mb-3 relative">
+          <img
+            src={imagePreview}
+            alt="Preview"
+            className="h-32 object-contain rounded-lg border border-border dark:border-gray-700"
+          />
+          <div className="absolute bottom-2 right-2 flex gap-2">
+            <Button 
+              variant="secondary"
+              size="sm"
+              onClick={handleCancelImage}
+              className="rounded-full p-1 h-8 w-8"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="default"
+              size="sm"
+              onClick={handleSendImage}
+              className="rounded-full p-1 h-8 w-8 bg-amber-500 hover:bg-amber-600"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-2">
         <input
           type="file"
@@ -196,7 +240,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
           size="icon"
           className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" 
           onClick={handleClickUpload}
-          disabled={disabled}
+          disabled={disabled || !!imagePreview}
           title={
             isVip 
               ? "Upload image" 
@@ -212,7 +256,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
               variant="ghost" 
               size="icon"
               className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" 
-              disabled={disabled}
+              disabled={disabled || !!imagePreview}
               title="Add emoji"
             >
               <Smile className="h-5 w-5" />
@@ -241,6 +285,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
             placeholder={disabled ? "You can't message a blocked user" : "Type a message..."}
             className={`w-full py-2 px-3 pr-16 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none text-left h-10 max-h-24 leading-normal ${isExceedingLimit() ? 'border-red-500 border' : ''}`}
             style={{paddingTop: '6px', paddingBottom: '6px'}}
+            disabled={disabled || !!imagePreview}
           />
           {!isVip && (
             <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs ${isExceedingLimit() ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
@@ -249,17 +294,19 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
           )}
         </div>
         
-        <Button 
-          size="icon"
-          onClick={handleSubmitMessage}
-          className={`
-            rounded-full 
-            ${message.trim() && !isExceedingLimit() ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}
-          `}
-          disabled={!message.trim() || isExceedingLimit() || disabled}
-        >
-          <Send className="h-5 w-5" />
-        </Button>
+        {!imagePreview && (
+          <Button 
+            size="icon"
+            onClick={handleSubmitMessage}
+            className={`
+              rounded-full 
+              ${message.trim() && !isExceedingLimit() ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}
+            `}
+            disabled={!message.trim() || isExceedingLimit() || disabled}
+          >
+            <Send className="h-5 w-5" />
+          </Button>
+        )}
       </div>
       
       <div className="text-xs text-center mt-1 text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-1">

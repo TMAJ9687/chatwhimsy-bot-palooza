@@ -140,7 +140,11 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
               {countries.map(country => (
                 <SelectItem key={country.name} value={country.name}>
                   <div className="flex items-center">
-                    <span className="mr-2">{country.flag}</span>
+                    <img 
+                      src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`} 
+                      alt={country.name}
+                      className="h-3 w-4 mr-2 object-cover"
+                    />
                     <span>{country.name}</span>
                   </div>
                 </SelectItem>
@@ -155,7 +159,12 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
                 const countryData = countries.find(c => c.name === country);
                 return (
                   <Badge key={country} variant="outline" className="px-2 py-1 flex items-center gap-1.5">
-                    {countryData?.flag} {country}
+                    <img 
+                      src={`https://flagcdn.com/w20/${countryData?.code.toLowerCase()}.png`} 
+                      alt={country}
+                      className="h-3 w-4 object-cover"
+                    />
+                    {country}
                     <button 
                       onClick={() => handleRemoveCountry(country)}
                       className="ml-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 p-0.5"

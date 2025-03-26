@@ -140,11 +140,11 @@ const LandingPage: React.FC = () => {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 flex flex-col md:flex-row items-center justify-center px-8 py-12">
+      <main className="flex-1 flex flex-col md:flex-row items-center justify-center px-8 py-6">
         {/* Left column with animated circles */}
-        <div className="w-full md:w-1/2 flex flex-col items-center justify-center text-center md:text-left mb-12 md:mb-0">
+        <div className="w-full md:w-1/2 flex flex-col items-center justify-center text-center md:text-left mb-6 md:mb-0">
           <div className="max-w-lg">
-            <div className="flex justify-center md:justify-start space-x-8 mt-8">
+            <div className="flex justify-center md:justify-start space-x-8">
               <div className="w-20 h-20 bg-secondary rounded-full animate-[bounce_3s_ease-in-out_infinite]" style={{ animationDelay: '0.1s' }}></div>
               <div className="w-20 h-20 bg-primary rounded-full animate-[bounce_3.2s_ease-in-out_infinite]" style={{ animationDelay: '0.2s' }}></div>
               <div className="w-20 h-20 bg-accent rounded-full animate-[bounce_2.8s_ease-in-out_infinite]" style={{ animationDelay: '0.3s' }}></div>
@@ -153,8 +153,8 @@ const LandingPage: React.FC = () => {
         </div>
 
         {/* Right column: Chat card */}
-        <div className="w-full md:w-1/2 flex justify-center">
-          <div className="bg-card text-card-foreground rounded-3xl shadow-lg p-8 max-w-md w-full">
+        <div className="w-full md:w-1/2 flex flex-col items-center">
+          <div className="bg-card text-card-foreground rounded-3xl shadow-lg p-8 max-w-md w-full mb-6">
             {step === 'nickname' ? (
               <div>
                 <div className="text-center mb-8">
@@ -215,6 +215,13 @@ const LandingPage: React.FC = () => {
                 onComplete={handleProfileComplete} 
               />
             )}
+          </div>
+          
+          {/* AdSense Placeholder */}
+          <div className="w-full max-w-md p-4 mb-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+            <div className="h-20 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded">
+              Google AdSense Placeholder
+            </div>
           </div>
         </div>
       </main>
