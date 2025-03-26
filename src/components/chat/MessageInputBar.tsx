@@ -1,10 +1,23 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Image, Paperclip, Send, X, Trash2, Plus, Smile } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { toast } from '@/hooks/use-toast';
-import { checkCharacterLimit, hasConsecutiveChars, MAX_CHAR_LIMIT, VIP_CHAR_LIMIT } from '@/utils/messageUtils';
-import { Message } from '@/types/chat';
+import React, { useState, useRef, memo, useEffect } from 'react';
+import { useChat } from '@/context/ChatContext';
+import { Button } from '../ui/button';
+import { Image, Send, Smile, X, Mic, Gift } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  MAX_CHAR_LIMIT, 
+  VIP_CHAR_LIMIT, 
+  CONSECUTIVE_LIMIT, 
+  validateImageFile, 
+  checkCharacterLimit, 
+  hasConsecutiveChars 
+} from '@/utils/messageUtils';
+import ImagePreview from './ImagePreview';
+import EmojiPicker from './EmojiPicker';
+import VoiceMessageRecorder from './VoiceMessageRecorder';
+import GifPicker from './GifPicker';
+import { useVipFeatures } from '@/hooks/useVipFeatures';
 
 interface MessageInputBarProps {
   onSendMessage: (text: string) => void;
@@ -14,12 +27,10 @@ interface MessageInputBarProps {
   imagesRemaining: number;
   voiceMessagesRemaining: number;
   disabled?: boolean;
-  userType: 'standard' | 'vip';
-  replyTo?: Message | null;
-  onCancelReply?: () => void;
+  userType?: 'standard' | 'vip';
 }
 
-const MessageInputBar: React.FC<MessageInputBarProps> = ({
+const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   onSendMessage,
   onSendImage,
   onSendVoiceMessage,
@@ -27,383 +38,312 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
   imagesRemaining,
   voiceMessagesRemaining,
   disabled = false,
-  userType = 'standard',
-  replyTo,
-  onCancelReply
+  userType = 'standard'
 }) => {
+  // State variables
   const [message, setMessage] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [isShowingAttachments, setIsShowingAttachments] = useState(false);
-  const isVip = userType === 'vip';
-  const charLimit = isVip ? VIP_CHAR_LIMIT : MAX_CHAR_LIMIT;
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isVip } = useChat();
+  const { toast } = useToast();
   
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = useRef<BlobPart[]>([]);
-  const timerRef = useRef<number | null>(null);
+  // Use the passed userType prop instead of context
+  const isUserVip = userType === 'vip' || isVip;
   
-  // Focus textarea when replyTo changes
-  useEffect(() => {
-    if (replyTo && textAreaRef.current) {
-      textAreaRef.current.focus();
-    }
-  }, [replyTo]);
-
-  const handleSendMessage = () => {
-    const trimmedMessage = message.trim();
+  // Get character limit based on user type
+  const characterLimit = isUserVip ? VIP_CHAR_LIMIT : MAX_CHAR_LIMIT;
+  
+  // Handle submitting message
+  const handleSubmitMessage = () => {
+    if (disabled) return;
     
-    if (trimmedMessage === '') return;
-    
-    if (!checkCharacterLimit(trimmedMessage, isVip)) {
-      return; // Message exceeded the character limit
-    }
-    
-    if (hasConsecutiveChars(trimmedMessage, isVip)) {
-      toast({
-        title: "Message contains too many consecutive characters",
-        description: isVip 
-          ? "Even as VIP, please avoid excessive repeating characters." 
-          : "Please avoid repeating the same character. Upgrade to VIP for more flexibility.",
-        duration: 5000
-      });
-      return;
-    }
-    
-    // Send the message
-    onSendMessage(trimmedMessage);
-    setMessage('');
-    
-    // Reset replyTo if we were replying
-    if (replyTo && onCancelReply) {
-      onCancelReply();
+    if (message.trim() && !isExceedingLimit()) {
+      onSendMessage(message.trim());
+      setMessage('');
     }
   };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  
+  // Handle sending image
+  const handleSendImage = () => {
+    if (disabled || !imagePreview) return;
+    
+    onSendImage(imagePreview);
+    setImagePreview(null);
+    // Reset the input to allow uploading the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+  
+  // Handle sending voice message
+  const handleSendVoiceMessage = (audioBlob: Blob) => {
+    if (disabled || !onSendVoiceMessage) return;
+    
+    onSendVoiceMessage(audioBlob);
+    setIsRecording(false);
+  };
+  
+  // Handle sending GIF
+  const handleSendGif = (gifUrl: string) => {
+    if (disabled || !onSendGif) return;
+    
+    onSendGif(gifUrl);
+    setShowGifPicker(false);
+  };
+  
+  // Handle pressing enter
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      handleSubmitMessage();
     }
   };
 
+  // Check if message exceeds character limit
+  const isExceedingLimit = () => {
+    return message.length > characterLimit;
+  };
+  
+  // Handle uploading image
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
+    
     const file = e.target.files?.[0];
     if (!file) return;
     
     // Check if user has remaining uploads
-    if (!isVip && imagesRemaining <= 0) {
+    if (imagesRemaining <= 0 && !isUserVip) {
       toast({
         title: "Upload limit reached",
-        description: "You've used all your daily image uploads. Upgrade to VIP for unlimited images.",
-        duration: 5000
+        description: "You have reached your daily image upload limit. Upgrade to VIP to upload unlimited images."
       });
       return;
     }
     
-    // Max file size 5MB
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
       toast({
-        title: "File too large",
-        description: "Maximum file size is 5MB",
-        duration: 3000
-      });
-      return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const imageDataUrl = event.target?.result as string;
-      onSendImage(imageDataUrl);
-      setIsShowingAttachments(false);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleGifUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!isVip || !onSendGif) return;
-    
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    // Make sure it's a GIF
-    if (file.type !== 'image/gif') {
-      toast({
-        title: "Invalid file type",
-        description: "Please select a GIF file",
-        duration: 3000
-      });
-      return;
-    }
-    
-    // Max file size 8MB
-    if (file.size > 8 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Maximum GIF size is 8MB",
-        duration: 3000
+        title: "Invalid file",
+        description: validation.message
       });
       return;
     }
     
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const gifDataUrl = event.target?.result as string;
-      onSendGif(gifDataUrl);
-      setIsShowingAttachments(false);
+    
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      setImagePreview(result);
     };
+    
     reader.readAsDataURL(file);
   };
-
-  const startRecording = async () => {
-    if (!isVip || !onSendVoiceMessage) return;
+  
+  // Cancel image upload
+  const handleCancelImage = () => {
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+  
+  // Cancel voice recording
+  const handleCancelRecording = () => {
+    setIsRecording(false);
+  };
+  
+  // Open file selection dialog
+  const handleClickUpload = () => {
+    if (disabled) return;
     
-    if (!isVip && voiceMessagesRemaining <= 0) {
+    if (imagesRemaining <= 0 && !isUserVip) {
       toast({
-        title: "Voice message limit reached",
-        description: "You've used all your daily voice messages. Upgrade to VIP for unlimited voice messages.",
-        duration: 5000
+        title: "Upload limit reached",
+        description: "You have reached your daily image upload limit. Upgrade to VIP to upload unlimited images."
       });
       return;
     }
     
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      
-      mediaRecorderRef.current = mediaRecorder;
-      recordedChunksRef.current = [];
-      
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          recordedChunksRef.current.push(e.data);
-        }
-      };
-      
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordingTime(0);
-      
-      // Start timer
-      timerRef.current = window.setInterval(() => {
-        setRecordingTime(prev => {
-          const newTime = prev + 1;
-          // Stop recording after 2 minutes
-          if (newTime >= 120) {
-            stopRecording();
-          }
-          return newTime;
-        });
-      }, 1000);
-      
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
+    fileInputRef.current?.click();
+  };
+
+  // Handle message input
+  const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value;
+    
+    // Check if exceeding character limit
+    if (!checkCharacterLimit(newText, isUserVip, true)) {
+      setMessage(newText.slice(0, characterLimit));
+      return;
+    }
+    
+    // Check for consecutive characters
+    if (newText.length > message.length && hasConsecutiveChars(newText, isUserVip)) {
+      const limit = isUserVip ? 6 : 3;
       toast({
-        title: "Microphone access denied",
-        description: "Please allow microphone access to send voice messages",
-        duration: 5000
+        title: "Pattern detected",
+        description: `Please avoid sending more than ${limit} consecutive identical characters.`,
+        duration: 3000
       });
+      return;
     }
+    
+    setMessage(newText);
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-      
-      // Stop timer
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      
-      // Stop all audio tracks
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      
-      mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
-        recordedChunksRef.current = [];
-        setIsRecording(false);
-        
-        // Send the voice message
-        if (onSendVoiceMessage) {
-          onSendVoiceMessage(audioBlob);
-        }
-      };
+  // Handle emoji selection
+  const handleEmojiClick = (emoji: string) => {
+    const newText = message + emoji;
+    
+    // Check if exceeding character limit
+    if (!checkCharacterLimit(newText, isUserVip, true)) {
+      return;
     }
-  };
-
-  const cancelRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      // Stop all audio tracks
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      
-      // Stop timer
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      
-      mediaRecorderRef.current.stop();
-      recordedChunksRef.current = [];
-      setIsRecording(false);
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    
+    setMessage(newText);
   };
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2">
-      {/* Reply preview */}
-      {replyTo && (
-        <div className="flex items-center mb-2 mx-2 p-2 bg-gray-100 dark:bg-gray-700 rounded-md">
-          <div className="flex-1 overflow-hidden">
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              Replying to {replyTo.sender === 'user' ? 'yourself' : 'message'}:
-            </div>
-            <div className="text-sm truncate">
-              {replyTo.content.length > 50 
-                ? replyTo.content.substring(0, 50) + '...' 
-                : replyTo.content}
-            </div>
-          </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-5 w-5" 
-            onClick={onCancelReply}
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
+    <div className={`border-t border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-800 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
+      {imagePreview && (
+        <ImagePreview 
+          src={imagePreview} 
+          onCancel={handleCancelImage} 
+          onSend={handleSendImage}
+        />
       )}
       
-      {isRecording ? (
-        <div className="flex items-center justify-between bg-red-50 dark:bg-red-900/20 rounded-md p-2">
-          <div className="flex items-center">
-            <div className="h-3 w-3 rounded-full bg-red-500 mr-2 animate-pulse"></div>
-            <span className="text-red-600 dark:text-red-400">Recording {formatTime(recordingTime)}</span>
-          </div>
-          <div className="flex items-center space-x-2">
+      {isRecording && onSendVoiceMessage && isUserVip && (
+        <VoiceMessageRecorder 
+          onSend={handleSendVoiceMessage}
+          onCancel={handleCancelRecording}
+          isRecording={isRecording}
+          setIsRecording={setIsRecording}
+          voiceMessagesRemaining={voiceMessagesRemaining}
+          isVip={isUserVip}
+        />
+      )}
+
+      {!isRecording && (
+        <div className="flex items-center gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            onChange={handleImageUpload}
+            disabled={disabled}
+          />
+          
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" 
+            onClick={handleClickUpload}
+            disabled={disabled || !!imagePreview}
+            title={
+              isUserVip 
+                ? "Upload image" 
+                : `Upload image (${imagesRemaining} remaining today)`
+            }
+          >
+            <Image className="h-5 w-5" />
+          </Button>
+
+          {isUserVip && onSendGif && (
+            <Popover open={showGifPicker} onOpenChange={setShowGifPicker}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" 
+                  disabled={disabled || !!imagePreview}
+                  title="Send GIF"
+                >
+                  <Gift className="h-5 w-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <GifPicker 
+                  onSelect={handleSendGif}
+                  onClose={() => setShowGifPicker(false)}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" 
+                disabled={disabled || !!imagePreview}
+                title="Add emoji"
+              >
+                <Smile className="h-5 w-5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-2" align="start">
+              <EmojiPicker onEmojiSelect={handleEmojiClick} />
+            </PopoverContent>
+          </Popover>
+          
+          {isUserVip && onSendVoiceMessage && !isRecording && (
             <Button 
               variant="ghost" 
-              className="text-red-600 dark:text-red-400"
-              onClick={cancelRecording}
-            >
-              <Trash2 className="mr-1 h-4 w-4" />
-              Cancel
-            </Button>
-            <Button 
-              className="bg-red-500 hover:bg-red-600 text-white"
-              onClick={stopRecording}
-            >
-              <Send className="mr-1 h-4 w-4" />
-              Send
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-end space-x-2">
-          <div className="relative flex-1">
-            <textarea
-              ref={textAreaRef}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={disabled ? "You can't send messages to this user" : "Type a message..."}
-              disabled={disabled}
-              className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none min-h-[42px] max-h-32 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              rows={1}
-              maxLength={charLimit}
-            />
-            
-            <div className="absolute right-2 bottom-2">
-              <div className="text-xs text-gray-400 text-right">
-                {message.length > 0 && `${message.length}/${charLimit}`}
-              </div>
-            </div>
-          </div>
-          
-          {/* Attachment button */}
-          <div className="relative">
-            <Button
-              type="button"
-              variant="ghost"
               size="icon"
-              className="text-gray-500 rounded-full"
-              onClick={() => setIsShowingAttachments(!isShowingAttachments)}
-              disabled={disabled}
-            >
-              {isShowingAttachments ? <X className="h-5 w-5" /> : <Paperclip className="h-5 w-5" />}
-            </Button>
-            
-            {/* Attachment options */}
-            {isShowingAttachments && (
-              <div className="absolute bottom-full right-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                <div className="p-2 flex flex-col space-y-2">
-                  <div className="flex items-center">
-                    <label className="flex items-center p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md w-full">
-                      <Image className="h-5 w-5 mr-2 text-blue-500" />
-                      <span>Image {!isVip && `(${imagesRemaining} left)`}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleImageUpload}
-                        disabled={!isVip && imagesRemaining <= 0}
-                      />
-                    </label>
-                  </div>
-                  
-                  {isVip && onSendGif && (
-                    <div className="flex items-center">
-                      <label className="flex items-center p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md w-full">
-                        <Smile className="h-5 w-5 mr-2 text-amber-500" />
-                        <span>GIF</span>
-                        <input
-                          type="file"
-                          accept="image/gif"
-                          className="hidden"
-                          onChange={handleGifUpload}
-                        />
-                      </label>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-          
-          {/* Voice recording button */}
-          {isVip && onSendVoiceMessage && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="text-gray-500 hover:text-red-500 rounded-full"
-              onClick={startRecording}
-              disabled={disabled}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" 
+              onClick={() => setIsRecording(true)}
+              disabled={disabled || !!imagePreview}
+              title="Record voice message"
             >
               <Mic className="h-5 w-5" />
             </Button>
           )}
           
-          {/* Send button */}
-          <Button
-            type="button"
-            className="bg-teal-500 hover:bg-teal-600 text-white rounded-full px-3 py-1 flex items-center justify-center"
-            onClick={handleSendMessage}
-            disabled={message.trim() === '' || disabled}
-          >
-            <Send className="h-5 w-5" />
-          </Button>
+          <div className="flex-1 relative">
+            <textarea
+              value={message}
+              onChange={handleMessageChange}
+              onKeyDown={handleKeyDown}
+              placeholder={disabled ? "You can't message a blocked user" : "Type a message..."}
+              className={`w-full py-2 px-3 pr-16 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none text-left h-10 max-h-24 leading-normal ${isExceedingLimit() ? 'border-red-500 border' : ''}`}
+              style={{paddingTop: '6px', paddingBottom: '6px'}}
+              disabled={disabled || !!imagePreview || isRecording}
+            />
+            <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs ${isExceedingLimit() ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
+              {message.length}/{characterLimit}
+            </div>
+          </div>
+          
+          {!imagePreview && !isRecording && (
+            <Button 
+              size="icon"
+              onClick={handleSubmitMessage}
+              className={`
+                rounded-full 
+                ${message.trim() && !isExceedingLimit() ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}
+              `}
+              disabled={!message.trim() || isExceedingLimit() || disabled}
+            >
+              <Send className="h-5 w-5" />
+            </Button>
+          )}
         </div>
       )}
+      
+      <div className="text-xs text-center mt-1 text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-1">
+        {!isUserVip && `${imagesRemaining} image uploads remaining today - `}
+        {isUserVip ? "VIP Member - Unlimited messaging and uploads" : "Upgrade to VIP for unlimited uploads"}
+      </div>
     </div>
   );
-};
+});
+
+MessageInputBar.displayName = 'MessageInputBar';
 
 export default MessageInputBar;

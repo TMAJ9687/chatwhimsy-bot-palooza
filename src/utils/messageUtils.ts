@@ -121,7 +121,7 @@ export const validateUsername = (username: string, isVip: boolean): { valid: boo
     };
   }
   
-  // Check for 'admin' in non-VIP usernames (VIP users can use 'admin')
+  // Check for 'admin' in non-VIP usernames
   if (!isVip && username.toLowerCase().includes('admin')) {
     return { 
       valid: false, 
@@ -129,12 +129,26 @@ export const validateUsername = (username: string, isVip: boolean): { valid: boo
     };
   }
   
-  // Check for consecutive characters
-  if (hasConsecutiveChars(username, isVip)) {
-    return { 
-      valid: false, 
-      message: `Username cannot contain consecutive identical characters` 
-    };
+  // Check for consecutive characters based on user type
+  const consecutiveLimit = isVip ? 2 : 3;
+  
+  for (let i = 0; i <= username.length - consecutiveLimit; i++) {
+    let isConsecutive = true;
+    for (let j = 1; j < consecutiveLimit; j++) {
+      if (username[i] !== username[i + j]) {
+        isConsecutive = false;
+        break;
+      }
+    }
+    if (isConsecutive && (
+      /[a-zA-Z]/.test(username[i]) || // If it's a letter
+      /[0-9]/.test(username[i])       // If it's a digit
+    )) {
+      return { 
+        valid: false, 
+        message: `Username cannot contain ${consecutiveLimit} consecutive identical letters or numbers` 
+      };
+    }
   }
   
   return { valid: true };

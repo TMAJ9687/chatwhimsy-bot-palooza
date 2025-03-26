@@ -1,29 +1,28 @@
 
 import React, { useState } from 'react';
 import { Check, Clock, Eye, EyeOff, Maximize, X } from 'lucide-react';
-import { Message } from '@/types/chat';
-import MessageActions from './MessageActions';
+
+export interface Message {
+  id: string;
+  content: string;
+  sender: 'user' | 'bot' | 'system';
+  timestamp: Date;
+  status?: 'sending' | 'sent' | 'delivered' | 'read';
+  isImage?: boolean;
+}
 
 interface MessageBubbleProps {
   message: Message;
   isLastInGroup?: boolean;
   showStatus?: boolean;
-  isVip?: boolean;
-  onReply?: (message: Message) => void;
-  onReact?: (messageId: string, reaction: string) => void;
-  onUnsend?: (messageId: string) => void;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ 
   message, 
   isLastInGroup = false,
-  showStatus = true,
-  isVip = false,
-  onReply,
-  onReact,
-  onUnsend
+  showStatus = true
 }) => {
-  const { sender, content, timestamp, status, isImage, isVoiceMessage, isGif } = message;
+  const { sender, content, timestamp, status, isImage } = message;
   const isUser = sender === 'user';
   
   const [isBlurred, setIsBlurred] = useState(isImage ? true : false);
@@ -114,7 +113,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   };
 
   return (
-    <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5 group`}>
+    <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}>
       <div
         className={`
           relative px-3 py-2 rounded-2xl max-w-[80%]
@@ -161,7 +160,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               </div>
             </div>
             
-            {/* Fullscreen image modal - Fixed to have only one close button */}
+            {/* Fullscreen image modal */}
             {isFullScreen && (
               <div 
                 className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
@@ -188,37 +187,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         )}
       </div>
       
-      {/* Message status and actions */}
-      <div className="flex items-center justify-between mt-0.5 w-full">
-        {isVip && !isUser && (
-          <div className="ml-2">
-            <MessageActions 
-              message={message}
-              onReply={onReply}
-              onReact={onReact}
-              onUnsend={onUnsend}
-            />
-          </div>
-        )}
-        
-        {isLastInGroup && showStatus && (
-          <div className={`flex items-center text-xs text-gray-500 dark:text-gray-400 ${isUser ? 'mr-1' : 'ml-1'}`}>
-            <span>{formattedTime}</span>
-            {getStatusIcon() && <span className="ml-1">{getStatusIcon()}</span>}
-          </div>
-        )}
-        
-        {isVip && isUser && (
-          <div className="mr-2 flex justify-end">
-            <MessageActions 
-              message={message}
-              onReply={onReply}
-              onReact={onReact}
-              onUnsend={onUnsend}
-            />
-          </div>
-        )}
-      </div>
+      {isLastInGroup && showStatus && (
+        <div className={`flex items-center mt-0.5 text-xs text-gray-500 dark:text-gray-400 ${isUser ? 'mr-1' : 'ml-1'}`}>
+          <span>{formattedTime}</span>
+          {getStatusIcon() && <span className="ml-1">{getStatusIcon()}</span>}
+        </div>
+      )}
     </div>
   );
 };

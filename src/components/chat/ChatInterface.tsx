@@ -12,7 +12,6 @@ import MobileUserList from './MobileUserList';
 import ChatAppHeader from './ChatAppHeader';
 import NotificationSidebar from './NotificationSidebar';
 import EmptyChatState from './EmptyChatState';
-import { Message } from '@/types/chat';
 
 interface ChatInterfaceProps {
   onLogout: () => void;
@@ -24,7 +23,6 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const navigate = useNavigate();
   const { openDialog } = useDialog();
   const [chatHidden, setChatHidden] = useState(true); // Set to true by default
-  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   
   const {
     userChats,
@@ -55,31 +53,11 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     handleSendImageMessage,
     handleSendVoiceMessage,
     handleSendGifMessage,
-    handleDeleteConversation,
     selectUser,
     handleFilterChange,
     handleNotificationRead,
     isUserBlocked
   } = useChat();
-
-  // VIP message action handlers
-  const handleReply = useCallback((message: Message) => {
-    setReplyingTo(message);
-  }, []);
-  
-  const handleReact = useCallback((messageId: string, reaction: string) => {
-    // In a real app, this would store the reaction in the database
-    console.log(`Reacted with ${reaction} to message ${messageId}`);
-  }, []);
-  
-  const handleUnsend = useCallback((messageId: string) => {
-    // In a real app, this would remove the message from the chat
-    console.log(`Unsending message ${messageId}`);
-  }, []);
-  
-  const handleCancelReply = useCallback(() => {
-    setReplyingTo(null);
-  }, []);
 
   // Show site rules dialog after 3 seconds, but only if rules haven't been accepted yet
   // and the user is NOT a VIP
@@ -176,11 +154,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
               <ChatHeader 
                 currentUser={currentBot}
                 onBlockUser={handleBlockUser}
-                onUnblockUser={handleUnblockUser}
-                onDeleteConversation={handleDeleteConversation}
                 onCloseChat={handleCompletelyCloseChat}
-                isVip={isVip}
-                messages={userChats[currentBot.id] || []}
               />
 
               {isCurrentUserBlocked && (
@@ -201,9 +175,6 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
                 isTyping={typingBots[currentBot.id] || false}
                 showStatus={isVip}
                 showTyping={isVip}
-                onReply={isVip ? handleReply : undefined}
-                onReact={isVip ? handleReact : undefined}
-                onUnsend={isVip ? handleUnsend : undefined}
               />
               
               {/* Message input component */}
@@ -216,8 +187,6 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
                 voiceMessagesRemaining={voiceMessagesRemaining}
                 disabled={isCurrentUserBlocked}
                 userType={isVip ? 'vip' : 'standard'}
-                replyTo={replyingTo}
-                onCancelReply={handleCancelReply}
               />
             </>
           ) : (

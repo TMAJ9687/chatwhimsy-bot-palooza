@@ -34,7 +34,7 @@ export const useVipSubscription = (
   const cancelVipSubscription = useCallback(() => {
     updateUserProfile({ 
       isVip: false, 
-      subscriptionTier: 'none' as SubscriptionTier,
+      subscriptionTier: 'none',
       subscriptionEndDate: undefined,
       imagesRemaining: 15,
       voiceMessagesRemaining: 0

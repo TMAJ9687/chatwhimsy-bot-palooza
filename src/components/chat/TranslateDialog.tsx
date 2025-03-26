@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -40,15 +40,6 @@ const TranslateDialog: React.FC<TranslateDialogProps> = ({
   const [targetLanguage, setTargetLanguage] = useState('es');
   const [translatedText, setTranslatedText] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
-  
-  // Auto-translate when dialog opens
-  useEffect(() => {
-    if (isOpen && originalText) {
-      handleTranslate();
-    } else {
-      setTranslatedText('');
-    }
-  }, [isOpen, originalText, targetLanguage]);
   
   const handleTranslate = () => {
     setIsTranslating(true);
