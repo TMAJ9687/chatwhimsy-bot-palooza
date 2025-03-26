@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
@@ -224,7 +223,8 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   );
 };
 
-// Create a wrapper component that provides the chat context
+// Create a wrapper component that provides the chat context but does NOT create a new ChatProvider here
+// Instead, we'll rely on the ChatProvider from App.tsx
 const ChatInterface: React.FC<ChatInterfaceProps> = (props) => {
   return (
     <ErrorBoundary>

@@ -15,10 +15,24 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth();
-  const { user, isVip: userIsVip } = useUser();
+  
+  // Safely access user context with error handling
+  let userIsVip = false;
+  let userImagesRemaining = 15; // Default value
+  let user = null;
+
+  try {
+    const userContext = useUser();
+    userIsVip = userContext.isVip;
+    user = userContext.user;
+    userImagesRemaining = user?.imagesRemaining;
+  } catch (error) {
+    console.error("Error accessing UserContext:", error);
+    // Continue with default values if UserContext is not available
+  }
   
   // Use our custom hooks to manage state, effects, and actions
-  const state = useChatState(userIsVip, user?.imagesRemaining);
+  const state = useChatState(userIsVip, userImagesRemaining);
   
   // Calculate filtered users before passing to actions
   const filteredUsers = state.onlineUsers.filter(user => 
@@ -41,7 +55,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userCountry: state.userCountry,
     setUserCountry: state.setUserCountry,
     currentBotIdRef: state.currentBotIdRef,
-    userImagesRemaining: user?.imagesRemaining
+    userImagesRemaining
   });
   
   // Get actions and create the context value
