@@ -2,11 +2,13 @@
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo } from 'react';
 import { UserProfile, UserContextType, SubscriptionTier } from '@/types/user';
 import { useVipSubscription } from '@/hooks/useVipSubscription';
+import { useUserBlocking } from '@/hooks/useUserBlocking';
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const { blockedUsers, isUserBlocked, handleBlockUser, handleUnblockUser } = useUserBlocking();
 
   const isProfileComplete = useMemo(() => 
     Boolean(user && user.gender && user.age && user.country),
@@ -39,7 +41,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     clearUser,
     isVip,
     subscribeToVip,
-    cancelVipSubscription
+    cancelVipSubscription,
+    isUserBlocked
   };
 
   return (
