@@ -12,6 +12,8 @@ interface MessageInputBarProps {
   disabled?: boolean;
 }
 
+const MAX_CHAR_LIMIT = 120;
+
 const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   onSendMessage,
   onSendImage,
@@ -98,6 +100,9 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     // For now, we'll just add a smiley face
     setMessage(prev => prev + '😊');
   };
+
+  const charCount = message.length;
+  const isOverLimit = !isVip && charCount > MAX_CHAR_LIMIT;
   
   return (
     <div className={`border-t border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-800 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
@@ -114,7 +119,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
         <Button 
           variant="ghost" 
           size="icon"
-          className="text-gray-500 hover:text-gray-700" 
+          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" 
           onClick={handleClickUpload}
           disabled={disabled}
           title={
@@ -129,7 +134,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
         <Button 
           variant="ghost" 
           size="icon"
-          className="text-gray-500 hover:text-gray-700" 
+          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" 
           onClick={handleEmojiClick}
           disabled={disabled}
           title="Add emoji"
@@ -137,15 +142,20 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
           <Smile className="h-5 w-5" />
         </Button>
         
-        <div className="flex-1">
+        <div className="flex-1 relative">
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={disabled ? "You can't message a blocked user" : "Type a message..."}
-            className="w-full py-2 px-3 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none text-left h-10 leading-normal"
-            style={{paddingTop: '8px'}}
+            className={`w-full py-2 px-3 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none text-left h-10 max-h-24 leading-normal ${isOverLimit ? 'border-red-500 border' : ''}`}
+            style={{paddingTop: '6px', paddingBottom: '6px'}}
           />
+          {!isVip && (
+            <div className={`absolute right-3 bottom-1 text-xs ${isOverLimit ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
+              {charCount}/{MAX_CHAR_LIMIT}
+            </div>
+          )}
         </div>
         
         <Button 
@@ -153,16 +163,16 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
           onClick={handleSubmitMessage}
           className={`
             rounded-full 
-            ${message.trim() ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-200 text-gray-500'}
+            ${message.trim() && !isOverLimit ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}
           `}
-          disabled={!message.trim() || disabled}
+          disabled={!message.trim() || isOverLimit || disabled}
         >
           <Send className="h-5 w-5" />
         </Button>
       </div>
       
       {!isVip && (
-        <div className="text-xs text-center mt-1 text-gray-500">
+        <div className="text-xs text-center mt-1 text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-1">
           {imagesRemaining} image uploads remaining today - Upgrade to VIP for unlimited uploads
         </div>
       )}

@@ -97,40 +97,40 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
     <div className="fixed inset-0 z-50 bg-black/50">
       <div 
         ref={sidebarRef}
-        className="absolute right-0 h-full w-80 bg-white shadow-xl flex flex-col animate-in slide-in-from-right"
+        className="absolute right-0 h-full w-80 bg-white dark:bg-gray-800 shadow-xl flex flex-col animate-in slide-in-from-right"
       >
-        <div className="p-4 border-b flex justify-between items-center">
-          <h3 className="font-semibold text-lg">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h3 className="font-semibold text-lg dark:text-gray-200">
             {type === 'inbox' ? 'Inbox' : 'History'}
           </h3>
           <button 
             onClick={onClose}
-            className="p-1 rounded-full hover:bg-gray-100"
+            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
         
         <div className="flex-1 overflow-y-auto">
           {groupedNotifications.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-gray-500 text-sm">
+            <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400 text-sm">
               No {type === 'inbox' ? 'messages' : 'history'} to display
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {groupedNotifications.map((notification) => (
                 <div 
                   key={notification.id}
-                  className={`p-4 hover:bg-gray-50 cursor-pointer ${!notification.read ? 'bg-blue-50' : ''}`}
+                  className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer ${!notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
                   onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex justify-between">
-                    <h4 className="font-medium text-sm">{notification.title}</h4>
-                    <span className="text-xs text-gray-500">
+                    <h4 className="font-medium text-sm dark:text-gray-200">{notification.title}</h4>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                       {new Date(notification.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{notification.message}</p>
                 </div>
               ))}
             </div>

@@ -64,25 +64,24 @@ const ChatHeader: React.FC<ChatHeaderProps> = memo(({
   return (
     <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3 flex items-center justify-between">
       <div className="flex items-center">
-        <div className="w-9 h-9 bg-amber-100 rounded-full flex items-center justify-center font-bold text-amber-500 mr-3">
+        <div className="w-9 h-9 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center font-bold text-amber-500 dark:text-amber-400 mr-3">
           {currentUser.name.charAt(0)}
         </div>
         
         <div>
           <div className="flex items-center">
-            <span className="font-medium">{currentUser.name}</span>
+            <span className="font-medium dark:text-gray-200">{currentUser.name}</span>
             {currentUser.vip && (
-              <span className="ml-2 bg-amber-400 text-white text-xs px-1.5 py-0.5 rounded-sm">
-                VIP
+              <span className="ml-2 bg-amber-400 text-white text-xs px-1.5 py-0.5 rounded-sm flex items-center">
+                <span>VIP</span>
               </span>
             )}
+            <span className={`ml-2 text-xs ${currentUser.gender === 'female' ? 'text-pink-500' : 'text-blue-500'}`}>
+              {currentUser.gender === 'female' ? 'F' : 'M'}, {currentUser.age}
+            </span>
           </div>
           
           <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-            <span className="mr-2">
-              {currentUser.gender === 'female' ? 'Female' : 'Male'}, {currentUser.age}
-            </span>
-            
             <img 
               src={`https://flagcdn.com/w20/${currentUser.countryCode.toLowerCase()}.png`} 
               alt={currentUser.country}
@@ -99,7 +98,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = memo(({
             variant="outline" 
             size="sm"
             onClick={handleUnblock}
-            className="text-blue-600"
+            className="text-blue-600 dark:text-blue-400"
           >
             <UserX2 className="h-4 w-4 mr-1" />
             Unblock
@@ -108,10 +107,10 @@ const ChatHeader: React.FC<ChatHeaderProps> = memo(({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
-                <MoreVertical className="h-4 w-4 text-gray-500" />
+                <MoreVertical className="h-4 w-4 text-gray-500 dark:text-gray-400" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
+            <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={handleOpenReportDialog}>
                 <Flag className="h-4 w-4 mr-2" />
                 Report User
@@ -130,7 +129,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = memo(({
           onClick={onCloseChat}
           title="Close Chat"
         >
-          <X className="h-4 w-4 text-gray-500" />
+          <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
         </Button>
       </div>
     </div>

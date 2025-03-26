@@ -15,6 +15,8 @@ interface MessageInputProps {
   className?: string;
 }
 
+const MAX_CHARS = 120;
+
 const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
   disabled = false,
@@ -34,6 +36,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const message = value !== undefined ? value : internalMessage;
   const handleChange = onChange || setInternalMessage;
 
+  const charCount = message.length;
+  const isOverLimit = userType === 'standard' && charCount > MAX_CHARS;
+
   const handleSendMessage = () => {
     if (imagePreview) {
       onSendMessage(imagePreview, true);
@@ -41,7 +46,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
       return;
     }
 
-    if (message.trim()) {
+    if (message.trim() && !isOverLimit) {
       onSendMessage(message);
       if (!onChange) {
         setInternalMessage('');
@@ -79,18 +84,23 @@ const MessageInput: React.FC<MessageInputProps> = ({
     fileInputRef.current?.click();
   };
 
+  const handleEmojiClick = () => {
+    // For now just add a simple emoji
+    handleChange(message + '😊');
+  };
+
   return (
-    <div className="bg-white border-t border-border p-3">
+    <div className="bg-white dark:bg-gray-800 border-t border-border dark:border-gray-700 p-3">
       {imagePreview && (
         <div className="mb-3 relative">
           <img
             src={imagePreview}
             alt="Preview"
-            className="h-32 object-contain rounded-lg border border-border"
+            className="h-32 object-contain rounded-lg border border-border dark:border-gray-700"
           />
           <button
             onClick={() => setImagePreview(null)}
-            className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-md hover:bg-muted transition-colors"
+            className="absolute top-1 right-1 bg-white dark:bg-gray-800 rounded-full p-1 shadow-md hover:bg-muted dark:hover:bg-gray-700 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -100,20 +110,30 @@ const MessageInput: React.FC<MessageInputProps> = ({
       <div className="flex items-end gap-2">
         <div className="flex-1 relative">
           <textarea
-            className={`w-full rounded-2xl border border-border py-3 pl-4 pr-12 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all min-h-[56px] max-h-32 ${className || ''}`}
+            className={`w-full rounded-2xl border border-border dark:border-gray-700 py-2 pl-4 pr-12 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all min-h-[48px] max-h-32 ${isOverLimit ? 'border-red-500' : ''} ${className || ''}`}
             placeholder={placeholder}
             value={message}
             onChange={(e) => handleChange(e.target.value)}
             onKeyDown={handleKeyDownInternal}
             disabled={disabled || !!imagePreview}
             rows={1}
+            style={{paddingTop: '8px'}}
           />
-          <button
-            className="absolute right-3 bottom-3 text-muted-foreground hover:text-primary transition-colors"
-            type="button"
-          >
-            <Smile className="h-6 w-6" />
-          </button>
+          <div className="absolute right-3 bottom-2 flex items-center gap-2">
+            <button
+              className="text-muted-foreground hover:text-primary transition-colors"
+              type="button"
+              onClick={handleEmojiClick}
+            >
+              <Smile className="h-5 w-5" />
+            </button>
+            
+            {userType === 'standard' && (
+              <span className={`text-xs ${isOverLimit ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
+                {charCount}/{MAX_CHARS}
+              </span>
+            )}
+          </div>
         </div>
         
         <input
@@ -127,7 +147,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         <Button
           variant="outline"
           size="sm"
-          className="h-[56px] w-[56px] rounded-full p-0 flex items-center justify-center"
+          className="h-[48px] w-[48px] rounded-full p-0 flex items-center justify-center"
           onClick={triggerFileInput}
           disabled={disabled || imagesRemaining <= 0 || !!imagePreview}
           title={`${imagesRemaining} images remaining today`}
@@ -138,16 +158,16 @@ const MessageInput: React.FC<MessageInputProps> = ({
         <Button
           variant="primary"
           size="sm"
-          className="h-[56px] w-[56px] rounded-full p-0 flex items-center justify-center"
+          className={`h-[48px] w-[48px] rounded-full p-0 flex items-center justify-center ${isOverLimit ? 'opacity-50 cursor-not-allowed' : ''}`}
           onClick={handleSendMessage}
-          disabled={disabled || (!message.trim() && !imagePreview)}
+          disabled={disabled || (!message.trim() && !imagePreview) || isOverLimit}
         >
           <Send className="h-5 w-5" />
         </Button>
       </div>
       
       {userType === 'standard' && (
-        <div className="mt-2 text-xs text-center text-muted-foreground">
+        <div className="mt-2 text-xs text-center text-muted-foreground border-t border-gray-200 dark:border-gray-700 pt-1">
           {imagesRemaining} images remaining today • Upgrade to VIP for unlimited images
         </div>
       )}

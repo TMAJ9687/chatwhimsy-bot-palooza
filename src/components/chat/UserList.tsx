@@ -6,6 +6,7 @@ import UserListItem from './UserListItem';
 import SearchInput from './SearchInput';
 import FilterMenu, { FilterState } from './FilterMenu';
 import { useChat } from '@/context/ChatContext';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 interface UserListProps {
   users: Array<{
@@ -37,7 +38,6 @@ const UserList = memo(({
   filters,
   onFilterChange
 }: UserListProps) => {
-  const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showBlocked, setShowBlocked] = useState(true); // Default to showing blocked users
   const { blockedUsers } = useChat();
   
@@ -76,7 +76,7 @@ const UserList = memo(({
           {blockedCount > 0 && (
             <button
               className={`px-2 py-1 rounded-md text-sm flex items-center gap-1 transition-colors ${
-                showBlocked ? 'bg-gray-200 text-gray-800' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                showBlocked ? 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
               onClick={toggleBlockedVisibility}
               title={showBlocked ? "Hide blocked users" : "Show blocked users"}
@@ -86,22 +86,35 @@ const UserList = memo(({
             </button>
           )}
           
-          <button 
-            className="px-4 py-1 rounded-md bg-gray-100 text-gray-700 text-sm hover:bg-gray-200 transition-colors flex items-center gap-1"
-            onClick={() => setShowFilterMenu(!showFilterMenu)}
-          >
-            <Filter className="w-3 h-3" />
-            <span>Filters</span>
-          </button>
-          
-          {showFilterMenu && (
-            <div className="absolute right-0 top-full mt-1 z-10 w-72">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button 
+                className="px-4 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-1"
+              >
+                <Filter className="w-3 h-3" />
+                <span>Filters</span>
+                {Object.values(filters).some(val => 
+                  Array.isArray(val) ? 
+                    (val[0] > 18 || val[1] < 80) : 
+                    (val !== 'any' && val.length > 0)
+                ) && (
+                  <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
+                    {
+                      (filters.gender !== 'any' ? 1 : 0) +
+                      ((filters.ageRange[0] > 18 || filters.ageRange[1] < 80) ? 1 : 0) +
+                      (filters.countries.length > 0 ? 1 : 0)
+                    }
+                  </Badge>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-0" align="end">
               <FilterMenu 
                 filters={filters}
                 onChange={onFilterChange}
               />
-            </div>
-          )}
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
       
@@ -112,7 +125,7 @@ const UserList = memo(({
         </Badge>
       </div>
       
-      <div className="flex-1 overflow-y-auto border-t border-gray-100">
+      <div className="flex-1 overflow-y-auto border-t border-gray-100 dark:border-gray-800">
         {visibleUsers.map(user => (
           <UserListItem
             key={user.id}
