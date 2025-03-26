@@ -1,169 +1,139 @@
 
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from '../ui/dialog';
-import { Button } from '../ui/button';
-import { useToast } from "@/hooks/use-toast";
-import { useChat } from '@/context/ChatContext';
 import { useDialog } from '@/context/DialogContext';
+import { useAuth } from '@/context/FirebaseAuthContext';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/firebase';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
-const reportReasons = [
-  "Under Age",
-  "Harassment/Cyberbullying",
-  "Inappropriate Content",
-  "Spamming",
-  "Impersonation/Scamming",
-  "Hate Speech",
-  "Other"
+const REPORT_REASONS = [
+  { id: 'inappropriate', label: 'Inappropriate content' },
+  { id: 'spam', label: 'Spam or scam' },
+  { id: 'harassment', label: 'Harassment' },
+  { id: 'impersonation', label: 'Impersonation' },
+  { id: 'other', label: 'Other' },
 ];
 
 const ReportDialog = () => {
-  const { state, closeDialog } = useDialog();
-  const { reportCurrentUser } = useChat();
+  const { currentDialog, closeDialog } = useDialog();
+  const { currentUser } = useAuth();
   const { toast } = useToast();
-  const [selectedReason, setSelectedReason] = useState<string | null>(null);
-  const [otherReason, setOtherReason] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Reset state when dialog closes
-  React.useEffect(() => {
-    if (!state.isOpen || state.type !== 'report') {
-      setSelectedReason(null);
-      setOtherReason('');
-      setIsSubmitting(false);
-    }
-  }, [state.isOpen, state.type]);
-
-  // Handle reason selection
-  const handleSelectReason = (reason: string) => {
-    setSelectedReason(reason);
-  };
+  const [selectedReason, setSelectedReason] = useState<string>('inappropriate');
+  const [details, setDetails] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   
-  // Handle other reason input
-  const handleOtherReasonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setOtherReason(e.target.value.slice(0, 100));
-  };
+  // If this isn't a report dialog or we don't have data, don't render
+  if (currentDialog?.id !== 'report' || !currentDialog.data) {
+    return null;
+  }
 
-  // Submit report using Firebase
-  const handleSubmit = async () => {
-    if (!selectedReason) return;
+  const { userId, userName } = currentDialog.data;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    // Set submitting state to prevent multiple submissions
+    if (!selectedReason) {
+      toast({
+        title: "Error",
+        description: "Please select a reason for the report.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
-    
-    const reason = selectedReason === 'Other' ? otherReason : selectedReason;
-    
+
     try {
-      const success = await reportCurrentUser(selectedReason, selectedReason === 'Other' ? otherReason : undefined);
+      // Add report to Firestore
+      const reportRef = await addDoc(collection(db, "reports"), {
+        reportedUserId: userId,
+        reportedUserName: userName,
+        reporterId: currentUser?.uid,
+        reporterEmail: currentUser?.email,
+        reason: selectedReason,
+        details: details,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
       
-      if (success) {
+      if (reportRef.id) {
         toast({
-          title: "Report submitted",
-          description: "Thank you for helping to keep our community safe.",
+          title: "Report Submitted",
+          description: "Thank you for helping keep our community safe.",
         });
-      } else {
-        toast({
-          title: "Report failed",
-          description: "There was an error submitting your report. Please try again.",
-          variant: "destructive"
-        });
+        closeDialog();
       }
     } catch (error) {
+      console.error("Error submitting report:", error);
       toast({
-        title: "Report failed",
-        description: "There was an error submitting your report. Please try again.",
-        variant: "destructive"
+        title: "Error",
+        description: "There was a problem submitting your report. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
-      closeDialog();
     }
   };
 
-  const isValid = selectedReason && (selectedReason !== 'Other' || otherReason.trim().length > 0);
-
-  if (state.type !== 'report') return null;
-
   return (
-    <Dialog open={state.isOpen} onOpenChange={(open) => !open && closeDialog()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Report User</DialogTitle>
-          <DialogDescription>
-            Please select a reason for reporting {state.data?.userName || 'this user'}
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="mt-4 space-y-3">
-          {reportReasons.map((reason) => (
-            <div 
-              key={reason}
-              className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                selectedReason === reason 
-                  ? 'border-teal-500 bg-teal-50' 
-                  : 'border-gray-200 hover:border-teal-300'
-              }`}
-              onClick={() => handleSelectReason(reason)}
+    <div className="p-6 max-w-md mx-auto">
+      <h2 className="text-2xl font-bold mb-4">Report User</h2>
+      <p className="mb-4 text-gray-600 dark:text-gray-400">
+        You are reporting {userName}. Our moderation team will review your report.
+      </p>
+      
+      <form onSubmit={handleSubmit}>
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-medium mb-2">Reason for report</h3>
+            <RadioGroup 
+              value={selectedReason} 
+              onValueChange={setSelectedReason}
+              className="space-y-2"
             >
-              <div className="flex items-center">
-                <div 
-                  className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                    selectedReason === reason ? 'border-teal-500' : 'border-gray-300'
-                  }`}
-                >
-                  {selectedReason === reason && (
-                    <div className="w-2 h-2 rounded-full bg-teal-500"></div>
-                  )}
+              {REPORT_REASONS.map((reason) => (
+                <div key={reason.id} className="flex items-center space-x-2">
+                  <RadioGroupItem value={reason.id} id={reason.id} />
+                  <Label htmlFor={reason.id}>{reason.label}</Label>
                 </div>
-                <span className={`ml-2 ${reason === 'Under Age' ? 'text-red-500 font-medium' : ''}`}>
-                  {reason}
-                </span>
-              </div>
-            </div>
-          ))}
-
-          {selectedReason === 'Other' && (
-            <div className="mt-3">
-              <textarea
-                placeholder="Please describe the issue (max 100 characters)"
-                className="w-full p-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
-                value={otherReason}
-                onChange={handleOtherReasonChange}
-                maxLength={100}
-                rows={3}
-              />
-              <div className="text-right text-xs text-gray-500 mt-1">
-                {otherReason.length}/100
-              </div>
-            </div>
-          )}
+              ))}
+            </RadioGroup>
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-medium mb-2">Additional details (optional)</h3>
+            <Textarea
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              placeholder="Please provide any specific details about the issue..."
+              className="resize-none h-24"
+            />
+          </div>
+          
+          <div className="flex justify-between pt-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={closeDialog}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit Report'}
+            </Button>
+          </div>
         </div>
-        
-        <DialogFooter className="mt-6">
-          <Button
-            variant="outline"
-            onClick={closeDialog}
-            type="button"
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!isValid || isSubmitting}
-            type="button"
-          >
-            {isSubmitting ? "Submitting..." : "Submit Report"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </form>
+    </div>
   );
 };
 

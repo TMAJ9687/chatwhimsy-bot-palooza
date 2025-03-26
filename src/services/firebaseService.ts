@@ -1,150 +1,157 @@
-import { db, rtdb, storage } from '@/lib/firebase';
+
 import { 
   collection, 
   doc, 
-  setDoc, 
   getDoc, 
   getDocs, 
+  setDoc, 
   updateDoc, 
   deleteDoc, 
   query, 
   where, 
-  orderBy, 
-  limit,
-  serverTimestamp,
-  arrayUnion,
-  arrayRemove
+  serverTimestamp, 
+  addDoc 
 } from 'firebase/firestore';
-import { ref, get, set, update, push, remove } from 'firebase/database';
-import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, auth, storage } from '@/lib/firebase';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
 // User related functions
 export const getUserProfile = async (userId: string) => {
-  const docRef = doc(db, 'users', userId);
-  const docSnap = await getDoc(docRef);
-  return docSnap.exists() ? docSnap.data() : null;
-};
-
-export const updateUserProfile = async (userId: string, data: any) => {
-  const userRef = doc(db, 'users', userId);
-  return updateDoc(userRef, {
-    ...data,
-    updatedAt: serverTimestamp()
-  });
-};
-
-// Chat related functions
-export const sendMessage = async (chatId: string, message: any) => {
-  const chatRef = ref(rtdb, `chats/${chatId}/messages`);
-  const newMessageRef = push(chatRef);
-  return set(newMessageRef, {
-    ...message,
-    timestamp: Date.now()
-  });
-};
-
-export const getChatMessages = async (chatId: string) => {
-  const chatRef = ref(rtdb, `chats/${chatId}/messages`);
-  const snapshot = await get(chatRef);
-  if (snapshot.exists()) {
-    return Object.entries(snapshot.val()).map(([id, message]) => ({
-      id,
-      ...message
-    }));
-  }
-  return [];
-};
-
-export const subscribeToChat = (chatId: string, callback: (messages: any[]) => void) => {
-  // This would use onValue from Firebase but we're keeping it simple
-  // This is a placeholder for real-time subscription
-  console.log(`Subscribing to chat ${chatId}`);
-  return () => console.log(`Unsubscribing from chat ${chatId}`);
-};
-
-// Blocking functions
-export const blockUser = async (userId: string, blockedUserId: string) => {
-  const userRef = doc(db, 'users', userId);
-  return updateDoc(userRef, {
-    blockedUsers: arrayUnion(blockedUserId)
-  });
-};
-
-export const unblockUser = async (userId: string, blockedUserId: string) => {
-  const userRef = doc(db, 'users', userId);
-  return updateDoc(userRef, {
-    blockedUsers: arrayRemove(blockedUserId)
-  });
-};
-
-export const getBlockedUsers = async (userId: string) => {
-  const userDoc = await getDoc(doc(db, 'users', userId));
-  if (userDoc.exists()) {
-    return userDoc.data().blockedUsers || [];
-  }
-  return [];
-};
-
-// Reporting functions
-export const reportUser = async (reporterId: string, reportedUserId: string, reason: string, details?: string) => {
-  const reportsRef = collection(db, 'reports');
-  const newReportRef = doc(reportsRef);
-  return setDoc(newReportRef, {
-    reporterId,
-    reportedUserId,
-    reason,
-    details,
-    status: 'pending',
-    createdAt: serverTimestamp()
-  });
-};
-
-// Image upload functions
-export const uploadImage = async (userId: string, file: File, chatId?: string) => {
-  const imageRef = storageRef(storage, `images/${userId}/${Date.now()}_${file.name}`);
-  const snapshot = await uploadBytes(imageRef, file);
-  const downloadURL = await getDownloadURL(snapshot.ref);
-  
-  // Update user's image count in Firestore if not VIP
-  const userRef = doc(db, 'users', userId);
-  const userDoc = await getDoc(userRef);
-  
-  if (userDoc.exists() && !userDoc.data().isVip) {
-    await updateDoc(userRef, {
-      imagesRemaining: Math.max(0, (userDoc.data().imagesRemaining || 15) - 1)
-    });
-  }
-  
-  return downloadURL;
-};
-
-// Subscription related functions
-export const createSubscription = async (userId: string, plan: string, endDate: Date) => {
-  const subscriptionRef = doc(db, 'subscriptions', userId);
-  return setDoc(subscriptionRef, {
-    userId,
-    plan,
-    startDate: serverTimestamp(),
-    endDate,
-    status: 'active',
-    features: {
-      unlimitedImages: true,
-      voiceMessages: true,
-      readReceipts: true
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (userDoc.exists()) {
+      return { id: userDoc.id, ...userDoc.data() };
+    } else {
+      return null;
     }
-  });
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    throw error;
+  }
 };
 
-export const getSubscription = async (userId: string) => {
-  const subscriptionRef = doc(db, 'subscriptions', userId);
-  const docSnap = await getDoc(subscriptionRef);
-  return docSnap.exists() ? docSnap.data() : null;
+export const createUserProfile = async (userId: string, userData: any) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await setDoc(userRef, {
+      ...userData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return true;
+  } catch (error) {
+    console.error('Error creating user profile:', error);
+    throw error;
+  }
 };
 
-export const cancelSubscription = async (userId: string) => {
-  const subscriptionRef = doc(db, 'subscriptions', userId);
-  return updateDoc(subscriptionRef, {
-    status: 'cancelled',
-    cancelledAt: serverTimestamp()
-  });
+export const updateUserProfile = async (userId: string, userData: any) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      ...userData,
+      updatedAt: serverTimestamp(),
+    });
+    return true;
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    throw error;
+  }
+};
+
+// Report related functions
+export const submitReport = async (reportData: any) => {
+  try {
+    const currentUser = auth.currentUser;
+    
+    if (!currentUser) {
+      throw new Error('User not authenticated');
+    }
+    
+    const reportRef = await addDoc(collection(db, 'reports'), {
+      ...reportData,
+      reporterId: currentUser.uid,
+      reporterEmail: currentUser.email,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+    });
+    
+    return reportRef.id;
+  } catch (error) {
+    console.error('Error submitting report:', error);
+    throw error;
+  }
+};
+
+// Blocked users related functions
+export const blockUser = async (blockedUserId: string) => {
+  try {
+    const currentUser = auth.currentUser;
+    
+    if (!currentUser) {
+      throw new Error('User not authenticated');
+    }
+    
+    const blockRef = doc(db, 'users', currentUser.uid, 'blockedUsers', blockedUserId);
+    await setDoc(blockRef, {
+      blockedAt: serverTimestamp(),
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error blocking user:', error);
+    throw error;
+  }
+};
+
+export const unblockUser = async (blockedUserId: string) => {
+  try {
+    const currentUser = auth.currentUser;
+    
+    if (!currentUser) {
+      throw new Error('User not authenticated');
+    }
+    
+    const blockRef = doc(db, 'users', currentUser.uid, 'blockedUsers', blockedUserId);
+    await deleteDoc(blockRef);
+    
+    return true;
+  } catch (error) {
+    console.error('Error unblocking user:', error);
+    throw error;
+  }
+};
+
+export const getBlockedUsers = async () => {
+  try {
+    const currentUser = auth.currentUser;
+    
+    if (!currentUser) {
+      throw new Error('User not authenticated');
+    }
+    
+    const blockedRef = collection(db, 'users', currentUser.uid, 'blockedUsers');
+    const snapshot = await getDocs(blockedRef);
+    
+    return snapshot.docs.map(doc => doc.id);
+  } catch (error) {
+    console.error('Error getting blocked users:', error);
+    throw error;
+  }
+};
+
+// Image upload function
+export const uploadImage = async (file: File, path: string): Promise<string> => {
+  try {
+    const storageRef = ref(storage, path);
+    const snapshot = await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    
+    return downloadURL;
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    throw error;
+  }
 };
