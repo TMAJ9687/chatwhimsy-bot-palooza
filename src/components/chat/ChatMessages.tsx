@@ -1,8 +1,9 @@
 
-import React, { useRef, useEffect, useCallback, memo } from 'react';
-import MessageBubble, { Message } from './MessageBubble';
-import TypingIndicator from './TypingIndicator';
+import React, { useRef, memo } from 'react';
+import { Message } from './MessageBubble';
 import { useUser } from '@/context/UserContext';
+import MessageList from './MessageList';
+import { useScrollToBottom } from '@/hooks/useScrollToBottom';
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -17,41 +18,27 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   showStatus = true,
   showTyping = true
 }) => {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { isVip } = useUser();
+  const { endRef } = useScrollToBottom([messages, isTyping]);
   
-  // Optimized scroll to bottom implementation
-  const scrollToBottom = useCallback(() => {
-    if (!messagesEndRef.current) return;
-    
-    // Use scrollIntoView with a simpler configuration
-    messagesEndRef.current.scrollIntoView({ block: 'end', behavior: 'smooth' });
-  }, []);
-
-  // Scroll to bottom when messages change or typing status changes
-  useEffect(() => {
-    // Small timeout to ensure DOM is updated
-    const timeoutId = setTimeout(scrollToBottom, 0);
-    return () => clearTimeout(timeoutId);
-  }, [messages, isTyping, scrollToBottom]);
+  // Only show status and typing indicators for VIP users
+  const shouldShowStatus = isVip && showStatus;
+  const shouldShowTyping = isVip && showTyping;
 
   return (
     <div 
       ref={containerRef}
       className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900"
     >
-      {messages?.map((message) => (
-        <MessageBubble 
-          key={message.id} 
-          message={message}
-          showStatus={isVip && showStatus}
-        />
-      ))}
+      <MessageList 
+        messages={messages}
+        isTyping={isTyping}
+        showStatus={shouldShowStatus}
+        showTyping={shouldShowTyping}
+      />
       
-      {isTyping && showTyping && isVip && <TypingIndicator />}
-      
-      <div ref={messagesEndRef} />
+      <div ref={endRef} />
     </div>
   );
 };
