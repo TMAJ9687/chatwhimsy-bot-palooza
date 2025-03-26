@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Check, Database, RefreshCcw, AlertTriangle, Lock } from 'lucide-react';
+import { Check, Database, RefreshCcw, AlertTriangle, Lock, ExternalLink } from 'lucide-react';
 import { initializeFirebaseData } from '@/services/firebaseAuth';
 import { ensureDatabasePermissions } from '@/lib/firebase';
 import { auth } from '@/lib/firebase';
 import { signInAnonymously } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 const DatabaseInitializer = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -14,18 +16,40 @@ const DatabaseInitializer = () => {
   const [error, setError] = useState<string | null>(null);
   const [permissionsChecked, setPermissionsChecked] = useState(false);
   const [permissionsOk, setPermissionsOk] = useState(false);
+  const [checkingPermissions, setCheckingPermissions] = useState(false);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    const checkPermissions = async () => {
+  const checkPermissions = async () => {
+    setCheckingPermissions(true);
+    try {
       const result = await ensureDatabasePermissions();
       setPermissionsChecked(true);
       setPermissionsOk(result);
       
       if (!result) {
         setError("Firebase permissions issue detected. Please check your Firebase Console and ensure that your rules allow read/write access during development.");
+        toast({
+          title: "Permission Error",
+          description: "Firebase permissions need to be updated in the Firebase Console.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Permissions Verified",
+          description: "Firebase database permissions are correctly configured.",
+          variant: "default"
+        });
       }
-    };
-    
+    } catch (err) {
+      setPermissionsChecked(true);
+      setPermissionsOk(false);
+      setError("Error checking permissions: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setCheckingPermissions(false);
+    }
+  };
+  
+  useEffect(() => {
     checkPermissions();
   }, []);
 
@@ -43,13 +67,41 @@ const DatabaseInitializer = () => {
       
       if (!result.success) {
         setError(result.error || 'Failed to initialize database');
+        toast({
+          title: "Initialization Failed",
+          description: result.error || 'Failed to initialize database',
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Success!",
+          description: "Firebase database initialized successfully with test data.",
+          variant: "default"
+        });
       }
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred');
       setResult(null);
+      toast({
+        title: "Error",
+        description: err.message || 'An unexpected error occurred',
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const openFirebaseConsole = () => {
+    window.open('https://console.firebase.google.com/', '_blank');
+  };
+
+  const handleRetry = () => {
+    setPermissionsChecked(false);
+    setPermissionsOk(false);
+    setError(null);
+    setResult(null);
+    checkPermissions();
   };
 
   return (
@@ -65,7 +117,7 @@ const DatabaseInitializer = () => {
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {!permissionsChecked && (
+        {checkingPermissions && (
           <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-900">
             <RefreshCcw className="h-4 w-4 animate-spin" />
             <AlertTitle>Checking Firebase permissions...</AlertTitle>
@@ -102,11 +154,32 @@ service cloud.firestore {
                 </pre>
               </div>
               <p className="mt-2 text-sm font-medium">Important: This is only for development. Use proper security rules in production!</p>
+              
+              <div className="mt-4 flex space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={openFirebaseConsole}
+                  className="flex items-center gap-1"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Open Firebase Console
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  onClick={handleRetry}
+                  className="flex items-center gap-1"
+                >
+                  <RefreshCcw className="h-3 w-3" />
+                  Check Again
+                </Button>
+              </div>
             </AlertDescription>
           </Alert>
         )}
         
-        {error && (
+        {error && error !== "Firebase permissions issue detected. Please check your Firebase Console and ensure that your rules allow read/write access during development." && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
