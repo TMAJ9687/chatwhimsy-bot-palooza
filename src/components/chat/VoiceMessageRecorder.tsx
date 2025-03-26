@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Mic, MicOff, Send, X, Pause, Play } from 'lucide-react';
+import { Mic, MicOff, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { validateVoiceMessage } from '@/utils/messageUtils';
@@ -207,7 +207,7 @@ const VoiceMessageRecorder: React.FC<VoiceMessageRecorderProps> = ({
               variant="outline"
               onClick={isPaused ? resumeRecording : pauseRecording}
             >
-              {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+              {isPaused ? 'Resume' : 'Pause'}
             </Button>
             
             <Button

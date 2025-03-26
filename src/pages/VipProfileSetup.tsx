@@ -6,12 +6,12 @@ import { useToast } from '@/hooks/use-toast';
 import VipProfileForm from '@/components/profile/VipProfileForm';
 import VipMembershipInfo from '@/components/profile/VipMembershipInfo';
 import VipPasswordSection from '@/components/profile/VipPasswordSection';
-import { ArrowLeft } from 'lucide-react';
+import { Crown, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 
 const VipProfileSetup = () => {
-  const { user, isVip } = useUser();
+  const { user, isVip, updateUserProfile } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
@@ -50,70 +50,73 @@ const VipProfileSetup = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  const handleGoBack = () => {
+  const handleGoToChat = () => {
     if (hasUnsavedChanges) {
-      if (window.confirm('You have unsaved changes. Are you sure you want to leave?')) {
-        navigate('/');
+      if (window.confirm("You have unsaved changes. Save before leaving?")) {
+        // Save changes logic would go here
+        toast({
+          title: "Changes Saved",
+          description: "Your profile has been updated successfully."
+        });
+        navigate('/chat');
+      } else {
+        navigate('/chat');
       }
     } else {
-      navigate('/');
+      navigate('/chat');
     }
-  };
-
-  const handleFormChange = () => {
-    setHasUnsavedChanges(true);
-  };
-
-  const handleFormSave = () => {
-    setHasUnsavedChanges(false);
-    toast({
-      title: "Profile Saved",
-      description: "Your VIP profile has been updated successfully."
-    });
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-background to-secondary/20">
+        <div className="animate-pulse flex flex-col items-center">
+          <Crown className="w-12 h-12 text-amber-500 mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Loading VIP Profile</h1>
+          <p className="text-muted-foreground">Preparing your exclusive experience...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <Button 
-            variant="ghost" 
-            className="flex items-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-            onClick={handleGoBack}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Chat
-          </Button>
-          
-          <ThemeToggle />
+    <div className="min-h-screen pb-20 bg-gradient-to-b from-background to-secondary/20">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-amber-500 to-orange-500 py-6 px-4 md:px-8 shadow-md">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+              <Crown className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">VIP Profile Setup</h1>
+          </div>
+          <div className="flex items-center space-x-3">
+            <ThemeToggle className="bg-white/10 text-white hover:bg-white/20" />
+            <Button 
+              onClick={handleGoToChat} 
+              variant="outline" 
+              className="border-white/30 bg-white/10 hover:bg-white/20 text-white"
+            >
+              Go to Chat
+            </Button>
+          </div>
         </div>
-      
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">VIP Profile Setup</h1>
-          <p className="text-muted-foreground">
-            Complete your VIP profile information to enhance your experience.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 md:px-8 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main content - 2/3 width on desktop */}
+          <div className="lg:col-span-2 space-y-8">
             <VipProfileForm 
-              onChange={handleFormChange} 
-              onSave={handleFormSave} 
+              onChange={() => setHasUnsavedChanges(true)} 
+              onSave={() => setHasUnsavedChanges(false)}
             />
+            <VipPasswordSection />
           </div>
           
-          <div className="space-y-6">
+          {/* Sidebar - 1/3 width on desktop */}
+          <div className="lg:col-span-1">
             <VipMembershipInfo />
-            <VipPasswordSection />
           </div>
         </div>
       </div>

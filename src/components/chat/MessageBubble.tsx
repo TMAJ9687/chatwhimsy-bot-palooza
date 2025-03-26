@@ -1,27 +1,28 @@
 
 import React, { useState } from 'react';
-import { Check, Clock, Eye, EyeOff, Maximize, X, MessageSquareQuote } from 'lucide-react';
-import MessageActions from './MessageActions';
-import { Message } from '@/types/chat';
+import { Check, Clock, Eye, EyeOff, Maximize, X } from 'lucide-react';
+
+export interface Message {
+  id: string;
+  content: string;
+  sender: 'user' | 'bot' | 'system';
+  timestamp: Date;
+  status?: 'sending' | 'sent' | 'delivered' | 'read';
+  isImage?: boolean;
+}
 
 interface MessageBubbleProps {
   message: Message;
   isLastInGroup?: boolean;
   showStatus?: boolean;
-  onReply?: (message: Message) => void;
-  onUnsend?: (messageId: string) => void;
-  isVip?: boolean;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ 
   message, 
   isLastInGroup = false,
-  showStatus = true,
-  onReply,
-  onUnsend,
-  isVip = false
+  showStatus = true
 }) => {
-  const { sender, content, timestamp, status, isImage, isVoiceMessage, replyToContent, replyToSender } = message;
+  const { sender, content, timestamp, status, isImage } = message;
   const isUser = sender === 'user';
   
   const [isBlurred, setIsBlurred] = useState(isImage ? true : false);
@@ -111,32 +112,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     );
   };
 
-  // Render voice message
-  const renderVoiceMessage = () => {
-    return (
-      <audio controls className="w-full max-w-[250px]">
-        <source src={content} type="audio/webm" />
-        Your browser does not support the audio element.
-      </audio>
-    );
-  };
-
   return (
-    <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5 group relative`}>
-      {/* Reply preview (if this is a reply) */}
-      {replyToContent && (
-        <div 
-          className={`flex items-center gap-1 mb-1 px-2 py-1 rounded-md text-xs 
-            ${isUser 
-              ? 'mr-3 bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200' 
-              : 'ml-3 bg-gray-100 dark:bg-gray-800/70 text-gray-700 dark:text-gray-300'}`}
-        >
-          <MessageSquareQuote className="h-3 w-3 flex-shrink-0" />
-          <span className="font-medium">{replyToSender === 'user' ? 'You' : 'Bot'}:</span>
-          <span className="truncate max-w-[150px]">{replyToContent}</span>
-        </div>
-      )}
-
+    <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}>
       <div
         className={`
           relative px-3 py-2 rounded-2xl max-w-[80%]
@@ -205,24 +182,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               </div>
             )}
           </div>
-        ) : isVoiceMessage ? (
-          renderVoiceMessage()
         ) : (
           renderContent()
         )}
       </div>
-      
-      {/* Message actions for VIP users */}
-      {isVip && (
-        <div className="absolute top-0 right-0 transform translate-x-1 -translate-y-1">
-          <MessageActions 
-            message={message}
-            isVip={isVip}
-            onReply={onReply}
-            onUnsend={onUnsend}
-          />
-        </div>
-      )}
       
       {isLastInGroup && showStatus && (
         <div className={`flex items-center mt-0.5 text-xs text-gray-500 dark:text-gray-400 ${isUser ? 'mr-1' : 'ml-1'}`}>

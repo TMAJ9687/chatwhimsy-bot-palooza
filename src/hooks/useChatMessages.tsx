@@ -1,10 +1,14 @@
-import { useState, useCallback, useRef } from 'react';
-import { Message, Bot, MessageStatus } from '@/types/chat';
-import { getRandomBotResponse } from '@/utils/botUtils';
-import { trackImageUpload, getRemainingUploads, IMAGE_UPLOAD_LIMIT } from '@/utils/imageUploadLimiter';
-import { MAX_CHAR_LIMIT } from '@/utils/messageUtils';
 
-const VOICE_MESSAGE_LIMIT = 5; // Default limit for non-VIP users
+import { useState, useCallback, useRef } from 'react';
+import { Message, Bot } from '@/types/chat';
+import { getRandomBotResponse } from '@/utils/botUtils';
+import { 
+  trackImageUpload, 
+  getRemainingUploads, 
+  IMAGE_UPLOAD_LIMIT 
+} from '@/utils/imageUploadLimiter';
+
+const VOICE_MESSAGE_LIMIT = 5; // Standard users can send 5 voice messages per day
 
 export const useChatMessages = (isVip: boolean, onNewNotification: (botId: string, content: string, botName: string) => void) => {
   const [userChats, setUserChats] = useState<Record<string, Message[]>>({});
@@ -51,7 +55,7 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
 
     if (isVip) {
       setTimeout(() => updateMessageStatus('sent'), 500);
-      setTimeout(() => updateMessageStatus('delivered'), 1500);
+      setTimeout(() => updateMessageStatus('delivered'), 1000);
     }
     
     setTimeout(() => {
@@ -95,15 +99,9 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
   const handleSendTextMessage = useCallback((text: string, currentBotId: string, botName: string) => {
     const currentMessages = userChats[currentBotId] || [];
     
-    // Apply character limit for non-VIP users
-    let messageContent = text;
-    if (!isVip && text.length > MAX_CHAR_LIMIT) {
-      messageContent = text.substring(0, MAX_CHAR_LIMIT);
-    }
-    
     const newMessage: Message = {
       id: `user-${Date.now()}`,
-      content: messageContent,
+      content: text,
       sender: 'user',
       timestamp: new Date(),
       status: 'sending',
@@ -115,7 +113,7 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
     }));
 
     return newMessage.id;
-  }, [userChats, isVip]);
+  }, [userChats]);
 
   const handleSendImageMessage = useCallback(async (imageDataUrl: string, currentBotId: string) => {
     const currentMessages = userChats[currentBotId] || [];
@@ -134,6 +132,7 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
       [currentBotId]: [...currentMessages, newMessage]
     }));
     
+    // Only track image uploads for non-VIP users
     if (!isVip) {
       try {
         const remaining = await trackImageUpload();
@@ -147,8 +146,10 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
   }, [userChats, isVip]);
 
   const handleSendVoiceMessage = useCallback(async (audioBlob: Blob, currentBotId: string) => {
-    const audioUrl = URL.createObjectURL(audioBlob);
     const currentMessages = userChats[currentBotId] || [];
+    
+    // Convert blob to data URL
+    const audioUrl = URL.createObjectURL(audioBlob);
     
     const newMessage: Message = {
       id: `user-${Date.now()}`,
@@ -164,7 +165,7 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
       [currentBotId]: [...currentMessages, newMessage]
     }));
     
-    // Decrease voice message count for non-VIP users
+    // Only decrement voice messages for non-VIP users
     if (!isVip) {
       setVoiceMessagesRemaining(prev => Math.max(0, prev - 1));
     }
@@ -172,52 +173,37 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
     return newMessage.id;
   }, [userChats, isVip]);
 
-  const handleReplyToMessage = useCallback((message: Message, replyText: string, currentBotId: string) => {
+  const handleSendGifMessage = useCallback(async (gifUrl: string, currentBotId: string) => {
     const currentMessages = userChats[currentBotId] || [];
-    
-    // Apply character limit for non-VIP users
-    let messageContent = replyText;
-    if (!isVip && replyText.length > MAX_CHAR_LIMIT) {
-      messageContent = replyText.substring(0, MAX_CHAR_LIMIT);
-    }
     
     const newMessage: Message = {
       id: `user-${Date.now()}`,
-      content: messageContent,
+      content: gifUrl,
       sender: 'user',
       timestamp: new Date(),
       status: 'sending',
-      replyToId: message.id,
-      replyToContent: message.content.substring(0, 50) + (message.content.length > 50 ? '...' : ''),
-      replyToSender: message.sender === 'system' ? 'bot' : message.sender,
+      isImage: true,
+      isGif: true,
     };
     
     setUserChats(prev => ({
       ...prev,
       [currentBotId]: [...currentMessages, newMessage]
     }));
-
+    
     return newMessage.id;
-  }, [userChats, isVip]);
-
-  const handleUnsendMessage = useCallback((messageId: string, currentBotId: string) => {
-    setUserChats(prev => {
-      const botMessages = [...(prev[currentBotId] || [])];
-      
-      // Filter out the unsent message
-      const updatedMessages = botMessages.filter(msg => msg.id !== messageId);
-      
-      return {
-        ...prev,
-        [currentBotId]: updatedMessages
-      };
-    });
-  }, []);
+  }, [userChats]);
 
   const handleDeleteConversation = useCallback((botId: string) => {
     setUserChats(prev => {
       const newChats = { ...prev };
-      delete newChats[botId];
+      // Reset conversation for the bot
+      newChats[botId] = [{
+        id: `system-${Date.now()}`,
+        content: `Conversation deleted`,
+        sender: 'system',
+        timestamp: new Date(),
+      }];
       return newChats;
     });
   }, []);
@@ -231,7 +217,7 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
         console.error('Error fetching remaining uploads:', error);
       }
     } else {
-      // VIP users have unlimited images
+      // VIP users have unlimited uploads
       setImagesRemaining(Infinity);
     }
   }, [isVip]);
@@ -247,8 +233,7 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
     handleSendTextMessage,
     handleSendImageMessage,
     handleSendVoiceMessage,
-    handleReplyToMessage,
-    handleUnsendMessage,
+    handleSendGifMessage,
     handleDeleteConversation,
     initializeImageRemaining
   };

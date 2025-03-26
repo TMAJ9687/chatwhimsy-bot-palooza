@@ -62,8 +62,7 @@ export const useChatState = (isVip: boolean) => {
     handleSendTextMessage,
     handleSendImageMessage,
     handleSendVoiceMessage,
-    handleReplyToMessage,
-    handleUnsendMessage,
+    handleSendGifMessage,
     handleDeleteConversation,
     initializeImageRemaining
   } = useChatMessages(isVip, handleNewNotification);
@@ -91,6 +90,13 @@ export const useChatState = (isVip: boolean) => {
   useEffect(() => {
     initializeImageRemaining();
   }, [initializeImageRemaining]);
+
+  // If the user is VIP, mark rules as accepted automatically
+  useEffect(() => {
+    if (isVip && !rulesAccepted) {
+      setRulesAccepted(true);
+    }
+  }, [isVip, rulesAccepted, setRulesAccepted]);
 
   // Handle blocking a user
   const handleBlockUser = useCallback((userId: string) => {
@@ -160,39 +166,21 @@ export const useChatState = (isVip: boolean) => {
     simulateBotResponse(messageId, currentBot.id);
   }, [currentBot.id, currentBot.name, handleSendVoiceMessage, addHistoryItem, simulateBotResponse]);
 
-  // Handle replying to a message
-  const handleReplyToMessageWrapper = useCallback((message: Message) => {
-    // In a real implementation, you would show a UI for the user to type their reply
-    // For now, we'll just simulate a reply with a placeholder text
-    const replyText = `Replying to: "${message.content.substring(0, 20)}..."`;
-    const messageId = handleReplyToMessage(message, replyText, currentBot.id);
+  // Handle sending a GIF message
+  const handleSendGifMessageWrapper = useCallback(async (gifUrl: string) => {
+    const messageId = await handleSendGifMessage(gifUrl, currentBot.id);
     
     const newNotification: Notification = {
       id: Date.now().toString(),
-      title: `Reply sent to ${currentBot.name}`,
-      message: replyText.slice(0, 30) + (replyText.length > 30 ? '...' : ''),
+      title: `GIF sent to ${currentBot.name}`,
+      message: 'You sent a GIF',
       time: new Date(),
       read: true
     };
     
     addHistoryItem(newNotification);
     simulateBotResponse(messageId, currentBot.id);
-  }, [currentBot.id, currentBot.name, handleReplyToMessage, addHistoryItem, simulateBotResponse]);
-
-  // Handle unsending a message
-  const handleUnsendMessageWrapper = useCallback((messageId: string) => {
-    handleUnsendMessage(messageId, currentBot.id);
-    
-    const newNotification: Notification = {
-      id: Date.now().toString(),
-      title: `Message unsent`,
-      message: 'You unsent a message',
-      time: new Date(),
-      read: true
-    };
-    
-    addHistoryItem(newNotification);
-  }, [currentBot.id, handleUnsendMessage, addHistoryItem]);
+  }, [currentBot.id, currentBot.name, handleSendGifMessage, addHistoryItem, simulateBotResponse]);
 
   // Handle deleting a conversation
   const handleDeleteConversationWrapper = useCallback((botId: string) => {
@@ -200,14 +188,14 @@ export const useChatState = (isVip: boolean) => {
     
     const newNotification: Notification = {
       id: Date.now().toString(),
-      title: `Conversation deleted`,
-      message: 'You deleted a conversation',
+      title: `Conversation with ${currentBot.name} deleted`,
+      message: 'You deleted the conversation',
       time: new Date(),
       read: true
     };
     
     addHistoryItem(newNotification);
-  }, [handleDeleteConversation, addHistoryItem]);
+  }, [currentBot.name, handleDeleteConversation, addHistoryItem]);
 
   // Enhanced select user to init chat as well
   const selectUserWithChat = useCallback((user: Bot) => {
@@ -246,8 +234,7 @@ export const useChatState = (isVip: boolean) => {
     handleSendTextMessage: handleSendTextMessageWrapper,
     handleSendImageMessage: handleSendImageMessageWrapper,
     handleSendVoiceMessage: handleSendVoiceMessageWrapper,
-    handleReplyToMessage: handleReplyToMessageWrapper,
-    handleUnsendMessage: handleUnsendMessageWrapper,
+    handleSendGifMessage: handleSendGifMessageWrapper,
     handleDeleteConversation: handleDeleteConversationWrapper,
     selectUser: selectUserWithChat,
     handleFilterChange,

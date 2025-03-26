@@ -14,12 +14,11 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { User, Calendar, MapPin, Heart, Save, Check, AlertTriangle } from 'lucide-react';
+import { User, Calendar, MapPin, Heart, Save, Check } from 'lucide-react';
 import { countries } from '@/data/countries';
-import { validateUsername } from '@/utils/messageUtils';
 
 const profileFormSchema = z.object({
-  gender: z.enum(['male', 'female'], {
+  gender: z.enum(['male', 'female', 'other'], {
     required_error: "Please select a gender",
   }),
   age: z.string().min(1, "Age is required"),
@@ -66,13 +65,11 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
   const { user, updateUserProfile } = useUser();
   const { toast } = useToast();
   const [selectedAvatar, setSelectedAvatar] = useState('avatar1');
-  const [nickname, setNickname] = useState(user?.nickname || 'VIP User');
-  const [nicknameError, setNicknameError] = useState<string | null>(null);
   
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      gender: user?.gender === 'male' || user?.gender === 'female' ? user.gender : 'male',
+      gender: user?.gender || 'male',
       age: user?.age?.toString() || '25',
       country: user?.country || 'us',
       interests: user?.interests || [],
@@ -88,7 +85,7 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
       if (storedData) {
         const userData = JSON.parse(storedData);
         form.reset({
-          gender: userData.gender === 'male' || userData.gender === 'female' ? userData.gender : 'male',
+          gender: userData.gender || 'male',
           age: userData.age?.toString() || '25',
           country: userData.country || 'us',
           interests: userData.interests || [],
@@ -96,14 +93,13 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
           avatarId: userData.avatarId || 'avatar1',
         });
         setSelectedAvatar(userData.avatarId || 'avatar1');
-        setNickname(userData.nickname || 'VIP User');
       } else {
         const sessionData = sessionStorage.getItem('vipUserProfile');
         
         if (sessionData) {
           const userData = JSON.parse(sessionData);
           form.reset({
-            gender: userData.gender === 'male' || userData.gender === 'female' ? userData.gender : 'male',
+            gender: userData.gender || 'male',
             age: userData.age?.toString() || '25',
             country: userData.country || 'us',
             interests: userData.interests || [],
@@ -111,65 +107,24 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
             avatarId: userData.avatarId || 'avatar1',
           });
           setSelectedAvatar(userData.avatarId || 'avatar1');
-          setNickname(userData.nickname || 'VIP User');
         }
       }
     };
     
     loadUserData();
-  }, [form, user?.nickname]);
-
-  const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    
-    // Check if nickname contains 'admin'
-    if (value.toLowerCase().includes('admin')) {
-      setNicknameError("Nickname cannot contain 'admin'");
-      return;
-    }
-    
-    // Check for consecutive characters (no more than 2 identical consecutive characters)
-    for (let i = 0; i < value.length - 2; i++) {
-      if (value[i] === value[i + 1] && value[i] === value[i + 2]) {
-        setNicknameError("Nickname cannot contain more than 2 consecutive identical characters");
-        return;
-      }
-    }
-    
-    // Check for max length
-    if (value.length > 22) {
-      setNicknameError("Nickname must be at most 22 characters");
-      return;
-    }
-    
-    // Clear any previous errors and update the nickname
-    setNicknameError(null);
-    setNickname(value);
-    onChange();
-  };
+  }, [form]);
 
   const onSubmit = (data: ProfileFormValues) => {
-    if (nicknameError) {
-      toast({
-        title: "Invalid Nickname",
-        description: nicknameError,
-        variant: "destructive",
-      });
-      return;
-    }
-    
     updateUserProfile({
       gender: data.gender,
       age: parseInt(data.age),
       country: data.country,
       interests: data.interests,
       isVip: true,
-      nickname,
     });
     
     const profileData = {
       ...data,
-      nickname,
       age: parseInt(data.age),
       avatarId: selectedAvatar,
       isVip: true,
@@ -199,21 +154,14 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
           <form onSubmit={form.handleSubmit(onSubmit)} onChange={onChange} className="space-y-6">
             <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
               <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Your VIP Nickname</FormLabel>
-              <div className="mt-1 flex flex-col">
+              <div className="mt-1 flex items-center">
                 <Input 
-                  value={nickname} 
-                  onChange={handleNicknameChange}
-                  className={`font-semibold border-amber-200 bg-white/50 ${nicknameError ? 'border-red-500' : ''}`}
-                  maxLength={22}
+                  value={user?.nickname || 'VIP User'} 
+                  className="font-semibold border-amber-200 bg-white/50"
+                  readOnly 
                 />
-                {nicknameError && (
-                  <div className="flex items-center gap-1 mt-1 text-red-500">
-                    <AlertTriangle className="h-4 w-4" />
-                    <p className="text-sm">{nicknameError}</p>
-                  </div>
-                )}
-                <div className="mt-1 text-xs text-gray-500">
-                  Up to 22 characters. No 'admin' or consecutive repeated characters.
+                <div className="ml-2 bg-amber-100 dark:bg-amber-800 px-2 py-1 rounded text-xs font-medium text-amber-800 dark:text-amber-200">
+                  Cannot be changed
                 </div>
               </div>
             </div>
@@ -239,6 +187,10 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="female" id="female" />
                         <FormLabel htmlFor="female" className="font-normal">Female</FormLabel>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="other" id="other" />
+                        <FormLabel htmlFor="other" className="font-normal">Other</FormLabel>
                       </div>
                     </RadioGroup>
                   </FormControl>

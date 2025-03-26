@@ -1,10 +1,13 @@
 
 import { toast } from "@/hooks/use-toast";
 
+// Standard user limits
 const MAX_CHAR_LIMIT = 120;
+const VIP_CHAR_LIMIT = 200;
 const CONSECUTIVE_LIMIT = 3;
+const VIP_CONSECUTIVE_CHAR_LIMIT = 6;
 
-export { MAX_CHAR_LIMIT, CONSECUTIVE_LIMIT };
+export { MAX_CHAR_LIMIT, CONSECUTIVE_LIMIT, VIP_CHAR_LIMIT, VIP_CONSECUTIVE_CHAR_LIMIT };
 
 export const validateImageFile = (file: File): { valid: boolean; message?: string } => {
   // Check file type
@@ -26,16 +29,50 @@ export const validateImageFile = (file: File): { valid: boolean; message?: strin
   return { valid: true };
 };
 
+export const validateGifFile = (file: File): { valid: boolean; message?: string } => {
+  // Check if it's a GIF
+  if (file.type !== 'image/gif') {
+    return {
+      valid: false,
+      message: "Please select a GIF file."
+    };
+  }
+  
+  // Check file size (8MB limit for GIFs)
+  if (file.size > 8 * 1024 * 1024) {
+    return {
+      valid: false,
+      message: "GIF size should be less than 8MB."
+    };
+  }
+  
+  return { valid: true };
+};
+
+export const validateVoiceMessage = (duration: number): { valid: boolean; message?: string } => {
+  // 2 minutes = 120 seconds
+  if (duration > 120) {
+    return {
+      valid: false,
+      message: "Voice messages are limited to 2 minutes."
+    };
+  }
+  
+  return { valid: true };
+};
+
 export const checkCharacterLimit = (
   text: string, 
   isVip: boolean, 
   showToast: boolean = true
 ): boolean => {
-  if (!isVip && text.length > MAX_CHAR_LIMIT) {
+  const limit = isVip ? VIP_CHAR_LIMIT : MAX_CHAR_LIMIT;
+  
+  if (text.length > limit) {
     if (showToast) {
       toast({
         title: "Character limit reached",
-        description: `Messages are limited to ${MAX_CHAR_LIMIT} characters. Upgrade to VIP for unlimited messaging.`,
+        description: `Messages are limited to ${limit} characters. ${!isVip ? 'Upgrade to VIP for increased limit.' : ''}`,
         duration: 3000
       });
     }
@@ -44,12 +81,14 @@ export const checkCharacterLimit = (
   return true;
 };
 
-export const hasConsecutiveChars = (text: string): boolean => {
+export const hasConsecutiveChars = (text: string, isVip: boolean = false): boolean => {
   if (!text) return false;
   
-  for (let i = 0; i <= text.length - CONSECUTIVE_LIMIT; i++) {
+  const limit = isVip ? VIP_CONSECUTIVE_CHAR_LIMIT : CONSECUTIVE_LIMIT;
+  
+  for (let i = 0; i <= text.length - limit; i++) {
     let isConsecutive = true;
-    for (let j = 1; j < CONSECUTIVE_LIMIT; j++) {
+    for (let j = 1; j < limit; j++) {
       if (text[i] !== text[i + j]) {
         isConsecutive = false;
         break;
@@ -60,49 +99,56 @@ export const hasConsecutiveChars = (text: string): boolean => {
   return false;
 };
 
-export const validateVoiceMessage = (durationInSeconds: number): { valid: boolean; message?: string } => {
-  if (durationInSeconds < 1) {
-    return {
-      valid: false,
-      message: "Voice message is too short. Please record a longer message."
+export const validateUsername = (username: string, isVip: boolean): { valid: boolean; message?: string } => {
+  if (!username) {
+    return { valid: false, message: "Username is required" };
+  }
+  
+  // Check length based on user type
+  const maxLength = isVip ? 22 : 15;
+  if (username.length > maxLength) {
+    return { 
+      valid: false, 
+      message: `Username must be at most ${maxLength} characters long`
     };
   }
   
-  if (durationInSeconds > 120) {
-    return {
-      valid: false,
-      message: "Voice message cannot exceed 2 minutes."
+  // Check for alphanumeric characters
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    return { 
+      valid: false, 
+      message: "Username can only contain letters, numbers, and underscores" 
     };
   }
   
-  return { valid: true };
-};
-
-export const validateUsername = (username: string): { valid: boolean; message?: string } => {
-  // Check if username contains 'admin'
-  if (username.toLowerCase().includes('admin')) {
-    return {
-      valid: false,
-      message: "Username cannot contain 'admin'"
+  // Check for 'admin' in non-VIP usernames
+  if (!isVip && username.toLowerCase().includes('admin')) {
+    return { 
+      valid: false, 
+      message: "Username cannot contain 'admin'" 
     };
   }
   
-  // Check for consecutive characters (no more than 2 identical consecutive characters)
-  for (let i = 0; i < username.length - 2; i++) {
-    if (username[i] === username[i + 1] && username[i] === username[i + 2]) {
-      return {
-        valid: false,
-        message: "Username cannot contain more than 2 consecutive identical characters"
+  // Check for consecutive characters based on user type
+  const consecutiveLimit = isVip ? 2 : 3;
+  
+  for (let i = 0; i <= username.length - consecutiveLimit; i++) {
+    let isConsecutive = true;
+    for (let j = 1; j < consecutiveLimit; j++) {
+      if (username[i] !== username[i + j]) {
+        isConsecutive = false;
+        break;
+      }
+    }
+    if (isConsecutive && (
+      /[a-zA-Z]/.test(username[i]) || // If it's a letter
+      /[0-9]/.test(username[i])       // If it's a digit
+    )) {
+      return { 
+        valid: false, 
+        message: `Username cannot contain ${consecutiveLimit} consecutive identical letters or numbers` 
       };
     }
-  }
-  
-  // Check for length
-  if (username.length > 22) {
-    return {
-      valid: false,
-      message: "Username must be at most 22 characters"
-    };
   }
   
   return { valid: true };

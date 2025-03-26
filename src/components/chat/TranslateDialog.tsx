@@ -1,15 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose,
+  DialogClose
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { X, RotateCw } from 'lucide-react';
 
 interface TranslateDialogProps {
   isOpen: boolean;
@@ -17,8 +17,7 @@ interface TranslateDialogProps {
   originalText: string;
 }
 
-// Mock translation languages
-const languages = [
+const LANGUAGES = [
   { code: 'en', name: 'English' },
   { code: 'es', name: 'Spanish' },
   { code: 'fr', name: 'French' },
@@ -30,60 +29,41 @@ const languages = [
   { code: 'ja', name: 'Japanese' },
   { code: 'ko', name: 'Korean' },
   { code: 'ar', name: 'Arabic' },
+  { code: 'hi', name: 'Hindi' }
 ];
-
-// Mock translation function (in a real app, this would call an API)
-const translateText = async (text: string, targetLang: string): Promise<string> => {
-  // Simulate API call delay
-  await new Promise((resolve) => setTimeout(resolve, 700));
-  
-  // For demo purposes, we'll add a prefix to show it's "translated"
-  const translations: Record<string, string> = {
-    'es': '¡Hola! ' + text,
-    'fr': 'Bonjour! ' + text,
-    'de': 'Hallo! ' + text,
-    'it': 'Ciao! ' + text,
-    'pt': 'Olá! ' + text,
-    'ru': 'Привет! ' + text,
-    'zh': '你好！' + text,
-    'ja': 'こんにちは！' + text,
-    'ko': '안녕하세요! ' + text,
-    'ar': 'مرحبا! ' + text,
-    'en': text, // No change for English
-  };
-  
-  return translations[targetLang] || `[${targetLang}] ${text}`;
-};
 
 const TranslateDialog: React.FC<TranslateDialogProps> = ({
   isOpen,
   onClose,
-  originalText,
+  originalText
 }) => {
   const [targetLanguage, setTargetLanguage] = useState('es');
   const [translatedText, setTranslatedText] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
   
-  // Reset state when dialog opens or original text changes
-  useEffect(() => {
-    if (isOpen && originalText) {
-      handleTranslate();
-    }
-  }, [isOpen, originalText, targetLanguage]);
-  
-  const handleTranslate = async () => {
-    if (!originalText) return;
-    
+  const handleTranslate = () => {
     setIsTranslating(true);
-    try {
-      const result = await translateText(originalText, targetLanguage);
-      setTranslatedText(result);
-    } catch (error) {
-      console.error('Translation error:', error);
-      setTranslatedText('Error translating text. Please try again.');
-    } finally {
+    
+    // Simulate translation - in a real implementation, this would call a translation API
+    setTimeout(() => {
+      // This is a mock translation - in a real app, you would use a translation service
+      const mockTranslations: Record<string, string> = {
+        'es': 'Este es un texto traducido al español.',
+        'fr': 'Ceci est un texte traduit en français.',
+        'de': 'Dies ist ein ins Deutsche übersetzter Text.',
+        'it': 'Questo è un testo tradotto in italiano.',
+        'pt': 'Este é um texto traduzido para o português.',
+        'ru': 'Это текст, переведенный на русский язык.',
+        'zh': '这是翻译成中文的文本。',
+        'ja': 'これは日本語に翻訳されたテキストです。',
+        'ko': '이것은 한국어로 번역된 텍스트입니다.',
+        'ar': 'هذا نص مترجم إلى اللغة العربية.',
+        'hi': 'यह हिंदी में अनुवादित पाठ है।'
+      };
+      
+      setTranslatedText(mockTranslations[targetLanguage] || originalText);
       setIsTranslating(false);
-    }
+    }, 1000);
   };
   
   return (
@@ -91,26 +71,25 @@ const TranslateDialog: React.FC<TranslateDialogProps> = ({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Translate Message</DialogTitle>
-          <DialogClose />
+          <DialogClose className="absolute right-4 top-4">
+            <X className="h-4 w-4" />
+          </DialogClose>
         </DialogHeader>
         
         <div className="mt-4 space-y-4">
           <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-md">
             <div className="text-xs text-gray-500 mb-1">Original text:</div>
-            <p className="text-sm">{originalText}</p>
+            <div>{originalText}</div>
           </div>
           
           <div className="flex items-center gap-3">
             <div className="flex-1">
-              <Select 
-                value={targetLanguage} 
-                onValueChange={setTargetLanguage}
-              >
+              <Select value={targetLanguage} onValueChange={setTargetLanguage}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select language" />
                 </SelectTrigger>
                 <SelectContent>
-                  {languages.map((lang) => (
+                  {LANGUAGES.map(lang => (
                     <SelectItem key={lang.code} value={lang.code}>
                       {lang.name}
                     </SelectItem>
@@ -120,24 +99,23 @@ const TranslateDialog: React.FC<TranslateDialogProps> = ({
             </div>
             
             <Button 
-              onClick={handleTranslate}
+              onClick={handleTranslate} 
               disabled={isTranslating}
+              className="flex items-center gap-1"
             >
-              {isTranslating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isTranslating && <RotateCw className="h-4 w-4 animate-spin" />}
               Translate
             </Button>
           </div>
           
-          <div className="p-3 border border-gray-200 dark:border-gray-700 rounded-md min-h-20">
-            <div className="text-xs text-gray-500 mb-1">Translation ({languages.find(l => l.code === targetLanguage)?.name}):</div>
-            {isTranslating ? (
-              <div className="flex items-center justify-center h-16">
-                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+          {translatedText && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-md">
+              <div className="text-xs text-amber-600 dark:text-amber-400 mb-1">
+                Translated to {LANGUAGES.find(l => l.code === targetLanguage)?.name}:
               </div>
-            ) : (
-              <p className="text-sm">{translatedText}</p>
-            )}
-          </div>
+              <div>{translatedText}</div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

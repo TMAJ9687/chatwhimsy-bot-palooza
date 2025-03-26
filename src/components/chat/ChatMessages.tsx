@@ -1,26 +1,22 @@
 
 import React, { useRef, memo } from 'react';
+import { Message } from './MessageBubble';
 import { useUser } from '@/context/UserContext';
 import MessageList from './MessageList';
 import { useScrollToBottom } from '@/hooks/useScrollToBottom';
-import { Message } from '@/types/chat';
 
 interface ChatMessagesProps {
   messages: Message[];
   isTyping: boolean;
   showStatus?: boolean;
   showTyping?: boolean;
-  onReplyMessage?: (message: Message) => void;
-  onUnsendMessage?: (messageId: string) => void;
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({ 
   messages, 
   isTyping,
   showStatus = true,
-  showTyping = true,
-  onReplyMessage,
-  onUnsendMessage
+  showTyping = true
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { isVip } = useUser();
@@ -40,9 +36,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
         isTyping={isTyping}
         showStatus={shouldShowStatus}
         showTyping={shouldShowTyping}
-        isVip={isVip}
-        onReplyMessage={onReplyMessage}
-        onUnsendMessage={onUnsendMessage}
       />
       
       <div ref={endRef} />
