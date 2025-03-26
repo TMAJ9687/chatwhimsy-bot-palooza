@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +6,7 @@ import { Check, Database, RefreshCcw, AlertTriangle, Lock } from 'lucide-react';
 import { initializeFirebaseData } from '@/services/firebaseAuth';
 import { ensureDatabasePermissions } from '@/lib/firebase';
 import { auth } from '@/lib/firebase';
+import { signInAnonymously } from 'firebase/auth';
 
 const DatabaseInitializer = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -16,7 +16,6 @@ const DatabaseInitializer = () => {
   const [permissionsOk, setPermissionsOk] = useState(false);
 
   useEffect(() => {
-    // Check permissions on component mount
     const checkPermissions = async () => {
       const result = await ensureDatabasePermissions();
       setPermissionsChecked(true);
@@ -35,9 +34,8 @@ const DatabaseInitializer = () => {
     setError(null);
     
     try {
-      // Ensure user is signed in for testing
       if (!auth.currentUser) {
-        await auth.signInAnonymously();
+        await signInAnonymously(auth);
       }
       
       const result = await initializeFirebaseData();
