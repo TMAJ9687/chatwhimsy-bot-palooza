@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { 
   User, 
@@ -53,6 +54,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     initializeFirestore().catch(error => {
       console.error("Failed to initialize Firestore collections:", error);
+      // Don't block the app on collection initialization failure
     });
   }, []);
 
@@ -80,9 +82,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
           } else {
             // Update last seen
-            await updateDoc(userDocRef, {
-              lastSeen: serverTimestamp()
-            });
+            try {
+              await updateDoc(userDocRef, {
+                lastSeen: serverTimestamp()
+              });
+            } catch (error) {
+              console.error("Error updating last seen:", error);
+              // Continue even if last seen update fails
+            }
           }
         } catch (error) {
           console.error("Error checking/creating user document:", error);
@@ -97,6 +104,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signUp = async (email: string, password: string, nickname: string): Promise<User | null> => {
     try {
+      setIsLoading(true);
       const user = await registerUser(email, password, nickname);
       return user;
     } catch (error: any) {
@@ -106,11 +114,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         variant: "destructive"
       });
       return null;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const signIn = async (email: string, password: string): Promise<User | null> => {
     try {
+      setIsLoading(true);
       const user = await signInUser(email, password);
       return user;
     } catch (error: any) {
@@ -120,25 +131,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         variant: "destructive"
       });
       return null;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const signInWithNickname = async (nickname: string): Promise<User | null> => {
     try {
+      setIsLoading(true);
+      // Validate nickname
+      if (!nickname || nickname.trim().length === 0) {
+        throw new Error("Nickname cannot be empty");
+      }
+      
       const user = await signInAsGuest(nickname);
       return user;
     } catch (error: any) {
       toast({
         title: "Guest Sign In Failed",
-        description: error.message,
+        description: error.message || "Failed to sign in as guest",
         variant: "destructive"
       });
       return null;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const logOut = async (): Promise<void> => {
     try {
+      setIsLoading(true);
       await signOut(auth);
     } catch (error: any) {
       toast({
@@ -146,11 +168,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         description: error.message,
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const resetPassword = async (email: string): Promise<void> => {
     try {
+      setIsLoading(true);
       await sendPasswordResetEmail(auth, email);
       toast({
         title: "Reset Email Sent",
@@ -162,6 +187,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         description: error.message,
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 

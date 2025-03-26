@@ -39,10 +39,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
   }, [isLoading, currentUser, requireAuth, allowAnonymous, isAnonymous, toast]);
 
+  // Show loading indicator while authentication state is being determined
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+        <div className="flex flex-col items-center">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+          <p className="text-muted-foreground">Loading authentication...</p>
+        </div>
       </div>
     );
   }

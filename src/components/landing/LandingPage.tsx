@@ -6,19 +6,29 @@ import Logo from '../shared/Logo';
 import Button from '../shared/Button';
 import ProfileSetup from '../profile/ProfileSetup';
 import { useUser } from '../../context/UserContext';
+import { useAuth } from '@/context/FirebaseAuthContext';
 import ThemeToggle from '../shared/ThemeToggle';
 import { useDialog } from '@/context/DialogContext';
+import { useToast } from '@/hooks/use-toast';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { updateUserProfile } = useUser();
+  const { signInWithNickname, isLoading } = useAuth();
   const { openDialog } = useDialog();
+  const { toast } = useToast();
   const [step, setStep] = useState<'nickname' | 'profile'>('nickname');
   const [nickname, setNickname] = useState('');
   const [nicknameError, setNicknameError] = useState('');
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   // Function to validate nickname input
   const validateNickname = (value: string): boolean => {
+    if (!value.trim()) {
+      setNicknameError('Nickname is required');
+      return false;
+    }
+    
     if (value.length > 16) {
       setNicknameError('Nickname must be 16 characters or less');
       return false;
@@ -55,11 +65,36 @@ const LandingPage: React.FC = () => {
     validateNickname(newValue);
   };
 
-  const handleNicknameSelected = (selectedNickname: string) => {
+  const handleNicknameSelected = async (selectedNickname: string) => {
     if (validateNickname(selectedNickname)) {
       setNickname(selectedNickname);
-      updateUserProfile({ nickname: selectedNickname });
-      setStep('profile');
+      setIsAuthenticating(true);
+      
+      try {
+        // First sign in as a guest with the selected nickname
+        const user = await signInWithNickname(selectedNickname);
+        
+        if (user) {
+          // Update the user profile
+          await updateUserProfile({ nickname: selectedNickname });
+          setStep('profile');
+        } else {
+          toast({
+            title: "Authentication Error",
+            description: "Failed to create a guest account. Please try again.",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error("Authentication error:", error);
+        toast({
+          title: "Authentication Error",
+          description: "An unexpected error occurred. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsAuthenticating(false);
+      }
     }
   };
 
@@ -104,15 +139,15 @@ const LandingPage: React.FC = () => {
     return generatedNickname;
   };
   
-  const handleStartChat = () => {
+  const handleStartChat = async () => {
     if (nickname && !nicknameError) {
-      setStep('profile');
+      // Already have a valid nickname, proceed with authentication
+      await handleNicknameSelected(nickname);
     } else if (!nickname) {
-      // Generate nickname and then move to profile step
+      // Generate nickname and then authenticate
       const randomNickname = generateRandomNickname();
       setNickname(randomNickname);
-      updateUserProfile({ nickname: randomNickname });
-      setStep('profile');
+      await handleNicknameSelected(randomNickname);
     }
   };
 
@@ -175,6 +210,7 @@ const LandingPage: React.FC = () => {
                       className="px-4 py-2 text-lg font-medium flex-1 bg-transparent outline-none text-foreground"
                       placeholder="Enter a nickname"
                       maxLength={16}
+                      disabled={isAuthenticating || isLoading}
                     />
                     <div className="absolute right-16 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                       {nickname.length}/16
@@ -188,8 +224,9 @@ const LandingPage: React.FC = () => {
                         setNickname(newNickname);
                       }}
                       aria-label="Generate new nickname"
+                      disabled={isAuthenticating || isLoading}
                     >
-                      <RefreshCw className="h-5 w-5" />
+                      <RefreshCw className={`h-5 w-5 ${isAuthenticating ? 'animate-spin' : ''}`} />
                       <span className="sr-only">Refresh</span>
                     </Button>
                   </div>
@@ -204,9 +241,16 @@ const LandingPage: React.FC = () => {
                   size="lg"
                   className="bg-secondary text-white font-semibold py-3 rounded-lg w-full"
                   onClick={handleStartChat}
-                  disabled={!!nicknameError}
+                  disabled={!!nicknameError || isAuthenticating || isLoading}
                 >
-                  Start Chat
+                  {isAuthenticating || isLoading ? (
+                    <div className="flex items-center justify-center">
+                      <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+                      <span>Connecting...</span>
+                    </div>
+                  ) : (
+                    "Start Chat"
+                  )}
                 </Button>
               </div>
             ) : (
