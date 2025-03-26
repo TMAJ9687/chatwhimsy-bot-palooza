@@ -1,7 +1,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, collection, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getDatabase } from 'firebase/database';
 
@@ -25,5 +25,42 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const rtdb = getDatabase(app);
+
+// Collection references
+export const usersCollection = collection(db, 'users');
+export const chatsCollection = collection(db, 'chats');
+export const subscriptionsCollection = collection(db, 'subscriptions');
+export const reportsCollection = collection(db, 'reports');
+
+// Helper function to check if a collection exists and create it if it doesn't
+export const ensureCollectionExists = async (collectionName: string) => {
+  try {
+    // Try to get a document from the collection
+    const docRef = doc(db, collectionName, 'init');
+    const docSnap = await getDoc(docRef);
+    
+    // If the document doesn't exist, create it
+    if (!docSnap.exists()) {
+      await setDoc(docRef, {
+        initialized: true,
+        createdAt: serverTimestamp()
+      });
+      console.log(`Initialized ${collectionName} collection`);
+    }
+  } catch (error) {
+    console.error(`Error ensuring ${collectionName} collection exists:`, error);
+  }
+};
+
+// Initialize essential collections if they don't exist
+export const initializeFirestore = async () => {
+  await Promise.all([
+    ensureCollectionExists('users'),
+    ensureCollectionExists('chats'),
+    ensureCollectionExists('subscriptions'),
+    ensureCollectionExists('reports')
+  ]);
+  console.log('Firestore collections initialized');
+};
 
 export default app;
