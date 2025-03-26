@@ -3,11 +3,15 @@ import { useState, useCallback, useRef } from 'react';
 import { Message, Bot } from '@/types/chat';
 import { getRandomBotResponse } from '@/utils/botUtils';
 import { trackImageUpload, getRemainingUploads, IMAGE_UPLOAD_LIMIT } from '@/utils/imageUploadLimiter';
+import { MAX_CHAR_LIMIT } from '@/utils/messageUtils';
+
+const VOICE_MESSAGE_LIMIT = 5; // Default limit for non-VIP users
 
 export const useChatMessages = (isVip: boolean, onNewNotification: (botId: string, content: string, botName: string) => void) => {
   const [userChats, setUserChats] = useState<Record<string, Message[]>>({});
   const [typingBots, setTypingBots] = useState<Record<string, boolean>>({});
   const [imagesRemaining, setImagesRemaining] = useState(IMAGE_UPLOAD_LIMIT);
+  const [voiceMessagesRemaining, setVoiceMessagesRemaining] = useState(VOICE_MESSAGE_LIMIT);
   const currentBotIdRef = useRef<string>('');
 
   const setCurrentBotId = useCallback((botId: string) => {
@@ -48,7 +52,7 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
 
     if (isVip) {
       setTimeout(() => updateMessageStatus('sent'), 500);
-      setTimeout(() => updateMessageStatus('delivered'), 1000);
+      setTimeout(() => updateMessageStatus('delivered'), 1500);
     }
     
     setTimeout(() => {
@@ -92,9 +96,15 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
   const handleSendTextMessage = useCallback((text: string, currentBotId: string, botName: string) => {
     const currentMessages = userChats[currentBotId] || [];
     
+    // Apply character limit for non-VIP users
+    let messageContent = text;
+    if (!isVip && text.length > MAX_CHAR_LIMIT) {
+      messageContent = text.substring(0, MAX_CHAR_LIMIT);
+    }
+    
     const newMessage: Message = {
       id: `user-${Date.now()}`,
-      content: text,
+      content: messageContent,
       sender: 'user',
       timestamp: new Date(),
       status: 'sending',
@@ -106,7 +116,7 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
     }));
 
     return newMessage.id;
-  }, [userChats]);
+  }, [userChats, isVip]);
 
   const handleSendImageMessage = useCallback(async (imageDataUrl: string, currentBotId: string) => {
     const currentMessages = userChats[currentBotId] || [];
@@ -125,34 +135,122 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
       [currentBotId]: [...currentMessages, newMessage]
     }));
     
-    try {
-      const remaining = await trackImageUpload();
-      setImagesRemaining(remaining);
-    } catch (error) {
-      console.error('Error tracking image upload:', error);
+    if (!isVip) {
+      try {
+        const remaining = await trackImageUpload();
+        setImagesRemaining(remaining);
+      } catch (error) {
+        console.error('Error tracking image upload:', error);
+      }
     }
     
     return newMessage.id;
-  }, [userChats]);
+  }, [userChats, isVip]);
+
+  const handleSendVoiceMessage = useCallback(async (audioBlob: Blob, currentBotId: string) => {
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const currentMessages = userChats[currentBotId] || [];
+    
+    const newMessage: Message = {
+      id: `user-${Date.now()}`,
+      content: audioUrl,
+      sender: 'user',
+      timestamp: new Date(),
+      status: 'sending',
+      isVoiceMessage: true,
+    };
+    
+    setUserChats(prev => ({
+      ...prev,
+      [currentBotId]: [...currentMessages, newMessage]
+    }));
+    
+    // Decrease voice message count for non-VIP users
+    if (!isVip) {
+      setVoiceMessagesRemaining(prev => Math.max(0, prev - 1));
+    }
+    
+    return newMessage.id;
+  }, [userChats, isVip]);
+
+  const handleReplyToMessage = useCallback((message: Message, replyText: string, currentBotId: string) => {
+    const currentMessages = userChats[currentBotId] || [];
+    
+    // Apply character limit for non-VIP users
+    let messageContent = replyText;
+    if (!isVip && replyText.length > MAX_CHAR_LIMIT) {
+      messageContent = replyText.substring(0, MAX_CHAR_LIMIT);
+    }
+    
+    const newMessage: Message = {
+      id: `user-${Date.now()}`,
+      content: messageContent,
+      sender: 'user',
+      timestamp: new Date(),
+      status: 'sending',
+      replyToId: message.id,
+      replyToContent: message.content.substring(0, 50) + (message.content.length > 50 ? '...' : ''),
+      replyToSender: message.sender,
+    };
+    
+    setUserChats(prev => ({
+      ...prev,
+      [currentBotId]: [...currentMessages, newMessage]
+    }));
+
+    return newMessage.id;
+  }, [userChats, isVip]);
+
+  const handleUnsendMessage = useCallback((messageId: string, currentBotId: string) => {
+    setUserChats(prev => {
+      const botMessages = [...(prev[currentBotId] || [])];
+      
+      // Filter out the unsent message
+      const updatedMessages = botMessages.filter(msg => msg.id !== messageId);
+      
+      return {
+        ...prev,
+        [currentBotId]: updatedMessages
+      };
+    });
+  }, []);
+
+  const handleDeleteConversation = useCallback((botId: string) => {
+    setUserChats(prev => {
+      const newChats = { ...prev };
+      delete newChats[botId];
+      return newChats;
+    });
+  }, []);
 
   const initializeImageRemaining = useCallback(async () => {
-    try {
-      const remaining = await getRemainingUploads(false);
-      setImagesRemaining(remaining);
-    } catch (error) {
-      console.error('Error fetching remaining uploads:', error);
+    if (!isVip) {
+      try {
+        const remaining = await getRemainingUploads(false);
+        setImagesRemaining(remaining);
+      } catch (error) {
+        console.error('Error fetching remaining uploads:', error);
+      }
+    } else {
+      // VIP users have unlimited images
+      setImagesRemaining(Infinity);
     }
-  }, []);
+  }, [isVip]);
 
   return {
     userChats,
     typingBots,
     imagesRemaining,
+    voiceMessagesRemaining,
     setCurrentBotId,
     initializeChat,
     simulateBotResponse,
     handleSendTextMessage,
     handleSendImageMessage,
+    handleSendVoiceMessage,
+    handleReplyToMessage,
+    handleUnsendMessage,
+    handleDeleteConversation,
     initializeImageRemaining
   };
 };

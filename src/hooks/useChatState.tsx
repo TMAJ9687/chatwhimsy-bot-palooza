@@ -55,11 +55,16 @@ export const useChatState = (isVip: boolean) => {
     userChats,
     typingBots,
     imagesRemaining,
+    voiceMessagesRemaining,
     setCurrentBotId,
     initializeChat,
     simulateBotResponse,
     handleSendTextMessage,
     handleSendImageMessage,
+    handleSendVoiceMessage,
+    handleReplyToMessage,
+    handleUnsendMessage,
+    handleDeleteConversation,
     initializeImageRemaining
   } = useChatMessages(isVip, handleNewNotification);
 
@@ -139,6 +144,71 @@ export const useChatState = (isVip: boolean) => {
     simulateBotResponse(messageId, currentBot.id);
   }, [currentBot.id, currentBot.name, handleSendImageMessage, addHistoryItem, simulateBotResponse]);
 
+  // Handle sending a voice message
+  const handleSendVoiceMessageWrapper = useCallback(async (audioBlob: Blob) => {
+    const messageId = await handleSendVoiceMessage(audioBlob, currentBot.id);
+    
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      title: `Voice message sent to ${currentBot.name}`,
+      message: 'You sent a voice message',
+      time: new Date(),
+      read: true
+    };
+    
+    addHistoryItem(newNotification);
+    simulateBotResponse(messageId, currentBot.id);
+  }, [currentBot.id, currentBot.name, handleSendVoiceMessage, addHistoryItem, simulateBotResponse]);
+
+  // Handle replying to a message
+  const handleReplyToMessageWrapper = useCallback((message: Message) => {
+    // In a real implementation, you would show a UI for the user to type their reply
+    // For now, we'll just simulate a reply with a placeholder text
+    const replyText = `Replying to: "${message.content.substring(0, 20)}..."`;
+    const messageId = handleReplyToMessage(message, replyText, currentBot.id);
+    
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      title: `Reply sent to ${currentBot.name}`,
+      message: replyText.slice(0, 30) + (replyText.length > 30 ? '...' : ''),
+      time: new Date(),
+      read: true
+    };
+    
+    addHistoryItem(newNotification);
+    simulateBotResponse(messageId, currentBot.id);
+  }, [currentBot.id, currentBot.name, handleReplyToMessage, addHistoryItem, simulateBotResponse]);
+
+  // Handle unsending a message
+  const handleUnsendMessageWrapper = useCallback((messageId: string) => {
+    handleUnsendMessage(messageId, currentBot.id);
+    
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      title: `Message unsent`,
+      message: 'You unsent a message',
+      time: new Date(),
+      read: true
+    };
+    
+    addHistoryItem(newNotification);
+  }, [currentBot.id, handleUnsendMessage, addHistoryItem]);
+
+  // Handle deleting a conversation
+  const handleDeleteConversationWrapper = useCallback((botId: string) => {
+    handleDeleteConversation(botId);
+    
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      title: `Conversation deleted`,
+      message: 'You deleted a conversation',
+      time: new Date(),
+      read: true
+    };
+    
+    addHistoryItem(newNotification);
+  }, [handleDeleteConversation, addHistoryItem]);
+
   // Enhanced select user to init chat as well
   const selectUserWithChat = useCallback((user: Bot) => {
     if (user.id !== currentBot.id) {
@@ -150,6 +220,7 @@ export const useChatState = (isVip: boolean) => {
   return {
     userChats,
     imagesRemaining,
+    voiceMessagesRemaining,
     typingBots,
     currentBot,
     onlineUsers,
@@ -174,6 +245,10 @@ export const useChatState = (isVip: boolean) => {
     handleCloseChat,
     handleSendTextMessage: handleSendTextMessageWrapper,
     handleSendImageMessage: handleSendImageMessageWrapper,
+    handleSendVoiceMessage: handleSendVoiceMessageWrapper,
+    handleReplyToMessage: handleReplyToMessageWrapper,
+    handleUnsendMessage: handleUnsendMessageWrapper,
+    handleDeleteConversation: handleDeleteConversationWrapper,
     selectUser: selectUserWithChat,
     handleFilterChange,
     handleNotificationRead,

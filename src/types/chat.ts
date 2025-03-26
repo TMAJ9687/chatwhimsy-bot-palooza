@@ -21,6 +21,12 @@ export interface Message {
   timestamp: Date;
   status?: MessageStatus;
   isImage?: boolean;
+  isVoiceMessage?: boolean;
+  isGif?: boolean;
+  replyToId?: string; // ID of the message being replied to
+  replyToContent?: string; // Content of the message being replied to
+  replyToSender?: 'user' | 'bot'; // Sender of the message being replied to
+  reactions?: string[]; // List of reactions added to this message
 }
 
 export interface Notification {

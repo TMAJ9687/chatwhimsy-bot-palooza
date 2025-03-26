@@ -59,3 +59,51 @@ export const hasConsecutiveChars = (text: string): boolean => {
   }
   return false;
 };
+
+export const validateVoiceMessage = (durationInSeconds: number): { valid: boolean; message?: string } => {
+  if (durationInSeconds < 1) {
+    return {
+      valid: false,
+      message: "Voice message is too short. Please record a longer message."
+    };
+  }
+  
+  if (durationInSeconds > 120) {
+    return {
+      valid: false,
+      message: "Voice message cannot exceed 2 minutes."
+    };
+  }
+  
+  return { valid: true };
+};
+
+export const validateUsername = (username: string): { valid: boolean; message?: string } => {
+  // Check if username contains 'admin'
+  if (username.toLowerCase().includes('admin')) {
+    return {
+      valid: false,
+      message: "Username cannot contain 'admin'"
+    };
+  }
+  
+  // Check for consecutive characters (no more than 2 identical consecutive characters)
+  for (let i = 0; i < username.length - 2; i++) {
+    if (username[i] === username[i + 1] && username[i] === username[i + 2]) {
+      return {
+        valid: false,
+        message: "Username cannot contain more than 2 consecutive identical characters"
+      };
+    }
+  }
+  
+  // Check for length
+  if (username.length > 22) {
+    return {
+      valid: false,
+      message: "Username must be at most 22 characters"
+    };
+  }
+  
+  return { valid: true };
+};
