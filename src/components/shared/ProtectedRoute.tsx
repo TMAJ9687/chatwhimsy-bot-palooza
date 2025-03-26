@@ -40,7 +40,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }, [isLoading, currentUser, requireAuth, allowAnonymous, isAnonymous, toast]);
 
   if (isLoading) {
-    // You could show a loading spinner here
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
@@ -62,11 +61,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // If we require VIP, check user's VIP status
   if (requireVip) {
-    // We'll need to check this from the user context or profile
-    // This is a placeholder implementation
-    const userContext = { isVip: false }; // Replace with actual user context
+    // We'll get this from the user context
+    const { useUser } = require('@/context/UserContext');
+    const { isVip } = useUser();
     
-    if (!userContext.isVip) {
+    if (!isVip) {
       return <Navigate to="/vip-subscription" state={{ from: location }} replace />;
     }
   }

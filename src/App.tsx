@@ -17,7 +17,7 @@ import { UserProvider } from './context/UserContext';
 import { DialogProvider } from './context/DialogContext';
 import { AuthProvider } from './context/FirebaseAuthContext';
 import ProtectedRoute from './components/shared/ProtectedRoute';
-import Index from './pages/Index'; // Import the Index component
+import Index from './pages/Index';
 
 import './App.css';
 
@@ -30,9 +30,13 @@ function App() {
             <Router>
               <MainLayout>
                 <Routes>
-                  <Route path="/" element={<Index />} /> {/* Use Index component here */}
-                  {/* Modified to remove the ProtectedRoute wrapper */}
-                  <Route path="/chat" element={<ChatInterface onLogout={() => {}} />} />
+                  <Route path="/" element={<Index />} />
+                  {/* Add ProtectedRoute back to the chat route */}
+                  <Route path="/chat" element={
+                    <ProtectedRoute requireAuth={true} allowAnonymous={true}>
+                      <ChatInterface onLogout={() => {}} />
+                    </ProtectedRoute>
+                  } />
                   <Route 
                     path="/vip-profile" 
                     element={

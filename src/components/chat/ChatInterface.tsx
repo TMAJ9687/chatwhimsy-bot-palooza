@@ -1,10 +1,11 @@
-
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { useDialog } from '@/context/DialogContext';
 import { ChatProvider, useChat } from '@/context/ChatContext';
+import { useAuth } from '@/context/FirebaseAuthContext';
 import ErrorBoundary from '../shared/ErrorBoundary';
+import { useToast } from '@/hooks/use-toast';
 
 // Import our components
 import ChatHeader from './ChatHeader';
@@ -23,8 +24,22 @@ interface ChatInterfaceProps {
 // Main component that uses our new dialog context
 const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const { user, isVip } = useUser();
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
   const { openDialog } = useDialog();
+  const { toast } = useToast();
+  
+  // Check if user is authenticated
+  useEffect(() => {
+    if (!currentUser) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to access the chat.",
+        variant: "destructive"
+      });
+      navigate('/');
+    }
+  }, [currentUser, navigate, toast]);
   
   const {
     userChats,
@@ -91,6 +106,11 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     setShowHistory(true);
     setShowInbox(false);
   }, [setShowHistory, setShowInbox]);
+
+  // Don't render the chat interface if user is not authenticated
+  if (!currentUser) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background dark:bg-gray-950">

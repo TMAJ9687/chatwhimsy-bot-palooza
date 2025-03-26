@@ -1,4 +1,3 @@
-
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
@@ -123,21 +122,25 @@ export const initializeFirestore = async () => {
   console.log('Firestore collections initialized');
 };
 
-// Special function to check and fix database permissions during initialization
-export const ensureDatabasePermissions = async () => {
-  console.log("Checking and attempting to fix database permissions...");
+// Special function to check database permissions
+export const checkDatabasePermissions = async () => {
+  console.log("Checking database permissions...");
   try {
     // Try writing to a test location to verify permissions
     const testRef = ref(rtdb, 'permissions_test');
     await set(testRef, {
       lastChecked: rtdbServerTimestamp(),
-      status: 'ok'
+      status: 'checking'
     });
     console.log("Database permissions are correctly configured");
-    return true;
+    return { success: true, message: 'Database permissions verified successfully' };
   } catch (error) {
     console.error("Database permissions check failed:", error);
-    return false;
+    return { 
+      success: false, 
+      message: 'Database permission check failed. Make sure you are authenticated.',
+      error
+    };
   }
 };
 
