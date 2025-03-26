@@ -60,7 +60,7 @@ const VipSignupDialog = () => {
         nickname: values.nickname,
         email: values.email,
         isVip: true,
-        subscriptionTier: 'monthly',
+        subscriptionTier: 'monthly' as SubscriptionTier,
         subscriptionEndDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
         imagesRemaining: Infinity,
         voiceMessagesRemaining: Infinity

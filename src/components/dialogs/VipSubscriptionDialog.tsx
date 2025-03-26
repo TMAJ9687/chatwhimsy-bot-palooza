@@ -16,7 +16,7 @@ import { SubscriptionTier } from '@/types/user';
 
 const VipSubscriptionDialog = () => {
   const { state, closeDialog, openDialog } = useDialog();
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>('monthly');
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>('monthly' as SubscriptionTier);
 
   const handleContinue = () => {
     closeDialog();

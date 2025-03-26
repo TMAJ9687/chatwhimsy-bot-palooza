@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -73,7 +72,7 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      gender: user?.gender === 'other' ? 'male' : (user?.gender || 'male'),
+      gender: (user?.gender === 'male' || user?.gender === 'female') ? user.gender : 'male',
       age: user?.age?.toString() || '25',
       country: user?.country || 'us',
       interests: user?.interests || [],
@@ -90,7 +89,7 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
       if (storedData) {
         const userData = JSON.parse(storedData);
         // Convert 'other' gender to 'male' to ensure we only have 'male' and 'female'
-        const gender = userData.gender === 'other' ? 'male' : userData.gender || 'male';
+        const gender = (userData.gender === 'male' || userData.gender === 'female') ? userData.gender : 'male';
         
         form.reset({
           gender,
@@ -109,7 +108,7 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
         if (sessionData) {
           const userData = JSON.parse(sessionData);
           // Convert 'other' gender to 'male'
-          const gender = userData.gender === 'other' ? 'male' : userData.gender || 'male';
+          const gender = (userData.gender === 'male' || userData.gender === 'female') ? userData.gender : 'male';
           
           form.reset({
             gender,

@@ -2,6 +2,7 @@
 export interface UserProfile {
   id?: string;
   displayName?: string;
+  nickname?: string;  // Added nickname property
   email?: string;
   gender?: string;
   age?: number;
@@ -11,9 +12,11 @@ export interface UserProfile {
   subscriptionTier?: SubscriptionTier;
   subscriptionEndDate?: Date;
   avatar?: string;
+  imagesRemaining?: number;  // Added imagesRemaining property
+  voiceMessagesRemaining?: number;  // Added voiceMessagesRemaining property
 }
 
-export type SubscriptionTier = 'free' | 'basic' | 'premium' | 'ultimate';
+export type SubscriptionTier = 'free' | 'basic' | 'premium' | 'ultimate' | 'none' | 'monthly' | 'semiannual' | 'annual';
 
 export interface UserContextType {
   user: UserProfile | null;

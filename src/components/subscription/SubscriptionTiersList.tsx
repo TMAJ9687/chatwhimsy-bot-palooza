@@ -25,14 +25,14 @@ export const SubscriptionTiersList: React.FC<SubscriptionTiersListProps> = ({
 }) => {
   const subscriptionTiers: SubscriptionPlan[] = [
     {
-      id: 'monthly',
+      id: 'monthly' as SubscriptionTier,
       title: 'Monthly',
       price: '$4.99',
       billingCycle: 'Billed every month',
       description: 'Great for trying out VIP features'
     },
     {
-      id: 'semiannual',
+      id: 'semiannual' as SubscriptionTier,
       title: 'Semi-Annual',
       price: '$24.95',
       originalPrice: '$29.94',
@@ -41,7 +41,7 @@ export const SubscriptionTiersList: React.FC<SubscriptionTiersListProps> = ({
       description: 'Best for regular users'
     },
     {
-      id: 'annual',
+      id: 'annual' as SubscriptionTier,
       title: 'Annual',
       price: '$39.99',
       originalPrice: '$59.88',

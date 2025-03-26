@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -18,28 +17,28 @@ const getPlanDetails = (plan: string) => {
         name: 'Monthly VIP Subscription', 
         price: '$4.99', 
         billing: 'Billed every month',
-        tier: 'monthly' as const
+        tier: 'monthly' as SubscriptionTier
       };
     case 'semiannual':
       return { 
         name: 'Semi-Annual VIP Subscription', 
         price: '$24.99', 
         billing: 'Billed every six months',
-        tier: 'semiannual' as const
+        tier: 'semiannual' as SubscriptionTier
       };
     case 'annual':
       return { 
         name: 'Annual VIP Subscription', 
         price: '$35.99', 
         billing: 'Billed once a year',
-        tier: 'annual' as const
+        tier: 'annual' as SubscriptionTier
       };
     default:
       return { 
         name: 'Monthly VIP Subscription', 
         price: '$4.99', 
         billing: 'Billed every month',
-        tier: 'monthly' as const
+        tier: 'monthly' as SubscriptionTier
       };
   }
 };
@@ -66,7 +65,6 @@ const VipPayment = () => {
   
   const planDetails = getPlanDetails(selectedPlan);
   
-  // If no plan or email is provided, redirect back to signup
   useEffect(() => {
     if (!selectedPlan || !email) {
       navigate('/vip-subscription');
@@ -76,19 +74,17 @@ const VipPayment = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    // Format card number to include spaces every 4 digits
     if (name === 'cardNumber') {
       const formatted = value.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim();
       setCardInfo(prev => ({
         ...prev,
-        [name]: formatted.substring(0, 19) // limit to 16 digits + 3 spaces
+        [name]: formatted.substring(0, 19)
       }));
       return;
     }
     
-    // Format expiry date as MM/YY
     if (name === 'expiryDate') {
-      let formatted = value.replace(/\D/g, ''); // Remove non-digits
+      let formatted = value.replace(/\D/g, '');
       if (formatted.length > 2) {
         formatted = `${formatted.substring(0, 2)}/${formatted.substring(2, 4)}`;
       }
@@ -131,20 +127,16 @@ const VipPayment = () => {
     
     setIsProcessing(true);
     
-    // Simulate payment processing
     setTimeout(() => {
       setIsProcessing(false);
       
-      // Subscribe the user
       subscribeToVip(planDetails.tier);
       
-      // Show success toast
       toast({
         title: "Payment Successful",
         description: `Your ${planDetails.name} has been activated.`,
       });
       
-      // Navigate to confirmation page
       navigate('/vip-confirmation');
     }, 2000);
   };
