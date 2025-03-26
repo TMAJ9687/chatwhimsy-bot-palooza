@@ -31,7 +31,6 @@ function App() {
               <MainLayout>
                 <Routes>
                   <Route path="/" element={<Index />} />
-                  {/* Add ProtectedRoute back to the chat route */}
                   <Route path="/chat" element={
                     <ProtectedRoute requireAuth={true} allowAnonymous={true}>
                       <ChatInterface onLogout={() => {}} />
