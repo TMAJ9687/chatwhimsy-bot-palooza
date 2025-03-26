@@ -1,8 +1,8 @@
+
 import React, { useRef, useEffect, useCallback, memo } from 'react';
-import MessageBubble from './MessageBubble';
+import MessageBubble, { Message } from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import { useUser } from '@/context/UserContext';
-import { Message } from './types/MessageTypes';
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -21,13 +21,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const { isVip } = useUser();
   
+  // Optimized scroll to bottom implementation
   const scrollToBottom = useCallback(() => {
     if (!messagesEndRef.current) return;
     
+    // Use scrollIntoView with a simpler configuration
     messagesEndRef.current.scrollIntoView({ block: 'end', behavior: 'smooth' });
   }, []);
 
+  // Scroll to bottom when messages change or typing status changes
   useEffect(() => {
+    // Small timeout to ensure DOM is updated
     const timeoutId = setTimeout(scrollToBottom, 0);
     return () => clearTimeout(timeoutId);
   }, [messages, isTyping, scrollToBottom]);
@@ -52,4 +56,5 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   );
 };
 
+// Use memo to prevent unnecessary re-renders
 export default memo(ChatMessages);

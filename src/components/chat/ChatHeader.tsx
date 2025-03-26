@@ -8,7 +8,6 @@ import {
   DropdownMenuTrigger
 } from '../ui/dropdown-menu';
 import { useDialog } from '@/context/DialogContext';
-import { useChat } from '@/context/ChatContext';
 
 interface ChatHeaderProps {
   currentUser: {
@@ -16,7 +15,7 @@ interface ChatHeaderProps {
     gender: string;
     age: number;
   };
-  onBlockUser: () => Promise<void>;
+  onBlockUser: () => void;
   onCloseChat?: () => void;
 }
 
@@ -27,23 +26,18 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   onCloseChat,
 }) => {
   const { openDialog } = useDialog();
-  const { blockInProgress, reportInProgress } = useChat();
 
   // Using useCallback to prevent unnecessary recreations
   const handleOpenReportDialog = useCallback(() => {
-    openDialog('report', { 
-      userName: currentUser.name,
-      reportInProgress
-    });
-  }, [openDialog, currentUser.name, reportInProgress]);
+    openDialog('report', { userName: currentUser.name });
+  }, [openDialog, currentUser.name]);
 
   const handleOpenBlockDialog = useCallback(() => {
     openDialog('block', { 
       userName: currentUser.name,
-      onBlockUser,
-      blockInProgress
+      onBlockUser: onBlockUser
     });
-  }, [openDialog, currentUser.name, onBlockUser, blockInProgress]);
+  }, [openDialog, currentUser.name, onBlockUser]);
 
   return (
     <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between">
@@ -62,16 +56,15 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
               className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
               aria-label="Menu"
               type="button"
-              disabled={blockInProgress || reportInProgress}
             >
               <MoreVertical className="h-5 w-5 text-gray-600 dark:text-gray-300" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleOpenReportDialog} disabled={reportInProgress}>
+            <DropdownMenuItem onClick={handleOpenReportDialog}>
               Report
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleOpenBlockDialog} disabled={blockInProgress}>
+            <DropdownMenuItem onClick={handleOpenBlockDialog}>
               Block
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -82,7 +75,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           aria-label="Close chat"
           type="button"
           onClick={onCloseChat}
-          disabled={blockInProgress || reportInProgress}
         >
           <X className="h-5 w-5 text-gray-600 dark:text-gray-300" />
         </button>

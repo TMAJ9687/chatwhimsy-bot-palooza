@@ -11,20 +11,18 @@ import {
   AlertDialogTitle,
 } from '../ui/alert-dialog';
 import { Button } from '../ui/button';
-import { Loader2 } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 import { useDialog } from '@/context/DialogContext';
 
 // Memoized dialog content component to prevent unnecessary re-renders
 const BlockUserContent = memo(({ 
   onConfirm, 
   onCancel, 
-  userName,
-  isLoading
+  userName 
 }: { 
   onConfirm: () => void;
   onCancel: () => void;
-  userName: string;
-  isLoading: boolean;
+  userName: string; 
 }) => {
   return (
     <AlertDialogContent>
@@ -36,30 +34,13 @@ const BlockUserContent = memo(({
       </AlertDialogHeader>
       <AlertDialogFooter>
         <AlertDialogCancel asChild>
-          <Button 
-            variant="outline" 
-            onClick={onCancel} 
-            type="button"
-            disabled={isLoading}
-          >
+          <Button variant="outline" onClick={onCancel} type="button">
             Cancel
           </Button>
         </AlertDialogCancel>
         <AlertDialogAction asChild>
-          <Button 
-            variant="destructive" 
-            onClick={onConfirm} 
-            type="button"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Blocking...
-              </>
-            ) : (
-              "Block User"
-            )}
+          <Button variant="destructive" onClick={onConfirm} type="button">
+            Block User
           </Button>
         </AlertDialogAction>
       </AlertDialogFooter>
@@ -72,37 +53,44 @@ BlockUserContent.displayName = 'BlockUserContent';
 // Main dialog component
 const BlockUserDialog = () => {
   const { state, closeDialog } = useDialog();
+  const { toast } = useToast();
   
   // Only destructure when needed
   const isOpen = state.isOpen && state.type === 'block';
   
+  // Use callback to prevent re-creation on each render
+  const handleConfirmBlock = useCallback(() => {
+    if (!isOpen) return;
+    
+    const { userName, onBlockUser } = state.data;
+    
+    // Call the block user function from props
+    if (typeof onBlockUser === 'function') {
+      onBlockUser();
+    }
+    
+    // Show a toast notification with minimal options
+    toast({
+      title: "User blocked",
+      description: `You have blocked ${userName}.`,
+      duration: 3000,
+    });
+    
+    // Close the dialog
+    closeDialog();
+  }, [isOpen, state.data, toast, closeDialog]);
+
   // Don't render anything if dialog isn't open
   if (!isOpen) return null;
 
-  const { userName, onBlockUser, blockInProgress = false } = state.data;
-
-  // Use callback to prevent re-creation on each render
-  const handleConfirmBlock = useCallback(async () => {
-    if (typeof onBlockUser !== 'function') return;
-    
-    try {
-      // Call the block user function and await it
-      await onBlockUser();
-      // No need to show toast here as it's handled in useChatActions
-    } catch (error) {
-      console.error("Error in block user dialog:", error);
-    }
-    
-    // Close dialog is now handled based on blockInProgress in the parent
-  }, [onBlockUser]);
+  const { userName } = state.data;
 
   return (
-    <AlertDialog open={true} onOpenChange={(open) => !open && !blockInProgress && closeDialog()}>
+    <AlertDialog open={true} onOpenChange={(open) => !open && closeDialog()}>
       <BlockUserContent 
         onConfirm={handleConfirmBlock} 
         onCancel={closeDialog}
         userName={userName}
-        isLoading={blockInProgress}
       />
     </AlertDialog>
   );

@@ -1,84 +1,73 @@
 
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import MainLayout from './components/layout/MainLayout';
-import ChatInterface from './components/chat/ChatInterface';
-import VipProfileSetup from './pages/VipProfileSetup';
-import VipSubscription from './pages/VipSubscription';
-import VipPayment from './pages/VipPayment';
-import VipConfirmation from './pages/VipConfirmation';
-import VipSignup from './pages/VipSignup';
-import VipLogin from './pages/VipLogin';
-import AdminDashboard from './pages/AdminDashboard';
-import NotFound from './pages/NotFound';
-import DialogContainer from './components/dialogs/DialogContainer';
-import { Toaster } from './components/ui/toaster';
-import { ThemeProvider } from './components/shared/ThemeProvider';
-import { UserProvider } from './context/UserContext';
-import { DialogProvider } from './context/DialogContext';
-import { AuthProvider } from './context/FirebaseAuthContext';
-import ProtectedRoute from './components/shared/ProtectedRoute';
-import Index from './pages/Index';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import MainLayout from "./components/layout/MainLayout";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import ChatInterface from "./components/chat/ChatInterface";
+import VipProfileSetup from "./pages/VipProfileSetup";
+import VipSignup from "./pages/VipSignup";
+import VipLogin from "./pages/VipLogin";
+import VipSubscription from "./pages/VipSubscription";
+import VipPayment from "./pages/VipPayment";
+import VipConfirmation from "./pages/VipConfirmation";
+import { useEffect, useState } from "react";
+import { DialogProvider } from "./context/DialogContext";
+import DialogContainer from "./components/dialogs/DialogContainer";
+import { UserProvider } from "./context/UserContext";
 
-import './App.css';
+const queryClient = new QueryClient();
 
-function App() {
+const App = () => {
+  const [hasLoggedOut, setHasLoggedOut] = useState(false);
+
+  // Handle logout action
+  const handleLogout = () => {
+    setHasLoggedOut(true);
+    // Add a brief delay before navigating to ensure state updates
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 100);
+  };
+
+  // Reset logout state when returning to the app
+  useEffect(() => {
+    if (hasLoggedOut && window.location.pathname === '/') {
+      setHasLoggedOut(false);
+    }
+  }, [hasLoggedOut]);
+
   return (
-    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-      <AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
         <UserProvider>
-          <DialogProvider>
-            <Router>
+          <BrowserRouter>
+            <DialogProvider>
               <MainLayout>
+                <Toaster />
+                <Sonner />
                 <Routes>
                   <Route path="/" element={<Index />} />
-                  <Route path="/chat" element={
-                    <ProtectedRoute requireAuth={true} allowAnonymous={true}>
-                      <ChatInterface onLogout={() => {}} />
-                    </ProtectedRoute>
-                  } />
-                  <Route 
-                    path="/vip-profile" 
-                    element={
-                      <ProtectedRoute requireVip={true}>
-                        <VipProfileSetup />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route path="/vip-subscription" element={<VipSubscription />} />
-                  <Route 
-                    path="/vip-payment" 
-                    element={
-                      <ProtectedRoute>
-                        <VipPayment />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route path="/vip-confirmation" element={<VipConfirmation />} />
+                  <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
+                  <Route path="/vip-profile" element={<VipProfileSetup />} />
                   <Route path="/vip-signup" element={<VipSignup />} />
                   <Route path="/vip-login" element={<VipLogin />} />
-                  
-                  {/* Admin Routes */}
-                  <Route 
-                    path="/admin" 
-                    element={
-                      <ProtectedRoute requireAuth={true} requireAdmin={true} allowAnonymous={false}>
-                        <AdminDashboard />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  
+                  <Route path="/vip-subscription" element={<VipSubscription />} />
+                  <Route path="/vip-payment" element={<VipPayment />} />
+                  <Route path="/vip-confirmation" element={<VipConfirmation />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
+                <DialogContainer />
               </MainLayout>
-              <DialogContainer />
-              <Toaster />
-            </Router>
-          </DialogProvider>
+            </DialogProvider>
+          </BrowserRouter>
         </UserProvider>
-      </AuthProvider>
-    </ThemeProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
-}
+};
 
 export default App;

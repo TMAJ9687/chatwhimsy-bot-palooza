@@ -1,17 +1,18 @@
 
-import React from 'react';
-import AdminNav from '../shared/AdminNav';
+import React, { ReactNode } from 'react';
+import { UserProvider } from '../../context/UserContext';
 
 interface MainLayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   return (
-    <div className="min-h-screen flex flex-col">
-      <main className="flex-1">{children}</main>
-      <AdminNav />
-    </div>
+    <UserProvider>
+      <div className="min-h-screen bg-background">
+        {children}
+      </div>
+    </UserProvider>
   );
 };
 

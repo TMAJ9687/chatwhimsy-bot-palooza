@@ -1,9 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Smile, Image as ImageIcon, X } from 'lucide-react';
+import { Send, Smile, Image as ImageIcon, X, Eye, EyeOff } from 'lucide-react';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
-import { makeSerializable } from '@/utils/serialization';
 
 interface MessageInputBarProps {
   onSendMessage: (text: string) => void;
@@ -84,162 +83,32 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
     }
   };
 
-  // Safely handle file changes to prevent DataCloneError
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    
-    // Check file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+    if (file) {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setImagePreview(event.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        alert('Please select an image file');
       }
-      return;
-    }
-    
-    // Size check to prevent large files
-    if (file.size > 3 * 1024 * 1024) { // 3MB limit for better performance
-      alert('Image size should be less than 3MB');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-      return;
-    }
-    
-    // Use FileReader with enhanced error handling
-    const reader = new FileReader();
-    
-    reader.onload = () => {
-      try {
-        // Ensure result is a string before setting it as image preview
-        if (typeof reader.result === 'string') {
-          // Compress the image if it's too large by creating a temporary canvas
-          if (reader.result.length > 500000) { // If base64 is larger than ~500KB
-            const img = new Image();
-            img.onload = () => {
-              try {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                
-                // Calculate new dimensions (max 1000px in any dimension)
-                const maxSize = 1000;
-                let width = img.width;
-                let height = img.height;
-                
-                if (width > height && width > maxSize) {
-                  height = (height * maxSize) / width;
-                  width = maxSize;
-                } else if (height > maxSize) {
-                  width = (width * maxSize) / height;
-                  height = maxSize;
-                }
-                
-                // Set canvas size and draw resized image
-                canvas.width = width;
-                canvas.height = height;
-                
-                if (ctx) {
-                  ctx.drawImage(img, 0, 0, width, height);
-                  // Get compressed image as base64
-                  const compressedImage = canvas.toDataURL('image/jpeg', 0.7);
-                  setImagePreview(compressedImage);
-                } else {
-                  // Fallback if canvas context isn't available
-                  if (typeof reader.result === 'string') {
-                    setImagePreview(reader.result);
-                  }
-                }
-              } catch (err) {
-                console.error('Error compressing image:', err);
-                // Use original image if compression fails
-                if (typeof reader.result === 'string') {
-                  setImagePreview(reader.result);
-                }
-              }
-            };
-            img.onerror = () => {
-              console.error('Error loading image for compression');
-              if (typeof reader.result === 'string') {
-                setImagePreview(reader.result);
-              }
-            };
-            img.src = reader.result;
-          } else {
-            // Use original image if it's small enough
-            setImagePreview(reader.result);
-          }
-        } else if (reader.result instanceof ArrayBuffer) {
-          // Convert ArrayBuffer to base64 string if needed
-          const bytes = new Uint8Array(reader.result);
-          let binary = '';
-          for (let i = 0; i < bytes.byteLength; i++) {
-            binary += String.fromCharCode(bytes[i]);
-          }
-          const base64 = window.btoa(binary);
-          const imageType = file.type || 'image/jpeg';
-          const dataUrl = `data:${imageType};base64,${base64}`;
-          setImagePreview(dataUrl);
-        } else {
-          // Handle other types or null result
-          console.error('File read result is not a string or ArrayBuffer');
-          setImagePreview(null);
-        }
-      } catch (error) {
-        console.error('Error processing image:', error);
-        setImagePreview(null);
-      }
-    };
-    
-    reader.onerror = () => {
-      console.error('Error reading file');
-      setImagePreview(null);
-    };
-    
-    // Start reading the file
-    try {
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('Error initiating file read:', error);
-    }
-    
-    // Always clear the input value to ensure it can be selected again
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
     }
   };
 
   const triggerFileInput = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    fileInputRef.current?.click();
   };
 
   const handleEmojiSelect = (emoji: { native: string }) => {
-    try {
-      // Ensure the emoji is serializable
-      const safeEmoji = makeSerializable(emoji);
-      setMessage(prev => prev + safeEmoji.native);
-    } catch (error) {
-      console.error('Error handling emoji:', error);
-      // Fallback to a simple emoji if there's an issue
-      setMessage(prev => prev + '😊');
-    }
+    setMessage(prev => prev + emoji.native);
     setShowEmojiPicker(false);
   };
 
   const toggleEmojiPicker = () => {
     setShowEmojiPicker(prev => !prev);
-  };
-
-  // Limit message length for better performance and serialization
-  const MAX_MESSAGE_LENGTH = 500;
-  
-  const handleMessageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (value.length <= MAX_MESSAGE_LENGTH) {
-      setMessage(value);
-    }
   };
 
   return (
@@ -254,7 +123,6 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
           <button
             onClick={() => setImagePreview(null)}
             className="absolute top-1 right-1 bg-white dark:bg-gray-900 rounded-full p-1 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-800"
-            type="button"
           >
             <X className="h-4 w-4 text-gray-700 dark:text-gray-300" />
           </button>
@@ -267,14 +135,13 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
           className="flex-1 bg-transparent border-0 focus:outline-none text-gray-700 dark:text-gray-200 py-2 text-sm"
           placeholder="Type a message..."
           value={message}
-          onChange={handleMessageChange}
+          onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={!!imagePreview}
-          maxLength={MAX_MESSAGE_LENGTH}
         />
         
         <div className="text-xs text-gray-400 mr-2">
-          {message.length}/{MAX_MESSAGE_LENGTH}
+          {message.length}/120
         </div>
         
         <div className="relative">
@@ -282,7 +149,6 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
             ref={emojiButtonRef}
             className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
             onClick={toggleEmojiPicker}
-            type="button"
           >
             <Smile className="h-5 w-5" />
           </button>
@@ -314,7 +180,6 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
           className={`p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 ${imagesRemaining <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
           onClick={triggerFileInput}
           disabled={imagesRemaining <= 0 || !!imagePreview}
-          type="button"
         >
           <ImageIcon className="h-5 w-5" />
         </button>
@@ -323,7 +188,6 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
           className="ml-1 w-10 h-10 bg-teal-500 text-white rounded-full flex items-center justify-center disabled:opacity-50"
           onClick={handleSend}
           disabled={(!message.trim() && !imagePreview)}
-          type="button"
         >
           <Send className="h-5 w-5" />
         </button>

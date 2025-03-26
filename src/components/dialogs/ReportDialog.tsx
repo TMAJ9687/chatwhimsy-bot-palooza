@@ -1,162 +1,173 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, memo, useCallback } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '../ui/dialog';
+import { Button } from '../ui/button';
+import { useToast } from "@/hooks/use-toast";
 import { useDialog } from '@/context/DialogContext';
-import { useAuth } from '@/context/FirebaseAuthContext';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { Loader2 } from 'lucide-react';
 
-const REPORT_REASONS = [
-  { id: 'inappropriate', label: 'Inappropriate content' },
-  { id: 'spam', label: 'Spam or scam' },
-  { id: 'harassment', label: 'Harassment' },
-  { id: 'impersonation', label: 'Impersonation' },
-  { id: 'other', label: 'Other' },
+// Define report reasons outside component to prevent recreation
+const reportReasons = [
+  "Under Age",
+  "Harassment/Cyberbullying",
+  "Inappropriate Content",
+  "Spamming",
+  "Impersonation/Scamming",
+  "Hate Speech",
+  "Other"
 ];
 
+// Memoized radio option component
+const ReasonOption = memo(({ 
+  reason, 
+  isSelected, 
+  onSelect 
+}: { 
+  reason: string; 
+  isSelected: boolean; 
+  onSelect: (reason: string) => void;
+}) => (
+  <div 
+    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+      isSelected 
+        ? 'border-teal-500 bg-teal-50' 
+        : 'border-gray-200 hover:border-teal-300'
+    }`}
+    onClick={() => onSelect(reason)}
+  >
+    <div className="flex items-center">
+      <div 
+        className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+          isSelected ? 'border-teal-500' : 'border-gray-300'
+        }`}
+      >
+        {isSelected && (
+          <div className="w-2 h-2 rounded-full bg-teal-500"></div>
+        )}
+      </div>
+      <span className={`ml-2 ${reason === 'Under Age' ? 'text-red-500 font-medium' : ''}`}>
+        {reason}
+      </span>
+    </div>
+  </div>
+));
+
+ReasonOption.displayName = 'ReasonOption';
+
+// Main optimized dialog component
 const ReportDialog = () => {
   const { state, closeDialog } = useDialog();
-  const { currentUser } = useAuth();
   const { toast } = useToast();
-  const [selectedReason, setSelectedReason] = useState<string>('inappropriate');
-  const [details, setDetails] = useState<string>('');
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [selectedReason, setSelectedReason] = useState<string | null>(null);
+  const [otherReason, setOtherReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // If this isn't a report dialog or we don't have data, don't render
-  if (state.type !== 'report' || !state.data) {
-    return null;
-  }
+  const { userName } = state.data;
 
-  const { userId, userName, reportInProgress = false } = state.data;
-  
-  // Combine local submit state with passed in state
-  const isSubmitDisabled = isSubmitting || reportInProgress;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedReason) {
-      toast({
-        title: "Error",
-        description: "Please select a reason for the report.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (isSubmitDisabled) {
-      return;
-    }
-    
-    setIsSubmitting(true);
-
-    try {
-      // Add report to Firestore with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
-      const reportRef = await addDoc(collection(db, "reports"), {
-        reportedUserId: userId,
-        reportedUserName: userName,
-        reporterId: currentUser?.uid,
-        reporterEmail: currentUser?.email,
-        reason: selectedReason,
-        details: details,
-        status: "pending",
-        createdAt: serverTimestamp(),
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (reportRef.id) {
-        toast({
-          title: "Report Submitted",
-          description: "Thank you for helping keep our community safe.",
-        });
-        closeDialog();
-      }
-    } catch (error) {
-      console.error("Error submitting report:", error);
-      toast({
-        title: "Error",
-        description: "There was a problem submitting your report. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
+  // Reset state when dialog opens
+  useEffect(() => {
+    if (state.isOpen && state.type === 'report') {
+      setSelectedReason(null);
+      setOtherReason('');
       setIsSubmitting(false);
     }
-  };
+  }, [state.isOpen, state.type]);
+
+  // Memoized handlers to prevent recreating functions on every render
+  const handleSelectReason = useCallback((reason: string) => {
+    setSelectedReason(reason);
+  }, []);
+  
+  const handleOtherReasonChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setOtherReason(e.target.value.slice(0, 100));
+  }, []);
+
+  const handleSubmit = useCallback(() => {
+    if (!selectedReason) return;
+    
+    setIsSubmitting(true);
+    
+    // Show toast notification using a single update
+    toast({
+      title: "Report submitted",
+      description: "Thank you for helping to keep our community safe.",
+      duration: 3000,
+    });
+    
+    // Close the dialog
+    closeDialog();
+  }, [selectedReason, closeDialog, toast]);
+
+  // Compute this once per render rather than in every invocation
+  const isValid = selectedReason && (selectedReason !== 'Other' || otherReason.trim().length > 0);
+
+  // If dialog isn't open or isn't the report type, don't render
+  if (!state.isOpen || state.type !== 'report') return null;
 
   return (
-    <div className="p-6 max-w-md mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Report User</h2>
-      <p className="mb-4 text-gray-600 dark:text-gray-400">
-        You are reporting {userName}. Our moderation team will review your report.
-      </p>
-      
-      <form onSubmit={handleSubmit}>
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-medium mb-2">Reason for report</h3>
-            <RadioGroup 
-              value={selectedReason} 
-              onValueChange={setSelectedReason}
-              className="space-y-2"
-              disabled={isSubmitDisabled}
-            >
-              {REPORT_REASONS.map((reason) => (
-                <div key={reason.id} className="flex items-center space-x-2">
-                  <RadioGroupItem value={reason.id} id={reason.id} disabled={isSubmitDisabled} />
-                  <Label htmlFor={reason.id}>{reason.label}</Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-medium mb-2">Additional details (optional)</h3>
-            <Textarea
-              value={details}
-              onChange={(e) => setDetails(e.target.value)}
-              placeholder="Please provide any specific details about the issue..."
-              className="resize-none h-24"
-              disabled={isSubmitDisabled}
+    <Dialog open={true} onOpenChange={(open) => !open && closeDialog()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Report User</DialogTitle>
+          <DialogDescription>
+            Please select a reason for reporting {userName}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="mt-4 space-y-3">
+          {reportReasons.map((reason) => (
+            <ReasonOption
+              key={reason}
+              reason={reason}
+              isSelected={selectedReason === reason}
+              onSelect={handleSelectReason}
             />
-          </div>
-          
-          <div className="flex justify-between pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={closeDialog}
-              disabled={isSubmitDisabled}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isSubmitDisabled}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              {isSubmitDisabled ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                'Submit Report'
-              )}
-            </Button>
-          </div>
+          ))}
+
+          {selectedReason === 'Other' && (
+            <div className="mt-3">
+              <textarea
+                placeholder="Please describe the issue (max 100 characters)"
+                className="w-full p-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
+                value={otherReason}
+                onChange={handleOtherReasonChange}
+                maxLength={100}
+                rows={3}
+              />
+              <div className="text-right text-xs text-gray-500 mt-1">
+                {otherReason.length}/100
+              </div>
+            </div>
+          )}
         </div>
-      </form>
-    </div>
+        
+        <DialogFooter className="mt-6">
+          <Button
+            variant="outline"
+            onClick={closeDialog}
+            type="button"
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!isValid || isSubmitting}
+            type="button"
+          >
+            {isSubmitting ? "Submitting..." : "Submit Report"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
-export default ReportDialog;
+// Use memo to prevent unnecessary re-renders
+export default memo(ReportDialog);

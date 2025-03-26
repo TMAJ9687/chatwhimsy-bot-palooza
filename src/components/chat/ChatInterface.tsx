@@ -1,11 +1,9 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { useDialog } from '@/context/DialogContext';
 import { ChatProvider, useChat } from '@/context/ChatContext';
-import { useAuth } from '@/context/FirebaseAuthContext';
-import ErrorBoundary from '../shared/ErrorBoundary';
-import { useToast } from '@/hooks/use-toast';
 
 // Import our components
 import ChatHeader from './ChatHeader';
@@ -24,22 +22,8 @@ interface ChatInterfaceProps {
 // Main component that uses our new dialog context
 const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const { user, isVip } = useUser();
-  const { currentUser } = useAuth();
   const navigate = useNavigate();
   const { openDialog } = useDialog();
-  const { toast } = useToast();
-  
-  // Check if user is authenticated
-  useEffect(() => {
-    if (!currentUser) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to access the chat.",
-        variant: "destructive"
-      });
-      navigate('/');
-    }
-  }, [currentUser, navigate, toast]);
   
   const {
     userChats,
@@ -107,55 +91,20 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     setShowInbox(false);
   }, [setShowHistory, setShowInbox]);
 
-  // Don't render the chat interface if user is not authenticated
-  if (!currentUser) {
-    return null;
-  }
-
-  // Memoize the current messages to prevent unnecessary re-renders
-  const currentMessages = useMemo(() => {
-    return userChats[currentBot.id] || [];
-  }, [userChats, currentBot.id]);
-
-  // Memoize whether the current bot is typing
-  const isCurrentBotTyping = useMemo(() => {
-    return typingBots[currentBot.id] || false;
-  }, [typingBots, currentBot.id]);
-
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background dark:bg-gray-950">
       {/* Header with icons */}
-      <ErrorBoundary>
-        <ChatAppHeader 
-          unreadCount={unreadCount}
-          onOpenInbox={handleOpenInbox}
-          onOpenHistory={handleOpenHistory}
-          onLogout={handleLogout}
-        />
-      </ErrorBoundary>
+      <ChatAppHeader 
+        unreadCount={unreadCount}
+        onOpenInbox={handleOpenInbox}
+        onOpenHistory={handleOpenHistory}
+        onLogout={handleLogout}
+      />
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left sidebar - User list (desktop) */}
         <div className="hidden md:flex flex-col w-[350px] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-hidden">
-          <ErrorBoundary>
-            <UserList 
-              users={filteredUsers}
-              currentUserId={currentBot.id}
-              onSelectUser={selectUser}
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              filters={filters}
-              onFilterChange={handleFilterChange}
-            />
-          </ErrorBoundary>
-          
-          {/* VIP Upgrade Section */}
-          <VipUpgradeSection />
-        </div>
-
-        {/* Mobile user list trigger */}
-        <ErrorBoundary>
-          <MobileUserList 
+          <UserList 
             users={filteredUsers}
             currentUserId={currentBot.id}
             onSelectUser={selectUser}
@@ -164,74 +113,75 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
             filters={filters}
             onFilterChange={handleFilterChange}
           />
-        </ErrorBoundary>
+          
+          {/* VIP Upgrade Section */}
+          <VipUpgradeSection />
+        </div>
+
+        {/* Mobile user list trigger */}
+        <MobileUserList 
+          users={filteredUsers}
+          currentUserId={currentBot.id}
+          onSelectUser={selectUser}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          filters={filters}
+          onFilterChange={handleFilterChange}
+        />
 
         {/* Main chat area */}
         <div className="flex-1 flex flex-col bg-white dark:bg-gray-900">
           {/* Chat header component */}
-          <ErrorBoundary>
-            <ChatHeader 
-              currentUser={currentBot}
-              onBlockUser={handleBlockUser}
-              onCloseChat={handleCloseChat}
-            />
-          </ErrorBoundary>
+          <ChatHeader 
+            currentUser={currentBot}
+            onBlockUser={handleBlockUser}
+            onCloseChat={handleCloseChat}
+          />
 
           {/* Messages area component */}
-          <ErrorBoundary>
-            <ChatMessages 
-              messages={currentMessages}
-              isTyping={isCurrentBotTyping}
-              showStatus={isVip}
-              showTyping={isVip}
-            />
-          </ErrorBoundary>
+          <ChatMessages 
+            messages={userChats[currentBot.id] || []}
+            isTyping={typingBots[currentBot.id] || false}
+            showStatus={isVip}
+            showTyping={isVip}
+          />
           
           {/* Message input component */}
-          <ErrorBoundary>
-            <MessageInputBar
-              onSendMessage={handleSendTextMessage}
-              onSendImage={handleSendImageMessage}
-              imagesRemaining={imagesRemaining}
-            />
-          </ErrorBoundary>
+          <MessageInputBar
+            onSendMessage={handleSendTextMessage}
+            onSendImage={handleSendImageMessage}
+            imagesRemaining={imagesRemaining}
+          />
         </div>
       </div>
 
       {/* Notification Sidebar */}
-      <ErrorBoundary>
-        <NotificationSidebar
-          isOpen={showInbox}
-          onClose={() => setShowInbox(false)}
-          notifications={unreadNotifications}
-          onNotificationRead={handleNotificationRead}
-          type="inbox"
-        />
-      </ErrorBoundary>
+      <NotificationSidebar
+        isOpen={showInbox}
+        onClose={() => setShowInbox(false)}
+        notifications={unreadNotifications}
+        onNotificationRead={handleNotificationRead}
+        type="inbox"
+      />
 
       {/* History Sidebar */}
-      <ErrorBoundary>
-        <NotificationSidebar
-          isOpen={showHistory}
-          onClose={() => setShowHistory(false)}
-          notifications={chatHistory}
-          onNotificationRead={() => {}}
-          type="history"
-        />
-      </ErrorBoundary>
+      <NotificationSidebar
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+        notifications={chatHistory}
+        onNotificationRead={() => {}}
+        type="history"
+      />
     </div>
   );
 };
 
-// Create a wrapper component that provides the chat context but does NOT create a new ChatProvider here
-// Instead, we'll rely on the ChatProvider from App.tsx
+// Create a wrapper component that provides the chat context
 const ChatInterface: React.FC<ChatInterfaceProps> = (props) => {
   return (
-    <ErrorBoundary>
-      <ChatProvider>
-        <ChatInterfaceContent {...props} />
-      </ChatProvider>
-    </ErrorBoundary>
+    <ChatProvider>
+      <ChatInterfaceContent {...props} />
+    </ChatProvider>
   );
 };
 
