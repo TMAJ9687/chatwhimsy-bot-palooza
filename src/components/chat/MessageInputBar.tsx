@@ -5,24 +5,24 @@ import { Button } from '../ui/button';
 import { Image, Send, Smile, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
+import { MAX_CHAR_LIMIT, CONSECUTIVE_LIMIT, validateImageFile, checkCharacterLimit, hasConsecutiveChars } from '@/utils/messageUtils';
+import ImagePreview from './ImagePreview';
+import EmojiPicker from './EmojiPicker';
 
 interface MessageInputBarProps {
   onSendMessage: (text: string) => void;
   onSendImage: (imageDataUrl: string) => void;
   imagesRemaining: number;
   disabled?: boolean;
-  userType?: 'standard' | 'vip'; // Add the userType prop
+  userType?: 'standard' | 'vip';
 }
-
-const MAX_CHAR_LIMIT = 120;
-const CONSECUTIVE_LIMIT = 3;
 
 const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   onSendMessage,
   onSendImage,
   imagesRemaining,
   disabled = false,
-  userType = 'standard' // Set a default value
+  userType = 'standard'
 }) => {
   // State variables
   const [message, setMessage] = useState('');
@@ -85,19 +85,12 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
       return;
     }
     
-    // Check file type and size
-    if (!file.type.startsWith('image/')) {
+    // Validate file
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
       toast({
-        title: "Invalid file type",
-        description: "Please select an image file."
-      });
-      return;
-    }
-    
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      toast({
-        title: "File too large",
-        description: "Image size should be less than 5MB."
+        title: "Invalid file",
+        description: validation.message
       });
       return;
     }
@@ -135,34 +128,12 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     fileInputRef.current?.click();
   };
 
-  // Check for consecutive characters
-  const hasConsecutiveChars = (text: string) => {
-    if (!text) return false;
-    
-    for (let i = 0; i <= text.length - CONSECUTIVE_LIMIT; i++) {
-      let isConsecutive = true;
-      for (let j = 1; j < CONSECUTIVE_LIMIT; j++) {
-        if (text[i] !== text[i + j]) {
-          isConsecutive = false;
-          break;
-        }
-      }
-      if (isConsecutive) return true;
-    }
-    return false;
-  };
-
   // Handle message input
   const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
     
     // Check if exceeding character limit (for non-VIP)
-    if (!isUserVip && newText.length > MAX_CHAR_LIMIT) {
-      toast({
-        title: "Character limit reached",
-        description: `Messages are limited to ${MAX_CHAR_LIMIT} characters. Upgrade to VIP for unlimited messaging.`,
-        duration: 3000
-      });
+    if (!checkCharacterLimit(newText, isUserVip, true)) {
       setMessage(newText.slice(0, MAX_CHAR_LIMIT));
       return;
     }
@@ -180,54 +151,29 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     setMessage(newText);
   };
 
-  // Available emoji options
-  const emojis = ["😊", "😂", "❤️", "👍", "😍", "🙏", "😘", "🥰", "😎", "🔥", "😁", "👋", "🤗", "🤔"];
-  
   // Handle emoji selection
   const handleEmojiClick = (emoji: string) => {
     const newText = message + emoji;
     
     // Check if exceeding character limit
-    if (!isUserVip && newText.length > MAX_CHAR_LIMIT) {
-      toast({
-        title: "Character limit reached",
-        description: `Messages are limited to ${MAX_CHAR_LIMIT} characters. Upgrade to VIP for unlimited messaging.`,
-        duration: 3000
-      });
+    if (!checkCharacterLimit(newText, isUserVip, true)) {
       return;
     }
     
     setMessage(newText);
   };
 
+  // Available emoji options
+  const emojis = ["😊", "😂", "❤️", "👍", "😍", "🙏", "😘", "🥰", "😎", "🔥", "😁", "👋", "🤗", "🤔"];
+
   return (
     <div className={`border-t border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-800 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
       {imagePreview && (
-        <div className="mb-3 relative">
-          <img
-            src={imagePreview}
-            alt="Preview"
-            className="h-32 object-contain rounded-lg border border-border dark:border-gray-700"
-          />
-          <div className="absolute bottom-2 right-2 flex gap-2">
-            <Button 
-              variant="secondary"
-              size="sm"
-              onClick={handleCancelImage}
-              className="rounded-full p-1 h-8 w-8"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="default"
-              size="sm"
-              onClick={handleSendImage}
-              className="rounded-full p-1 h-8 w-8 bg-amber-500 hover:bg-amber-600"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        <ImagePreview 
+          src={imagePreview} 
+          onCancel={handleCancelImage} 
+          onSend={handleSendImage}
+        />
       )}
 
       <div className="flex items-center gap-2">
