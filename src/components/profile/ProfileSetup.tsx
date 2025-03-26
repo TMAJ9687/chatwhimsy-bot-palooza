@@ -103,21 +103,30 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
         <div>
           <label className="block text-sm font-medium mb-2">Gender</label>
           <div className="grid grid-cols-2 gap-3">
-            {['Male', 'Female'].map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setGender(option.toLowerCase())}
-                className={`
-                  p-3 rounded-lg text-center transition-all duration-300
-                  ${gender === option.toLowerCase() 
-                    ? 'bg-primary text-white shadow-sm' 
-                    : 'bg-card border border-border hover:border-primary/50'}
-                `}
-              >
-                {option}
-              </button>
-            ))}
+            <button
+              type="button"
+              onClick={() => setGender('male')}
+              className={`
+                p-3 rounded-lg text-center transition-all duration-300
+                ${gender === 'male' 
+                  ? 'bg-blue-500 text-white shadow-sm' 
+                  : 'bg-card border border-border hover:border-blue-500/50'}
+              `}
+            >
+              Male
+            </button>
+            <button
+              type="button"
+              onClick={() => setGender('female')}
+              className={`
+                p-3 rounded-lg text-center transition-all duration-300
+                ${gender === 'female' 
+                  ? 'bg-pink-500 text-white shadow-sm' 
+                  : 'bg-card border border-border hover:border-pink-500/50'}
+              `}
+            >
+              Female
+            </button>
           </div>
         </div>
 

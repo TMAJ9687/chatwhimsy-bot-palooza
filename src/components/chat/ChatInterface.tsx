@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
@@ -24,7 +23,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const { user, isVip } = useUser();
   const navigate = useNavigate();
   const { openDialog } = useDialog();
-  const [chatHidden, setChatHidden] = useState(false);
+  const [chatHidden, setChatHidden] = useState(true); // Set to true by default
   
   const {
     userChats,

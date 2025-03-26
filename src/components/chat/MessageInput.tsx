@@ -130,7 +130,14 @@ const MessageInput: React.FC<MessageInputProps> = ({
             className={`w-full rounded-2xl border border-border dark:border-gray-700 py-2 pl-4 pr-12 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all min-h-[48px] max-h-32 ${isOverLimit ? 'border-red-500' : ''} ${className || ''}`}
             placeholder={placeholder}
             value={message}
-            onChange={(e) => handleChange(e.target.value)}
+            onChange={(e) => {
+              // Enforce character limit for standard users
+              if (userType === 'standard' && e.target.value.length > MAX_CHARS) {
+                handleChange(e.target.value.substring(0, MAX_CHARS));
+              } else {
+                handleChange(e.target.value);
+              }
+            }}
             onKeyDown={handleKeyDownInternal}
             disabled={disabled || !!imagePreview}
             rows={1}
