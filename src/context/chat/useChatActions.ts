@@ -1,14 +1,13 @@
-
 import { useCallback, useState } from 'react';
 import { User } from 'firebase/auth';
 import { FilterState } from '@/components/chat/FilterMenu';
 import { Notification } from '@/components/chat/NotificationSidebar';
 import { Message } from '@/components/chat/MessageBubble';
 import { 
-  blockUser, 
-  reportUser, 
-  sendMessage as fbSendMessage,
-  uploadImage as fbUploadImage
+  blockUserSafe as blockUser, 
+  reportUserSafe as reportUser, 
+  sendMessageSafe as fbSendMessage,
+  uploadImageSafe as fbUploadImage
 } from '@/services/firebaseService';
 import { 
   Bot, 
@@ -16,6 +15,7 @@ import {
   botProfiles
 } from './useChatState';
 import { useToast } from '@/hooks/use-toast';
+import { makeSerializable } from '@/utils/serialization';
 
 interface UseChatActionsParams {
   currentUser: User | null;
@@ -133,28 +133,21 @@ export const useChatActions = ({
     if (!currentUser || blockInProgress) return;
     
     try {
-      // Set loading state to prevent multiple calls
       setBlockInProgress(true);
       
-      // Call the Firebase service to block the user
       await blockUser(currentUser.uid, currentBot.id);
       
-      // Update local state only after successful API call
       setBlockedUsers(prev => [...prev, currentBot.id]);
       
-      // Optimize by using functional update
       setOnlineUsers(prev => {
-        // Create new array with filtered users
         return prev.filter(user => user.id !== currentBot.id);
       });
       
-      // Handle chat switching if needed
       if (filteredUsers.length > 1) {
         const newUser = filteredUsers.find(user => user.id !== currentBot.id);
         if (newUser) selectUser(newUser);
       }
       
-      // Show success toast
       toast({
         title: "User blocked",
         description: `You have blocked ${currentBot.name}.`,
@@ -163,14 +156,12 @@ export const useChatActions = ({
     } catch (error) {
       console.error('Error blocking user:', error);
       
-      // Show error toast
       toast({
         title: "Block failed",
         description: "There was a problem blocking this user. Please try again.",
         variant: "destructive",
       });
     } finally {
-      // Reset loading state
       setBlockInProgress(false);
     }
   }, [currentUser, currentBot.id, currentBot.name, filteredUsers, toast, setBlockedUsers, setOnlineUsers]);
@@ -188,13 +179,13 @@ export const useChatActions = ({
     const currentBotId = currentBot.id;
     const chatId = `${currentUser.uid}_${currentBotId}`;
     
-    const newMessage: Message = {
+    const newMessage: Message = makeSerializable({
       id: `user-${Date.now()}`,
       content: text,
       sender: 'user',
       timestamp: new Date(),
       status: 'sending',
-    };
+    });
     
     setUserChats(prev => {
       const currentMessages = prev[currentBotId] || [];
@@ -205,16 +196,16 @@ export const useChatActions = ({
     });
 
     try {
-      await fbSendMessage(chatId, {
+      await fbSendMessage(chatId, makeSerializable({
         content: text,
         sender: 'user',
         status: 'sent'
-      });
+      }));
       
       setUserChats(prev => {
         const messages = [...(prev[currentBotId] || [])];
         const updatedMessages = messages.map(msg => 
-          msg.id === newMessage.id ? { ...msg, status: 'sent' as const } : msg
+          msg.id === newMessage.id ? makeSerializable({ ...msg, status: 'sent' as const }) : msg
         ) as Message[];
         
         return {
@@ -226,18 +217,18 @@ export const useChatActions = ({
       console.error('Error sending message:', error);
     }
 
-    const newNotification: Notification = {
+    const newNotification: Notification = makeSerializable({
       id: Date.now().toString(),
       title: `Message to ${currentBot.name}`,
       message: text.slice(0, 30) + (text.length > 30 ? '...' : ''),
       time: new Date(),
       read: true
-    };
+    });
     
     setChatHistory(prev => [newNotification, ...prev]);
     
     simulateBotResponse(newMessage.id, currentBotId);
-  }, [currentUser, currentBot.id, currentBot.name, setChatHistory, setUserChats, simulateBotResponse]);
+  }, [currentUser, currentBot.id, currentBot.name, setChatHistory, setUserChats]);
 
   const handleSendImageMessage = useCallback(async (imageDataUrl: string) => {
     if (!currentUser) return;
@@ -261,14 +252,14 @@ export const useChatActions = ({
     
     const file = dataURLToFile(imageDataUrl, `image_${Date.now()}.jpg`);
     
-    const newMessage: Message = {
+    const newMessage: Message = makeSerializable({
       id: `user-${Date.now()}`,
       content: imageDataUrl,
       sender: 'user',
       timestamp: new Date(),
       status: 'sending',
       isImage: true,
-    };
+    });
     
     setUserChats(prev => {
       const currentMessages = prev[currentBotId] || [];
@@ -281,21 +272,21 @@ export const useChatActions = ({
     try {
       const imageUrl = await fbUploadImage(currentUser.uid, file, chatId);
       
-      await fbSendMessage(chatId, {
+      await fbSendMessage(chatId, makeSerializable({
         content: imageUrl,
         sender: 'user',
         isImage: true,
         status: 'sent'
-      });
+      }));
       
       setUserChats(prev => {
         const messages = [...(prev[currentBotId] || [])];
         const updatedMessages: Message[] = messages.map(msg => 
-          msg.id === newMessage.id ? { 
+          msg.id === newMessage.id ? makeSerializable({ 
             ...msg, 
             content: imageUrl, 
             status: 'sent'
-          } : msg
+          }) : msg
         );
         return {
           ...prev,
@@ -310,18 +301,18 @@ export const useChatActions = ({
       console.error('Error sending image:', error);
     }
     
-    const newNotification: Notification = {
+    const newNotification: Notification = makeSerializable({
       id: Date.now().toString(),
       title: `Image sent to ${currentBot.name}`,
       message: 'You sent an image',
       time: new Date(),
       read: true
-    };
+    });
     
     setChatHistory(prev => [newNotification, ...prev]);
     
     simulateBotResponse(newMessage.id, currentBotId);
-  }, [currentUser, currentBot.id, currentBot.name, userIsVip, setImagesRemaining, setChatHistory, setUserChats, simulateBotResponse]);
+  }, [currentUser, currentBot.id, currentBot.name, userIsVip, setImagesRemaining, setChatHistory, setUserChats]);
 
   const selectUser = useCallback((user: Bot) => {
     if (user.id !== currentBot.id) {
@@ -342,7 +333,6 @@ export const useChatActions = ({
   }, [currentBot.id, userChats, setCurrentBot, setUserChats]);
 
   const handleFilterChange = useCallback((newFilters: FilterState) => {
-    // Implementation handled by the parent component via setFilters
   }, []);
 
   const handleNotificationRead = useCallback((id: string) => {
@@ -359,10 +349,8 @@ export const useChatActions = ({
     setReportInProgress(true);
     
     try {
-      // Use the Firebase service to report the user with proper error handling
       const reportId = await reportUser(currentUser.uid, currentBot.id, reason, details);
       
-      // Show success toast
       toast({
         title: "Report submitted",
         description: "Thank you for helping keep our community safe.",
@@ -372,7 +360,6 @@ export const useChatActions = ({
     } catch (error) {
       console.error('Error reporting user:', error);
       
-      // Show error toast
       toast({
         title: "Report failed",
         description: "There was a problem submitting your report. Please try again.",

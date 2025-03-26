@@ -1,7 +1,14 @@
 
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { useAuth } from './FirebaseAuthContext';
-import { getUserProfile, updateUserProfile, getSubscription, createSubscription, cancelSubscription } from '@/services/firebaseService';
+import { 
+  getUserProfile, 
+  updateUserProfile, 
+  getSubscriptionSafe as getSubscription, 
+  createSubscriptionSafe as createSubscription, 
+  cancelSubscriptionSafe as cancelSubscription 
+} from '@/services/firebaseService';
+import { makeSerializable } from '@/utils/serialization';
 
 type Gender = 'male' | 'female';
 type Interest = string;
@@ -15,7 +22,7 @@ interface UserProfile {
   interests?: Interest[];
   email?: string;
   isVip?: boolean;
-  isAnonymous?: boolean; // Added this property to fix the TypeScript error
+  isAnonymous?: boolean;
   subscriptionTier?: SubscriptionTier;
   subscriptionEndDate?: Date;
   imagesRemaining?: number;
@@ -43,12 +50,42 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const fetchUserData = async () => {
       if (currentUser) {
-        // Get user profile from Firestore
-        const userProfile = await getUserProfile(currentUser.uid);
-        
-        // If no profile, create defaults
-        if (!userProfile) {
-          // Set default user data
+        try {
+          // Get user profile from Firestore
+          const userProfile = await getUserProfile(currentUser.uid);
+          
+          // If no profile, create defaults
+          if (!userProfile) {
+            // Set default user data
+            setUser({
+              nickname: currentUser.displayName || 'User',
+              email: currentUser.email || undefined,
+              isVip: false,
+              isAnonymous: currentUser.isAnonymous,
+              imagesRemaining: 15,
+              voiceMessagesRemaining: 0,
+              subscriptionTier: 'none'
+            });
+            return;
+          }
+          
+          // Get subscription data
+          const subscription = await getSubscription(currentUser.uid);
+          
+          // Combine the data - fixed spread by creating an object first
+          const profileData = userProfile ? makeSerializable({ ...userProfile }) : {};
+          
+          setUser({
+            nickname: currentUser.displayName || 'User',
+            email: currentUser.email || undefined,
+            ...profileData,
+            isVip: subscription?.status === 'active' || false,
+            subscriptionTier: subscription?.plan as SubscriptionTier || 'none',
+            subscriptionEndDate: subscription?.endDate ? new Date(subscription.endDate) : undefined
+          });
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          // Set basic user data even if there's an error
           setUser({
             nickname: currentUser.displayName || 'User',
             email: currentUser.email || undefined,
@@ -58,23 +95,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             voiceMessagesRemaining: 0,
             subscriptionTier: 'none'
           });
-          return;
         }
-        
-        // Get subscription data
-        const subscription = await getSubscription(currentUser.uid);
-        
-        // Combine the data - fixed spread by creating an object first
-        const profileData = userProfile ? { ...userProfile } : {};
-        
-        setUser({
-          nickname: currentUser.displayName || 'User',
-          email: currentUser.email || undefined,
-          ...profileData,
-          isVip: subscription?.status === 'active' || false,
-          subscriptionTier: subscription?.plan as SubscriptionTier || 'none',
-          subscriptionEndDate: subscription?.endDate ? new Date(subscription.endDate) : undefined
-        });
       } else {
         setUser(null);
       }
@@ -93,13 +114,16 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!currentUser) return;
     
     try {
+      // Make the profile data serializable
+      const safeProfile = makeSerializable(profile);
+      
       // Update user profile in Firestore
-      await updateFirebaseProfile(profile);
+      await updateFirebaseProfile(safeProfile);
       
       // Update local state
       setUser((prev) => {
-        if (!prev) return profile as UserProfile;
-        return { ...prev, ...profile };
+        if (!prev) return safeProfile as UserProfile;
+        return { ...prev, ...safeProfile };
       });
     } catch (error) {
       console.error("Error updating user profile:", error);
@@ -113,49 +137,59 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const subscribeToVip = async (tier: SubscriptionTier) => {
     if (!currentUser) return;
     
-    let endDate = new Date();
-    
-    switch(tier) {
-      case 'monthly':
-        endDate.setMonth(endDate.getMonth() + 1);
-        break;
-      case 'semiannual':
-        endDate.setMonth(endDate.getMonth() + 6);
-        break;
-      case 'annual':
-        endDate.setFullYear(endDate.getFullYear() + 1);
-        break;
-      default:
-        break;
+    try {
+      let endDate = new Date();
+      
+      switch(tier) {
+        case 'monthly':
+          endDate.setMonth(endDate.getMonth() + 1);
+          break;
+        case 'semiannual':
+          endDate.setMonth(endDate.getMonth() + 6);
+          break;
+        case 'annual':
+          endDate.setFullYear(endDate.getFullYear() + 1);
+          break;
+        default:
+          break;
+      }
+      
+      // Create the subscription in Firestore
+      await createSubscription(currentUser.uid, tier, endDate);
+      
+      // Update the user profile with serializable data
+      const profileUpdate = makeSerializable({ 
+        isVip: true, 
+        subscriptionTier: tier,
+        subscriptionEndDate: endDate,
+        imagesRemaining: Infinity,
+        voiceMessagesRemaining: Infinity
+      });
+      
+      updateUserProfile(profileUpdate);
+    } catch (error) {
+      console.error("Error subscribing to VIP:", error);
     }
-    
-    // Create the subscription in Firestore
-    await createSubscription(currentUser.uid, tier, endDate);
-    
-    // Update the user profile
-    updateUserProfile({ 
-      isVip: true, 
-      subscriptionTier: tier,
-      subscriptionEndDate: endDate,
-      imagesRemaining: Infinity,
-      voiceMessagesRemaining: Infinity
-    });
   };
   
   const cancelVipSubscription = async () => {
     if (!currentUser) return;
     
-    // Cancel the subscription in Firestore
-    await cancelSubscription(currentUser.uid);
-    
-    // Update the user profile
-    updateUserProfile({ 
-      isVip: false, 
-      subscriptionTier: 'none',
-      subscriptionEndDate: undefined,
-      imagesRemaining: 15,
-      voiceMessagesRemaining: 0
-    });
+    try {
+      // Cancel the subscription in Firestore
+      await cancelSubscription(currentUser.uid);
+      
+      // Update the user profile
+      updateUserProfile({ 
+        isVip: false, 
+        subscriptionTier: 'none',
+        subscriptionEndDate: undefined,
+        imagesRemaining: 15,
+        voiceMessagesRemaining: 0
+      });
+    } catch (error) {
+      console.error("Error canceling VIP subscription:", error);
+    }
   };
 
   return (

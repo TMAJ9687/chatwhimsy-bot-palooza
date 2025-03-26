@@ -8,79 +8,87 @@ import { submitReport, reportUser } from './firebaseReport';
 import { sendMessage, getChatMessages } from './firebaseChat';
 import { uploadImage } from './firebaseStorage';
 import { blockUser, unblockUser, getBlockedUsers } from './firebaseBlockedUsers';
+import { safeApiCall, makeSerializable } from '@/utils/serialization';
 
 // Import types
 import type { ChatMessage } from './firebaseChat';
 
-// Safe wrapper for API calls to prevent DataCloneError
-const safeApiCall = async <T>(apiFn: (...args: any[]) => Promise<T>, ...args: any[]): Promise<T> => {
-  try {
-    const result = await apiFn(...args);
-    return result;
-  } catch (error) {
-    console.error('API call failed:', error);
-    throw error;
-  }
-};
-
 // Re-export user-related functions with safe wrappers
 export const getUserProfile = async (userId: string) => {
-  try {
-    return await getUserProfileOriginal(userId);
-  } catch (error) {
-    console.error('API call failed:', error);
-    throw error;
-  }
+  return safeApiCall(getUserProfileOriginal, userId);
 };
 
 export const createUserProfile = async (userId: string, data: any) => {
-  try {
-    return await createUserProfileOriginal(userId, data);
-  } catch (error) {
-    console.error('API call failed:', error);
-    throw error;
-  }
+  return safeApiCall(createUserProfileOriginal, userId, makeSerializable(data));
 };
 
 export const updateUserProfile = async (userId: string, data: any) => {
-  try {
-    return await updateUserProfileOriginal(userId, data);
-  } catch (error) {
-    console.error('API call failed:', error);
-    throw error;
-  }
+  return safeApiCall(updateUserProfileOriginal, userId, makeSerializable(data));
 };
 
-// Re-export subscription-related functions
+// Re-export subscription-related functions with safe wrappers
+export const getSubscriptionSafe = async (userId: string) => {
+  return safeApiCall(getSubscription, userId);
+};
+
+export const createSubscriptionSafe = async (userId: string, plan: string, endDate: Date) => {
+  return safeApiCall(createSubscription, userId, plan, endDate);
+};
+
+export const cancelSubscriptionSafe = async (userId: string) => {
+  return safeApiCall(cancelSubscription, userId);
+};
+
+// Re-export report-related functions with safe wrappers
+export const submitReportSafe = async (data: any) => {
+  return safeApiCall(submitReport, makeSerializable(data));
+};
+
+export const reportUserSafe = async (reporterId: string, reportedUserId: string, reason: string, details?: string) => {
+  return safeApiCall(reportUser, reporterId, reportedUserId, reason, details);
+};
+
+// Re-export chat-related functions with safe wrappers
+export const sendMessageSafe = async (chatId: string, messageData: any) => {
+  return safeApiCall(sendMessage, chatId, makeSerializable(messageData));
+};
+
+export const getChatMessagesSafe = async (chatId: string) => {
+  return safeApiCall(getChatMessages, chatId);
+};
+
+// Re-export storage-related functions with safe wrappers
+export const uploadImageSafe = async (userId: string, file: File, path: string) => {
+  return safeApiCall(uploadImage, userId, file, path);
+};
+
+// Re-export blocked-users-related functions with safe wrappers
+export const blockUserSafe = async (userId: string, blockedUserId: string) => {
+  return safeApiCall(blockUser, userId, blockedUserId);
+};
+
+export const unblockUserSafe = async (userId: string, blockedUserId: string) => {
+  return safeApiCall(unblockUser, userId, blockedUserId);
+};
+
+export const getBlockedUsersSafe = async () => {
+  return safeApiCall(getBlockedUsers);
+};
+
+// For backward compatibility, re-export the original functions as well
 export {
   getSubscription,
   createSubscription,
-  cancelSubscription
-};
-
-// Re-export report-related functions
-export {
+  cancelSubscription,
   submitReport,
-  reportUser
-};
-
-// Re-export chat-related functions
-export {
+  reportUser,
   sendMessage,
-  getChatMessages
-};
-
-// Re-export types with proper 'export type' syntax
-export type { ChatMessage };
-
-// Re-export storage-related functions
-export {
-  uploadImage
-};
-
-// Re-export blocked-users-related functions
-export {
+  getChatMessages,
+  uploadImage,
   blockUser,
   unblockUser,
   getBlockedUsers
 };
+
+// Re-export types with proper 'export type' syntax
+export type { ChatMessage };

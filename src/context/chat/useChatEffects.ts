@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { ref, onValue, off } from 'firebase/database';
 import { rtdb } from '@/lib/firebase';
-import { getBlockedUsers, getChatMessages } from '@/services/firebaseService';
+import { getBlockedUsersSafe as getBlockedUsers, getChatMessagesSafe as getChatMessages } from '@/services/firebaseService';
 import { User } from 'firebase/auth';
 import { 
   Bot, 
@@ -10,6 +10,7 @@ import {
   sortUsers 
 } from './useChatState';
 import { Message } from '@/components/chat/MessageBubble';
+import { makeSerializable } from '@/utils/serialization';
 
 interface UseChatEffectsParams {
   currentUser: User | null;
@@ -70,34 +71,43 @@ export const useChatEffects = ({
     
     const handleNewMessages = (snapshot: any) => {
       if (snapshot.exists()) {
-        const messages: Message[] = Object.entries(snapshot.val()).map(([id, messageData]: [string, any]) => {
-          const content = messageData?.content || '';
-          const sender = messageData?.sender || 'system';
-          const timestamp = messageData?.timestamp || Date.now();
-          const status = messageData?.status || 'sent';
-          const isImage = messageData?.isImage || false;
+        try {
+          // Ensure the data is serializable before updating state
+          const messagesObj = snapshot.val();
+          const messages: Message[] = Object.entries(messagesObj).map(([id, messageData]: [string, any]) => {
+            // Use safe default values for all properties
+            return makeSerializable({
+              id,
+              content: messageData?.content || '',
+              sender: messageData?.sender || 'system',
+              timestamp: messageData?.timestamp ? new Date(messageData.timestamp) : new Date(),
+              status: messageData?.status || 'sent',
+              isImage: Boolean(messageData?.isImage)
+            });
+          });
           
-          return {
-            id,
-            content,
-            sender: sender as 'user' | 'bot' | 'system',
-            timestamp: new Date(timestamp),
-            status: status as 'sending' | 'sent' | 'delivered' | 'read',
-            isImage
-          };
-        });
-        
-        setUserChats(prev => ({
-          ...prev,
-          [currentBot.id]: messages
-        }));
+          setUserChats(prev => ({
+            ...prev,
+            [currentBot.id]: messages
+          }));
+        } catch (error) {
+          console.error("Error processing chat messages:", error);
+        }
       }
     };
     
-    onValue(chatRef, handleNewMessages);
+    try {
+      onValue(chatRef, handleNewMessages);
+    } catch (error) {
+      console.error("Error setting up chat listener:", error);
+    }
     
     return () => {
-      off(chatRef, 'value', handleNewMessages);
+      try {
+        off(chatRef, 'value', handleNewMessages);
+      } catch (error) {
+        console.error("Error removing chat listener:", error);
+      }
     };
   }, [currentUser, currentBot.id, setUserChats]);
 
@@ -111,17 +121,18 @@ export const useChatEffects = ({
       try {
         const messages = await getChatMessages(chatId);
         
-        if (messages.length > 0) {
+        if (messages && messages.length > 0) {
+          // Ensure all messages are safely serializable
           const typedMessages: Message[] = messages.map(msg => {
             // Ensure all properties have default values
-            return {
+            return makeSerializable({
               id: msg.id || `msg-${Date.now()}-${Math.random()}`,
               content: msg.content || '',
               sender: (msg.sender as 'user' | 'bot' | 'system') || 'system',
-              timestamp: new Date(msg.timestamp || Date.now()),
+              timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date(),
               status: ((msg.status || 'sent') as 'sending' | 'sent' | 'delivered' | 'read'),
               isImage: Boolean(msg.isImage)
-            };
+            });
           });
           
           setUserChats(prev => ({
@@ -141,11 +152,21 @@ export const useChatEffects = ({
         }
       } catch (error) {
         console.error("Error loading chat messages:", error);
+        // Add a fallback message on error
+        setUserChats(prev => ({
+          ...prev,
+          [currentBot.id]: [{
+            id: `system-${Date.now()}`,
+            content: `Start a conversation with ${currentBot.name}`,
+            sender: 'system',
+            timestamp: new Date(),
+          }]
+        }));
       }
     };
     
     loadChatMessages();
-  }, [currentBot.id, currentUser, setUserChats]);
+  }, [currentBot.id, currentBot.name, currentUser, setUserChats]);
 
   // Update images remaining
   useEffect(() => {
@@ -154,40 +175,8 @@ export const useChatEffects = ({
 
   // Fetch user country - optimized to avoid DataCloneError
   useEffect(() => {
-    const fetchUserCountry = async () => {
-      try {
-        // Use a static country value to avoid API calls that might cause DataCloneError
-        // This is a temporary solution to prevent the error while preserving functionality
-        setUserCountry('United States');
-        
-        // If you want to re-enable the API call later, uncomment this more reliable implementation:
-        /*
-        const response = await fetch('https://ipapi.co/json/', {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-          },
-          cache: 'no-store'
-        });
-        
-        if (!response.ok) {
-          console.error('Failed to fetch country data:', response.statusText);
-          setUserCountry('United States');
-          return;
-        }
-        
-        // Create a simple object from the response to avoid DataCloneError
-        const data = await response.json();
-        const countryName = data && data.country_name ? String(data.country_name) : 'United States';
-        setUserCountry(countryName);
-        */
-      } catch (error) {
-        console.error('Error fetching user country:', error);
-        setUserCountry('United States');
-      }
-    };
-
-    fetchUserCountry();
+    // Use a static country value to avoid API calls that might cause DataCloneError
+    setUserCountry('United States');
   }, [setUserCountry]);
 
   // Sort users by country
