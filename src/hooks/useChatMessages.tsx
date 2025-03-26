@@ -1,6 +1,5 @@
-
 import { useState, useCallback, useRef } from 'react';
-import { Message, Bot } from '@/types/chat';
+import { Message, Bot, MessageStatus } from '@/types/chat';
 import { getRandomBotResponse } from '@/utils/botUtils';
 import { trackImageUpload, getRemainingUploads, IMAGE_UPLOAD_LIMIT } from '@/utils/imageUploadLimiter';
 import { MAX_CHAR_LIMIT } from '@/utils/messageUtils';
@@ -190,7 +189,7 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
       status: 'sending',
       replyToId: message.id,
       replyToContent: message.content.substring(0, 50) + (message.content.length > 50 ? '...' : ''),
-      replyToSender: message.sender,
+      replyToSender: message.sender === 'system' ? 'bot' : message.sender,
     };
     
     setUserChats(prev => ({
