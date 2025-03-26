@@ -205,14 +205,16 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     const handleNewMessages = (snapshot: any) => {
       if (snapshot.exists()) {
-        const messages = Object.entries(snapshot.val()).map(([id, message]: [string, any]) => ({
-          id,
-          content: message.content,
-          sender: message.sender as 'user' | 'bot' | 'system',
-          timestamp: new Date(message.timestamp),
-          status: message.status as 'sending' | 'sent' | 'delivered' | 'read',
-          isImage: message.isImage || false
-        }));
+        const messages = Object.entries(snapshot.val()).map(([id, messageData]: [string, any]) => {
+          return {
+            id,
+            content: messageData.content || '',
+            sender: (messageData.sender as 'user' | 'bot' | 'system') || 'system',
+            timestamp: new Date(messageData.timestamp || Date.now()),
+            status: (messageData.status as 'sending' | 'sent' | 'delivered' | 'read') || 'sent',
+            isImage: messageData.isImage || false
+          } as Message;
+        });
         
         setUserChats(prev => ({
           ...prev,
@@ -380,7 +382,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       setUserChats(prev => {
         const messages = [...(prev[currentBotId] || [])];
-        const updatedMessages: Message[] = messages.map(msg => 
+        const updatedMessages = messages.map(msg => 
           msg.id === newMessage.id ? { ...msg, status: 'sent' } : msg
         );
         return {
