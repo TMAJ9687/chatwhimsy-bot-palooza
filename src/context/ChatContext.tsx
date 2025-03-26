@@ -205,15 +205,23 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     const handleNewMessages = (snapshot: any) => {
       if (snapshot.exists()) {
-        const messages = Object.entries(snapshot.val()).map(([id, messageData]: [string, any]) => {
+        const messages: Message[] = Object.entries(snapshot.val()).map(([id, messageData]: [string, any]) => {
+          const typedMessageData = {
+            content: messageData.content || '',
+            sender: messageData.sender || 'system',
+            timestamp: messageData.timestamp || Date.now(),
+            status: messageData.status || 'sent',
+            isImage: messageData.isImage || false
+          };
+          
           return {
             id,
-            content: messageData.content || '',
-            sender: (messageData.sender as 'user' | 'bot' | 'system') || 'system',
-            timestamp: new Date(messageData.timestamp || Date.now()),
-            status: (messageData.status as 'sending' | 'sent' | 'delivered' | 'read') || 'sent',
-            isImage: messageData.isImage || false
-          } as Message;
+            content: typedMessageData.content,
+            sender: typedMessageData.sender as 'user' | 'bot' | 'system',
+            timestamp: new Date(typedMessageData.timestamp),
+            status: typedMessageData.status as 'sending' | 'sent' | 'delivered' | 'read',
+            isImage: typedMessageData.isImage
+          };
         });
         
         setUserChats(prev => ({
@@ -383,8 +391,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUserChats(prev => {
         const messages = [...(prev[currentBotId] || [])];
         const updatedMessages = messages.map(msg => 
-          msg.id === newMessage.id ? { ...msg, status: 'sent' } : msg
-        );
+          msg.id === newMessage.id ? { ...msg, status: 'sent' as const } : msg
+        ) as Message[];
+        
         return {
           ...prev,
           [currentBotId]: updatedMessages
