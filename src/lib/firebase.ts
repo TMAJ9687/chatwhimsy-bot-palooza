@@ -14,7 +14,7 @@ const firebaseConfig = {
   messagingSenderId: "1099388582891",
   appId: "1:1099388582891:web:8628d78bf8ed63d768b7ae",
   measurementId: "G-FXZTQ7Y1GT",
-  databaseURL: "https://chatwii-54dbe-default-rtdb.firebaseio.com"
+  databaseURL: "https://chatwii-54dbe-default-rtdb.europe-west1.firebasedatabase.app"
 };
 
 // Initialize Firebase
