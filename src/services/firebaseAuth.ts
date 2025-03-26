@@ -4,13 +4,18 @@ import {
   getDoc, 
   setDoc, 
   updateDoc, 
-  serverTimestamp 
+  serverTimestamp,
+  query,
+  collection,
+  where,
+  getDocs
 } from 'firebase/firestore';
 import { 
   signInAnonymously, 
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  updateProfile
+  updateProfile,
+  fetchSignInMethodsForEmail as firebaseFetchSignInMethodsForEmail
 } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
 
@@ -129,10 +134,9 @@ export const signInUser = async (email: string, password: string) => {
 // Check if a user exists by email
 export const checkUserExists = async (email: string) => {
   try {
-    // This is a simplified check and might need to be expanded
-    // depending on your exact requirements
-    const users = await auth.fetchSignInMethodsForEmail(email);
-    return users.length > 0;
+    // Fixed: Using Firebase's fetchSignInMethodsForEmail directly
+    const methods = await firebaseFetchSignInMethodsForEmail(auth, email);
+    return methods.length > 0;
   } catch (error) {
     console.error('Error checking if user exists:', error);
     return false;

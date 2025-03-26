@@ -29,8 +29,64 @@ export const rtdb = getDatabase(app);
 // Collection references
 export const usersCollection = collection(db, 'users');
 export const chatsCollection = collection(db, 'chats');
+export const messagesCollection = collection(db, 'messages');
 export const subscriptionsCollection = collection(db, 'subscriptions');
 export const reportsCollection = collection(db, 'reports');
+
+// Schema definitions for collections (for reference)
+export const collectionSchemas = {
+  users: {
+    nickname: 'string',
+    email: 'string?',
+    isVip: 'boolean',
+    isAnonymous: 'boolean',
+    gender: 'string?',
+    age: 'number?',
+    country: 'string?',
+    interests: 'array?',
+    imagesRemaining: 'number',
+    voiceMessagesRemaining: 'number',
+    blockedUsers: 'array',
+    createdAt: 'timestamp',
+    updatedAt: 'timestamp',
+    lastSeen: 'timestamp?',
+    avatarId: 'string?'
+  },
+  chats: {
+    participants: 'array',
+    lastMessage: 'string?',
+    lastMessageTime: 'timestamp?',
+    createdAt: 'timestamp',
+    isActive: 'boolean'
+  },
+  messages: {
+    chatId: 'string', 
+    senderId: 'string',
+    senderName: 'string',
+    text: 'string?',
+    imageUrl: 'string?',
+    voiceUrl: 'string?',
+    isRead: 'boolean',
+    timestamp: 'timestamp'
+  },
+  subscriptions: {
+    userId: 'string',
+    plan: 'string', // 'monthly', 'semiannual', 'annual'
+    startDate: 'timestamp',
+    endDate: 'timestamp',
+    status: 'string', // 'active', 'cancelled', 'expired'
+    paymentMethod: 'string?',
+    autoRenew: 'boolean'
+  },
+  reports: {
+    reporterId: 'string',
+    reportedUserId: 'string',
+    reason: 'string',
+    details: 'string?',
+    timestamp: 'timestamp',
+    status: 'string' // 'pending', 'reviewed', 'resolved'
+  }
+};
 
 // Helper function to check if a collection exists and create it if it doesn't
 export const ensureCollectionExists = async (collectionName: string) => {
@@ -57,6 +113,7 @@ export const initializeFirestore = async () => {
   await Promise.all([
     ensureCollectionExists('users'),
     ensureCollectionExists('chats'),
+    ensureCollectionExists('messages'),
     ensureCollectionExists('subscriptions'),
     ensureCollectionExists('reports')
   ]);
