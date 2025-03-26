@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { User } from 'firebase/auth';
 import { FilterState } from '@/components/chat/FilterMenu';
 import { Notification } from '@/components/chat/NotificationSidebar';
@@ -15,6 +15,7 @@ import {
   getRandomBotResponse, 
   botProfiles
 } from './useChatState';
+import { useToast } from '@/hooks/use-toast';
 
 interface UseChatActionsParams {
   currentUser: User | null;
@@ -49,6 +50,10 @@ export const useChatActions = ({
   setChatHistory,
   currentBotIdRef
 }: UseChatActionsParams) => {
+  const { toast } = useToast();
+  const [blockInProgress, setBlockInProgress] = useState(false);
+  const [reportInProgress, setReportInProgress] = useState(false);
+
   const simulateBotResponse = useCallback((messageId: string, botId: string) => {
     const isVip = userIsVip || currentBot?.vip || false;
 
@@ -125,22 +130,50 @@ export const useChatActions = ({
   }, [userIsVip, currentUser, currentBot?.vip, currentBotIdRef, setUserChats, setTypingBots, setUnreadNotifications]);
 
   const handleBlockUser = useCallback(async () => {
-    if (!currentUser) return;
+    if (!currentUser || blockInProgress) return;
     
     try {
+      // Set loading state to prevent multiple calls
+      setBlockInProgress(true);
+      
+      // Call the Firebase service to block the user
       await blockUser(currentUser.uid, currentBot.id);
       
+      // Update local state only after successful API call
       setBlockedUsers(prev => [...prev, currentBot.id]);
-      setOnlineUsers(prev => prev.filter(user => user.id !== currentBot.id));
       
+      // Optimize by using functional update
+      setOnlineUsers(prev => {
+        // Create new array with filtered users
+        return prev.filter(user => user.id !== currentBot.id);
+      });
+      
+      // Handle chat switching if needed
       if (filteredUsers.length > 1) {
         const newUser = filteredUsers.find(user => user.id !== currentBot.id);
         if (newUser) selectUser(newUser);
       }
+      
+      // Show success toast
+      toast({
+        title: "User blocked",
+        description: `You have blocked ${currentBot.name}.`,
+        duration: 3000,
+      });
     } catch (error) {
       console.error('Error blocking user:', error);
+      
+      // Show error toast
+      toast({
+        title: "Block failed",
+        description: "There was a problem blocking this user. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      // Reset loading state
+      setBlockInProgress(false);
     }
-  }, [currentUser, currentBot.id, filteredUsers, setBlockedUsers, setOnlineUsers]);
+  }, [currentUser, currentBot.id, currentBot.name, filteredUsers, toast, setBlockedUsers, setOnlineUsers]);
 
   const handleCloseChat = useCallback(() => {
     if (filteredUsers.length > 1) {
@@ -321,16 +354,36 @@ export const useChatActions = ({
   }, [setUnreadNotifications]);
 
   const reportCurrentUser = useCallback(async (reason: string, details?: string): Promise<boolean> => {
-    if (!currentUser) return false;
+    if (!currentUser || reportInProgress) return false;
+    
+    setReportInProgress(true);
     
     try {
-      await reportUser(currentUser.uid, currentBot.id, reason, details);
+      // Use the Firebase service to report the user with proper error handling
+      const reportId = await reportUser(currentUser.uid, currentBot.id, reason, details);
+      
+      // Show success toast
+      toast({
+        title: "Report submitted",
+        description: "Thank you for helping keep our community safe.",
+      });
+      
       return true;
     } catch (error) {
       console.error('Error reporting user:', error);
+      
+      // Show error toast
+      toast({
+        title: "Report failed",
+        description: "There was a problem submitting your report. Please try again.",
+        variant: "destructive",
+      });
+      
       return false;
+    } finally {
+      setReportInProgress(false);
     }
-  }, [currentUser, currentBot.id]);
+  }, [currentUser, currentBot.id, toast]);
 
   return {
     handleBlockUser,
@@ -340,6 +393,8 @@ export const useChatActions = ({
     selectUser,
     handleFilterChange,
     handleNotificationRead,
-    reportCurrentUser
+    reportCurrentUser,
+    blockInProgress,
+    reportInProgress
   };
 };

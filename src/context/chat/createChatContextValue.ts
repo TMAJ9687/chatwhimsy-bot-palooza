@@ -43,6 +43,8 @@ export const createChatContextValue = (state: any, actions: any, userIsVip: bool
     filteredUsers,
     unreadCount,
     isVip,
+    blockInProgress: actions.blockInProgress || false,
+    reportInProgress: actions.reportInProgress || false,
     setSearchTerm: state.setSearchTerm,
     setFilters: state.setFilters,
     setShowInbox: state.setShowInbox,

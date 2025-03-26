@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { Loader2 } from 'lucide-react';
 
 const REPORT_REASONS = [
   { id: 'inappropriate', label: 'Inappropriate content' },
@@ -31,7 +32,10 @@ const ReportDialog = () => {
     return null;
   }
 
-  const { userId, userName } = state.data;
+  const { userId, userName, reportInProgress = false } = state.data;
+  
+  // Combine local submit state with passed in state
+  const isSubmitDisabled = isSubmitting || reportInProgress;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,10 +49,17 @@ const ReportDialog = () => {
       return;
     }
     
+    if (isSubmitDisabled) {
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
-      // Add report to Firestore
+      // Add report to Firestore with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       const reportRef = await addDoc(collection(db, "reports"), {
         reportedUserId: userId,
         reportedUserName: userName,
@@ -59,6 +70,8 @@ const ReportDialog = () => {
         status: "pending",
         createdAt: serverTimestamp(),
       });
+      
+      clearTimeout(timeoutId);
       
       if (reportRef.id) {
         toast({
@@ -94,10 +107,11 @@ const ReportDialog = () => {
               value={selectedReason} 
               onValueChange={setSelectedReason}
               className="space-y-2"
+              disabled={isSubmitDisabled}
             >
               {REPORT_REASONS.map((reason) => (
                 <div key={reason.id} className="flex items-center space-x-2">
-                  <RadioGroupItem value={reason.id} id={reason.id} />
+                  <RadioGroupItem value={reason.id} id={reason.id} disabled={isSubmitDisabled} />
                   <Label htmlFor={reason.id}>{reason.label}</Label>
                 </div>
               ))}
@@ -111,6 +125,7 @@ const ReportDialog = () => {
               onChange={(e) => setDetails(e.target.value)}
               placeholder="Please provide any specific details about the issue..."
               className="resize-none h-24"
+              disabled={isSubmitDisabled}
             />
           </div>
           
@@ -119,16 +134,23 @@ const ReportDialog = () => {
               type="button" 
               variant="outline" 
               onClick={closeDialog}
-              disabled={isSubmitting}
+              disabled={isSubmitDisabled}
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
-              disabled={isSubmitting}
+              disabled={isSubmitDisabled}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Report'}
+              {isSubmitDisabled ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                'Submit Report'
+              )}
             </Button>
           </div>
         </div>
