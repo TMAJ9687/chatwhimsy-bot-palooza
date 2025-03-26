@@ -183,6 +183,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
                 onSendImage={handleSendImageMessage}
                 imagesRemaining={imagesRemaining}
                 disabled={isCurrentUserBlocked}
+                userType={isVip ? 'vip' : 'standard'}  // Pass the correct user type based on actual user VIP status
               />
             </>
           ) : (

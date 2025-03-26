@@ -1,9 +1,9 @@
-
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { Message } from '@/components/chat/MessageBubble';
 import { Notification } from '@/components/chat/NotificationSidebar';
 import { FilterState } from '@/components/chat/FilterMenu';
 import { trackImageUpload, getRemainingUploads, IMAGE_UPLOAD_LIMIT } from '@/utils/imageUploadLimiter';
+import { useUser } from './UserContext';
 
 // Define the Bot type
 interface Bot {
@@ -218,6 +218,9 @@ interface ChatContextType {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // Get user info and VIP status from UserContext
+  const { user, isVip: userIsVip } = useUser();
+  
   // Make sure we always have a default bot
   const defaultBot = botProfiles[0];
   
@@ -241,8 +244,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [userCountry, setUserCountry] = useState<string>('');
   const currentBotIdRef = useRef<string>(currentBot.id);
 
-  // Define isVip here, before it's used
-  const isVip = currentBot?.vip || false;
+  // Use user's actual VIP status from UserContext instead of the bot's
+  const isVip = userIsVip || false;
 
   useEffect(() => {
     currentBotIdRef.current = currentBot.id;
