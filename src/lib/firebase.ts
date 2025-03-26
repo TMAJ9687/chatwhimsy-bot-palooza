@@ -6,15 +6,15 @@ import { getStorage } from 'firebase/storage';
 import { getDatabase } from 'firebase/database';
 
 // Your web app's Firebase configuration
-// Replace these with your actual Firebase config
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "YOUR_API_KEY",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "your-app.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "your-app",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "your-app.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "your-messaging-sender-id",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "your-app-id",
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "https://your-app-rtdb.firebaseio.com"
+  apiKey: "AIzaSyC1WWCjmGMDi3sozEQ4NPMEmV24y9Png8k",
+  authDomain: "chatwii-54dbe.firebaseapp.com",
+  projectId: "chatwii-54dbe",
+  storageBucket: "chatwii-54dbe.appspot.com",
+  messagingSenderId: "1099388582891",
+  appId: "1:1099388582891:web:8628d78bf8ed63d768b7ae",
+  measurementId: "G-FXZTQ7Y1GT",
+  databaseURL: "https://chatwii-54dbe-default-rtdb.firebaseio.com"
 };
 
 // Initialize Firebase
