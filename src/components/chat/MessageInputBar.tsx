@@ -151,12 +151,16 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
               } catch (err) {
                 console.error('Error compressing image:', err);
                 // Use original image if compression fails
-                setImagePreview(reader.result);
+                if (typeof reader.result === 'string') {
+                  setImagePreview(reader.result);
+                }
               }
             };
             img.onerror = () => {
               console.error('Error loading image for compression');
-              setImagePreview(reader.result);
+              if (typeof reader.result === 'string') {
+                setImagePreview(reader.result);
+              }
             };
             img.src = reader.result;
           } else {
@@ -334,3 +338,4 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
 };
 
 export default MessageInputBar;
+
