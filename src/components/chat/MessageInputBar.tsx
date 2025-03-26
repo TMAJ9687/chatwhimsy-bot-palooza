@@ -95,6 +95,11 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
     setMessage(prev => prev + emoji.native);
   }, []);
   
+  // Handle message change
+  const handleMessageChange = useCallback((newValue: string) => {
+    setMessage(newValue);
+  }, []);
+  
   return (
     <div className="p-3 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
       {/* Preview area only shown when an image is selected */}
@@ -173,10 +178,12 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
         ) : (
           <MessageInput
             value={message}
-            onChange={setMessage}
+            onChange={handleMessageChange}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             className="flex-1"
+            onSendMessage={onSendMessage}
+            imagesRemaining={imagesRemaining}
           />
         )}
         
