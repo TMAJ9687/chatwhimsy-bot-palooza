@@ -1,248 +1,164 @@
 
 import { 
-  createUserWithEmailAndPassword, 
+  signInAnonymously, 
   signInWithEmailAndPassword, 
-  signOut,
-  updateProfile,
-  sendPasswordResetEmail,
-  deleteUser,
-  signInAnonymously as firebaseSignInAnonymously,
-  User
+  createUserWithEmailAndPassword, 
+  updateProfile
 } from 'firebase/auth';
-import { 
-  doc, 
-  setDoc, 
-  getDoc, 
-  updateDoc, 
-  serverTimestamp,
-  addDoc,
-  collection
-} from 'firebase/firestore';
-import { ref, set } from 'firebase/database';
-import { auth, db, rtdb, initializeFirestore } from '@/lib/firebase';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db, usersCollection } from '../lib/firebase';
 
-// Function to create a user profile in Firestore
-export const createUserProfile = async (userId: string, nickname: string, email?: string) => {
-  try {
-    const userRef = doc(db, 'users', userId);
-    await setDoc(userRef, {
-      nickname: nickname,
-      email: email || null,
-      isVip: false,
-      isAnonymous: !email,
-      imagesRemaining: 15,
-      voiceMessagesRemaining: 5,
-      blockedUsers: [],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    console.log(`User profile created for user ${userId}`);
-  } catch (error) {
-    console.error("Error creating user profile:", error);
-    throw error;
-  }
-};
-
-// Function to get a user profile from Firestore
+// Get user profile from Firestore
 export const getUserProfile = async (userId: string) => {
   try {
-    const userRef = doc(db, 'users', userId);
-    const docSnap = await getDoc(userRef);
+    const userDocRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
     
-    if (docSnap.exists()) {
-      return docSnap.data();
+    if (userDoc.exists()) {
+      return userDoc.data();
     } else {
-      console.log("No such document!");
+      console.log("User document does not exist");
       return null;
     }
   } catch (error) {
     console.error("Error getting user profile:", error);
-    throw error;
+    return null;
   }
 };
 
-// Function to update a user profile in Firestore
+// Create a new user profile in Firestore
+export const createUserProfile = async (userId: string, data: any) => {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (!userDoc.exists()) {
+      // Create new user document with default values
+      await setDoc(userDocRef, {
+        nickname: data.nickname || 'User',
+        email: data.email || null,
+        isVip: data.isVip || false,
+        isAnonymous: data.isAnonymous || true,
+        gender: data.gender || null,
+        age: data.age || null,
+        country: data.country || null,
+        interests: data.interests || [],
+        imagesRemaining: data.isVip ? Infinity : 15,
+        voiceMessagesRemaining: data.isVip ? Infinity : 0,
+        blockedUsers: [],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        lastSeen: serverTimestamp()
+      });
+      console.log("User profile created successfully");
+      return true;
+    } else {
+      console.log("User document already exists, updating instead");
+      await updateDoc(userDocRef, {
+        ...data,
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    }
+  } catch (error) {
+    console.error("Error creating user profile:", error);
+    return false;
+  }
+};
+
+// Update an existing user profile
 export const updateUserProfile = async (userId: string, data: any) => {
   try {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
+    const userDocRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (!userDoc.exists()) {
+      // Document doesn't exist, create it first
+      console.log("User document doesn't exist, creating it first");
+      return await createUserProfile(userId, data);
+    }
+    
+    // Update the existing document
+    await updateDoc(userDocRef, {
       ...data,
       updatedAt: serverTimestamp()
     });
-    console.log(`User profile updated for user ${userId}`);
+    
+    console.log("User profile updated successfully");
+    return true;
   } catch (error) {
     console.error("Error updating user profile:", error);
     throw error;
   }
 };
 
-// Sign up a user with email and password
-export const registerUser = async (email: string, password: string, nickname: string): Promise<User | null> => {
+// Sign in as guest (anonymous)
+export const signInAsGuest = async (nickname: string) => {
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    // Sign in anonymously
+    const userCredential = await signInAnonymously(auth);
     const user = userCredential.user;
     
-    // Update the user's display name
-    await updateProfile(user, { displayName: nickname });
+    // Update the user profile with the nickname
+    await updateProfile(user, {
+      displayName: nickname
+    });
     
-    // Create a user profile in Firestore
-    await createUserProfile(user.uid, nickname, email);
-    
-    return user;
-  } catch (error: any) {
-    console.error("Error signing up:", error);
-    throw error;
-  }
-};
-
-// Sign in a user with email and password
-export const signInUser = async (email: string, password: string): Promise<User | null> => {
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
-  } catch (error: any) {
-    console.error("Error signing in:", error);
-    throw error;
-  }
-};
-
-// Sign in as a guest with a nickname
-export const signInAsGuest = async (nickname: string): Promise<User | null> => {
-  try {
-    const userCredential = await firebaseSignInAnonymously(auth);
-    const user = userCredential.user;
-    
-    // Update the user's display name
-    await updateProfile(user, { displayName: nickname });
-    
-    // Create a user profile in Firestore
-    await createUserProfile(user.uid, nickname);
+    // Create a user document in Firestore
+    await createUserProfile(user.uid, {
+      nickname,
+      isAnonymous: true,
+      createdAt: serverTimestamp()
+    });
     
     return user;
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error signing in as guest:", error);
     throw error;
   }
 };
 
-// Firebase Database Initialization
-export const initializeFirebaseData = async () => {
+// Register a new user with email and password
+export const registerUser = async (email: string, password: string, nickname: string) => {
   try {
-    // First ensure the user is authenticated
-    if (!auth.currentUser) {
-      throw new Error('Authentication required. Please sign in first.');
-    }
+    // Create the user with email and password
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
     
-    // Initialize the required collections in Firestore
-    await initializeFirestore();
+    // Update the user profile with the nickname
+    await updateProfile(user, {
+      displayName: nickname
+    });
     
-    // Create test user data
-    const testGuestUser = {
-      nickname: "TestGuest",
-      isVip: false,
-      isAnonymous: true,
-      imagesRemaining: 15,
-      voiceMessagesRemaining: 5,
-      blockedUsers: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    const testVipUser = {
-      nickname: "TestVip",
-      email: "testvip@example.com",
-      isVip: true,
+    // Create a user document in Firestore
+    await createUserProfile(user.uid, {
+      nickname,
+      email,
       isAnonymous: false,
-      gender: "male",
-      age: 30,
-      country: "United States",
-      interests: ["travel", "music", "sports"],
-      imagesRemaining: Infinity,
-      voiceMessagesRemaining: Infinity,
-      blockedUsers: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      lastSeen: new Date()
-    };
-    
-    // Add users to the database
-    const guestRef = doc(db, 'users', 'testguest123');
-    const vipRef = doc(db, 'users', 'testvip123');
-    
-    await setDoc(guestRef, testGuestUser);
-    await setDoc(vipRef, testVipUser);
-    
-    // Create a test chat
-    const chatId = 'testchat123';
-    const chatRef = doc(db, 'chats', chatId);
-    
-    await setDoc(chatRef, {
-      participants: ['testguest123', 'testvip123'],
-      lastMessage: 'Hello there!',
-      lastMessageTime: new Date(),
-      createdAt: new Date(),
-      isActive: true
+      createdAt: serverTimestamp()
     });
     
-    // Add some test messages
-    const messagesCollection = collection(db, 'messages');
-    
-    await addDoc(messagesCollection, {
-      chatId,
-      senderId: 'testguest123',
-      senderName: 'TestGuest',
-      text: 'Hello, how are you?',
-      isRead: true,
-      timestamp: new Date(Date.now() - 3600000) // 1 hour ago
-    });
-    
-    await addDoc(messagesCollection, {
-      chatId,
-      senderId: 'testvip123',
-      senderName: 'TestVip',
-      text: 'I am doing great! How about you?',
-      isRead: true,
-      timestamp: new Date(Date.now() - 1800000) // 30 minutes ago
-    });
-    
-    // Create a test subscription
-    const subscriptionRef = doc(db, 'subscriptions', 'testvip123');
-    
-    await setDoc(subscriptionRef, {
-      userId: 'testvip123',
-      plan: 'monthly',
-      startDate: new Date(Date.now() - 86400000 * 15), // 15 days ago
-      endDate: new Date(Date.now() + 86400000 * 15), // 15 days from now
-      status: 'active',
-      paymentMethod: 'credit_card',
-      autoRenew: true
-    });
-    
-    // Create test data in RTDB for online status
-    const rtdbRef = ref(rtdb, 'status');
-    await set(rtdbRef, {
-      'testguest123': {
-        online: true,
-        lastSeen: new Date().toISOString()
-      },
-      'testvip123': {
-        online: true,
-        lastSeen: new Date().toISOString()
-      }
-    });
-    
-    return {
-      success: true,
-      collections: ['users', 'chats', 'messages', 'subscriptions'],
-      testData: {
-        message: 'Created test users, chat, messages, and subscription'
-      }
-    };
+    return user;
   } catch (error) {
-    console.error('Failed to initialize Firebase data:', error);
-    return {
-      success: false,
-      error: `Failed to initialize Firebase data: ${error instanceof Error ? error.message : 'Unknown error'}`
-    };
+    console.error("Error registering user:", error);
+    throw error;
+  }
+};
+
+// Sign in with email and password
+export const signInUser = async (email: string, password: string) => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    
+    // Update last seen
+    await updateUserProfile(user.uid, {
+      lastSeen: serverTimestamp()
+    });
+    
+    return user;
+  } catch (error) {
+    console.error("Error signing in user:", error);
+    throw error;
   }
 };

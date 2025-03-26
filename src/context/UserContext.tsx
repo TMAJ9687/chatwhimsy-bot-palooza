@@ -45,6 +45,21 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Get user profile from Firestore
         const userProfile = await getUserProfile(currentUser.uid);
         
+        // If no profile, create defaults
+        if (!userProfile) {
+          // Set default user data
+          setUser({
+            nickname: currentUser.displayName || 'User',
+            email: currentUser.email || undefined,
+            isVip: false,
+            isAnonymous: currentUser.isAnonymous,
+            imagesRemaining: 15,
+            voiceMessagesRemaining: 0,
+            subscriptionTier: 'none'
+          });
+          return;
+        }
+        
         // Get subscription data
         const subscription = await getSubscription(currentUser.uid);
         

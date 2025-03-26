@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { 
   User, 
@@ -57,10 +56,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   }, []);
 
+  // Check and create user profile when auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
-      setIsAnonymous(user?.isAnonymous || false);
+      
+      if (user) {
+        setIsAnonymous(user.isAnonymous || false);
+        
+        // Check if user document exists in Firestore
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          // If document doesn't exist, create it
+          if (!userDoc.exists()) {
+            console.log("User document doesn't exist, creating one for:", user.uid);
+            await createUserProfile(user.uid, {
+              nickname: user.displayName || 'User',
+              email: user.email || null,
+              isAnonymous: user.isAnonymous,
+              createdAt: serverTimestamp()
+            });
+          } else {
+            // Update last seen
+            await updateDoc(userDocRef, {
+              lastSeen: serverTimestamp()
+            });
+          }
+        } catch (error) {
+          console.error("Error checking/creating user document:", error);
+        }
+      }
+      
       setIsLoading(false);
     });
 
@@ -141,7 +169,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       if (!currentUser) throw new Error("No user logged in");
 
-      // Update Firestore user document
+      // Update Firestore user document - this now handles creation if document doesn't exist
       await updateFirestoreProfile(currentUser.uid, {
         ...data,
         updatedAt: serverTimestamp()
@@ -162,6 +190,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         description: error.message,
         variant: "destructive"
       });
+      throw error;
     }
   };
 
