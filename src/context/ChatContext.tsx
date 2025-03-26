@@ -1,43 +1,14 @@
 
-import React, { createContext, useState, useContext, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { Bot, Message, Notification, FilterState } from '@/types/chat';
-import { trackImageUpload, getRemainingUploads, IMAGE_UPLOAD_LIMIT } from '@/utils/imageUploadLimiter';
+import { ChatContextType } from '@/types/chatContext';
 import { useUser } from './UserContext';
 import { botProfiles } from '@/data/botProfiles';
-import { getRandomBotResponse, sortUsers } from '@/utils/botUtils';
-
-interface ChatContextType {
-  userChats: Record<string, Message[]>;
-  imagesRemaining: number;
-  typingBots: Record<string, boolean>;
-  currentBot: Bot;
-  onlineUsers: Bot[];
-  blockedUsers: Set<string>;
-  searchTerm: string;
-  filters: FilterState;
-  unreadNotifications: Notification[];
-  chatHistory: Notification[];
-  showInbox: boolean;
-  showHistory: boolean;
-  rulesAccepted: boolean;
-  filteredUsers: Bot[];
-  unreadCount: number;
-  isVip: boolean;
-  setSearchTerm: (term: string) => void;
-  setFilters: (filters: FilterState) => void;
-  setShowInbox: (show: boolean) => void;
-  setShowHistory: (show: boolean) => void;
-  setRulesAccepted: (accepted: boolean) => void;
-  handleBlockUser: (userId: string) => void;
-  handleUnblockUser: (userId: string) => void;
-  handleCloseChat: () => void;
-  handleSendTextMessage: (text: string) => void;
-  handleSendImageMessage: (imageDataUrl: string) => void;
-  selectUser: (user: Bot) => void;
-  handleFilterChange: (newFilters: FilterState) => void;
-  handleNotificationRead: (id: string) => void;
-  isUserBlocked: (userId: string) => boolean;
-}
+import { sortUsers } from '@/utils/botUtils';
+import { useUserBlocking } from '@/hooks/useUserBlocking';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useChatMessages } from '@/hooks/useChatMessages';
+import { useBotFiltering } from '@/hooks/useBotFiltering';
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
@@ -48,38 +19,84 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Make sure we always have a default bot
   const defaultBot = botProfiles[0];
   
-  const [userChats, setUserChats] = useState<Record<string, Message[]>>({});
-  const [imagesRemaining, setImagesRemaining] = useState(IMAGE_UPLOAD_LIMIT);
-  const [typingBots, setTypingBots] = useState<Record<string, boolean>>({});
   const [currentBot, setCurrentBot] = useState<Bot>(defaultBot);
-  const [onlineUsers, setOnlineUsers] = useState<Bot[]>(sortUsers(botProfiles));
-  const [blockedUsers, setBlockedUsers] = useState<Set<string>>(new Set());
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState<FilterState>({
-    gender: 'any',
-    ageRange: [18, 80],
-    countries: []
-  });
-  const [unreadNotifications, setUnreadNotifications] = useState<Notification[]>([]);
-  const [chatHistory, setChatHistory] = useState<Notification[]>([]);
-  const [showInbox, setShowInbox] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [rulesAccepted, setRulesAccepted] = useState(false);
   const [userCountry, setUserCountry] = useState<string>('');
-  const currentBotIdRef = useRef<string>(currentBot.id);
+  
+  // Use our custom hooks
+  const { 
+    blockedUsers,
+    isUserBlocked,
+    handleBlockUser: blockUser,
+    handleUnblockUser 
+  } = useUserBlocking();
 
-  // Use user's actual VIP status from UserContext instead of the bot's
+  const {
+    unreadNotifications,
+    chatHistory,
+    showInbox,
+    showHistory,
+    unreadCount,
+    setShowInbox,
+    setShowHistory,
+    handleNotificationRead,
+    addNotification,
+    addHistoryItem
+  } = useNotifications();
+
+  // Create a handler for new notifications
+  const handleNewNotification = useCallback((botId: string, content: string, botName: string) => {
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      title: `New message from ${botName}`,
+      message: content.slice(0, 30) + (content.length > 30 ? '...' : ''),
+      time: new Date(),
+      read: false,
+      botId: botId
+    };
+    
+    addNotification(newNotification);
+  }, [addNotification]);
+
+  const {
+    userChats,
+    typingBots,
+    imagesRemaining,
+    setCurrentBotId,
+    initializeChat,
+    simulateBotResponse,
+    handleSendTextMessage,
+    handleSendImageMessage,
+    initializeImageRemaining
+  } = useChatMessages(userIsVip || false, handleNewNotification);
+
+  // Use the VIP status from UserContext
   const isVip = userIsVip || false;
 
+  const sortedBotProfiles = useMemo(() => sortUsers(botProfiles), []);
+
+  const {
+    searchTerm,
+    filters,
+    filteredUsers,
+    visibleUsers,
+    setSearchTerm,
+    setFilters,
+    handleFilterChange
+  } = useBotFiltering(sortedBotProfiles, blockedUsers);
+
+  // Update the current bot ID reference when it changes
   useEffect(() => {
-    currentBotIdRef.current = currentBot.id;
-  }, [currentBot.id]);
+    setCurrentBotId(currentBot.id);
+  }, [currentBot.id, setCurrentBotId]);
 
-  // Check if a user is blocked
-  const isUserBlocked = useCallback((userId: string) => {
-    return blockedUsers.has(userId);
-  }, [blockedUsers]);
+  // Initialize chat for current bot
+  useEffect(() => {
+    initializeChat(currentBot.id, currentBot.name);
+  }, [currentBot.id, currentBot.name, initializeChat]);
 
+  // Fetch user country on mount
   useEffect(() => {
     const fetchUserCountry = async () => {
       try {
@@ -104,66 +121,22 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     };
 
-    const fetchRemainingUploads = async () => {
-      try {
-        const remaining = await getRemainingUploads(false);
-        setImagesRemaining(remaining);
-      } catch (error) {
-        console.error('Error fetching remaining uploads:', error);
-      }
-    };
-
     fetchUserCountry();
-    fetchRemainingUploads();
-  }, []);
+    initializeImageRemaining();
+  }, [initializeImageRemaining]);
 
+  // Update sorted users when user country changes
   useEffect(() => {
     if (userCountry) {
       console.log('Sorting users based on country:', userCountry);
       const sortedUsers = sortUsers(botProfiles);
-      setOnlineUsers(sortedUsers);
+      setOnlineUsers(new Set(sortedUsers.map(bot => bot.id)));
     }
   }, [userCountry]);
 
-  const filteredUsers = useMemo(() => {
-    const filtered = onlineUsers.filter(user => {
-      const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesGender = filters.gender === 'any' || user.gender === filters.gender;
-      const matchesAge = user.age >= filters.ageRange[0] && user.age <= filters.ageRange[1];
-      const matchesCountry = filters.countries.length === 0 || 
-        filters.countries.includes(user.country);
-      return matchesSearch && matchesGender && matchesAge && matchesCountry;
-    });
-    return filtered;
-  }, [onlineUsers, searchTerm, filters]);
-
-  // Create a memoized list of visible users (not blocked)
-  const visibleUsers = useMemo(() => 
-    filteredUsers.filter(user => !blockedUsers.has(user.id)),
-    [filteredUsers, blockedUsers]
-  );
-
-  useEffect(() => {
-    if (!userChats[currentBot.id]) {
-      setUserChats(prev => ({
-        ...prev,
-        [currentBot.id]: [{
-          id: `system-${Date.now()}`,
-          content: `Start a conversation with ${currentBot.name}`,
-          sender: 'system',
-          timestamp: new Date(),
-        }]
-      }));
-    }
-  }, [currentBot.id, userChats]);
-
+  // Handle blocking a user
   const handleBlockUser = useCallback((userId: string) => {
-    // Add to blocked users set
-    setBlockedUsers(prev => {
-      const newSet = new Set(prev);
-      newSet.add(userId);
-      return newSet;
-    });
+    blockUser(userId);
     
     // If the blocked user is current, select a different one
     if (userId === currentBot.id && filteredUsers.length > 1) {
@@ -171,16 +144,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const newUser = filteredUsers.find(user => user.id !== userId && !blockedUsers.has(user.id));
       if (newUser) selectUser(newUser);
     }
-  }, [currentBot.id, filteredUsers, blockedUsers]);
+  }, [currentBot.id, filteredUsers, blockedUsers, blockUser]);
 
-  const handleUnblockUser = useCallback((userId: string) => {
-    setBlockedUsers(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(userId);
-      return newSet;
-    });
-  }, []);
-
+  // Handle closing chat
   const handleCloseChat = useCallback(() => {
     if (filteredUsers.length > 1) {
       const newUser = filteredUsers.find(user => user.id !== currentBot.id);
@@ -188,23 +154,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [currentBot.id, filteredUsers]);
 
-  const handleSendTextMessage = useCallback((text: string) => {
-    const currentBotId = currentBot.id;
-    const currentMessages = userChats[currentBotId] || [];
+  // Handle sending a text message
+  const handleSendTextMessageWrapper = useCallback((text: string) => {
+    const messageId = handleSendTextMessage(text, currentBot.id, currentBot.name);
     
-    const newMessage: Message = {
-      id: `user-${Date.now()}`,
-      content: text,
-      sender: 'user',
-      timestamp: new Date(),
-      status: 'sending',
-    };
-    
-    setUserChats(prev => ({
-      ...prev,
-      [currentBotId]: [...currentMessages, newMessage]
-    }));
-
     const newNotification: Notification = {
       id: Date.now().toString(),
       title: `Message to ${currentBot.name}`,
@@ -213,35 +166,13 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       read: true
     };
     
-    setChatHistory(prev => [newNotification, ...prev]);
-    
-    simulateBotResponse(newMessage.id, currentBotId);
-  }, [currentBot.id, currentBot.name, userChats]);
+    addHistoryItem(newNotification);
+    simulateBotResponse(messageId, currentBot.id);
+  }, [currentBot.id, currentBot.name, handleSendTextMessage, addHistoryItem, simulateBotResponse]);
 
-  const handleSendImageMessage = useCallback(async (imageDataUrl: string) => {
-    const currentBotId = currentBot.id;
-    const currentMessages = userChats[currentBotId] || [];
-    
-    const newMessage: Message = {
-      id: `user-${Date.now()}`,
-      content: imageDataUrl,
-      sender: 'user',
-      timestamp: new Date(),
-      status: 'sending',
-      isImage: true,
-    };
-    
-    setUserChats(prev => ({
-      ...prev,
-      [currentBotId]: [...currentMessages, newMessage]
-    }));
-    
-    try {
-      const remaining = await trackImageUpload();
-      setImagesRemaining(remaining);
-    } catch (error) {
-      console.error('Error tracking image upload:', error);
-    }
+  // Handle sending an image message
+  const handleSendImageMessageWrapper = useCallback(async (imageDataUrl: string) => {
+    const messageId = await handleSendImageMessage(imageDataUrl, currentBot.id);
     
     const newNotification: Notification = {
       id: Date.now().toString(),
@@ -251,124 +182,24 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       read: true
     };
     
-    setChatHistory(prev => [newNotification, ...prev]);
-    
-    simulateBotResponse(newMessage.id, currentBotId);
-  }, [currentBot.id, currentBot.name, userChats]);
+    addHistoryItem(newNotification);
+    simulateBotResponse(messageId, currentBot.id);
+  }, [currentBot.id, currentBot.name, handleSendImageMessage, addHistoryItem, simulateBotResponse]);
 
-  const simulateBotResponse = useCallback((messageId: string, botId: string) => {
-    setTypingBots(prev => ({
-      ...prev,
-      [botId]: true
-    }));
-
-    const updateMessageStatus = (status: 'sending' | 'sent' | 'delivered' | 'read') => {
-      setUserChats(prev => {
-        const botMessages = [...(prev[botId] || [])];
-        return {
-          ...prev,
-          [botId]: botMessages.map(msg => 
-            msg.id === messageId ? { ...msg, status } : msg
-          )
-        };
-      });
-    };
-
-    if (isVip) {
-      setTimeout(() => updateMessageStatus('sent'), 500);
-      setTimeout(() => updateMessageStatus('delivered'), 1000);
-    }
-    
-    setTimeout(() => {
-      const isCurrent = currentBotIdRef.current === botId;
-      
-      setTypingBots(prev => ({
-        ...prev,
-        [botId]: false
-      }));
-      
-      setUserChats(prev => {
-        const botMessages = [...(prev[botId] || [])];
-        
-        const updatedMessages = isVip ? 
-          botMessages.map(msg => 
-            msg.sender === 'user' ? { ...msg, status: 'read' as const } : msg
-          ) : botMessages;
-        
-        const botResponse = {
-          id: `bot-${Date.now()}`,
-          content: getRandomBotResponse(botId),
-          sender: 'bot' as const,
-          timestamp: new Date(),
-        };
-        
-        if (!isCurrent) {
-          const botProfile = botProfiles.find(b => b.id === botId);
-          
-          const newNotification: Notification = {
-            id: Date.now().toString(),
-            title: `New message from ${botProfile?.name || 'User'}`,
-            message: botResponse.content.slice(0, 30) + (botResponse.content.length > 30 ? '...' : ''),
-            time: new Date(),
-            read: false,
-            botId: botId
-          };
-          
-          setUnreadNotifications(prev => [newNotification, ...prev]);
-        }
-        
-        return {
-          ...prev,
-          [botId]: [
-            ...updatedMessages,
-            botResponse
-          ]
-        };
-      });
-    }, 3000);
-  }, [isVip]);
-
+  // Select a user to chat with
   const selectUser = useCallback((user: Bot) => {
     if (user.id !== currentBot.id) {
       setCurrentBot(user);
-      
-      if (!userChats[user.id]) {
-        setUserChats(prev => ({
-          ...prev,
-          [user.id]: [{
-            id: `system-${Date.now()}`,
-            content: `Start a conversation with ${user.name}`,
-            sender: 'system',
-            timestamp: new Date(),
-          }]
-        }));
-      }
+      initializeChat(user.id, user.name);
     }
-  }, [currentBot.id, userChats]);
+  }, [currentBot.id, initializeChat]);
 
-  const handleFilterChange = useCallback((newFilters: FilterState) => {
-    setFilters(newFilters);
-  }, []);
-
-  const handleNotificationRead = useCallback((id: string) => {
-    setUnreadNotifications(prev => 
-      prev.map(notif => 
-        notif.id === id ? { ...notif, read: true } : notif
-      )
-    );
-  }, []);
-
-  const unreadCount = useMemo(() => 
-    unreadNotifications.filter(n => !n.read).length, 
-    [unreadNotifications]
-  );
-
-  const contextValue = {
+  const contextValue: ChatContextType = {
     userChats,
     imagesRemaining,
     typingBots,
     currentBot,
-    onlineUsers,
+    onlineUsers: sortedBotProfiles,
     blockedUsers,
     searchTerm,
     filters,
@@ -388,8 +219,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     handleBlockUser,
     handleUnblockUser,
     handleCloseChat,
-    handleSendTextMessage,
-    handleSendImageMessage,
+    handleSendTextMessage: handleSendTextMessageWrapper,
+    handleSendImageMessage: handleSendImageMessageWrapper,
     selectUser,
     handleFilterChange,
     handleNotificationRead,
