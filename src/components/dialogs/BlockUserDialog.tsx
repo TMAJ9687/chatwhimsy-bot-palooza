@@ -62,11 +62,11 @@ const BlockUserDialog = () => {
   const handleConfirmBlock = useCallback(() => {
     if (!isOpen) return;
     
-    const { userName, onBlockUser } = state.data;
+    const { userName, userId, onBlockUser } = state.data;
     
-    // Call the block user function from props
-    if (typeof onBlockUser === 'function') {
-      onBlockUser();
+    // Call the block user function with user ID
+    if (typeof onBlockUser === 'function' && userId) {
+      onBlockUser(userId);
     }
     
     // Show a toast notification with minimal options

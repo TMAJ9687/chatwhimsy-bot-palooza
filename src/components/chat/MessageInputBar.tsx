@@ -1,6 +1,9 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Smile, Image as ImageIcon, X, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Send, Camera, Smile, X, Lock } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import MessageInput from './MessageInput';
+import { Button } from '../ui/button';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 
@@ -8,199 +11,198 @@ interface MessageInputBarProps {
   onSendMessage: (text: string) => void;
   onSendImage: (imageDataUrl: string) => void;
   imagesRemaining: number;
+  isBlocked?: boolean;
 }
 
+// Optimized implementation with fewer re-renders
 const MessageInputBar: React.FC<MessageInputBarProps> = ({
   onSendMessage,
   onSendImage,
-  imagesRemaining
+  imagesRemaining,
+  isBlocked = false
 }) => {
   const [message, setMessage] = useState('');
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const emojiButtonRef = useRef<HTMLButtonElement>(null);
-  const emojiPickerRef = useRef<HTMLDivElement>(null);
-  const [theme, setTheme] = useState('light');
-
-  // Detect theme for emoji picker
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  
+  // Clean file input on unmount
   useEffect(() => {
-    const isDarkMode = document.documentElement.classList.contains('dark');
-    setTheme(isDarkMode ? 'dark' : 'light');
-    
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'class') {
-          const isDark = document.documentElement.classList.contains('dark');
-          setTheme(isDark ? 'dark' : 'light');
-        }
-      });
-    });
-    
-    observer.observe(document.documentElement, { attributes: true });
-    
     return () => {
-      observer.disconnect();
-    };
-  }, []);
-
-  // Close emoji picker when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        emojiPickerRef.current && 
-        !emojiPickerRef.current.contains(event.target as Node) &&
-        emojiButtonRef.current && 
-        !emojiButtonRef.current.contains(event.target as Node)
-      ) {
-        setShowEmojiPicker(false);
+      if (previewImage) {
+        URL.revokeObjectURL(previewImage);
       }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  const handleSend = () => {
-    if (imagePreview) {
-      onSendImage(imagePreview);
-      setImagePreview(null);
-      return;
-    }
-
-    if (message.trim()) {
-      onSendMessage(message);
-      setMessage('');
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  }, [previewImage]);
+  
+  // Handle file selection from input
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    
     if (file) {
       if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setImagePreview(event.target?.result as string);
-        };
-        reader.readAsDataURL(file);
+        // Use URL.createObjectURL for better performance
+        const fileUrl = URL.createObjectURL(file);
+        setPreviewImage(fileUrl);
       } else {
         alert('Please select an image file');
       }
     }
-  };
-
-  const triggerFileInput = () => {
+    
+    // Reset the input value to allow selecting the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
+  
+  // Handle file selection button click
+  const handleFileButtonClick = useCallback(() => {
     fileInputRef.current?.click();
-  };
-
-  const handleEmojiSelect = (emoji: { native: string }) => {
-    setMessage(prev => prev + emoji.native);
+  }, []);
+  
+  // Clear preview image
+  const handleClearPreview = useCallback(() => {
+    if (previewImage) {
+      URL.revokeObjectURL(previewImage);
+      setPreviewImage(null);
+    }
+  }, [previewImage]);
+  
+  // Handle message sending
+  const handleSendMessage = useCallback(() => {
+    if (previewImage) {
+      onSendImage(previewImage);
+      setPreviewImage(null);
+    } else if (message.trim()) {
+      onSendMessage(message.trim());
+      setMessage('');
+    }
+    
+    // Close emoji picker if open
     setShowEmojiPicker(false);
-  };
-
-  const toggleEmojiPicker = () => {
-    setShowEmojiPicker(prev => !prev);
-  };
-
+  }, [message, previewImage, onSendMessage, onSendImage]);
+  
+  // Handle keyboard shortcuts
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  }, [handleSendMessage]);
+  
+  // Handle emoji selection from picker
+  const handleEmojiSelect = useCallback((emoji: any) => {
+    setMessage(prev => prev + emoji.native);
+  }, []);
+  
   return (
-    <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-      {imagePreview && (
-        <div className="mb-3 relative">
+    <div className="p-3 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+      {/* Preview area only shown when an image is selected */}
+      {previewImage && (
+        <div className="p-2 mb-2 border border-gray-200 dark:border-gray-700 rounded-md relative">
           <img
-            src={imagePreview}
-            alt="Preview"
-            className="h-32 object-contain rounded-lg border border-gray-200 dark:border-gray-700"
+            src={previewImage}
+            alt="Selected"
+            className="max-h-40 rounded-md mx-auto"
           />
           <button
-            onClick={() => setImagePreview(null)}
-            className="absolute top-1 right-1 bg-white dark:bg-gray-900 rounded-full p-1 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded-full hover:bg-black/80 transition-colors"
+            onClick={handleClearPreview}
+            type="button"
           >
-            <X className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+            <X className="h-4 w-4" />
           </button>
         </div>
       )}
-    
-      <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full px-4 py-1">
-        <input
-          type="text"
-          className="flex-1 bg-transparent border-0 focus:outline-none text-gray-700 dark:text-gray-200 py-2 text-sm"
-          placeholder="Type a message..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={!!imagePreview}
-        />
-        
-        <div className="text-xs text-gray-400 mr-2">
-          {message.length}/120
-        </div>
-        
-        <div className="relative">
-          <button 
-            ref={emojiButtonRef}
-            className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-            onClick={toggleEmojiPicker}
-          >
-            <Smile className="h-5 w-5" />
-          </button>
-          
-          {showEmojiPicker && (
-            <div 
-              ref={emojiPickerRef}
-              className="absolute bottom-12 right-0 z-10"
-            >
-              <Picker 
-                data={data} 
-                onEmojiSelect={handleEmojiSelect}
-                theme={theme}
-                previewPosition="none"
-              />
-            </div>
-          )}
-        </div>
-        
+      
+      {/* Main input area */}
+      <div className="flex items-end gap-2">
+        {/* File input (hidden) */}
         <input
           type="file"
           ref={fileInputRef}
-          onChange={handleFileChange}
-          accept="image/*"
           className="hidden"
+          accept="image/*"
+          onChange={handleFileChange}
+          aria-label="Upload image"
         />
         
-        <button
-          className={`p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 ${imagesRemaining <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-          onClick={triggerFileInput}
-          disabled={imagesRemaining <= 0 || !!imagePreview}
+        {/* Image upload button */}
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={handleFileButtonClick}
+          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+          type="button"
+          disabled={isBlocked || imagesRemaining <= 0}
+          title={imagesRemaining <= 0 ? "Image upload limit reached" : "Upload image"}
         >
-          <ImageIcon className="h-5 w-5" />
-        </button>
+          <Camera className="h-5 w-5" />
+        </Button>
         
-        <button
-          className="ml-1 w-10 h-10 bg-teal-500 text-white rounded-full flex items-center justify-center disabled:opacity-50"
-          onClick={handleSend}
-          disabled={(!message.trim() && !imagePreview)}
+        {/* Emoji picker */}
+        <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+          <PopoverTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              type="button"
+              disabled={isBlocked}
+            >
+              <Smile className="h-5 w-5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-full p-0 border-none shadow-xl" align="end">
+            <Picker
+              data={data}
+              onEmojiSelect={handleEmojiSelect}
+              theme="light"
+              previewPosition="none"
+              skinTonePosition="none"
+            />
+          </PopoverContent>
+        </Popover>
+        
+        {/* Text input area */}
+        {isBlocked ? (
+          <div className="flex-1 border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-100 dark:bg-gray-800 text-gray-500 flex items-center">
+            <Lock className="h-4 w-4 mr-2" />
+            <span>You can't message this user because they are blocked</span>
+          </div>
+        ) : (
+          <MessageInput
+            value={message}
+            onChange={setMessage}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a message..."
+            className="flex-1"
+          />
+        )}
+        
+        {/* Send button */}
+        <Button
+          size="icon"
+          onClick={handleSendMessage}
+          disabled={isBlocked || (!message.trim() && !previewImage)}
+          className="bg-blue-500 hover:bg-blue-600 text-white"
+          type="button"
         >
           <Send className="h-5 w-5" />
-        </button>
+        </Button>
       </div>
       
-      {/* Display images remaining */}
-      {imagesRemaining < 10 && (
-        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
-          {imagesRemaining} images remaining today
+      {/* Show remaining uploads count */}
+      {imagesRemaining < IMAGE_UPLOAD_LIMIT && (
+        <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-right">
+          {imagesRemaining} image {imagesRemaining === 1 ? 'upload' : 'uploads'} remaining
         </div>
       )}
     </div>
   );
 };
 
-export default MessageInputBar;
+// Add IMAGE_UPLOAD_LIMIT
+const IMAGE_UPLOAD_LIMIT = 5;
+
+export default React.memo(MessageInputBar);

@@ -1,4 +1,3 @@
-
 import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
@@ -40,12 +39,14 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     rulesAccepted,
     filteredUsers,
     unreadCount,
+    blockedUsers,
     setSearchTerm,
     setFilters,
     setShowInbox,
     setShowHistory,
     setRulesAccepted,
     handleBlockUser,
+    handleUnblockUser,
     handleCloseChat,
     handleSendTextMessage,
     handleSendImageMessage,
@@ -134,7 +135,6 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           {/* Chat header component */}
           <ChatHeader 
             currentUser={currentBot}
-            onBlockUser={handleBlockUser}
             onCloseChat={handleCloseChat}
           />
 
@@ -144,6 +144,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
             isTyping={typingBots[currentBot.id] || false}
             showStatus={isVip}
             showTyping={isVip}
+            currentBotId={currentBot.id}
           />
           
           {/* Message input component */}
@@ -151,6 +152,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
             onSendMessage={handleSendTextMessage}
             onSendImage={handleSendImageMessage}
             imagesRemaining={imagesRemaining}
+            isBlocked={blockedUsers.includes(currentBot.id)}
           />
         </div>
       </div>

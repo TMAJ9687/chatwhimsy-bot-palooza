@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { Message } from '@/components/chat/MessageBubble';
 import { Notification } from '@/components/chat/NotificationSidebar';
@@ -17,6 +16,7 @@ interface Bot {
   interests: string[];
   avatar: string;
   responses: string[];
+  isBlocked?: boolean; // Add isBlocked flag
 }
 
 // Define sample bot profiles
@@ -113,12 +113,14 @@ interface ChatContextType {
   filteredUsers: Bot[];
   unreadCount: number;
   isVip: boolean;
+  blockedUsers: string[];
   setSearchTerm: (term: string) => void;
   setFilters: (filters: FilterState) => void;
   setShowInbox: (show: boolean) => void;
   setShowHistory: (show: boolean) => void;
   setRulesAccepted: (accepted: boolean) => void;
-  handleBlockUser: () => void;
+  handleBlockUser: (userId: string) => void;
+  handleUnblockUser: (userId: string) => void;
   handleCloseChat: () => void;
   handleSendTextMessage: (text: string) => void;
   handleSendImageMessage: (imageDataUrl: string) => void;
@@ -150,6 +152,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [showHistory, setShowHistory] = useState(false);
   const [rulesAccepted, setRulesAccepted] = useState(false);
   const [userCountry, setUserCountry] = useState<string>('');
+  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
   const currentBotIdRef = useRef<string>(currentBot.id);
 
   // Define isVip here, before it's used
@@ -230,13 +233,18 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [currentBot.id, userChats]);
 
-  const handleBlockUser = useCallback(() => {
-    setOnlineUsers(prev => prev.filter(user => user.id !== currentBot.id));
-    if (filteredUsers.length > 1) {
-      const newUser = filteredUsers.find(user => user.id !== currentBot.id);
-      if (newUser) selectUser(newUser);
+  const handleBlockUser = useCallback((userId: string) => {
+    setBlockedUsers(prev => [...prev, userId]);
+    
+    if (userId === currentBot.id && filteredUsers.length > 1) {
+      const nextUser = filteredUsers.find(user => user.id !== userId && !blockedUsers.includes(user.id));
+      if (nextUser) selectUser(nextUser);
     }
-  }, [currentBot.id, filteredUsers]);
+  }, [currentBot.id, filteredUsers, blockedUsers]);
+
+  const handleUnblockUser = useCallback((userId: string) => {
+    setBlockedUsers(prev => prev.filter(id => id !== userId));
+  }, []);
 
   const handleCloseChat = useCallback(() => {
     if (filteredUsers.length > 1) {
@@ -436,12 +444,14 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     filteredUsers,
     unreadCount,
     isVip,
+    blockedUsers,
     setSearchTerm,
     setFilters,
     setShowInbox,
     setShowHistory,
     setRulesAccepted,
     handleBlockUser,
+    handleUnblockUser,
     handleCloseChat,
     handleSendTextMessage,
     handleSendImageMessage,
