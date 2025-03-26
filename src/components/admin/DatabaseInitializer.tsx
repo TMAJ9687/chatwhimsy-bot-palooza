@@ -1,21 +1,45 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Check, Database, RefreshCcw, AlertTriangle } from 'lucide-react';
+import { Check, Database, RefreshCcw, AlertTriangle, Lock } from 'lucide-react';
 import { initializeFirebaseData } from '@/services/firebaseAuth';
+import { ensureDatabasePermissions } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 
 const DatabaseInitializer = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [permissionsChecked, setPermissionsChecked] = useState(false);
+  const [permissionsOk, setPermissionsOk] = useState(false);
+
+  useEffect(() => {
+    // Check permissions on component mount
+    const checkPermissions = async () => {
+      const result = await ensureDatabasePermissions();
+      setPermissionsChecked(true);
+      setPermissionsOk(result);
+      
+      if (!result) {
+        setError("Firebase permissions issue detected. Please check your Firebase Console and ensure that your rules allow read/write access during development.");
+      }
+    };
+    
+    checkPermissions();
+  }, []);
 
   const handleInitializeDatabase = async () => {
     setIsLoading(true);
     setError(null);
     
     try {
+      // Ensure user is signed in for testing
+      if (!auth.currentUser) {
+        await auth.signInAnonymously();
+      }
+      
       const result = await initializeFirebaseData();
       setResult(result);
       
@@ -43,6 +67,47 @@ const DatabaseInitializer = () => {
       </CardHeader>
       
       <CardContent className="space-y-4">
+        {!permissionsChecked && (
+          <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-900">
+            <RefreshCcw className="h-4 w-4 animate-spin" />
+            <AlertTitle>Checking Firebase permissions...</AlertTitle>
+            <AlertDescription>Please wait while we verify database access.</AlertDescription>
+          </Alert>
+        )}
+        
+        {permissionsChecked && !permissionsOk && (
+          <Alert variant="destructive">
+            <Lock className="h-4 w-4" />
+            <AlertTitle>Firebase Permissions Required</AlertTitle>
+            <AlertDescription>
+              <p className="mb-2">Please update your Firebase Realtime Database and Firestore rules in the Firebase Console to allow read/write access during development:</p>
+              <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded text-xs">
+                <p className="mb-1">For Firestore:</p>
+                <pre className="overflow-x-auto">
+                  {`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true; 
+    }
+  }
+}`}
+                </pre>
+                <p className="mt-2 mb-1">For Realtime Database:</p>
+                <pre className="overflow-x-auto">
+                  {`{
+  "rules": {
+    ".read": true,
+    ".write": true
+  }
+}`}
+                </pre>
+              </div>
+              <p className="mt-2 text-sm font-medium">Important: This is only for development. Use proper security rules in production!</p>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {error && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -92,7 +157,7 @@ const DatabaseInitializer = () => {
         <Button 
           className="w-full flex items-center gap-2" 
           onClick={handleInitializeDatabase}
-          disabled={isLoading}
+          disabled={isLoading || !permissionsOk}
         >
           {isLoading ? (
             <>

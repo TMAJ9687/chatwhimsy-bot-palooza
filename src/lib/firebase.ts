@@ -3,7 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import { getDatabase } from 'firebase/database';
+import { getDatabase, ref, set, serverTimestamp as rtdbServerTimestamp } from 'firebase/database';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -25,6 +25,9 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const rtdb = getDatabase(app);
+
+// Export ref and set from firebase/database
+export { ref, set, rtdbServerTimestamp };
 
 // Collection references
 export const usersCollection = collection(db, 'users');
@@ -118,6 +121,24 @@ export const initializeFirestore = async () => {
     ensureCollectionExists('reports')
   ]);
   console.log('Firestore collections initialized');
+};
+
+// Special function to check and fix database permissions during initialization
+export const ensureDatabasePermissions = async () => {
+  console.log("Checking and attempting to fix database permissions...");
+  try {
+    // Try writing to a test location to verify permissions
+    const testRef = ref(rtdb, 'permissions_test');
+    await set(testRef, {
+      lastChecked: rtdbServerTimestamp(),
+      status: 'ok'
+    });
+    console.log("Database permissions are correctly configured");
+    return true;
+  } catch (error) {
+    console.error("Database permissions check failed:", error);
+    return false;
+  }
 };
 
 export default app;
