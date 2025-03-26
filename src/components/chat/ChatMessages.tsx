@@ -1,6 +1,6 @@
 
 import React, { useRef, memo } from 'react';
-import { Message } from './MessageBubble';
+import { Message } from '@/types/chat';
 import { useUser } from '@/context/UserContext';
 import MessageList from './MessageList';
 import { useScrollToBottom } from '@/hooks/useScrollToBottom';
@@ -10,13 +10,19 @@ interface ChatMessagesProps {
   isTyping: boolean;
   showStatus?: boolean;
   showTyping?: boolean;
+  onReply?: (message: Message) => void;
+  onReact?: (messageId: string, reaction: string) => void;
+  onUnsend?: (messageId: string) => void;
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({ 
   messages, 
   isTyping,
   showStatus = true,
-  showTyping = true
+  showTyping = true,
+  onReply,
+  onReact,
+  onUnsend
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { isVip } = useUser();
@@ -36,6 +42,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
         isTyping={isTyping}
         showStatus={shouldShowStatus}
         showTyping={shouldShowTyping}
+        isVip={isVip}
+        onReply={onReply}
+        onReact={onReact}
+        onUnsend={onUnsend}
       />
       
       <div ref={endRef} />

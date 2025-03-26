@@ -1,5 +1,5 @@
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { X, MoreVertical, UserX2, Flag, Trash2, Images, Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,6 +43,19 @@ const UserActions = ({
   const [showTranslateDialog, setShowTranslateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedMessageText, setSelectedMessageText] = useState('');
+  const [hasTextMessage, setHasTextMessage] = useState(false);
+  
+  // Check if there are any text messages to translate
+  useEffect(() => {
+    const lastTextMessage = [...messages]
+      .filter(msg => msg.sender === 'bot' && !msg.isImage && !msg.isVoiceMessage && !msg.isGif)
+      .pop();
+    
+    setHasTextMessage(!!lastTextMessage);
+    if (lastTextMessage) {
+      setSelectedMessageText(lastTextMessage.content);
+    }
+  }, [messages]);
   
   const handleOpenReportDialog = useCallback(() => {
     requestAnimationFrame(() => {
@@ -68,16 +81,10 @@ const UserActions = ({
   }, []);
 
   const handleOpenTranslate = useCallback(() => {
-    // Get the last text message from the chat
-    const lastTextMessage = [...messages]
-      .filter(msg => msg.sender === 'bot' && !msg.isImage && !msg.isVoiceMessage)
-      .pop();
-    
-    if (lastTextMessage) {
-      setSelectedMessageText(lastTextMessage.content);
+    if (hasTextMessage) {
       setShowTranslateDialog(true);
     }
-  }, [messages]);
+  }, [hasTextMessage]);
 
   const handleOpenDeleteDialog = useCallback(() => {
     setShowDeleteDialog(true);
@@ -127,7 +134,11 @@ const UserActions = ({
                     Shared Media
                   </DropdownMenuItem>
                   
-                  <DropdownMenuItem onClick={handleOpenTranslate} disabled={!selectedMessageText}>
+                  <DropdownMenuItem 
+                    onClick={handleOpenTranslate} 
+                    disabled={!hasTextMessage}
+                    className={!hasTextMessage ? "opacity-50 cursor-not-allowed" : ""}
+                  >
                     <Languages className="h-4 w-4 mr-2" />
                     Translate
                   </DropdownMenuItem>

@@ -5,7 +5,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -48,9 +47,13 @@ const SharedMediaDialog: React.FC<SharedMediaDialogProps> = ({
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Shared Media with {botName}</DialogTitle>
-          <DialogClose className="absolute right-4 top-4">
+          <Button 
+            className="absolute right-4 top-4 h-6 w-6 p-0 rounded-full" 
+            variant="ghost" 
+            onClick={onClose}
+          >
             <X className="h-4 w-4" />
-          </DialogClose>
+          </Button>
         </DialogHeader>
         
         <div className="mt-4">
