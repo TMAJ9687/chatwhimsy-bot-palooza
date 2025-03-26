@@ -1,6 +1,8 @@
 
-import React, { useState } from 'react';
-import { Check, Clock, Eye, EyeOff, Maximize, X } from 'lucide-react';
+import React from 'react';
+import ImageMessage from './ImageMessage';
+import MessageContent from './MessageContent';
+import MessageStatus from './MessageStatus';
 
 export interface Message {
   id: string;
@@ -25,9 +27,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const { sender, content, timestamp, status, isImage } = message;
   const isUser = sender === 'user';
   
-  const [isBlurred, setIsBlurred] = useState(isImage ? true : false);
-  const [isFullScreen, setIsFullScreen] = useState(false);
-  
   // If this is a system message, render differently
   if (sender === 'system') {
     return (
@@ -43,75 +42,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     hour12: true
   }).format(timestamp);
 
-  const getStatusIcon = () => {
-    if (!isUser || !showStatus) return null;
-    
-    switch (status) {
-      case 'sending':
-        return <Clock className="h-3 w-3 text-gray-400" />;
-      case 'sent':
-        return <Check className="h-3 w-3 text-gray-400" />;
-      case 'delivered':
-        return (
-          <div className="flex -space-x-1">
-            <Check className="h-3 w-3 text-gray-400" />
-            <Check className="h-3 w-3 text-gray-400" />
-          </div>
-        );
-      case 'read':
-        return (
-          <div className="flex -space-x-1 text-teal-500">
-            <Check className="h-3 w-3" />
-            <Check className="h-3 w-3" />
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
-  const handleToggleBlur = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsBlurred(!isBlurred);
-  };
-
-  const handleToggleFullscreen = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!isBlurred) {
-      setIsFullScreen(!isFullScreen);
-    }
-  };
-
-  const handleCloseFullscreen = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsFullScreen(false);
-  };
-
-  // Function to enhance the size of emojis in the message content
-  const renderContent = () => {
-    // Simple regex to detect emoji characters
-    const emojiRegex = /(\p{Emoji})/gu;
-    
-    if (!content.match(emojiRegex)) {
-      return <div className="whitespace-pre-wrap break-words text-sm">{content}</div>;
-    }
-    
-    // Split content by emoji and non-emoji parts
-    const parts = content.split(emojiRegex);
-    
-    return (
-      <div className="whitespace-pre-wrap break-words text-sm">
-        {parts.map((part, index) => {
-          // If this part matches an emoji, render it with larger font
-          if (part.match(emojiRegex)) {
-            return <span key={index} className="text-xl inline-block">{part}</span>;
-          }
-          return part;
-        })}
-      </div>
-    );
-  };
-
   return (
     <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}>
       <div
@@ -123,74 +53,18 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         `}
       >
         {isImage ? (
-          <div className="relative">
-            <div className="rounded-lg overflow-hidden">
-              <div className="w-[250px] h-[250px] relative overflow-hidden" onClick={e => e.stopPropagation()}>
-                <img 
-                  src={content} 
-                  alt="Shared image" 
-                  className={`w-full h-full object-cover transition-all duration-300 ${isBlurred ? 'blur-xl' : ''}`}
-                  loading="lazy"
-                />
-                {isBlurred ? (
-                  <button 
-                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/80 dark:bg-black/60 p-2 rounded-full flex items-center gap-1"
-                    onClick={handleToggleBlur}
-                  >
-                    <Eye className="h-5 w-5 text-gray-700 dark:text-gray-200" />
-                    <span className="text-gray-700 dark:text-gray-200 text-sm font-medium">Reveal</span>
-                  </button>
-                ) : (
-                  <div className="absolute top-2 right-2 flex space-x-2">
-                    <button 
-                      className="bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity flex items-center gap-1 px-2"
-                      onClick={handleToggleBlur}
-                    >
-                      <EyeOff className="h-4 w-4 text-white" />
-                      <span className="text-white text-xs">Hide</span>
-                    </button>
-                    <button 
-                      className="bg-black/40 p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
-                      onClick={handleToggleFullscreen}
-                    >
-                      <Maximize className="h-4 w-4 text-white" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Fullscreen image modal */}
-            {isFullScreen && (
-              <div 
-                className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-                onClick={handleCloseFullscreen}
-              >
-                <div className="relative max-w-4xl max-h-full">
-                  <img 
-                    src={content} 
-                    alt="Fullscreen image" 
-                    className="max-w-full max-h-[90vh] object-contain"
-                  />
-                  <button 
-                    className="absolute top-2 right-2 bg-white/20 p-2 rounded-full hover:bg-white/40 transition-colors"
-                    onClick={handleCloseFullscreen}
-                  >
-                    <X className="h-6 w-6 text-white" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          <ImageMessage content={content} />
         ) : (
-          renderContent()
+          <MessageContent content={content} />
         )}
       </div>
       
       {isLastInGroup && showStatus && (
         <div className={`flex items-center mt-0.5 text-xs text-gray-500 dark:text-gray-400 ${isUser ? 'mr-1' : 'ml-1'}`}>
           <span>{formattedTime}</span>
-          {getStatusIcon() && <span className="ml-1">{getStatusIcon()}</span>}
+          <span className="ml-1">
+            <MessageStatus status={status} isUser={isUser} showStatus={showStatus} />
+          </span>
         </div>
       )}
     </div>
