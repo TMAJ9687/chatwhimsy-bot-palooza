@@ -1,3 +1,4 @@
+
 export interface Bot {
   id: string;
   name: string;
@@ -18,10 +19,8 @@ export interface Message {
   content: string;
   sender: 'user' | 'bot' | 'system';
   timestamp: Date;
-  status?: 'sending' | 'sent' | 'delivered' | 'read';
+  status?: MessageStatus;
   isImage?: boolean;
-  isVoiceMessage?: boolean;
-  isGif?: boolean;
 }
 
 export interface Notification {

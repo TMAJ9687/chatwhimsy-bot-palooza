@@ -4,7 +4,6 @@ import { Bot, Message, Notification, FilterState } from './chat';
 export interface ChatContextType {
   userChats: Record<string, Message[]>;
   imagesRemaining: number;
-  voiceMessagesRemaining: number;
   typingBots: Record<string, boolean>;
   currentBot: Bot;
   onlineUsers: Bot[];
@@ -29,9 +28,6 @@ export interface ChatContextType {
   handleCloseChat: () => void;
   handleSendTextMessage: (text: string) => void;
   handleSendImageMessage: (imageDataUrl: string) => void;
-  handleSendVoiceMessage: (audioBlob: Blob) => void;
-  handleSendGifMessage: (gifUrl: string) => void;
-  handleDeleteConversation: (botId: string) => void;
   selectUser: (user: Bot) => void;
   handleFilterChange: (newFilters: FilterState) => void;
   handleNotificationRead: (id: string) => void;
