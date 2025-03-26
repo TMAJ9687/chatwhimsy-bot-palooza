@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Smile, Image as ImageIcon, X } from 'lucide-react';
 import data from '@emoji-mart/data';
@@ -163,7 +162,8 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
             setImagePreview(reader.result);
           }
         } else {
-          console.error('File read result is not a string');
+          // Handle ArrayBuffer result by converting to string
+          console.error('File read result is not a string but ArrayBuffer');
           setImagePreview(null);
         }
       } catch (error) {

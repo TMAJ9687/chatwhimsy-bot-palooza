@@ -14,8 +14,7 @@ import {
   CollectionReference,
   DocumentData,
   WithFieldValue,
-  DocumentSnapshot,
-  QuerySnapshot
+  FieldValue
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { makeSerializable, serializeFirestoreData } from '@/utils/serialization';
@@ -50,10 +49,13 @@ export const safeFirestore = {
       // Process each document to ensure data is serializable
       const results: T[] = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        return serializeFirestoreData<T>({
+        // Ensure we're creating a proper object
+        const docData = {
           id: doc.id,
           ...data
-        });
+        };
+        
+        return serializeFirestoreData<T>(docData);
       });
       
       return results;
@@ -66,10 +68,10 @@ export const safeFirestore = {
   /**
    * Safely add a document
    */
-  async addDoc<T>(collRef: CollectionReference<DocumentData>, data: WithFieldValue<T>): Promise<{ id: string }> {
+  async addDoc<T extends object>(collRef: CollectionReference<DocumentData>, data: WithFieldValue<T>): Promise<{ id: string }> {
     try {
-      // Ensure data is serializable
-      const safeData = makeSerializable(data);
+      // Ensure data is serializable and is an object
+      const safeData = makeSerializable(data) as DocumentData;
       
       const docRef = await addDoc(collRef, safeData);
       return { id: docRef.id };
@@ -82,10 +84,10 @@ export const safeFirestore = {
   /**
    * Safely set a document
    */
-  async setDoc<T>(docRef: DocumentReference<DocumentData>, data: WithFieldValue<T>): Promise<void> {
+  async setDoc<T extends object>(docRef: DocumentReference<DocumentData>, data: WithFieldValue<T>): Promise<void> {
     try {
-      // Ensure data is serializable
-      const safeData = makeSerializable(data);
+      // Ensure data is serializable and is an object
+      const safeData = makeSerializable(data) as DocumentData;
       
       await setDoc(docRef, safeData);
     } catch (error) {
@@ -97,10 +99,10 @@ export const safeFirestore = {
   /**
    * Safely update a document
    */
-  async updateDoc<T>(docRef: DocumentReference<DocumentData>, data: WithFieldValue<T>): Promise<void> {
+  async updateDoc<T extends object>(docRef: DocumentReference<DocumentData>, data: WithFieldValue<Partial<T>>): Promise<void> {
     try {
-      // Ensure data is serializable
-      const safeData = makeSerializable(data);
+      // Ensure data is serializable and is an object
+      const safeData = makeSerializable(data) as DocumentData;
       
       await updateDoc(docRef, safeData);
     } catch (error) {
