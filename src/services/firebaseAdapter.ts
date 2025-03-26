@@ -49,10 +49,10 @@ export const safeFirestore = {
       // Process each document to ensure data is serializable
       const results: T[] = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        // Ensure we're creating a proper object
+        // Create a proper object with the document ID and data
         const docData = {
           id: doc.id,
-          ...data
+          ...(data as object) // Cast data to object type to ensure it can be spread
         };
         
         return serializeFirestoreData<T>(docData);

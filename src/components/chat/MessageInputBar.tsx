@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Smile, Image as ImageIcon, X } from 'lucide-react';
 import data from '@emoji-mart/data';
@@ -111,6 +112,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
     
     reader.onload = () => {
       try {
+        // Ensure result is a string before setting it as image preview
         if (typeof reader.result === 'string') {
           // Compress the image if it's too large by creating a temporary canvas
           if (reader.result.length > 500000) { // If base64 is larger than ~500KB
@@ -161,9 +163,20 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
             // Use original image if it's small enough
             setImagePreview(reader.result);
           }
+        } else if (reader.result instanceof ArrayBuffer) {
+          // Convert ArrayBuffer to base64 string if needed
+          const bytes = new Uint8Array(reader.result);
+          let binary = '';
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64 = window.btoa(binary);
+          const imageType = file.type || 'image/jpeg';
+          const dataUrl = `data:${imageType};base64,${base64}`;
+          setImagePreview(dataUrl);
         } else {
-          // Handle ArrayBuffer result by converting to string
-          console.error('File read result is not a string but ArrayBuffer');
+          // Handle other types or null result
+          console.error('File read result is not a string or ArrayBuffer');
           setImagePreview(null);
         }
       } catch (error) {
