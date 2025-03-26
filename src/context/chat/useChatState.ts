@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { FilterState } from '@/components/chat/FilterMenu';
 import { Notification } from '@/components/chat/NotificationSidebar';
@@ -7,7 +6,7 @@ import { Bot } from './types/BotTypes';
 import { botProfiles } from './data/botProfiles';
 import { sortUsers } from './utils/botUtils';
 
-export { Bot } from './types/BotTypes';
+export type { Bot } from './types/BotTypes';
 export { getRandomBot, getRandomBotResponse, sortUsers } from './utils/botUtils';
 export { botProfiles } from './data/botProfiles';
 
