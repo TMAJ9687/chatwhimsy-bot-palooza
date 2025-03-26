@@ -142,3 +142,166 @@ export const checkUserExists = async (email: string) => {
     return false;
   }
 };
+
+// Create test users for development purposes
+export const createTestUsers = async () => {
+  try {
+    // Check if test users already exist
+    const testGuestId = "test-guest-user";
+    const testVipId = "test-vip-user";
+    
+    const testGuestRef = doc(db, 'users', testGuestId);
+    const testVipRef = doc(db, 'users', testVipId);
+    
+    const testGuestDoc = await getDoc(testGuestRef);
+    const testVipDoc = await getDoc(testVipRef);
+    
+    const timestamp = serverTimestamp();
+    
+    // Create test guest user if it doesn't exist
+    if (!testGuestDoc.exists()) {
+      await setDoc(testGuestRef, {
+        nickname: "TestGuest",
+        isVip: false,
+        isAnonymous: true,
+        imagesRemaining: 15,
+        voiceMessagesRemaining: 0,
+        blockedUsers: [],
+        createdAt: timestamp,
+        updatedAt: timestamp
+      });
+      console.log("Created test guest user");
+    }
+    
+    // Create test VIP user if it doesn't exist
+    if (!testVipDoc.exists()) {
+      await setDoc(testVipRef, {
+        nickname: "TestVIP",
+        email: "testvip@example.com",
+        isVip: true,
+        isAnonymous: false,
+        imagesRemaining: Infinity,
+        voiceMessagesRemaining: Infinity,
+        blockedUsers: [],
+        gender: "male",
+        age: 30,
+        country: "United States",
+        interests: ["Music", "Travel"],
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        lastSeen: timestamp
+      });
+      console.log("Created test VIP user");
+    }
+    
+    // Create a test chat
+    const testChatId = "test-chat";
+    const testChatRef = doc(db, 'chats', testChatId);
+    const testChatDoc = await getDoc(testChatRef);
+    
+    if (!testChatDoc.exists()) {
+      await setDoc(testChatRef, {
+        participants: [testGuestId, testVipId],
+        lastMessage: "Hello, this is a test chat!",
+        lastMessageTime: timestamp,
+        createdAt: timestamp,
+        isActive: true
+      });
+      
+      // Create some test messages
+      const messagesRef = collection(db, 'messages');
+      
+      // Message 1
+      await setDoc(doc(messagesRef), {
+        chatId: testChatId,
+        senderId: testGuestId,
+        senderName: "TestGuest",
+        text: "Hello, how are you?",
+        isRead: true,
+        timestamp: timestamp
+      });
+      
+      // Message 2
+      await setDoc(doc(messagesRef), {
+        chatId: testChatId,
+        senderId: testVipId,
+        senderName: "TestVIP",
+        text: "I'm doing great! How about you?",
+        isRead: true,
+        timestamp: timestamp
+      });
+      
+      console.log("Created test chat with messages");
+    }
+    
+    // Create a test subscription
+    const testSubId = "test-subscription";
+    const testSubRef = doc(db, 'subscriptions', testSubId);
+    const testSubDoc = await getDoc(testSubRef);
+    
+    if (!testSubDoc.exists()) {
+      // Create end date 1 month from now
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1);
+      
+      await setDoc(testSubRef, {
+        userId: testVipId,
+        plan: "monthly",
+        startDate: timestamp,
+        endDate: endDate,
+        status: "active",
+        paymentMethod: "credit_card",
+        autoRenew: true
+      });
+      
+      console.log("Created test subscription");
+    }
+    
+    return {
+      success: true,
+      message: "Test users, chat, and subscription successfully created"
+    };
+  } catch (error) {
+    console.error('Error creating test users:', error);
+    return {
+      success: false,
+      message: `Failed to create test users: ${error}`
+    };
+  }
+};
+
+// Initialize all Firebase data - collections and test data
+export const initializeFirebaseData = async () => {
+  try {
+    // First ensure collections exist
+    const collections = ['users', 'chats', 'messages', 'subscriptions', 'reports'];
+    
+    for (const collectionName of collections) {
+      const initDocRef = doc(db, collectionName, 'init');
+      const docSnap = await getDoc(initDocRef);
+      
+      if (!docSnap.exists()) {
+        await setDoc(initDocRef, {
+          initialized: true,
+          createdAt: serverTimestamp()
+        });
+        console.log(`Initialized ${collectionName} collection`);
+      }
+    }
+    
+    // Create test users and data
+    const testResult = await createTestUsers();
+    
+    return {
+      success: true,
+      collections: collections,
+      testData: testResult
+    };
+  } catch (error) {
+    console.error('Error initializing Firebase data:', error);
+    return {
+      success: false,
+      error: `Failed to initialize Firebase data: ${error}`
+    };
+  }
+};
