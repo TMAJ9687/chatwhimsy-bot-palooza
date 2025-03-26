@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Eye, EyeOff, Maximize, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Eye, EyeOff, Maximize, X, AlertTriangle } from 'lucide-react';
 
 interface ImageMessageProps {
   content: string;
@@ -10,6 +10,37 @@ interface ImageMessageProps {
 const ImageMessage: React.FC<ImageMessageProps> = ({ content, onClose }) => {
   const [isBlurred, setIsBlurred] = useState(true);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  
+  // Pre-load the image to check if it's valid
+  useEffect(() => {
+    if (!content) {
+      setHasError(true);
+      setIsLoading(false);
+      return;
+    }
+    
+    const img = new Image();
+    
+    img.onload = () => {
+      setIsLoading(false);
+      setHasError(false);
+    };
+    
+    img.onerror = () => {
+      setIsLoading(false);
+      setHasError(true);
+    };
+    
+    img.src = content;
+    
+    // Cleanup
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [content]);
   
   const handleToggleBlur = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -18,7 +49,7 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ content, onClose }) => {
 
   const handleToggleFullscreen = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isBlurred) {
+    if (!isBlurred && !hasError) {
       setIsFullScreen(!isFullScreen);
     }
   };
@@ -28,6 +59,31 @@ const ImageMessage: React.FC<ImageMessageProps> = ({ content, onClose }) => {
     setIsFullScreen(false);
     if (onClose) onClose();
   };
+  
+  // Show error state if image failed to load
+  if (hasError) {
+    return (
+      <div className="rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 p-4 text-center">
+        <div className="flex flex-col items-center justify-center h-[200px]">
+          <AlertTriangle className="h-12 w-12 text-amber-500 mb-2" />
+          <p className="text-gray-600 dark:text-gray-300">
+            Image could not be loaded
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+        <div className="w-[250px] h-[250px] flex items-center justify-center">
+          <div className="animate-pulse bg-gray-200 dark:bg-gray-700 w-full h-full"></div>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="relative">

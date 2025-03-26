@@ -2,7 +2,10 @@
 import { useEffect } from 'react';
 import { ref, onValue, off } from 'firebase/database';
 import { rtdb } from '@/lib/firebase';
-import { getBlockedUsersSafe as getBlockedUsers, getChatMessagesSafe as getChatMessages } from '@/services/firebaseService';
+import { 
+  getBlockedUsersSafe as getBlockedUsers, 
+  getChatMessagesSafe as getChatMessages 
+} from '@/services/firebaseService';
 import { User } from 'firebase/auth';
 import { 
   Bot, 
@@ -50,11 +53,20 @@ export const useChatEffects = ({
       if (currentUser) {
         try {
           const blocked = await getBlockedUsers();
-          setBlockedUsers(blocked);
           
-          setOnlineUsers(prev => prev.filter(user => !blocked.includes(user.id)));
+          // Ensure the result is serializable
+          const safeBlocked = makeSerializable(blocked || []);
+          setBlockedUsers(safeBlocked);
+          
+          setOnlineUsers(prev => {
+            // Create a safe copy of prev first
+            const safePrev = makeSerializable([...prev]);
+            return safePrev.filter(user => !safeBlocked.includes(user.id));
+          });
         } catch (error) {
           console.error("Error fetching blocked users:", error);
+          // Set default values on error
+          setBlockedUsers([]);
         }
       }
     };
@@ -72,26 +84,34 @@ export const useChatEffects = ({
     const handleNewMessages = (snapshot: any) => {
       if (snapshot.exists()) {
         try {
-          // Ensure the data is serializable before updating state
-          const messagesObj = snapshot.val();
+          // Get data and ensure it's serializable
+          const messagesObj = makeSerializable(snapshot.val() || {});
+          
+          // Convert to array of messages with default values
           const messages: Message[] = Object.entries(messagesObj).map(([id, messageData]: [string, any]) => {
-            // Use safe default values for all properties
-            return makeSerializable({
+            return {
               id,
               content: messageData?.content || '',
               sender: messageData?.sender || 'system',
-              timestamp: messageData?.timestamp ? new Date(messageData.timestamp) : new Date(),
+              timestamp: messageData?.timestamp 
+                ? new Date(messageData.timestamp) 
+                : new Date(),
               status: messageData?.status || 'sent',
               isImage: Boolean(messageData?.isImage)
-            });
+            };
           });
           
-          setUserChats(prev => ({
-            ...prev,
-            [currentBot.id]: messages
-          }));
+          // Update state with serializable data
+          setUserChats(prev => {
+            const safePrev = {...prev};
+            return {
+              ...safePrev,
+              [currentBot.id]: messages
+            };
+          });
         } catch (error) {
           console.error("Error processing chat messages:", error);
+          // Don't update state on error
         }
       }
     };
@@ -122,46 +142,61 @@ export const useChatEffects = ({
         const messages = await getChatMessages(chatId);
         
         if (messages && messages.length > 0) {
-          // Ensure all messages are safely serializable
+          // Create serializable messages with default values
           const typedMessages: Message[] = messages.map(msg => {
-            // Ensure all properties have default values
-            return makeSerializable({
+            const timestamp = msg.timestamp 
+              ? (msg.timestamp instanceof Date 
+                ? msg.timestamp 
+                : new Date(msg.timestamp as string | number))
+              : new Date();
+              
+            return {
               id: msg.id || `msg-${Date.now()}-${Math.random()}`,
               content: msg.content || '',
               sender: (msg.sender as 'user' | 'bot' | 'system') || 'system',
-              timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date(),
+              timestamp,
               status: ((msg.status || 'sent') as 'sending' | 'sent' | 'delivered' | 'read'),
               isImage: Boolean(msg.isImage)
-            });
+            };
           });
           
-          setUserChats(prev => ({
-            ...prev,
-            [currentBot.id]: typedMessages
-          }));
+          setUserChats(prev => {
+            const safePrev = {...prev};
+            return {
+              ...safePrev,
+              [currentBot.id]: typedMessages
+            };
+          });
         } else {
-          setUserChats(prev => ({
-            ...prev,
+          // Create default welcome message
+          setUserChats(prev => {
+            const safePrev = {...prev};
+            return {
+              ...safePrev,
+              [currentBot.id]: [{
+                id: `system-${Date.now()}`,
+                content: `Start a conversation with ${currentBot.name}`,
+                sender: 'system',
+                timestamp: new Date(),
+              }]
+            };
+          });
+        }
+      } catch (error) {
+        console.error("Error loading chat messages:", error);
+        // Add a fallback message on error
+        setUserChats(prev => {
+          const safePrev = {...prev};
+          return {
+            ...safePrev,
             [currentBot.id]: [{
               id: `system-${Date.now()}`,
               content: `Start a conversation with ${currentBot.name}`,
               sender: 'system',
               timestamp: new Date(),
             }]
-          }));
-        }
-      } catch (error) {
-        console.error("Error loading chat messages:", error);
-        // Add a fallback message on error
-        setUserChats(prev => ({
-          ...prev,
-          [currentBot.id]: [{
-            id: `system-${Date.now()}`,
-            content: `Start a conversation with ${currentBot.name}`,
-            sender: 'system',
-            timestamp: new Date(),
-          }]
-        }));
+          };
+        });
       }
     };
     
@@ -170,21 +205,26 @@ export const useChatEffects = ({
 
   // Update images remaining
   useEffect(() => {
-    setImagesRemaining(userIsVip ? Infinity : (userImagesRemaining || 15));
+    const imagesCount = userIsVip ? Infinity : (userImagesRemaining || 15);
+    setImagesRemaining(imagesCount);
   }, [userIsVip, userImagesRemaining, setImagesRemaining]);
 
-  // Fetch user country - optimized to avoid DataCloneError
+  // Simplified country detection to avoid API calls
   useEffect(() => {
-    // Use a static country value to avoid API calls that might cause DataCloneError
     setUserCountry('United States');
   }, [setUserCountry]);
 
-  // Sort users by country
+  // Sort users by country - make sure it's serializable
   useEffect(() => {
     if (userCountry) {
       console.log('Sorting users based on country:', userCountry);
-      const sortedUsers = sortUsers(botProfiles);
-      setOnlineUsers(sortedUsers);
+      try {
+        const sortedUsers = sortUsers(makeSerializable(botProfiles));
+        setOnlineUsers(sortedUsers);
+      } catch (error) {
+        console.error("Error sorting users:", error);
+        setOnlineUsers(botProfiles);
+      }
     }
   }, [userCountry, setOnlineUsers]);
 };

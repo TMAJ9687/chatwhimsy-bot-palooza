@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Smile, Image as ImageIcon, X } from 'lucide-react';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
+import { makeSerializable } from '@/utils/serialization';
 
 interface MessageInputBarProps {
   onSendMessage: (text: string) => void;
@@ -98,22 +99,69 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
     }
     
     // Size check to prevent large files
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      alert('Image size should be less than 5MB');
+    if (file.size > 3 * 1024 * 1024) { // 3MB limit for better performance
+      alert('Image size should be less than 3MB');
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
       return;
     }
     
-    // Use FileReader in a safe way
+    // Use FileReader with enhanced error handling
     const reader = new FileReader();
     
     reader.onload = () => {
       try {
-        // Make sure we get a string result and not anything complex
         if (typeof reader.result === 'string') {
-          setImagePreview(reader.result);
+          // Compress the image if it's too large by creating a temporary canvas
+          if (reader.result.length > 500000) { // If base64 is larger than ~500KB
+            const img = new Image();
+            img.onload = () => {
+              try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Calculate new dimensions (max 1000px in any dimension)
+                const maxSize = 1000;
+                let width = img.width;
+                let height = img.height;
+                
+                if (width > height && width > maxSize) {
+                  height = (height * maxSize) / width;
+                  width = maxSize;
+                } else if (height > maxSize) {
+                  width = (width * maxSize) / height;
+                  height = maxSize;
+                }
+                
+                // Set canvas size and draw resized image
+                canvas.width = width;
+                canvas.height = height;
+                
+                if (ctx) {
+                  ctx.drawImage(img, 0, 0, width, height);
+                  // Get compressed image as base64
+                  const compressedImage = canvas.toDataURL('image/jpeg', 0.7);
+                  setImagePreview(compressedImage);
+                } else {
+                  // Fallback if canvas context isn't available
+                  setImagePreview(reader.result);
+                }
+              } catch (err) {
+                console.error('Error compressing image:', err);
+                // Use original image if compression fails
+                setImagePreview(reader.result);
+              }
+            };
+            img.onerror = () => {
+              console.error('Error loading image for compression');
+              setImagePreview(reader.result);
+            };
+            img.src = reader.result;
+          } else {
+            // Use original image if it's small enough
+            setImagePreview(reader.result);
+          }
         } else {
           console.error('File read result is not a string');
           setImagePreview(null);
@@ -149,12 +197,30 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
   };
 
   const handleEmojiSelect = (emoji: { native: string }) => {
-    setMessage(prev => prev + emoji.native);
+    try {
+      // Ensure the emoji is serializable
+      const safeEmoji = makeSerializable(emoji);
+      setMessage(prev => prev + safeEmoji.native);
+    } catch (error) {
+      console.error('Error handling emoji:', error);
+      // Fallback to a simple emoji if there's an issue
+      setMessage(prev => prev + '😊');
+    }
     setShowEmojiPicker(false);
   };
 
   const toggleEmojiPicker = () => {
     setShowEmojiPicker(prev => !prev);
+  };
+
+  // Limit message length for better performance and serialization
+  const MAX_MESSAGE_LENGTH = 500;
+  
+  const handleMessageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value.length <= MAX_MESSAGE_LENGTH) {
+      setMessage(value);
+    }
   };
 
   return (
@@ -182,13 +248,14 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
           className="flex-1 bg-transparent border-0 focus:outline-none text-gray-700 dark:text-gray-200 py-2 text-sm"
           placeholder="Type a message..."
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={handleMessageChange}
           onKeyDown={handleKeyDown}
           disabled={!!imagePreview}
+          maxLength={MAX_MESSAGE_LENGTH}
         />
         
         <div className="text-xs text-gray-400 mr-2">
-          {message.length}/120
+          {message.length}/{MAX_MESSAGE_LENGTH}
         </div>
         
         <div className="relative">

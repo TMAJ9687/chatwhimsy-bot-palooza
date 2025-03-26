@@ -26,18 +26,21 @@ export const uploadImage = async (userId: string, file: File, path: string): Pro
     const storagePath = `${userId}/${path}/${uniqueFileName}`;
     const storageRef = ref(storage, storagePath);
     
-    // Upload the file with metadata
+    // Create serializable metadata
     const metadata = {
       contentType: file.type,
-      customMetadata: makeSerializable({
+      customMetadata: {
         uploadedBy: userId,
         originalName: file.name,
         timestamp: new Date().toISOString()
-      })
+      }
     };
     
+    // Create a serializable version of the file if needed
+    let uploadFile = file;
+    
     // Upload the file
-    const snapshot = await uploadBytes(storageRef, file, metadata);
+    const snapshot = await uploadBytes(storageRef, uploadFile, metadata);
     
     // Get the download URL
     const downloadURL = await getDownloadURL(snapshot.ref);
@@ -46,6 +49,24 @@ export const uploadImage = async (userId: string, file: File, path: string): Pro
     return downloadURL;
   } catch (error) {
     console.error('Error uploading image:', error);
-    throw error;
+    throw makeSerializable(error);
   }
+};
+
+/**
+ * Process raw files to ensure they are serializable
+ * Useful for handling File objects before passing to Firestore
+ */
+export const prepareFileForUpload = (file: File): {
+  name: string;
+  type: string;
+  size: number;
+  lastModified: number;
+} => {
+  return {
+    name: file.name,
+    type: file.type,
+    size: file.size,
+    lastModified: file.lastModified
+  };
 };
