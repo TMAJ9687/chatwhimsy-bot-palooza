@@ -38,7 +38,7 @@ const UserList = memo(({
   onFilterChange
 }: UserListProps) => {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const [showBlocked, setShowBlocked] = useState(false);
+  const [showBlocked, setShowBlocked] = useState(true); // Default to showing blocked users
   const { blockedUsers } = useChat();
   
   // Calculate stats once for performance
@@ -62,7 +62,7 @@ const UserList = memo(({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4">
+      <div className="p-3">
         <SearchInput 
           value={searchTerm}
           onChange={onSearchChange}
@@ -70,7 +70,7 @@ const UserList = memo(({
         />
       </div>
       
-      <div className="flex items-center justify-between px-4 pb-3">
+      <div className="flex items-center justify-between px-4 pb-2">
         <h2 className="text-xl font-bold text-orange-500">People</h2>
         <div className="relative flex gap-2">
           {blockedCount > 0 && (
@@ -108,7 +108,7 @@ const UserList = memo(({
       <div className="px-4 pb-2">
         <Badge variant="outline" className="text-sm">
           {visibleUsers.length} online
-          {blockedCount > 0 && !showBlocked && ` (${blockedCount} blocked)`}
+          {blockedCount > 0 && !showBlocked && ` (${blockedCount} blocked hidden)`}
         </Badge>
       </div>
       

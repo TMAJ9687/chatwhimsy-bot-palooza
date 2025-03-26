@@ -91,9 +91,16 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     
     fileInputRef.current?.click();
   };
+
+  // Handle emoji selection
+  const handleEmojiClick = () => {
+    // This would be implemented with a proper emoji picker
+    // For now, we'll just add a smiley face
+    setMessage(prev => prev + '😊');
+  };
   
   return (
-    <div className={`border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
+    <div className={`border-t border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-800 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
       <div className="flex items-center gap-2">
         <input
           type="file"
@@ -118,6 +125,17 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
         >
           <Image className="h-5 w-5" />
         </Button>
+
+        <Button 
+          variant="ghost" 
+          size="icon"
+          className="text-gray-500 hover:text-gray-700" 
+          onClick={handleEmojiClick}
+          disabled={disabled}
+          title="Add emoji"
+        >
+          <Smile className="h-5 w-5" />
+        </Button>
         
         <div className="flex-1">
           <textarea
@@ -125,7 +143,8 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={disabled ? "You can't message a blocked user" : "Type a message..."}
-            className="w-full py-2 px-3 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+            className="w-full py-2 px-3 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none text-left h-10 leading-normal"
+            style={{paddingTop: '8px'}}
           />
         </div>
         

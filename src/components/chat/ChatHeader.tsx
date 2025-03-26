@@ -1,6 +1,6 @@
 
 import React, { memo, useCallback } from 'react';
-import { Flag, X, MoreVertical, Ban, UserX2 } from 'lucide-react';
+import { X, MoreVertical, UserX2, Flag } from 'lucide-react';
 import { Button } from '../ui/button';
 import {
   DropdownMenu,
@@ -101,34 +101,27 @@ const ChatHeader: React.FC<ChatHeaderProps> = memo(({
             onClick={handleUnblock}
             className="text-blue-600"
           >
-            <Ban className="h-4 w-4 mr-1" />
+            <UserX2 className="h-4 w-4 mr-1" />
             Unblock
           </Button>
         ) : (
-          <>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={handleOpenReportDialog}
-              title="Report User"
-            >
-              <Flag className="h-4 w-4 text-gray-500" />
-            </Button>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-4 w-4 text-gray-500" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={handleOpenBlockDialog}>
-                  <UserX2 className="h-4 w-4 mr-2" />
-                  Block User
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical className="h-4 w-4 text-gray-500" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={handleOpenReportDialog}>
+                <Flag className="h-4 w-4 mr-2" />
+                Report User
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleOpenBlockDialog}>
+                <UserX2 className="h-4 w-4 mr-2" />
+                Block User
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
         
         <Button 
