@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { useAuth } from './FirebaseAuthContext';
-import { getUserProfile, updateUserProfile, getSubscription } from '@/services/firebaseService';
+import { getUserProfile, updateUserProfile, getSubscription, createSubscription, cancelSubscription } from '@/services/firebaseService';
 
 type Gender = 'male' | 'female';
 type Interest = string;
@@ -111,8 +111,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         break;
     }
     
-    // This would call a Cloud Function to handle payment processing and subscription creation
-    // For now, we'll just update the user profile
+    // Create the subscription in Firestore
+    await createSubscription(currentUser.uid, tier, endDate);
+    
+    // Update the user profile
     updateUserProfile({ 
       isVip: true, 
       subscriptionTier: tier,
@@ -125,8 +127,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const cancelVipSubscription = async () => {
     if (!currentUser) return;
     
-    // This would call a Cloud Function to handle subscription cancellation
-    // For now, we'll just update the user profile
+    // Cancel the subscription in Firestore
+    await cancelSubscription(currentUser.uid);
+    
+    // Update the user profile
     updateUserProfile({ 
       isVip: false, 
       subscriptionTier: 'none',

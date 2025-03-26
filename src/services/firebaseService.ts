@@ -61,6 +61,64 @@ export const updateUserProfile = async (userId: string, userData: any) => {
   }
 };
 
+// Subscription related functions
+export const getSubscription = async (userId: string) => {
+  try {
+    const subscriptionRef = doc(db, 'subscriptions', userId);
+    const subscriptionDoc = await getDoc(subscriptionRef);
+    
+    if (subscriptionDoc.exists()) {
+      return { id: subscriptionDoc.id, ...subscriptionDoc.data() };
+    } else {
+      return { 
+        status: 'none',
+        plan: 'none',
+        endDate: null
+      };
+    }
+  } catch (error) {
+    console.error('Error getting subscription:', error);
+    return { 
+      status: 'none',
+      plan: 'none',
+      endDate: null
+    };
+  }
+};
+
+export const createSubscription = async (userId: string, plan: string, endDate: Date) => {
+  try {
+    const subscriptionRef = doc(db, 'subscriptions', userId);
+    await setDoc(subscriptionRef, {
+      userId,
+      plan,
+      status: 'active',
+      startDate: serverTimestamp(),
+      endDate,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return true;
+  } catch (error) {
+    console.error('Error creating subscription:', error);
+    throw error;
+  }
+};
+
+export const cancelSubscription = async (userId: string) => {
+  try {
+    const subscriptionRef = doc(db, 'subscriptions', userId);
+    await updateDoc(subscriptionRef, {
+      status: 'cancelled',
+      updatedAt: serverTimestamp(),
+    });
+    return true;
+  } catch (error) {
+    console.error('Error cancelling subscription:', error);
+    throw error;
+  }
+};
+
 // Report related functions
 export const submitReport = async (reportData: any) => {
   try {
@@ -82,6 +140,60 @@ export const submitReport = async (reportData: any) => {
   } catch (error) {
     console.error('Error submitting report:', error);
     throw error;
+  }
+};
+
+// Chat related functions
+export const sendMessage = async (senderId: string, receiverId: string, content: string, isImage: boolean = false) => {
+  try {
+    const chatRef = collection(db, 'chats');
+    const messageRef = await addDoc(chatRef, {
+      senderId,
+      receiverId,
+      content,
+      isImage,
+      status: 'sent',
+      timestamp: serverTimestamp(),
+    });
+    
+    return {
+      id: messageRef.id,
+      senderId,
+      receiverId,
+      content,
+      isImage,
+      status: 'sent',
+      timestamp: new Date(),
+    };
+  } catch (error) {
+    console.error('Error sending message:', error);
+    throw error;
+  }
+};
+
+export const getChatMessages = async (userId: string, otherId: string) => {
+  try {
+    const chatRef = collection(db, 'chats');
+    
+    // Get messages where the current user is either the sender or receiver
+    const q = query(
+      chatRef, 
+      where('senderId', 'in', [userId, otherId]),
+      where('receiverId', 'in', [userId, otherId])
+    );
+    
+    const snapshot = await getDocs(q);
+    
+    return snapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate() || new Date()
+      }))
+      .sort((a, b) => a.timestamp - b.timestamp);
+  } catch (error) {
+    console.error('Error getting chat messages:', error);
+    return [];
   }
 };
 
@@ -138,6 +250,30 @@ export const getBlockedUsers = async () => {
     return snapshot.docs.map(doc => doc.id);
   } catch (error) {
     console.error('Error getting blocked users:', error);
+    throw error;
+  }
+};
+
+// Additional functions
+export const reportUser = async (userId: string, reason: string) => {
+  try {
+    const currentUser = auth.currentUser;
+    
+    if (!currentUser) {
+      throw new Error('User not authenticated');
+    }
+    
+    const reportRef = await addDoc(collection(db, 'reports'), {
+      reporterId: currentUser.uid,
+      reportedUserId: userId,
+      reason,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+    });
+    
+    return reportRef.id;
+  } catch (error) {
+    console.error('Error reporting user:', error);
     throw error;
   }
 };
