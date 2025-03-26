@@ -20,12 +20,14 @@ export interface ChatContextType {
   filteredUsers: Bot[];
   unreadCount: number;
   isVip: boolean;
+  blockInProgress: boolean;
+  reportInProgress: boolean;
   setSearchTerm: (term: string) => void;
   setFilters: (filters: FilterState) => void;
   setShowInbox: (show: boolean) => void;
   setShowHistory: (show: boolean) => void;
   setRulesAccepted: (accepted: boolean) => void;
-  handleBlockUser: () => void;
+  handleBlockUser: () => Promise<void>;
   handleCloseChat: () => void;
   handleSendTextMessage: (text: string) => void;
   handleSendImageMessage: (imageDataUrl: string) => void;
