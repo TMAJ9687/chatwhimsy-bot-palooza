@@ -9,6 +9,7 @@ import VipPayment from './pages/VipPayment';
 import VipConfirmation from './pages/VipConfirmation';
 import VipSignup from './pages/VipSignup';
 import VipLogin from './pages/VipLogin';
+import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import DialogContainer from './components/dialogs/DialogContainer';
 import { Toaster } from './components/ui/toaster';
@@ -56,6 +57,17 @@ function App() {
                   <Route path="/vip-confirmation" element={<VipConfirmation />} />
                   <Route path="/vip-signup" element={<VipSignup />} />
                   <Route path="/vip-login" element={<VipLogin />} />
+                  
+                  {/* Admin Routes */}
+                  <Route 
+                    path="/admin" 
+                    element={
+                      <ProtectedRoute requireAuth={true} requireAdmin={true} allowAnonymous={false}>
+                        <AdminDashboard />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </MainLayout>

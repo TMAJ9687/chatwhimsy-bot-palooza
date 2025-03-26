@@ -8,6 +8,7 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAuth?: boolean;
   requireVip?: boolean;
+  requireAdmin?: boolean;
   allowAnonymous?: boolean;
 }
 
@@ -15,9 +16,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children, 
   requireAuth = true,
   requireVip = false,
+  requireAdmin = false,
   allowAnonymous = true
 }) => {
-  const { currentUser, isLoading, isAnonymous } = useAuth();
+  const { currentUser, isLoading, isAnonymous, isAdmin } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
 
@@ -35,9 +37,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           description: "This feature requires a registered account.",
           variant: "destructive"
         });
+      } else if (requireAdmin && !isAdmin) {
+        toast({
+          title: "Admin Access Required",
+          description: "You need administrator privileges to access this page.",
+          variant: "destructive"
+        });
       }
     }
-  }, [isLoading, currentUser, requireAuth, allowAnonymous, isAnonymous, toast]);
+  }, [isLoading, currentUser, requireAuth, allowAnonymous, isAnonymous, isAdmin, requireAdmin, toast]);
 
   // Show loading indicator while authentication state is being determined
   if (isLoading) {
@@ -61,6 +69,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (!allowAnonymous && isAnonymous) {
     // Redirect to upgrade account page
     return <Navigate to="/vip-signup" state={{ from: location }} replace />;
+  }
+
+  // Check if admin privileges are required
+  if (requireAdmin && !isAdmin) {
+    // Redirect to home page or unauthorized page
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
 
   // If we require VIP, check user's VIP status

@@ -1,18 +1,19 @@
 
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { useAuth } from './FirebaseAuthContext';
-import { 
-  getUserProfile, 
-  updateUserProfile, 
-  getSubscriptionSafe as getSubscription, 
-  createSubscriptionSafe as createSubscription, 
-  cancelSubscriptionSafe as cancelSubscription 
-} from '@/services/firebaseService';
 import { makeSerializable } from '@/utils/serialization';
+
+// Import both real and mock services
+import * as FirebaseService from '@/services/firebaseService';
+import * as MockService from '@/services/mockFirebaseAuth';
+
+// Flag to control whether to use mock services (must match FirebaseAuthContext)
+const USE_MOCK_SERVICES = true;
 
 type Gender = 'male' | 'female';
 type Interest = string;
 type SubscriptionTier = 'none' | 'monthly' | 'semiannual' | 'annual';
+export type UserRole = 'admin' | 'vip' | 'regular' | 'guest';
 
 interface UserProfile {
   nickname: string;
@@ -22,7 +23,9 @@ interface UserProfile {
   interests?: Interest[];
   email?: string;
   isVip?: boolean;
+  isAdmin?: boolean;
   isAnonymous?: boolean;
+  role?: UserRole;
   subscriptionTier?: SubscriptionTier;
   subscriptionEndDate?: Date;
   imagesRemaining?: number;
@@ -33,6 +36,7 @@ interface UserContextType {
   user: UserProfile | null;
   setUser: React.Dispatch<React.SetStateAction<UserProfile | null>>;
   isProfileComplete: boolean;
+  isAdmin: boolean;
   updateUserProfile: (profile: Partial<UserProfile>) => void;
   clearUser: () => void;
   isVip: boolean;
@@ -44,15 +48,22 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const { currentUser, updateUserProfile: updateFirebaseProfile } = useAuth();
+  const { currentUser, isAdmin: authIsAdmin, updateUserProfile: updateAuthProfile } = useAuth();
 
-  // Fetch user data from Firebase when auth state changes
+  // Fetch user data when auth state changes
   useEffect(() => {
     const fetchUserData = async () => {
       if (currentUser) {
         try {
-          // Get user profile from Firestore
-          const userProfile = await getUserProfile(currentUser.uid);
+          let userProfile;
+          let subscription = null;
+          
+          if (USE_MOCK_SERVICES) {
+            userProfile = await MockService.getUserProfile(currentUser.uid);
+          } else {
+            userProfile = await FirebaseService.getUserProfile(currentUser.uid);
+            subscription = await FirebaseService.getSubscriptionSafe(currentUser.uid);
+          }
           
           // If no profile, create defaults
           if (!userProfile) {
@@ -60,7 +71,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setUser({
               nickname: currentUser.displayName || 'User',
               email: currentUser.email || undefined,
-              isVip: false,
+              isVip: USE_MOCK_SERVICES ? (currentUser as any)?.isVip || false : false,
+              isAdmin: USE_MOCK_SERVICES ? (currentUser as any)?.isAdmin || false : authIsAdmin || false,
+              role: USE_MOCK_SERVICES ? (currentUser as any)?.role || 'regular' : 'regular',
               isAnonymous: currentUser.isAnonymous,
               imagesRemaining: 15,
               voiceMessagesRemaining: 0,
@@ -69,17 +82,18 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             return;
           }
           
-          // Get subscription data
-          const subscription = await getSubscription(currentUser.uid);
-          
-          // Combine the data - fixed spread by creating an object first
+          // Combine the data
           const profileData = userProfile ? makeSerializable({ ...userProfile }) : {};
           
           setUser({
             nickname: currentUser.displayName || 'User',
             email: currentUser.email || undefined,
             ...profileData,
-            isVip: subscription?.status === 'active' || false,
+            isVip: USE_MOCK_SERVICES 
+              ? profileData.isVip || (currentUser as any)?.isVip || false
+              : subscription?.status === 'active' || false,
+            isAdmin: profileData.isAdmin || authIsAdmin || false,
+            role: profileData.role || 'regular',
             subscriptionTier: subscription?.plan as SubscriptionTier || 'none',
             subscriptionEndDate: subscription?.endDate ? new Date(subscription.endDate) : undefined
           });
@@ -89,7 +103,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUser({
             nickname: currentUser.displayName || 'User',
             email: currentUser.email || undefined,
-            isVip: false,
+            isVip: USE_MOCK_SERVICES ? (currentUser as any)?.isVip || false : false,
+            isAdmin: USE_MOCK_SERVICES ? (currentUser as any)?.isAdmin || false : authIsAdmin || false,
+            role: USE_MOCK_SERVICES ? (currentUser as any)?.role || 'regular' : 'regular',
             isAnonymous: currentUser.isAnonymous,
             imagesRemaining: 15,
             voiceMessagesRemaining: 0,
@@ -102,13 +118,14 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     fetchUserData();
-  }, [currentUser]);
+  }, [currentUser, authIsAdmin]);
 
   const isProfileComplete = Boolean(
     user && user.gender && user.age && user.country
   );
 
   const isVip = Boolean(user?.isVip);
+  const isAdmin = Boolean(user?.isAdmin);
 
   const updateUserProfile = async (profile: Partial<UserProfile>) => {
     if (!currentUser) return;
@@ -117,8 +134,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Make the profile data serializable
       const safeProfile = makeSerializable(profile);
       
-      // Update user profile in Firestore
-      await updateFirebaseProfile(safeProfile);
+      // Update auth context (which will update Firebase or mock)
+      await updateAuthProfile(safeProfile);
       
       // Update local state
       setUser((prev) => {
@@ -154,12 +171,15 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           break;
       }
       
-      // Create the subscription in Firestore
-      await createSubscription(currentUser.uid, tier, endDate);
+      if (!USE_MOCK_SERVICES) {
+        // Create the subscription in Firestore
+        await FirebaseService.createSubscriptionSafe(currentUser.uid, tier, endDate);
+      }
       
-      // Update the user profile with serializable data
+      // Update the user profile
       const profileUpdate = makeSerializable({ 
         isVip: true, 
+        role: user?.isAdmin ? 'admin' : 'vip',
         subscriptionTier: tier,
         subscriptionEndDate: endDate,
         imagesRemaining: Infinity,
@@ -176,12 +196,19 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!currentUser) return;
     
     try {
-      // Cancel the subscription in Firestore
-      await cancelSubscription(currentUser.uid);
+      if (!USE_MOCK_SERVICES) {
+        // Cancel the subscription in Firestore
+        await FirebaseService.cancelSubscriptionSafe(currentUser.uid);
+      }
+      
+      // Don't downgrade admin when canceling VIP
+      const role = user?.isAdmin ? 'admin' : 'regular';
+      const isVip = user?.isAdmin ? true : false;
       
       // Update the user profile
       updateUserProfile({ 
-        isVip: false, 
+        isVip, 
+        role,
         subscriptionTier: 'none',
         subscriptionEndDate: undefined,
         imagesRemaining: 15,
@@ -198,6 +225,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         user,
         setUser,
         isProfileComplete,
+        isAdmin,
         updateUserProfile,
         clearUser,
         isVip,

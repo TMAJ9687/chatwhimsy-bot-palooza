@@ -1,14 +1,16 @@
 
-import React, { ReactNode } from 'react';
+import React from 'react';
+import AdminNav from '../shared/AdminNav';
 
 interface MainLayoutProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   return (
-    <div className="min-h-screen bg-background">
-      {children}
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1">{children}</main>
+      <AdminNav />
     </div>
   );
 };
