@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, memo, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,9 +10,9 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { useToast } from "@/hooks/use-toast";
+import { useChat } from '@/context/ChatContext';
 import { useDialog } from '@/context/DialogContext';
 
-// Define report reasons outside component to prevent recreation
 const reportReasons = [
   "Under Age",
   "Harassment/Cyberbullying",
@@ -23,111 +23,109 @@ const reportReasons = [
   "Other"
 ];
 
-// Memoized radio option component
-const ReasonOption = memo(({ 
-  reason, 
-  isSelected, 
-  onSelect 
-}: { 
-  reason: string; 
-  isSelected: boolean; 
-  onSelect: (reason: string) => void;
-}) => (
-  <div 
-    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-      isSelected 
-        ? 'border-teal-500 bg-teal-50' 
-        : 'border-gray-200 hover:border-teal-300'
-    }`}
-    onClick={() => onSelect(reason)}
-  >
-    <div className="flex items-center">
-      <div 
-        className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-          isSelected ? 'border-teal-500' : 'border-gray-300'
-        }`}
-      >
-        {isSelected && (
-          <div className="w-2 h-2 rounded-full bg-teal-500"></div>
-        )}
-      </div>
-      <span className={`ml-2 ${reason === 'Under Age' ? 'text-red-500 font-medium' : ''}`}>
-        {reason}
-      </span>
-    </div>
-  </div>
-));
-
-ReasonOption.displayName = 'ReasonOption';
-
-// Main optimized dialog component
 const ReportDialog = () => {
   const { state, closeDialog } = useDialog();
+  const { reportCurrentUser } = useChat();
   const { toast } = useToast();
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [otherReason, setOtherReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const { userName } = state.data;
 
-  // Reset state when dialog opens
-  useEffect(() => {
-    if (state.isOpen && state.type === 'report') {
+  // Reset state when dialog closes
+  React.useEffect(() => {
+    if (!state.isOpen || state.type !== 'report') {
       setSelectedReason(null);
       setOtherReason('');
       setIsSubmitting(false);
     }
   }, [state.isOpen, state.type]);
 
-  // Memoized handlers to prevent recreating functions on every render
-  const handleSelectReason = useCallback((reason: string) => {
+  // Handle reason selection
+  const handleSelectReason = (reason: string) => {
     setSelectedReason(reason);
-  }, []);
+  };
   
-  const handleOtherReasonChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  // Handle other reason input
+  const handleOtherReasonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setOtherReason(e.target.value.slice(0, 100));
-  }, []);
+  };
 
-  const handleSubmit = useCallback(() => {
+  // Submit report using Firebase
+  const handleSubmit = async () => {
     if (!selectedReason) return;
     
+    // Set submitting state to prevent multiple submissions
     setIsSubmitting(true);
     
-    // Show toast notification using a single update
-    toast({
-      title: "Report submitted",
-      description: "Thank you for helping to keep our community safe.",
-      duration: 3000,
-    });
+    const reason = selectedReason === 'Other' ? otherReason : selectedReason;
     
-    // Close the dialog
-    closeDialog();
-  }, [selectedReason, closeDialog, toast]);
+    try {
+      const success = await reportCurrentUser(selectedReason, selectedReason === 'Other' ? otherReason : undefined);
+      
+      if (success) {
+        toast({
+          title: "Report submitted",
+          description: "Thank you for helping to keep our community safe.",
+        });
+      } else {
+        toast({
+          title: "Report failed",
+          description: "There was an error submitting your report. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Report failed",
+        description: "There was an error submitting your report. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+      closeDialog();
+    }
+  };
 
-  // Compute this once per render rather than in every invocation
   const isValid = selectedReason && (selectedReason !== 'Other' || otherReason.trim().length > 0);
 
-  // If dialog isn't open or isn't the report type, don't render
-  if (!state.isOpen || state.type !== 'report') return null;
+  if (state.type !== 'report') return null;
 
   return (
-    <Dialog open={true} onOpenChange={(open) => !open && closeDialog()}>
+    <Dialog open={state.isOpen} onOpenChange={(open) => !open && closeDialog()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Report User</DialogTitle>
           <DialogDescription>
-            Please select a reason for reporting {userName}
+            Please select a reason for reporting {state.data?.userName || 'this user'}
           </DialogDescription>
         </DialogHeader>
         
         <div className="mt-4 space-y-3">
           {reportReasons.map((reason) => (
-            <ReasonOption
+            <div 
               key={reason}
-              reason={reason}
-              isSelected={selectedReason === reason}
-              onSelect={handleSelectReason}
-            />
+              className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                selectedReason === reason 
+                  ? 'border-teal-500 bg-teal-50' 
+                  : 'border-gray-200 hover:border-teal-300'
+              }`}
+              onClick={() => handleSelectReason(reason)}
+            >
+              <div className="flex items-center">
+                <div 
+                  className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                    selectedReason === reason ? 'border-teal-500' : 'border-gray-300'
+                  }`}
+                >
+                  {selectedReason === reason && (
+                    <div className="w-2 h-2 rounded-full bg-teal-500"></div>
+                  )}
+                </div>
+                <span className={`ml-2 ${reason === 'Under Age' ? 'text-red-500 font-medium' : ''}`}>
+                  {reason}
+                </span>
+              </div>
+            </div>
           ))}
 
           {selectedReason === 'Other' && (
@@ -169,5 +167,4 @@ const ReportDialog = () => {
   );
 };
 
-// Use memo to prevent unnecessary re-renders
-export default memo(ReportDialog);
+export default ReportDialog;

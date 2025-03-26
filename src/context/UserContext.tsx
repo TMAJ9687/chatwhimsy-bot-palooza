@@ -1,5 +1,7 @@
 
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import { useAuth } from './FirebaseAuthContext';
+import { getUserProfile, updateUserProfile, getSubscription } from '@/services/firebaseService';
 
 type Gender = 'male' | 'female';
 type Interest = string;
@@ -34,6 +36,34 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const { currentUser, updateUserProfile: updateFirebaseProfile } = useAuth();
+
+  // Fetch user data from Firebase when auth state changes
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (currentUser) {
+        // Get user profile from Firestore
+        const userProfile = await getUserProfile(currentUser.uid);
+        
+        // Get subscription data
+        const subscription = await getSubscription(currentUser.uid);
+        
+        // Combine the data
+        setUser({
+          nickname: currentUser.displayName || 'User',
+          email: currentUser.email || undefined,
+          ...userProfile,
+          isVip: subscription?.status === 'active' || false,
+          subscriptionTier: subscription?.plan as SubscriptionTier || 'none',
+          subscriptionEndDate: subscription?.endDate ? new Date(subscription.endDate) : undefined
+        });
+      } else {
+        setUser(null);
+      }
+    };
+
+    fetchUserData();
+  }, [currentUser]);
 
   const isProfileComplete = Boolean(
     user && user.gender && user.age && user.country
@@ -41,18 +71,30 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const isVip = Boolean(user?.isVip);
 
-  const updateUserProfile = (profile: Partial<UserProfile>) => {
-    setUser((prev) => {
-      if (!prev) return profile as UserProfile;
-      return { ...prev, ...profile };
-    });
+  const updateUserProfile = async (profile: Partial<UserProfile>) => {
+    if (!currentUser) return;
+    
+    try {
+      // Update user profile in Firestore
+      await updateFirebaseProfile(profile);
+      
+      // Update local state
+      setUser((prev) => {
+        if (!prev) return profile as UserProfile;
+        return { ...prev, ...profile };
+      });
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+    }
   };
 
   const clearUser = () => {
     setUser(null);
   };
 
-  const subscribeToVip = (tier: SubscriptionTier) => {
+  const subscribeToVip = async (tier: SubscriptionTier) => {
+    if (!currentUser) return;
+    
     let endDate = new Date();
     
     switch(tier) {
@@ -69,6 +111,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         break;
     }
     
+    // This would call a Cloud Function to handle payment processing and subscription creation
+    // For now, we'll just update the user profile
     updateUserProfile({ 
       isVip: true, 
       subscriptionTier: tier,
@@ -78,7 +122,11 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   };
   
-  const cancelVipSubscription = () => {
+  const cancelVipSubscription = async () => {
+    if (!currentUser) return;
+    
+    // This would call a Cloud Function to handle subscription cancellation
+    // For now, we'll just update the user profile
     updateUserProfile({ 
       isVip: false, 
       subscriptionTier: 'none',
