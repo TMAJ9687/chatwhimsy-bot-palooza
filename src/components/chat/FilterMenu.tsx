@@ -8,12 +8,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { Filter, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { countries } from '@/data/countries';
@@ -88,7 +83,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
   
   return (
     <div className="w-full">
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border shadow-sm space-y-4">
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm space-y-4">
         {/* Gender filter */}
         <div>
           <label className="block text-sm font-medium mb-2 dark:text-gray-300">Gender</label>
@@ -124,7 +119,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
               onValueChange={(value: number[]) => 
                 setTempFilters(prev => ({ ...prev, ageRange: value as [number, number] }))
               }
-              className="[&>.relative_.absolute]:bg-green-500 [&>.relative_.absolute]:opacity-100"
+              className="[&>.relative_.absolute]:bg-amber-500 dark:[&>.relative_.absolute]:bg-amber-500 [&>.relative_.absolute]:opacity-100"
             />
           </div>
         </div>
@@ -134,7 +129,10 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
           <label className="block text-sm font-medium mb-2 dark:text-gray-300">
             Country <span className="text-xs text-gray-500 dark:text-gray-400">(Max {MAX_COUNTRIES})</span>
           </label>
-          <Select onValueChange={handleCountrySelect} disabled={tempFilters.countries.length >= MAX_COUNTRIES && !tempFilters.countries.some(c => countries.find(country => country.name === c))}>
+          <Select 
+            onValueChange={handleCountrySelect} 
+            disabled={tempFilters.countries.length >= MAX_COUNTRIES}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select countries" />
             </SelectTrigger>

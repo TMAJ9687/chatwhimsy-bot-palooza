@@ -37,7 +37,7 @@ const UserListItem: React.FC<UserListItemProps> = memo(({ user, isActive, onClic
     <div 
       className={`
         py-3 px-4 cursor-pointer transition-colors border-l-4 relative
-        ${isActive ? 'bg-amber-50 dark:bg-amber-900/20 border-orange-500' : 'hover:bg-amber-50/50 dark:hover:bg-amber-800/10 border-transparent'}
+        ${isActive ? 'bg-amber-50 dark:bg-amber-900/30 border-orange-500' : 'hover:bg-amber-50/50 dark:hover:bg-amber-800/10 border-transparent'}
         ${isBlocked ? 'opacity-60 grayscale' : ''}
       `}
       onClick={onClick}

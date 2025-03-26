@@ -36,22 +36,22 @@ const ReasonOption = memo(({
   <div 
     className={`p-3 border rounded-lg cursor-pointer transition-colors ${
       isSelected 
-        ? 'border-teal-500 bg-teal-50' 
-        : 'border-gray-200 hover:border-teal-300'
+        ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/30 dark:border-teal-400' 
+        : 'border-gray-200 dark:border-gray-700 hover:border-teal-300 dark:hover:border-teal-600'
     }`}
     onClick={() => onSelect(reason)}
   >
     <div className="flex items-center">
       <div 
         className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-          isSelected ? 'border-teal-500' : 'border-gray-300'
+          isSelected ? 'border-teal-500 dark:border-teal-400' : 'border-gray-300 dark:border-gray-600'
         }`}
       >
         {isSelected && (
-          <div className="w-2 h-2 rounded-full bg-teal-500"></div>
+          <div className="w-2 h-2 rounded-full bg-teal-500 dark:bg-teal-400"></div>
         )}
       </div>
-      <span className={`ml-2 ${reason === 'Under Age' ? 'text-red-500 font-medium' : ''}`}>
+      <span className={`ml-2 ${reason === 'Under Age' ? 'text-red-500 dark:text-red-400 font-medium' : 'dark:text-gray-200'}`}>
         {reason}
       </span>
     </div>
@@ -138,13 +138,13 @@ const ReportDialog = () => {
             <div className="mt-3">
               <textarea
                 placeholder="Please describe the issue (max 100 characters)"
-                className="w-full p-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-teal-500 dark:bg-gray-800 dark:text-gray-200"
                 value={otherReason}
                 onChange={handleOtherReasonChange}
                 maxLength={100}
                 rows={3}
               />
-              <div className="text-right text-xs text-gray-500 mt-1">
+              <div className="text-right text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {otherReason.length}/100
               </div>
             </div>
@@ -164,6 +164,7 @@ const ReportDialog = () => {
             onClick={handleSubmit}
             disabled={!isValid || isSubmitting}
             type="button"
+            className="bg-teal-500 hover:bg-teal-600 text-white"
           >
             {isSubmitting ? "Submitting..." : "Submit Report"}
           </Button>

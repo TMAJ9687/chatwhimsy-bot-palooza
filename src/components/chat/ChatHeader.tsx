@@ -1,6 +1,6 @@
 
 import React, { memo, useCallback } from 'react';
-import { X, MoreVertical, UserX2, Flag } from 'lucide-react';
+import { X, MoreVertical, UserX2, Flag, Crown } from 'lucide-react';
 import { Button } from '../ui/button';
 import {
   DropdownMenu,
@@ -69,14 +69,15 @@ const ChatHeader: React.FC<ChatHeaderProps> = memo(({
         </div>
         
         <div>
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             <span className="font-medium dark:text-gray-200">{currentUser.name}</span>
             {currentUser.vip && (
-              <span className="ml-2 bg-amber-400 text-white text-xs px-1.5 py-0.5 rounded-sm flex items-center">
+              <span className="bg-amber-400 text-white text-xs px-1.5 py-0.5 rounded-sm flex items-center">
+                <Crown className="h-3 w-3 mr-0.5" />
                 <span>VIP</span>
               </span>
             )}
-            <span className={`ml-2 text-xs ${currentUser.gender === 'female' ? 'text-pink-500' : 'text-blue-500'}`}>
+            <span className={`text-xs ${currentUser.gender === 'female' ? 'text-pink-500' : 'text-blue-500'}`}>
               {currentUser.gender === 'female' ? 'F' : 'M'}, {currentUser.age}
             </span>
           </div>
