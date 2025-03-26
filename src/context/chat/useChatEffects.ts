@@ -156,24 +156,33 @@ export const useChatEffects = ({
   useEffect(() => {
     const fetchUserCountry = async () => {
       try {
-        const response = await fetch('https://api.ipgeolocation.io/ipgeo?apiKey=API_KEY_HERE');
+        // Use a more reliable API and handle the response properly to avoid DataCloneError
+        const response = await fetch('https://ipapi.co/json/', {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+        
         if (!response.ok) {
-          const fallbackResponse = await fetch('https://ipapi.co/json/');
-          const data = await fallbackResponse.json();
-          setUserCountry(data.country_name || '');
+          console.error('Failed to fetch country data:', response.statusText);
+          setUserCountry('Unknown');
+          return;
+        }
+        
+        // Parse the response safely
+        const data = await response.json();
+        
+        // Use country_name property which contains the full name
+        if (data && data.country_name) {
+          setUserCountry(data.country_name);
         } else {
-          const data = await response.json();
-          setUserCountry(data.country_name || '');
+          // Fallback to a default value if country_name is not available
+          setUserCountry('Unknown');
         }
       } catch (error) {
         console.error('Error fetching user country:', error);
-        try {
-          const fallbackResponse = await fetch('https://ipapi.co/json/');
-          const data = await fallbackResponse.json();
-          setUserCountry(data.country_name || '');
-        } catch (fallbackError) {
-          console.error('Error with fallback country fetch:', fallbackError);
-        }
+        setUserCountry('Unknown');
       }
     };
 

@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Smile, Image as ImageIcon, X, Eye, EyeOff } from 'lucide-react';
+import { Send, Smile, Image as ImageIcon, X } from 'lucide-react';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 
@@ -87,19 +87,29 @@ const MessageInputBar: React.FC<MessageInputBarProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       if (file.type.startsWith('image/')) {
+        // Use a safer approach to read file data
         const reader = new FileReader();
-        reader.onload = (event) => {
-          setImagePreview(event.target?.result as string);
+        reader.onload = () => {
+          // Ensure we're getting a string result
+          const result = typeof reader.result === 'string' ? reader.result : null;
+          setImagePreview(result);
         };
         reader.readAsDataURL(file);
       } else {
         alert('Please select an image file');
       }
+      
+      // Clear the input to ensure it can be selected again
+      if (e.target) {
+        e.target.value = '';
+      }
     }
   };
 
   const triggerFileInput = () => {
-    fileInputRef.current?.click();
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   const handleEmojiSelect = (emoji: { native: string }) => {
