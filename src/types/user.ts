@@ -1,20 +1,16 @@
-
-export type Gender = 'male' | 'female';
-export type Interest = string;
-export type SubscriptionTier = 'none' | 'monthly' | 'semiannual' | 'annual';
-
 export interface UserProfile {
+  id: string;
   nickname: string;
-  gender?: Gender;
-  age?: number;
-  country?: string;
-  interests?: Interest[];
-  email?: string;
-  isVip?: boolean;
-  subscriptionTier?: SubscriptionTier;
+  email: string;
+  gender: 'male' | 'female' | 'other';
+  age: number;
+  country: string;
+  interests: string[];
+  isVip: boolean;
+  subscriptionTier: SubscriptionTier;
   subscriptionEndDate?: Date;
-  imagesRemaining?: number;
-  voiceMessagesRemaining?: number;
+  imagesRemaining: number;
+  voiceMessagesRemaining: number;
 }
 
 export interface UserContextType {
@@ -27,3 +23,5 @@ export interface UserContextType {
   subscribeToVip: (tier: SubscriptionTier) => void;
   cancelVipSubscription: () => void;
 }
+
+export type SubscriptionTier = 'none' | 'monthly' | 'semiannual' | 'annual';
