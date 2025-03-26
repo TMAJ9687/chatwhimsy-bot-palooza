@@ -3,23 +3,12 @@ import React from 'react';
 import ImageMessage from './ImageMessage';
 import MessageContent from './MessageContent';
 import MessageStatus from './MessageStatus';
+import { MessageProps } from './types/MessageTypes';
 
-export interface Message {
-  id: string;
-  content: string;
-  sender: 'user' | 'bot' | 'system';
-  timestamp: Date;
-  status?: 'sending' | 'sent' | 'delivered' | 'read';
-  isImage?: boolean;
-}
+// Moving types to a separate file for better organization
+export type { Message } from './types/MessageTypes';
 
-interface MessageBubbleProps {
-  message: Message;
-  isLastInGroup?: boolean;
-  showStatus?: boolean;
-}
-
-const MessageBubble: React.FC<MessageBubbleProps> = ({ 
+const MessageBubble: React.FC<MessageProps> = ({ 
   message, 
   isLastInGroup = false,
   showStatus = true

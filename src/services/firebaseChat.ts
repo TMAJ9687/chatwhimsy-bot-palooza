@@ -70,6 +70,10 @@ export const getChatMessages = async (chatId: string): Promise<ChatMessage[]> =>
       .map(doc => ({
         id: doc.id,
         ...doc.data(),
+        content: doc.data().content || '',
+        sender: doc.data().sender || 'system',
+        isImage: !!doc.data().isImage,
+        status: doc.data().status || 'sent',
         timestamp: doc.data().timestamp?.toDate() || new Date()
       }))
       .sort((a, b) => {

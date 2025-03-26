@@ -31,14 +31,8 @@ function App() {
               <MainLayout>
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
-                  <Route 
-                    path="/chat" 
-                    element={
-                      <ProtectedRoute>
-                        <ChatInterface onLogout={() => {}} />
-                      </ProtectedRoute>
-                    } 
-                  />
+                  {/* Modified to remove the ProtectedRoute wrapper */}
+                  <Route path="/chat" element={<ChatInterface onLogout={() => {}} />} />
                   <Route 
                     path="/vip-profile" 
                     element={

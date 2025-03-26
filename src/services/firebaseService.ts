@@ -7,36 +7,42 @@ import { sendMessage, getChatMessages, type ChatMessage } from './firebaseChat';
 import { uploadImage } from './firebaseStorage';
 import { blockUser, unblockUser, getBlockedUsers } from './firebaseBlockedUsers';
 
-// Re-export all functions
+// Re-export user-related functions
 export {
-  // User related
   getUserProfile,
   createUserProfile,
-  updateUserProfile,
-  
-  // Subscription related
+  updateUserProfile
+};
+
+// Re-export subscription-related functions
+export {
   getSubscription,
   createSubscription,
-  cancelSubscription,
-  
-  // Report related
+  cancelSubscription
+};
+
+// Re-export report-related functions
+export {
   submitReport,
-  reportUser,
-  
-  // Chat related
+  reportUser
+};
+
+// Re-export chat-related functions
+export {
   sendMessage,
-  getChatMessages,
+  getChatMessages
 };
 
 // Re-export types with proper 'export type' syntax
 export type { ChatMessage };
 
-// Re-export all other functions
+// Re-export storage-related functions
 export {
-  // Storage related
-  uploadImage,
-  
-  // Blocked users related
+  uploadImage
+};
+
+// Re-export blocked-users-related functions
+export {
   blockUser,
   unblockUser,
   getBlockedUsers
