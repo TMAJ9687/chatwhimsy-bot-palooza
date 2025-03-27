@@ -1,6 +1,6 @@
 
 import React, { memo } from 'react';
-import { Crown, Sparkles, User, LogIn } from 'lucide-react';
+import { Crown, Sparkles, User } from 'lucide-react';
 import { useDialog } from '@/context/DialogContext';
 import { useUser } from '@/context/UserContext';
 import { useNavigate } from 'react-router-dom';
@@ -17,11 +17,6 @@ const VipUpgradeSection = () => {
 
   const handleProfileClick = () => {
     navigate('/vip-profile');
-  };
-  
-  const handleVipLoginClick = () => {
-    // Show the VIP login dialog for quick access
-    openDialog('vipLogin');
   };
 
   if (isVip) {
@@ -65,22 +60,13 @@ const VipUpgradeSection = () => {
           <div className="text-sm font-medium">Unlock premium features</div>
           <div className="text-xs text-muted-foreground">Unlimited photos, messages & more</div>
         </div>
-        <div className="flex space-x-2">
-          <button 
-            onClick={handleVipLoginClick}
-            className="px-3 py-1 rounded-md border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-sm font-medium hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors flex items-center gap-1"
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>VIP Login</span>
-          </button>
-          <button 
-            onClick={handleUpgradeClick}
-            className="px-3 py-1.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-colors flex items-center gap-1"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Upgrade</span>
-          </button>
-        </div>
+        <button 
+          onClick={handleUpgradeClick}
+          className="px-3 py-1.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-colors flex items-center gap-1"
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>Upgrade</span>
+        </button>
       </div>
     </div>
   );

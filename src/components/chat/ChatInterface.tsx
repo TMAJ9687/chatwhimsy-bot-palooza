@@ -1,5 +1,5 @@
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { useDialog } from '@/context/DialogContext';
@@ -58,16 +58,9 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   } = useChat();
 
   // Show site rules dialog after 3 seconds, but only if rules haven't been accepted yet
-  // and the user is not a VIP user
-  useEffect(() => {
-    // VIP users automatically accept the rules
-    if (isVip && !rulesAccepted) {
-      setRulesAccepted(true);
-      return;
-    }
-    
-    // Only show the dialog for non-VIP users if rules haven't been accepted yet
-    if (!isVip && !rulesAccepted) {
+  React.useEffect(() => {
+    // Only show the dialog if rules haven't been accepted yet
+    if (!rulesAccepted) {
       const timer = setTimeout(() => {
         openDialog('siteRules', { 
           onAccept: () => {
@@ -79,7 +72,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       
       return () => clearTimeout(timer);
     }
-  }, [openDialog, rulesAccepted, setRulesAccepted, isVip]);
+  }, [openDialog, rulesAccepted, setRulesAccepted]);
 
   // Navigation handlers - optimized with useCallback
   const handleLogout = useCallback(() => {
@@ -108,26 +101,6 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const handleCompletelyCloseChat = useCallback(() => {
     setChatHidden(true);
   }, []);
-  
-  // Handle sending voice messages
-  const handleSendVoiceMessage = useCallback((audioDataUrl: string, duration: number) => {
-    if (!isVip) return;
-    
-    // Get the function from the context
-    const messageId = (userChats as any).handleSendVoiceMessage?.(audioDataUrl, duration, currentBot.id);
-    if (messageId) {
-      const newNotification = {
-        id: Date.now().toString(),
-        title: `Voice message to ${currentBot.name}`,
-        message: 'You sent a voice message',
-        time: new Date(),
-        read: true
-      };
-      
-      (userChats as any).addHistoryItem?.(newNotification);
-      (userChats as any).simulateBotResponse?.(messageId, currentBot.id);
-    }
-  }, [isVip, userChats, currentBot]);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background dark:bg-gray-950">
@@ -208,7 +181,6 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
               <MessageInputBar
                 onSendMessage={handleSendTextMessage}
                 onSendImage={handleSendImageMessage}
-                onSendVoice={handleSendVoiceMessage}
                 imagesRemaining={imagesRemaining}
                 disabled={isCurrentUserBlocked}
                 userType={isVip ? 'vip' : 'standard'}

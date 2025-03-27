@@ -1,6 +1,5 @@
-
-import React, { useState, useRef } from 'react';
-import { Check, Clock, Eye, EyeOff, Maximize, X, CirclePlay, Pause } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, Clock, Eye, EyeOff, Maximize, X } from 'lucide-react';
 import { Message as MessageType, MessageStatus } from '@/types/chat';
 import { renderContentWithEmojis } from '@/utils/emojiUtils';
 
@@ -17,13 +16,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   isLastInGroup = false,
   showStatus = true
 }) => {
-  const { sender, content, timestamp, status, isImage, isVoice, duration } = message;
+  const { sender, content, timestamp, status, isImage } = message;
   const isUser = sender === 'user';
   
   const [isBlurred, setIsBlurred] = useState(isImage ? true : false);
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   
   // If this is a system message, render differently
   if (sender === 'system') {
@@ -83,42 +80,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     e.stopPropagation();
     setIsFullScreen(false);
   };
-  
-  const togglePlayVoice = () => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio(content);
-      
-      audioRef.current.onended = () => {
-        setIsPlaying(false);
-      };
-      
-      audioRef.current.onpause = () => {
-        setIsPlaying(false);
-      };
-    }
-    
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      audioRef.current.play();
-      setIsPlaying(true);
-    }
-  };
-  
-  const formatDuration = (seconds: number = 0) => {
-    if (!seconds) return '0:00';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
-  };
 
   // Use our utility function for rendering content
-  const renderContent = () => {
-    if (isImage) return null;
-    if (isVoice) return null;
-    return renderContentWithEmojis(content);
-  };
+  const renderContent = () => isImage ? null : renderContentWithEmojis(content);
 
   return (
     <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}>
@@ -189,27 +153,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 </div>
               </div>
             )}
-          </div>
-        ) : isVoice ? (
-          <div className="flex items-center gap-2 py-1 min-w-[150px]">
-            <button
-              className={`flex-shrink-0 p-1.5 rounded-full ${isUser ? 'bg-white/20' : 'bg-teal-100 dark:bg-teal-800'}`}
-              onClick={togglePlayVoice}
-            >
-              {isPlaying ? (
-                <Pause className={`h-4 w-4 ${isUser ? 'text-white' : 'text-teal-600 dark:text-teal-400'}`} />
-              ) : (
-                <CirclePlay className={`h-4 w-4 ${isUser ? 'text-white' : 'text-teal-600 dark:text-teal-400'}`} />
-              )}
-            </button>
-            <div className="flex flex-col">
-              <div className={`text-xs font-medium ${isUser ? 'text-white/80' : 'text-gray-600 dark:text-gray-400'}`}>
-                Voice message
-              </div>
-              <div className={`text-xs ${isUser ? 'text-white/60' : 'text-gray-500 dark:text-gray-500'}`}>
-                {formatDuration(duration)}
-              </div>
-            </div>
           </div>
         ) : (
           renderContent()

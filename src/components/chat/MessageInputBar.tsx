@@ -1,19 +1,17 @@
 
 import React, { useState, useRef, memo } from 'react';
 import { useChat } from '@/context/ChatContext';
-import { MAX_CHAR_LIMIT, VIP_CHAR_LIMIT, checkCharacterLimit } from '@/utils/messageUtils';
+import { MAX_CHAR_LIMIT, checkCharacterLimit } from '@/utils/messageUtils';
 import ImagePreview from './ImagePreview';
 import ImageUploadButton from './ImageUploadButton';
 import EmojiButton from './EmojiButton';
 import MessageTextarea from './MessageTextarea';
 import SendButton from './SendButton';
 import VipStatusBar from './VipStatusBar';
-import VoiceMessageButton from './VoiceMessageButton';
 
 interface MessageInputBarProps {
   onSendMessage: (text: string) => void;
   onSendImage: (imageDataUrl: string) => void;
-  onSendVoice?: (audioDataUrl: string, duration: number) => void;
   imagesRemaining: number;
   disabled?: boolean;
   userType?: 'standard' | 'vip';
@@ -22,18 +20,15 @@ interface MessageInputBarProps {
 const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   onSendMessage,
   onSendImage,
-  onSendVoice,
   imagesRemaining,
   disabled = false,
   userType = 'standard'
 }) => {
   const [message, setMessage] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const { isVip } = useChat();
   
   const isUserVip = userType === 'vip' || isVip;
-  const charLimit = isUserVip ? VIP_CHAR_LIMIT : MAX_CHAR_LIMIT;
   
   const handleSubmitMessage = () => {
     if (disabled) return;
@@ -61,14 +56,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     setMessage(newText);
   };
 
-  const handleVoiceRecorded = (audioDataUrl: string, duration: number) => {
-    if (disabled || !onSendVoice) return;
-    
-    onSendVoice(audioDataUrl, duration);
-    setIsRecordingVoice(false);
-  };
-
-  const isMessageValid = message.trim() && (isUserVip || message.length <= charLimit);
+  const isMessageValid = message.trim() && (isUserVip || message.length <= MAX_CHAR_LIMIT);
 
   return (
     <div className={`border-t border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-800 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
@@ -85,20 +73,12 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
           onImageSelected={setImagePreview}
           imagesRemaining={imagesRemaining}
           isVip={isUserVip}
-          disabled={disabled || !!imagePreview || isRecordingVoice}
+          disabled={disabled || !!imagePreview}
         />
-        
-        {isUserVip && (
-          <VoiceMessageButton
-            onVoiceRecorded={handleVoiceRecorded}
-            isVip={isUserVip}
-            disabled={disabled || !!imagePreview}
-          />
-        )}
         
         <EmojiButton 
           onEmojiSelect={handleEmojiClick}
-          disabled={disabled || !!imagePreview || isRecordingVoice}
+          disabled={disabled || !!imagePreview}
         />
         
         <MessageTextarea 
@@ -106,10 +86,10 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
           onChange={setMessage}
           onSubmit={handleSubmitMessage}
           isVip={isUserVip}
-          disabled={disabled || !!imagePreview || isRecordingVoice}
+          disabled={disabled || !!imagePreview}
         />
         
-        {!imagePreview && !isRecordingVoice && (
+        {!imagePreview && (
           <SendButton 
             onClick={handleSubmitMessage}
             disabled={!isMessageValid || disabled}
