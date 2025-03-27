@@ -23,16 +23,31 @@ const AlertDialogContent = memo(({
   onClose: () => void;
 }) => {
   const mounted = useRef(true);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(true);
-  const { cleanupOverlays } = useSafeDOMOperations();
+  const { cleanupOverlays, registerNode } = useSafeDOMOperations();
+
+  // Register the content element for tracking
+  useEffect(() => {
+    if (contentRef.current) {
+      registerNode(contentRef.current);
+    }
+    
+    return () => {
+      mounted.current = false;
+    };
+  }, [registerNode]);
 
   // Enhanced cleanup with safety checks
   useEffect(() => {
     return () => {
-      mounted.current = false;
       try {
-        // Use our safe cleanup utility
-        cleanupOverlays();
+        // Use our safe cleanup utility on a delay to ensure proper cleanup order
+        queueMicrotask(() => {
+          if (!mounted.current) {
+            cleanupOverlays();
+          }
+        });
       } catch (error) {
         console.warn('Error during alert dialog cleanup:', error);
       }
@@ -41,6 +56,7 @@ const AlertDialogContent = memo(({
 
   return (
     <DialogContent 
+      ref={contentRef}
       className="sm:max-w-[425px]" 
       onEscapeKeyDown={onClose}
       onInteractOutside={(e) => {
@@ -67,29 +83,37 @@ const AlertDialogComponent = () => {
   const { state, closeDialog } = useDialog();
   const isClosingRef = useRef(false);
   const dialogRef = useRef<HTMLDivElement>(null);
-  const { cleanupOverlays } = useSafeDOMOperations();
+  const { cleanupOverlays, registerNode } = useSafeDOMOperations();
   
   const isOpen = state.isOpen && state.type === 'alert';
   
-  // Safer close method with debounce and checks
+  // Register the dialog element
+  useEffect(() => {
+    if (dialogRef.current) {
+      registerNode(dialogRef.current);
+    }
+  }, [registerNode]);
+  
+  // Safer close method with improved timing
   const handleClose = useCallback(() => {
     if (isClosingRef.current) return;
     isClosingRef.current = true;
     
-    // Use requestAnimationFrame to ensure DOM operations happen in the next paint cycle
-    requestAnimationFrame(() => {
+    // Use queueMicrotask for more reliable timing than requestAnimationFrame
+    queueMicrotask(() => {
       try {
-        // Use our safe cleanup utility
-        cleanupOverlays();
+        // Close the dialog first
+        closeDialog();
         
-        // Then close the dialog after a short delay to allow animations to complete
+        // Then clean up overlays after a short delay
         setTimeout(() => {
-          closeDialog();
-          // Reset closing state after the dialog should be fully closed
+          cleanupOverlays();
+          
+          // Reset closing state after everything is done
           setTimeout(() => {
             isClosingRef.current = false;
           }, 300);
-        }, 10);
+        }, 50);
       } catch (error) {
         console.warn('Error closing dialog:', error);
         // Force close as fallback
@@ -102,8 +126,13 @@ const AlertDialogComponent = () => {
   // Cleanup any DOM issues when mounting/unmounting
   useEffect(() => {
     return () => {
-      // Use our safe cleanup utility when unmounting
-      cleanupOverlays();
+      // Set a flag to prevent concurrent cleanup attempts
+      isClosingRef.current = true;
+      
+      // Clean up with a delay to ensure proper order
+      setTimeout(() => {
+        cleanupOverlays();
+      }, 50);
     };
   }, [cleanupOverlays]);
   
@@ -123,6 +152,7 @@ const AlertDialogComponent = () => {
 
   return (
     <Dialog 
+      ref={dialogRef}
       open={true} 
       onOpenChange={(open) => !open && handleClose()}
       modal={true}

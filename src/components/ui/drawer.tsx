@@ -24,25 +24,58 @@ const DrawerClose = DrawerPrimitive.Close
 const DrawerOverlay = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <DrawerPrimitive.Overlay
-    ref={ref}
-    className={cn("fixed inset-0 z-50 bg-black/80", className)}
-    {...props}
-  />
-))
+>(({ className, ...props }, ref) => {
+  // Use safe DOM operations
+  const { registerNode } = useSafeDOMOperations();
+  
+  // Keep track of the overlay element
+  const overlayRef = React.useRef<HTMLDivElement | null>(null);
+  
+  // Connect our ref to the forwarded ref
+  React.useImperativeHandle(ref, () => {
+    return overlayRef.current as HTMLDivElement;
+  }, [overlayRef.current]);
+  
+  // Register the overlay element when it's created
+  React.useEffect(() => {
+    if (overlayRef.current) {
+      registerNode(overlayRef.current);
+    }
+  }, [registerNode]);
+  
+  return (
+    <DrawerPrimitive.Overlay
+      ref={overlayRef}
+      className={cn("fixed inset-0 z-50 bg-black/80", className)}
+      {...props}
+    />
+  );
+})
 DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
-  // Add enhanced cleanup on unmount with element existence checks
+  // Add enhanced cleanup with element existence checks
   const unmountedRef = React.useRef(false);
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
   const cleanupTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   
   // Use our enhanced safe DOM operations hook
-  const { safeRemoveElement, cleanupOverlays } = useSafeDOMOperations();
+  const { safeRemoveElement, cleanupOverlays, registerNode } = useSafeDOMOperations();
+  
+  // Connect our ref to the forwarded ref
+  React.useImperativeHandle(ref, () => {
+    return contentRef.current as HTMLDivElement;
+  }, [contentRef.current]);
+  
+  // Register the content element when it's created
+  React.useEffect(() => {
+    if (contentRef.current) {
+      registerNode(contentRef.current);
+    }
+  }, [registerNode]);
   
   React.useEffect(() => {
     return () => {
@@ -55,8 +88,8 @@ const DrawerContent = React.forwardRef<
       }
       
       try {
-        // Use requestAnimationFrame to ensure we're not in the middle of a render cycle
-        requestAnimationFrame(() => {
+        // Use queueMicrotask for more reliable timing than requestAnimationFrame
+        queueMicrotask(() => {
           // Don't proceed if document or body doesn't exist (SSR safety)
           if (!document || !document.body || unmountedRef.current === false) return;
           
@@ -82,7 +115,7 @@ const DrawerContent = React.forwardRef<
     <DrawerPortal>
       <DrawerOverlay />
       <DrawerPrimitive.Content
-        ref={ref}
+        ref={contentRef}
         className={cn(
           "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
           className

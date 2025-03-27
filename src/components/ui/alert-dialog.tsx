@@ -18,18 +18,28 @@ const AlertDialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => {
   // Track this instance for safer cleanup
   const overlayRef = React.useRef<HTMLDivElement | null>(null);
-  const { safeRemoveElement } = useSafeDOMOperations();
+  const { safeRemoveElement, registerNode } = useSafeDOMOperations();
   
   // Connect the forwarded ref with our local ref
   React.useImperativeHandle(ref, () => {
     return overlayRef.current as HTMLDivElement;
   }, [overlayRef.current]);
   
+  // Register the overlay element when it's created
+  React.useEffect(() => {
+    if (overlayRef.current) {
+      registerNode(overlayRef.current);
+    }
+  }, [registerNode]);
+  
   // Clean up this overlay on unmount
   React.useEffect(() => {
     return () => {
       if (overlayRef.current) {
-        safeRemoveElement(overlayRef.current);
+        // Use setTimeout to ensure proper timing in the cleanup sequence
+        setTimeout(() => {
+          safeRemoveElement(overlayRef.current);
+        }, 50);
       }
     };
   }, [safeRemoveElement]);
@@ -52,13 +62,26 @@ const AlertDialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
 >(({ className, ...props }, ref) => {
   // Use safe DOM operations
-  const { cleanupOverlays } = useSafeDOMOperations();
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
+  const { cleanupOverlays, registerNode } = useSafeDOMOperations();
   
-  // Clean up on unmount
+  // Connect our ref to the forwarded ref
+  React.useImperativeHandle(ref, () => {
+    return contentRef.current as HTMLDivElement;
+  }, [contentRef.current]);
+  
+  // Register the content element when it's created
+  React.useEffect(() => {
+    if (contentRef.current) {
+      registerNode(contentRef.current);
+    }
+  }, [registerNode]);
+  
+  // Clean up on unmount with enhanced timing
   React.useEffect(() => {
     return () => {
-      // Use requestAnimationFrame to ensure we're not in the middle of a render cycle
-      requestAnimationFrame(() => {
+      // Use queueMicrotask for more reliable timing
+      queueMicrotask(() => {
         // Safe body cleanup
         if (document.body) {
           document.body.style.overflow = 'auto';
@@ -76,7 +99,7 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogPortal>
       <AlertDialogOverlay />
       <AlertDialogPrimitive.Content
-        ref={ref}
+        ref={contentRef}
         className={cn(
           "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
           className

@@ -14,10 +14,12 @@ const NavigationLock: React.FC = () => {
   const navigationInProgressRef = useRef(false);
   
   // Use our enhanced safe DOM operations hook
-  const { cleanupOverlays } = useSafeDOMOperations();
+  const { cleanupOverlays, isDOMReady } = useSafeDOMOperations();
 
-  // Enhanced DOM cleanup utility with more robust error handling
+  // Enhanced DOM cleanup utility with debouncing and multiple safeguards
   const cleanupUI = useCallback(() => {
+    if (!isDOMReady()) return;
+    
     const now = Date.now();
     // Debounce cleanup attempts that happen too quickly
     if (cleanupAttemptRef.current || (now - lastCleanupTimeRef.current < 300)) return;
@@ -30,8 +32,18 @@ const NavigationLock: React.FC = () => {
       cleanupTimeoutsRef.current.forEach(id => window.clearTimeout(id));
       cleanupTimeoutsRef.current = [];
       
-      // Use our safe overlay cleanup
-      cleanupOverlays();
+      // Reset body scroll
+      if (document.body) {
+        document.body.style.overflow = 'auto';
+        document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+      }
+      
+      // Use our safe overlay cleanup after a short delay
+      const timeoutId = window.setTimeout(() => {
+        cleanupOverlays();
+      }, 50);
+      
+      cleanupTimeoutsRef.current.push(timeoutId);
       
       // Clear any navigation locks
       localStorage.removeItem('vipNavigationInProgress');
@@ -45,30 +57,40 @@ const NavigationLock: React.FC = () => {
       }, 500);
       cleanupTimeoutsRef.current.push(timeoutId);
     }
-  }, [cleanupOverlays]);
+  }, [cleanupOverlays, isDOMReady]);
   
-  // Watch for route changes to clean up UI
+  // Watch for route changes to clean up UI with improved timing
   useEffect(() => {
     // Set navigation in progress
     navigationInProgressRef.current = true;
     
-    // Clean up on route change
-    cleanupUI();
-    
-    // For debugging navigation issues
-    console.info(`Navigation to ${location.pathname} (${navigationType})`);
-    
-    // Clear any stuck profile navigation states when going to chat
-    if (location.pathname === '/chat') {
-      localStorage.setItem('vipProfileComplete', 'true');
-    }
-    
-    // Mark navigation complete after a short delay
-    const navigationCompleteTimeout = window.setTimeout(() => {
-      navigationInProgressRef.current = false;
-    }, 500);
-    
-    cleanupTimeoutsRef.current.push(navigationCompleteTimeout);
+    // Throttle cleanup to avoid race conditions
+    queueMicrotask(() => {
+      // First cleanup round
+      cleanupUI();
+      
+      // For debugging navigation issues
+      console.info(`Navigation to ${location.pathname} (${navigationType})`);
+      
+      // Clear any stuck profile navigation states when going to chat
+      if (location.pathname === '/chat') {
+        localStorage.setItem('vipProfileComplete', 'true');
+      }
+      
+      // Secondary cleanup with delay for elements that might appear after initial cleanup
+      const secondCleanupId = window.setTimeout(() => {
+        cleanupUI();
+      }, 300);
+      
+      cleanupTimeoutsRef.current.push(secondCleanupId);
+      
+      // Mark navigation complete after a short delay
+      const navigationCompleteTimeout = window.setTimeout(() => {
+        navigationInProgressRef.current = false;
+      }, 500);
+      
+      cleanupTimeoutsRef.current.push(navigationCompleteTimeout);
+    });
     
     return () => {
       // Clean up when component unmounts or before route change
@@ -76,7 +98,7 @@ const NavigationLock: React.FC = () => {
     };
   }, [location.pathname, navigationType, cleanupUI]);
 
-  // Clean up on component mount and unmount
+  // Clean up on component mount and unmount with improved timing
   useEffect(() => {
     // Initial cleanup
     cleanupUI();
@@ -92,8 +114,10 @@ const NavigationLock: React.FC = () => {
       cleanupTimeoutsRef.current.forEach(id => window.clearTimeout(id));
       cleanupTimeoutsRef.current = [];
       
-      // Final cleanup when unmounting
-      cleanupUI();
+      // Final cleanup when unmounting - use queueMicrotask for better timing
+      queueMicrotask(() => {
+        cleanupUI();
+      });
     };
   }, [cleanupUI]);
 
@@ -106,7 +130,11 @@ const NavigationLock: React.FC = () => {
         error.message.includes('Cannot read properties of null')
       )) {
         console.warn('DOM error detected, running cleanup:', error.message);
-        cleanupUI();
+        
+        // Use setTimeout to avoid potential event loop congestion
+        setTimeout(() => {
+          cleanupUI();
+        }, 0);
       }
     };
     

@@ -11,6 +11,7 @@ export const useSafeDOMOperations = () => {
   const pendingOperationsRef = useRef<Array<() => void>>([]);
   const timeoutsRef = useRef<number[]>([]);
   const mutationObserverRef = useRef<MutationObserver | null>(null);
+  const nodeRegistryRef = useRef(new WeakMap<Node, boolean>());
   
   // Clear all timeouts when component unmounts
   useEffect(() => {
@@ -56,42 +57,55 @@ export const useSafeDOMOperations = () => {
       // Final cleanup of any pending operations
       if (pendingOperationsRef.current.length > 0) {
         try {
-          requestAnimationFrame(() => {
-            pendingOperationsRef.current.forEach(operation => {
-              try {
-                operation();
-              } catch (err) {
-                console.warn('Error in pending operation cleanup:', err);
-              }
-            });
-            pendingOperationsRef.current = [];
+          pendingOperationsRef.current.forEach(operation => {
+            try {
+              operation();
+            } catch (err) {
+              console.warn('Error in pending operation cleanup:', err);
+            }
           });
+          pendingOperationsRef.current = [];
         } catch (error) {
           console.warn('Error in final cleanup:', error);
         }
       }
+      
+      // Clear node registry
+      nodeRegistryRef.current = new WeakMap<Node, boolean>();
     };
   }, []);
   
-  // Safe element removal with parent checks
+  // Register a node to track its lifecycle
+  const registerNode = useCallback((node: Node | null) => {
+    if (!node) return;
+    nodeRegistryRef.current.set(node, true);
+  }, []);
+  
+  // Check if a node is registered and still valid
+  const isNodeValid = useCallback((node: Node | null) => {
+    if (!node) return false;
+    return nodeRegistryRef.current.has(node);
+  }, []);
+  
+  // Safe element removal with enhanced parent checks
   const safeRemoveElement = useCallback((element: Element | null) => {
     if (!element) return false;
     
     try {
+      // Always unregister the element first
+      nodeRegistryRef.current.delete(element);
+      
       // Only try to remove if element exists and has a parent
-      if (element.parentNode && element.parentNode.contains(element)) {
-        // Use requestAnimationFrame to ensure we're not in the middle of a render cycle
-        requestAnimationFrame(() => {
-          try {
-            // Double-check parent relationship right before removal
-            if (element.parentNode && element.parentNode.contains(element)) {
-              element.parentNode.removeChild(element);
-            }
-          } catch (e) {
-            console.warn('Element removal failed in animation frame:', e);
-          }
-        });
-        return true;
+      if (element.parentNode) {
+        // Extra validation - we need to be sure the element is ACTUALLY a child of its parent
+        const isRealChild = Array.from(element.parentNode.childNodes).includes(element);
+        
+        if (isRealChild) {
+          element.parentNode.removeChild(element);
+          return true;
+        } else {
+          console.warn('Element is not a real child of its parent node');
+        }
       }
     } catch (e) {
       console.warn('Safe element removal failed:', e);
@@ -110,7 +124,7 @@ export const useSafeDOMOperations = () => {
     }
   }, []);
   
-  // Process pending operations with safety checks
+  // Process pending operations with improved safety checks
   const processPendingOperations = useCallback(() => {
     // Don't run if already processing or no operations
     if (operationInProgressRef.current || pendingOperationsRef.current.length === 0) {
@@ -118,7 +132,7 @@ export const useSafeDOMOperations = () => {
     }
     
     const now = Date.now();
-    // Don't run operations too frequently
+    // Throttle operations for stability
     if (now - lastOperationTimeRef.current < 50) {
       const timeoutId = window.setTimeout(processPendingOperations, 50);
       timeoutsRef.current.push(timeoutId);
@@ -128,8 +142,8 @@ export const useSafeDOMOperations = () => {
     operationInProgressRef.current = true;
     lastOperationTimeRef.current = now;
     
-    // Use requestAnimationFrame for DOM operations
-    requestAnimationFrame(() => {
+    // Use queueMicrotask for better timing than requestAnimationFrame
+    queueMicrotask(() => {
       try {
         // Execute the next operation
         const nextOperation = pendingOperationsRef.current.shift();
@@ -153,7 +167,7 @@ export const useSafeDOMOperations = () => {
     });
   }, []);
   
-  // Clean all overlay elements safely
+  // Clean all overlay elements with improved safety checks
   const cleanupOverlays = useCallback(() => {
     if (operationInProgressRef.current) {
       // Queue if another operation is in progress
@@ -183,23 +197,56 @@ export const useSafeDOMOperations = () => {
         '.modal-backdrop'
       ];
       
+      // Store overlay elements to be removed
+      const overlaysToRemove: Element[] = [];
+      
+      // First collect all elements to remove
       selectors.forEach(selector => {
         try {
           document.querySelectorAll(selector).forEach(overlay => {
-            safeRemoveElement(overlay);
+            if (overlay.parentNode) {
+              overlaysToRemove.push(overlay);
+            }
           });
         } catch (e) {
-          console.warn(`Error cleaning up selector ${selector}:`, e);
+          console.warn(`Error finding selector ${selector}:`, e);
         }
       });
+      
+      // Then remove them one by one with a small delay between operations
+      if (overlaysToRemove.length > 0) {
+        let index = 0;
+        
+        const removeNext = () => {
+          if (index < overlaysToRemove.length) {
+            const overlay = overlaysToRemove[index];
+            safeRemoveElement(overlay);
+            index++;
+            
+            // Use a small timeout between removals for stability
+            const timeoutId = window.setTimeout(removeNext, 16); // approximately 1 frame at 60fps
+            timeoutsRef.current.push(timeoutId);
+          }
+        };
+        
+        removeNext();
+      }
     };
     
     queueOperation(cleanupOperation);
   }, [queueOperation, safeRemoveElement]);
   
+  // Check if document is in a usable state
+  const isDOMReady = useCallback(() => {
+    return !!(document && document.body && document.documentElement);
+  }, []);
+  
   return {
     safeRemoveElement,
     cleanupOverlays,
-    queueOperation
+    queueOperation,
+    registerNode,
+    isNodeValid,
+    isDOMReady
   };
 };
