@@ -8,6 +8,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const profileSyncedRef = useRef(false);
+  const profileUpdateInProgressRef = useRef(false);
 
   // Enhanced profile loading from localStorage
   useEffect(() => {
@@ -47,8 +48,16 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     [user]
   );
 
-  // Enhanced profile update function
+  // Enhanced profile update function with safety mechanisms
   const updateUserProfile = useCallback((profile: Partial<UserProfile>) => {
+    // Prevent concurrent updates
+    if (profileUpdateInProgressRef.current) {
+      console.warn('Profile update already in progress, ignoring concurrent update');
+      return;
+    }
+    
+    profileUpdateInProgressRef.current = true;
+    
     setUser((prev) => {
       if (!prev) return profile as UserProfile;
       
@@ -66,6 +75,11 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.setItem('vipProfileComplete', 'true');
         profileSyncedRef.current = true;
       }
+      
+      // Use setTimeout to allow state updates to complete before releasing lock
+      setTimeout(() => {
+        profileUpdateInProgressRef.current = false;
+      }, 100);
       
       return updatedUser;
     });

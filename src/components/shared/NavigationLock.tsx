@@ -8,17 +8,22 @@ const NavigationLock: React.FC = () => {
   const location = useLocation();
   const navigationType = useNavigationType();
   const cleanupAttemptRef = useRef(false);
+  const lastCleanupTimeRef = useRef(0);
 
-  // Enhanced DOM cleanup utility
+  // Enhanced DOM cleanup utility with debouncing to avoid excessive cleanups
   const cleanupUI = () => {
-    if (cleanupAttemptRef.current) return;
+    const now = Date.now();
+    // Debounce cleanup attempts that happen too quickly
+    if (cleanupAttemptRef.current || (now - lastCleanupTimeRef.current < 300)) return;
+    
     cleanupAttemptRef.current = true;
+    lastCleanupTimeRef.current = now;
     
     // Ensure body scroll is restored
     document.body.style.overflow = 'auto';
     document.body.classList.remove('overflow-hidden');
     
-    // Remove any leftover modal backdrops
+    // Remove any leftover modal backdrops with safer DOM manipulation
     const modals = document.querySelectorAll('.fixed.inset-0');
     modals.forEach(modal => {
       if (modal.parentNode) {
@@ -29,6 +34,9 @@ const NavigationLock: React.FC = () => {
         }
       }
     });
+    
+    // Clear dialog-related classes from the body
+    document.body.classList.remove('modal-open');
     
     // Remove any locks that might be active
     localStorage.removeItem('vipNavigationInProgress');

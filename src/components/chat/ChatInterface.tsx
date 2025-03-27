@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
@@ -24,7 +25,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const [chatHidden, setChatHidden] = useState(true); // Set to true by default
   const [isInitializing, setIsInitializing] = useState(true);
   const [redirectAttempts, setRedirectAttempts] = useState(0);
+  
+  // Enhanced navigation guards
   const navigationInProgressRef = useRef(false);
+  const profileCheckCompletedRef = useRef(false);
+  const initializationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Improved initialization flow with better state management
   useEffect(() => {
@@ -33,34 +38,48 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     
     // Clean up any leftover modals from previous views
     const cleanup = () => {
-      const modals = document.querySelectorAll('.fixed.inset-0');
-      modals.forEach(modal => {
-        if (modal.parentNode) {
-          try {
-            modal.parentNode.removeChild(modal);
-          } catch (error) {
-            console.warn('Error removing modal:', error);
+      try {
+        const modals = document.querySelectorAll('.fixed.inset-0');
+        modals.forEach(modal => {
+          if (modal && modal.parentNode) {
+            try {
+              modal.parentNode.removeChild(modal);
+            } catch (error) {
+              console.warn('Error removing modal:', error);
+            }
           }
-        }
-      });
+        });
+      } catch (error) {
+        console.warn('Error during modal cleanup:', error);
+      }
     };
     
     cleanup();
     
     // Short delay to allow component to fully mount
-    const timer = setTimeout(() => {
+    initializationTimeoutRef.current = setTimeout(() => {
       setIsInitializing(false);
     }, 300);
     
     return () => {
-      clearTimeout(timer);
+      if (initializationTimeoutRef.current) {
+        clearTimeout(initializationTimeoutRef.current);
+      }
       cleanup();
     };
   }, []);
   
   // Separated profile check logic with navigation guard to prevent redirect loops
   useEffect(() => {
-    if (isInitializing || redirectAttempts > 2 || navigationInProgressRef.current) return;
+    // Skip check if conditions are not met
+    if (
+      isInitializing || 
+      redirectAttempts > 2 || 
+      navigationInProgressRef.current || 
+      profileCheckCompletedRef.current
+    ) {
+      return;
+    }
     
     // Check if VIP and profile incomplete (with localStorage backup check)
     const checkProfileStatus = () => {
@@ -73,6 +92,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       // Skip navigation if we already know profile is complete
       if (storedProfileComplete) {
         console.log('Profile is complete according to localStorage');
+        profileCheckCompletedRef.current = true;
         return;
       }
       
@@ -93,15 +113,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
         
         console.log('Redirecting to VIP profile setup');
         
+        // Mark navigation in progress in localStorage
+        localStorage.setItem('vipNavigationInProgress', 'true');
+        
         // Use setTimeout to push navigation to next event loop tick
         setTimeout(() => {
-          navigate('/vip-profile');
-          
-          // Reset the navigation guard after a short delay
-          setTimeout(() => {
-            navigationInProgressRef.current = false;
-          }, 500);
+          // Double-check before navigation
+          if (!profileCheckCompletedRef.current) {
+            navigate('/vip-profile');
+            
+            // Reset the navigation guard after a short delay
+            setTimeout(() => {
+              navigationInProgressRef.current = false;
+              localStorage.removeItem('vipNavigationInProgress');
+            }, 500);
+          }
         }, 50);
+      } else {
+        // Mark check as completed if no redirect needed
+        profileCheckCompletedRef.current = true;
       }
     };
     
@@ -110,6 +140,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     
     return () => clearTimeout(timeoutId);
   }, [isVip, isProfileComplete, navigate, isInitializing, redirectAttempts]);
+  
+  // Reset profile check completed flag when dependencies change
+  useEffect(() => {
+    profileCheckCompletedRef.current = false;
+  }, [isVip, isProfileComplete]);
   
   // Use existing chat state from the context
   const {
