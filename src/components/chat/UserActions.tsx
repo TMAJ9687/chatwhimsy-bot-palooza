@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { MoreVertical, Ban, Flag, Trash2, Share, Globe, X } from 'lucide-react';
 import {
   DropdownMenu,
@@ -34,11 +34,18 @@ const UserActions = ({
 }: UserActionsProps) => {
   const { openDialog } = useDialog();
   const { isVip } = useUser();
-  const { getSharedMedia, handleDeleteConversation, handleTranslateMessage } = useChat();
+  const { userChats, getSharedMedia, handleDeleteConversation, handleTranslateMessage } = useChat();
   
   const [showSharedMediaDialog, setShowSharedMediaDialog] = useState(false);
   const [showTranslateDialog, setShowTranslateDialog] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  
+  // Use useMemo to find the last text message efficiently
+  const lastTextMessage = useMemo(() => {
+    const messages = userChats[userId] || [];
+    // Use reverse find for better performance
+    return [...messages].reverse().find(msg => !msg.isImage && !msg.isVoice);
+  }, [userChats, userId]);
   
   const handleReport = () => {
     openDialog('report', { userName });
@@ -53,10 +60,12 @@ const UserActions = ({
   };
   
   const handleDeleteChat = () => {
-    // Confirm before deleting
-    if (window.confirm(`Are you sure you want to delete the conversation with ${userName}?`)) {
-      handleDeleteConversation(userId);
-    }
+    // Replace window.confirm with dialog
+    openDialog('confirm', {
+      title: 'Delete Conversation',
+      message: `Are you sure you want to delete the conversation with ${userName}?`,
+      onConfirm: () => handleDeleteConversation(userId),
+    });
   };
   
   const handleOpenSharedMedia = () => {
@@ -64,16 +73,14 @@ const UserActions = ({
   };
 
   const handleOpenTranslateDialog = () => {
-    // Get the latest message ID from the current conversation
-    const { userChats } = useChat();
-    const messages = userChats[userId] || [];
-    const lastTextMessage = [...messages].reverse().find(msg => !msg.isImage && !msg.isVoice);
-    
     if (lastTextMessage) {
       setSelectedMessageId(lastTextMessage.id);
       setShowTranslateDialog(true);
     } else {
-      alert("No text messages found to translate");
+      openDialog('alert', { 
+        title: 'No Messages to Translate',
+        message: "No text messages found to translate"
+      });
     }
   };
 
@@ -167,4 +174,4 @@ const UserActions = ({
   );
 };
 
-export default UserActions;
+export default React.memo(UserActions);

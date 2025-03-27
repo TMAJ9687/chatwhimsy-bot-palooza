@@ -12,6 +12,8 @@ import VipPaymentDialog from './VipPaymentDialog';
 import VipConfirmationDialog from './VipConfirmationDialog';
 import AccountDeletionDialog from './AccountDeletionDialog';
 import VipSelectDialog from './VipSelectDialog';
+import ConfirmDialog from './ConfirmDialog';
+import AlertDialogComponent from './AlertDialog';
 
 // This component renders the appropriate dialog based on the current dialog state
 const DialogContainer = () => {
@@ -45,6 +47,10 @@ const DialogContainer = () => {
       return <AccountDeletionDialog />;
     case 'vipSelect':
       return <VipSelectDialog />;
+    case 'confirm':
+      return <ConfirmDialog />;
+    case 'alert':
+      return <AlertDialogComponent />;
     default:
       return null;
   }
