@@ -1,4 +1,3 @@
-
 /**
  * A singleton service that manages DOM element tracking and safe cleanup
  * to prevent "Failed to execute 'removeChild' on 'Node'" errors
@@ -110,8 +109,8 @@ class DOMRegistry {
         
         if (isRealChild) {
           const parent = element.parentNode;
-          // Use a proper type assertion to ensure TypeScript understands this is a valid child element
-          parent.removeChild(element as ChildNode);
+          // Cast to ChildNode with a more specific type assertion
+          parent.removeChild(element as Element & ChildNode);
           return true;
         }
       }
