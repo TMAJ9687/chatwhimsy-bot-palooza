@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Check, Clock, Eye, EyeOff, Maximize, X, Globe, Reply, Smile, Trash } from 'lucide-react';
 import { Message as MessageType, MessageStatus } from '@/types/chat';
 import { renderContentWithEmojis } from '@/utils/emojiUtils';
@@ -45,6 +46,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   
   // Find the message being replied to
   const replyToMessage = replyTo ? allMessages.find(m => m.id === replyTo) : null;
+  
+  // Update translation state when translations change
+  useEffect(() => {
+    if (translations && translations.length > 0) {
+      setShowTranslation(true);
+    }
+  }, [translations]);
   
   // If this is a system message, render differently
   if (sender === 'system') {
@@ -137,11 +145,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const handleTranslateConfirm = (language: string) => {
     if (message.id) {
       handleTranslateMessage(message.id, language);
-      setShowTranslation(true);
     }
   };
 
-  const handleReplyClick = () => {
+  const handleReplyClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (message.id) {
       setReplyingToMessage(message);
     }
@@ -154,12 +162,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   };
 
-  const handleUnsendClick = () => {
+  const handleUnsendClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (message.id && isUser) {
       handleUnsendMessage(message.id);
     }
   };
 
+  // Get the correct content based on translation state
   const currentContent = showTranslation && translations && translations[0]
     ? translations[0].content
     : content;
@@ -258,7 +268,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   return (
     <>
-      <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}>
+      <div 
+        className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}
+        onClick={(e) => e.stopPropagation()}
+      >
         {replyToMessage && (
           <div className={`
             max-w-[80%] px-2 py-1 mb-1 text-xs bg-gray-100 dark:bg-gray-700 rounded-md
