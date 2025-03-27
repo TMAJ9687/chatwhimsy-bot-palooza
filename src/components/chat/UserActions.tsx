@@ -34,7 +34,7 @@ const UserActions = ({
 }: UserActionsProps) => {
   const { openDialog } = useDialog();
   const { isVip } = useUser();
-  const { getSharedMedia, handleDeleteConversation } = useChat();
+  const { getSharedMedia, handleDeleteConversation, handleTranslateMessage } = useChat();
   
   const [showSharedMediaDialog, setShowSharedMediaDialog] = useState(false);
   const [showTranslateDialog, setShowTranslateDialog] = useState(false);
@@ -63,15 +63,22 @@ const UserActions = ({
     setShowSharedMediaDialog(true);
   };
 
-  const handleTranslateMessage = (messageId: string) => {
-    setSelectedMessageId(messageId);
-    setShowTranslateDialog(true);
+  const handleOpenTranslateDialog = () => {
+    // Get the latest message ID from the current conversation
+    const { userChats } = useChat();
+    const messages = userChats[userId] || [];
+    const lastTextMessage = [...messages].reverse().find(msg => !msg.isImage && !msg.isVoice);
+    
+    if (lastTextMessage) {
+      setSelectedMessageId(lastTextMessage.id);
+      setShowTranslateDialog(true);
+    } else {
+      alert("No text messages found to translate");
+    }
   };
 
   const handleTranslate = (language: string) => {
     if (selectedMessageId) {
-      // Get the last message ID as a fallback
-      const { handleTranslateMessage } = useChat();
       handleTranslateMessage(selectedMessageId, language);
       setSelectedMessageId(null);
     }
@@ -123,6 +130,11 @@ const UserActions = ({
                 <DropdownMenuItem onClick={handleOpenSharedMedia}>
                   <Share className="h-4 w-4 mr-2 text-blue-500" />
                   <span>Shared Media</span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem onClick={handleOpenTranslateDialog}>
+                  <Globe className="h-4 w-4 mr-2 text-indigo-500" />
+                  <span>Translate Last Message</span>
                 </DropdownMenuItem>
                 
                 <DropdownMenuItem onClick={handleDeleteChat}>
