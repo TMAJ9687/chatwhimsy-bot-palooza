@@ -49,7 +49,7 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
       return;
     }
     
-    const validation = validateImageFile(file);
+    const validation = validateImageFile(file, isVip);
     if (!validation.valid) {
       toast({
         title: "Invalid file",
@@ -74,7 +74,7 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
         type="file"
         ref={fileInputRef}
         className="hidden"
-        accept="image/*"
+        accept={isVip ? "image/*" : "image/jpeg,image/png,image/jpg,image/webp"}
         onChange={handleImageUpload}
         disabled={disabled}
       />
@@ -87,7 +87,7 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
         disabled={disabled}
         title={
           isVip 
-            ? "Upload image" 
+            ? "Upload image or GIF" 
             : `Upload image (${imagesRemaining} remaining today)`
         }
       >

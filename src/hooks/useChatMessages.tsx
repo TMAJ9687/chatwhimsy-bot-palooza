@@ -125,24 +125,54 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
       [currentBotId]: [...currentMessages, newMessage]
     }));
     
-    try {
-      const remaining = await trackImageUpload();
-      setImagesRemaining(remaining);
-    } catch (error) {
-      console.error('Error tracking image upload:', error);
+    if (!isVip) {
+      try {
+        const remaining = await trackImageUpload();
+        setImagesRemaining(remaining);
+      } catch (error) {
+        console.error('Error tracking image upload:', error);
+      }
     }
     
     return newMessage.id;
-  }, [userChats]);
+  }, [userChats, isVip]);
+
+  const handleSendVoiceMessage = useCallback((audioDataUrl: string, duration: number, currentBotId: string) => {
+    if (!isVip) return null;
+    
+    const currentMessages = userChats[currentBotId] || [];
+    
+    const newMessage: Message = {
+      id: `user-${Date.now()}`,
+      content: audioDataUrl,
+      sender: 'user',
+      timestamp: new Date(),
+      status: 'sending',
+      isVoice: true,
+      duration,
+    };
+    
+    setUserChats(prev => ({
+      ...prev,
+      [currentBotId]: [...currentMessages, newMessage]
+    }));
+    
+    return newMessage.id;
+  }, [userChats, isVip]);
 
   const initializeImageRemaining = useCallback(async () => {
+    if (isVip) {
+      setImagesRemaining(Infinity);
+      return;
+    }
+    
     try {
       const remaining = await getRemainingUploads(false);
       setImagesRemaining(remaining);
     } catch (error) {
       console.error('Error fetching remaining uploads:', error);
     }
-  }, []);
+  }, [isVip]);
 
   return {
     userChats,
@@ -153,6 +183,7 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
     simulateBotResponse,
     handleSendTextMessage,
     handleSendImageMessage,
+    handleSendVoiceMessage,
     initializeImageRemaining
   };
 };

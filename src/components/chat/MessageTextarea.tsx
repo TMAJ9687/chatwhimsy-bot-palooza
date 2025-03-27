@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { MAX_CHAR_LIMIT, checkCharacterLimit, hasConsecutiveChars } from '@/utils/messageUtils';
+import { MAX_CHAR_LIMIT, VIP_CHAR_LIMIT, checkCharacterLimit, hasConsecutiveChars } from '@/utils/messageUtils';
 import { useToast } from '@/hooks/use-toast';
 
 interface MessageTextareaProps {
@@ -21,6 +21,7 @@ const MessageTextarea: React.FC<MessageTextareaProps> = ({
   placeholder = "Type a message..."
 }) => {
   const { toast } = useToast();
+  const charLimit = isVip ? VIP_CHAR_LIMIT : MAX_CHAR_LIMIT;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -33,14 +34,16 @@ const MessageTextarea: React.FC<MessageTextareaProps> = ({
     const newText = e.target.value;
     
     if (!checkCharacterLimit(newText, isVip, true)) {
-      onChange(newText.slice(0, MAX_CHAR_LIMIT));
+      onChange(newText.slice(0, charLimit));
       return;
     }
     
-    if (newText.length > message.length && hasConsecutiveChars(newText)) {
+    if (newText.length > message.length && hasConsecutiveChars(newText, isVip)) {
       toast({
         title: "Pattern detected",
-        description: "Please avoid sending more than 3 consecutive identical characters.",
+        description: isVip 
+          ? "Please avoid sending more than 6 consecutive identical letters or 3 consecutive identical characters."
+          : "Please avoid sending more than 3 consecutive identical characters.",
         duration: 3000
       });
       return;
@@ -50,7 +53,7 @@ const MessageTextarea: React.FC<MessageTextareaProps> = ({
   };
 
   const isExceedingLimit = () => {
-    return !isVip && message.length > MAX_CHAR_LIMIT;
+    return message.length > charLimit;
   };
 
   return (
@@ -64,11 +67,9 @@ const MessageTextarea: React.FC<MessageTextareaProps> = ({
         style={{paddingTop: '6px', paddingBottom: '6px'}}
         disabled={disabled}
       />
-      {!isVip && (
-        <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs ${isExceedingLimit() ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
-          {message.length}/{MAX_CHAR_LIMIT}
-        </div>
-      )}
+      <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs ${isExceedingLimit() ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
+        {message.length}/{charLimit}
+      </div>
     </div>
   );
 };

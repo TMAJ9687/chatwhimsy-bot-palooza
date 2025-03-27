@@ -21,6 +21,8 @@ export interface Message {
   timestamp: Date;
   status?: MessageStatus;
   isImage?: boolean;
+  isVoice?: boolean;
+  duration?: number;
 }
 
 export interface Notification {
@@ -42,4 +44,7 @@ export interface FilterState {
 
 // Message validation constants
 export const MAX_CHAR_LIMIT = 120;
+export const VIP_CHAR_LIMIT = 200;
 export const CONSECUTIVE_LIMIT = 3;
+export const CONSECUTIVE_LETTERS_LIMIT = 6;
+export const MAX_VOICE_LENGTH = 120; // 2 minutes in seconds

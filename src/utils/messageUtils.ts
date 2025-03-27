@@ -1,13 +1,24 @@
 
 import { toast } from "@/hooks/use-toast";
-import { MAX_CHAR_LIMIT, CONSECUTIVE_LIMIT } from "@/types/chat";
+import { MAX_CHAR_LIMIT, VIP_CHAR_LIMIT, CONSECUTIVE_LIMIT, CONSECUTIVE_LETTERS_LIMIT } from "@/types/chat";
 
 // Re-export the constants so they can be imported from this file
-export { MAX_CHAR_LIMIT, CONSECUTIVE_LIMIT };
+export { MAX_CHAR_LIMIT, VIP_CHAR_LIMIT, CONSECUTIVE_LIMIT, CONSECUTIVE_LETTERS_LIMIT };
 
-export const validateImageFile = (file: File): { valid: boolean; message?: string } => {
+export const validateImageFile = (file: File, isVip: boolean = false): { valid: boolean; message?: string } => {
   // Check file type
-  if (!file.type.startsWith('image/')) {
+  const isImage = file.type.startsWith('image/');
+  const isGif = file.type === 'image/gif';
+  
+  // VIP users can upload GIFs, standard users only regular images
+  if (!isVip && isGif) {
+    return {
+      valid: false,
+      message: "Only VIP users can upload GIF files."
+    };
+  }
+  
+  if (!isImage) {
     return {
       valid: false,
       message: "Please select an image file."
@@ -30,11 +41,13 @@ export const checkCharacterLimit = (
   isVip: boolean, 
   showToast: boolean = true
 ): boolean => {
-  if (!isVip && text.length > MAX_CHAR_LIMIT) {
+  const limit = isVip ? VIP_CHAR_LIMIT : MAX_CHAR_LIMIT;
+  
+  if (text.length > limit) {
     if (showToast) {
       toast({
         title: "Character limit reached",
-        description: `Messages are limited to ${MAX_CHAR_LIMIT} characters. Upgrade to VIP for unlimited messaging.`,
+        description: `Messages are limited to ${limit} characters. ${!isVip ? 'Upgrade to VIP for extended messaging.' : ''}`,
         duration: 3000
       });
     }
@@ -43,9 +56,17 @@ export const checkCharacterLimit = (
   return true;
 };
 
-export const hasConsecutiveChars = (text: string): boolean => {
+export const hasConsecutiveChars = (text: string, isVip: boolean = false): boolean => {
   if (!text) return false;
   
+  // For VIP users, we allow up to 3 consecutive numbers
+  // Regular expression to check for more than 3 consecutive numbers (e.g. "1234")
+  const consecutiveNumbersPattern = /(\d)\1\1\1+/;
+  if (consecutiveNumbersPattern.test(text)) {
+    return true;
+  }
+  
+  // Check for consecutive identical characters
   for (let i = 0; i <= text.length - CONSECUTIVE_LIMIT; i++) {
     let isConsecutive = true;
     for (let j = 1; j < CONSECUTIVE_LIMIT; j++) {
@@ -56,5 +77,16 @@ export const hasConsecutiveChars = (text: string): boolean => {
     }
     if (isConsecutive) return true;
   }
+  
+  // For VIP users, additional check for 6 or more consecutive letters
+  if (isVip) {
+    const consecutiveLettersPattern = /([a-zA-Z])\1\1\1\1\1+/;
+    return consecutiveLettersPattern.test(text);
+  }
+  
   return false;
+};
+
+export const validateVoiceMessage = (duration: number): boolean => {
+  return duration <= MAX_VOICE_LENGTH;
 };
