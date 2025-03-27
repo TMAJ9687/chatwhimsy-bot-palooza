@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
@@ -24,11 +23,9 @@ const VipProfileSetup = () => {
   const [showSavingDialog, setShowSavingDialog] = useState(false);
   const [navigationLock, setNavigationLock] = useState(false);
   
-  // Create a ref to access the VipProfileForm's saveForm method
   const profileFormRef = useRef<VipProfileFormRef>(null);
 
   useEffect(() => {
-    // Redirect non-VIP users
     if (!isVip && user !== null) {
       toast({
         title: "VIP Access Required",
@@ -38,28 +35,23 @@ const VipProfileSetup = () => {
       navigate('/');
     }
     
-    // If profile is complete and the user tries to access this page again, redirect to chat
     if (isVip && isProfileComplete) {
       toast({
         title: "Profile Already Complete",
         description: "Your VIP profile is already set up.",
       });
-      // Don't redirect automatically, let them edit their profile if they want
     }
     
-    // Simulate loading user data
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 800);
     
-    // Store profile completion status in localStorage for quick access
     if (isVip && isProfileComplete) {
       localStorage.setItem('vipProfileComplete', 'true');
     }
     
     return () => {
       clearTimeout(timer);
-      // Clean up any potential modal artifacts
       document.body.style.overflow = 'auto';
       const modals = document.querySelectorAll('.fixed.inset-0');
       modals.forEach(modal => {
@@ -70,7 +62,6 @@ const VipProfileSetup = () => {
     };
   }, [isVip, navigate, toast, user, isProfileComplete]);
 
-  // Add beforeunload event listener to prevent accidental navigation
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
@@ -83,12 +74,10 @@ const VipProfileSetup = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      // Remove any navigation locks when component unmounts
       localStorage.removeItem('vipNavigationInProgress');
     };
   }, [hasUnsavedChanges]);
 
-  // Custom navigation handler that checks for unsaved changes
   const handleNavigation = (path: string) => {
     if (navigationLock) return;
     
@@ -96,18 +85,14 @@ const VipProfileSetup = () => {
       setPendingNavigation(path);
       setShowUnsavedDialog(true);
     } else {
-      // Use a controlled navigation sequence
       setNavigationLock(true);
       
-      // If profile is already marked as complete in context, also store in localStorage
       if (isProfileComplete) {
         localStorage.setItem('vipProfileComplete', 'true');
       }
       
-      // Short delay to ensure state is updated before navigation
       setTimeout(() => {
         navigate(path);
-        // Reset navigation lock after navigation
         setTimeout(() => {
           setNavigationLock(false);
         }, 100);
@@ -127,18 +112,15 @@ const VipProfileSetup = () => {
     setIsSaving(true);
     
     try {
-      // Try to save the form using the ref
       if (profileFormRef.current) {
         const saved = await profileFormRef.current.saveForm();
         
         if (saved) {
-          // Update local storage to indicate profile is complete
           localStorage.setItem('vipProfileComplete', 'true');
           
           setHasUnsavedChanges(false);
           setShowUnsavedDialog(false);
           
-          // Ensure dialogs are fully closed before navigation
           setTimeout(() => {
             setShowSavingDialog(false);
             
@@ -146,7 +128,6 @@ const VipProfileSetup = () => {
               const destination = pendingNavigation;
               setPendingNavigation(null);
               
-              // Add a short delay to ensure UI updates before navigation
               setTimeout(() => {
                 navigate(destination);
                 setNavigationLock(false);
@@ -156,7 +137,6 @@ const VipProfileSetup = () => {
             }
           }, 300);
         } else {
-          // Form validation failed or save operation failed
           toast({
             title: "Error",
             description: "Please fix the form errors before continuing.",
@@ -166,19 +146,16 @@ const VipProfileSetup = () => {
           setNavigationLock(false);
         }
       } else {
-        // If for some reason we can't access the form ref
         toast({
           title: "Changes Saved",
           description: "Your profile has been updated successfully."
         });
         
-        // Update local storage to indicate profile is complete
         localStorage.setItem('vipProfileComplete', 'true');
         
         setHasUnsavedChanges(false);
         setShowUnsavedDialog(false);
         
-        // Ensure dialogs are fully closed before navigation
         setTimeout(() => {
           setShowSavingDialog(false);
           
@@ -186,7 +163,6 @@ const VipProfileSetup = () => {
             const destination = pendingNavigation;
             setPendingNavigation(null);
             
-            // Add a short delay to ensure UI updates before navigation
             setTimeout(() => {
               navigate(destination);
               setNavigationLock(false);
@@ -219,14 +195,12 @@ const VipProfileSetup = () => {
       const destination = pendingNavigation;
       setPendingNavigation(null);
       
-      // Add a short delay to ensure UI updates before navigation
       setTimeout(() => {
         navigate(destination);
       }, 100);
     }
   };
 
-  // Ensure all modals are properly closed on unmount
   useEffect(() => {
     return () => {
       setShowUnsavedDialog(false);
@@ -249,7 +223,6 @@ const VipProfileSetup = () => {
   return (
     <>
       <div className="min-h-screen pb-20 bg-gradient-to-b from-background to-secondary/20">
-        {/* Header */}
         <div className="bg-gradient-to-r from-amber-500 to-orange-500 py-6 px-4 md:px-8 shadow-md">
           <div className="max-w-5xl mx-auto flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -274,7 +247,6 @@ const VipProfileSetup = () => {
 
         <div className="max-w-5xl mx-auto px-4 md:px-8 mt-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main content - 2/3 width on desktop */}
             <div className="lg:col-span-2 space-y-8">
               <VipProfileForm 
                 ref={profileFormRef}
@@ -284,7 +256,6 @@ const VipProfileSetup = () => {
               <VipPasswordSection />
             </div>
             
-            {/* Sidebar - 1/3 width on desktop */}
             <div className="lg:col-span-1">
               <VipMembershipInfo />
             </div>
@@ -292,7 +263,6 @@ const VipProfileSetup = () => {
         </div>
       </div>
 
-      {/* Custom Unsaved Changes Dialog - Using controlled unmounting */}
       {showUnsavedDialog && (
         <Dialog 
           open={showUnsavedDialog} 
@@ -304,13 +274,6 @@ const VipProfileSetup = () => {
         >
           <DialogContent
             onEscapeKeyDown={(e) => {
-              // Prevent escape key from closing modal during save operation
-              if (isSaving || navigationLock) {
-                e.preventDefault();
-              }
-            }}
-            onPointerDownOutside={(e) => {
-              // Prevent clicking outside from closing modal during save operation
               if (isSaving || navigationLock) {
                 e.preventDefault();
               }
@@ -339,12 +302,10 @@ const VipProfileSetup = () => {
         </Dialog>
       )}
 
-      {/* Saving Dialog - Using controlled unmounting */}
       {showSavingDialog && (
         <AlertDialog 
           open={showSavingDialog}
           onOpenChange={(open) => {
-            // Don't allow this dialog to be closed manually while saving
             if (!open && !isSaving) {
               setTimeout(() => setShowSavingDialog(false), 100);
             }
@@ -353,7 +314,6 @@ const VipProfileSetup = () => {
           <AlertDialogContent 
             className="max-w-[350px]"
             onEscapeKeyDown={(e) => e.preventDefault()}
-            onPointerDownOutside={(e) => e.preventDefault()}
           >
             <AlertDialogHeader>
               <AlertDialogTitle>Saving Profile</AlertDialogTitle>
