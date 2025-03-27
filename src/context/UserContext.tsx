@@ -1,5 +1,5 @@
 
-import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect, useRef } from 'react';
 import { UserProfile, UserContextType, SubscriptionTier } from '@/types/user';
 import { useVipSubscription } from '@/hooks/useVipSubscription';
 
@@ -7,39 +7,47 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const profileSyncedRef = useRef(false);
 
-  // Load profile completion status from localStorage on mount
+  // Enhanced profile loading from localStorage
   useEffect(() => {
     // If user is VIP, check localStorage for profile completion state
     if (user && user.isVip) {
       const storedProfileComplete = localStorage.getItem('vipProfileComplete') === 'true';
-      if (storedProfileComplete && !isProfileComplete) {
-        // Update user with profile complete flag
+      
+      // Only update if not already synced and profile is incomplete but localStorage says complete
+      if (!profileSyncedRef.current && storedProfileComplete && !isProfileComplete) {
+        profileSyncedRef.current = true;
+        
+        // Update user with profile complete flag and basic profile data
         setUser(prev => {
           if (!prev) return null;
           return {
             ...prev,
-            // Add some basic profile fields so isProfileComplete will evaluate to true
             gender: prev.gender || 'male',
             age: prev.age || 25,
             country: prev.country || 'us'
           };
         });
+        
+        console.log('Profile data synchronized from localStorage');
       }
     }
   }, [user]);
 
+  // Memoized profile completion check
   const isProfileComplete = useMemo(() => 
     Boolean(user && user.gender && user.age && user.country),
     [user]
   );
 
+  // Memoized VIP status check
   const isVip = useMemo(() => 
     Boolean(user?.isVip),
     [user]
   );
 
-  // Update both state and localStorage when profile is updated
+  // Enhanced profile update function
   const updateUserProfile = useCallback((profile: Partial<UserProfile>) => {
     setUser((prev) => {
       if (!prev) return profile as UserProfile;
@@ -56,16 +64,19 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Update localStorage if profile becomes complete
       if (wouldCompleteProfile && updatedUser.isVip) {
         localStorage.setItem('vipProfileComplete', 'true');
+        profileSyncedRef.current = true;
       }
       
       return updatedUser;
     });
   }, []);
 
+  // User cleanup function
   const clearUser = useCallback(() => {
     setUser(null);
     // Clear profile completion status
     localStorage.removeItem('vipProfileComplete');
+    profileSyncedRef.current = false;
   }, []);
 
   const { subscribeToVip, cancelVipSubscription } = useVipSubscription(updateUserProfile);

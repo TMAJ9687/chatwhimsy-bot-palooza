@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
@@ -24,6 +25,19 @@ const VipProfileSetup = () => {
   const [navigationLock, setNavigationLock] = useState(false);
   
   const profileFormRef = useRef<VipProfileFormRef>(null);
+  const navigationAttemptRef = useRef(false);
+
+  // DOM cleanup utility
+  const cleanupDOM = () => {
+    document.body.style.overflow = 'auto';
+    const modals = document.querySelectorAll('.fixed.inset-0');
+    modals.forEach(modal => {
+      if (modal.parentNode) {
+        modal.parentNode.removeChild(modal);
+      }
+    });
+    localStorage.removeItem('vipNavigationInProgress');
+  };
 
   useEffect(() => {
     if (!isVip && user !== null) {
@@ -52,13 +66,7 @@ const VipProfileSetup = () => {
     
     return () => {
       clearTimeout(timer);
-      document.body.style.overflow = 'auto';
-      const modals = document.querySelectorAll('.fixed.inset-0');
-      modals.forEach(modal => {
-        if (modal.parentNode) {
-          modal.parentNode.removeChild(modal);
-        }
-      });
+      cleanupDOM();
     };
   }, [isVip, navigate, toast, user, isProfileComplete]);
 
@@ -79,7 +87,7 @@ const VipProfileSetup = () => {
   }, [hasUnsavedChanges]);
 
   const handleNavigation = (path: string) => {
-    if (navigationLock) return;
+    if (navigationLock || navigationAttemptRef.current) return;
     
     if (hasUnsavedChanges) {
       setPendingNavigation(path);
@@ -91,11 +99,17 @@ const VipProfileSetup = () => {
         localStorage.setItem('vipProfileComplete', 'true');
       }
       
+      // Use setTimeout to push navigation to next event loop tick
       setTimeout(() => {
+        // Set navigation attempt flag to prevent double navigation
+        navigationAttemptRef.current = true;
         navigate(path);
+        
+        // Reset navigation lock after a short delay
         setTimeout(() => {
           setNavigationLock(false);
-        }, 100);
+          navigationAttemptRef.current = false;
+        }, 300);
       }, 50);
     }
   };
@@ -105,9 +119,10 @@ const VipProfileSetup = () => {
   };
 
   const handleSaveAndNavigate = async () => {
-    if (navigationLock) return;
+    if (navigationLock || navigationAttemptRef.current) return;
     
     setNavigationLock(true);
+    navigationAttemptRef.current = true;
     setShowSavingDialog(true);
     setIsSaving(true);
     
@@ -116,26 +131,41 @@ const VipProfileSetup = () => {
         const saved = await profileFormRef.current.saveForm();
         
         if (saved) {
+          // Ensure the profile completion state is saved
           localStorage.setItem('vipProfileComplete', 'true');
           
           setHasUnsavedChanges(false);
           setShowUnsavedDialog(false);
           
-          setTimeout(() => {
-            setShowSavingDialog(false);
-            
-            if (pendingNavigation) {
-              const destination = pendingNavigation;
-              setPendingNavigation(null);
+          // Use Promise with setTimeout to ensure states are updated
+          await new Promise<void>(resolve => {
+            setTimeout(() => {
+              setShowSavingDialog(false);
               
-              setTimeout(() => {
-                navigate(destination);
+              if (pendingNavigation) {
+                const destination = pendingNavigation;
+                setPendingNavigation(null);
+                
+                setTimeout(() => {
+                  cleanupDOM();
+                  navigationAttemptRef.current = true;
+                  navigate(destination);
+                  
+                  // Reset navigation lock after navigation
+                  setTimeout(() => {
+                    setNavigationLock(false);
+                    navigationAttemptRef.current = false;
+                  }, 300);
+                  
+                  resolve();
+                }, 100);
+              } else {
                 setNavigationLock(false);
-              }, 100);
-            } else {
-              setNavigationLock(false);
-            }
-          }, 300);
+                navigationAttemptRef.current = false;
+                resolve();
+              }
+            }, 300);
+          });
         } else {
           toast({
             title: "Error",
@@ -144,6 +174,7 @@ const VipProfileSetup = () => {
           });
           setShowSavingDialog(false);
           setNavigationLock(false);
+          navigationAttemptRef.current = false;
         }
       } else {
         toast({
@@ -156,21 +187,34 @@ const VipProfileSetup = () => {
         setHasUnsavedChanges(false);
         setShowUnsavedDialog(false);
         
-        setTimeout(() => {
-          setShowSavingDialog(false);
-          
-          if (pendingNavigation) {
-            const destination = pendingNavigation;
-            setPendingNavigation(null);
+        // Use Promise with setTimeout to ensure states are updated
+        await new Promise<void>(resolve => {
+          setTimeout(() => {
+            setShowSavingDialog(false);
             
-            setTimeout(() => {
-              navigate(destination);
+            if (pendingNavigation) {
+              const destination = pendingNavigation;
+              setPendingNavigation(null);
+              
+              setTimeout(() => {
+                cleanupDOM();
+                navigate(destination);
+                
+                // Reset navigation lock after navigation
+                setTimeout(() => {
+                  setNavigationLock(false);
+                  navigationAttemptRef.current = false;
+                }, 300);
+                
+                resolve();
+              }, 100);
+            } else {
               setNavigationLock(false);
-            }, 100);
-          } else {
-            setNavigationLock(false);
-          }
-        }, 300);
+              navigationAttemptRef.current = false;
+              resolve();
+            }
+          }, 300);
+        });
       }
     } catch (error) {
       console.error("Error saving profile:", error);
@@ -180,6 +224,7 @@ const VipProfileSetup = () => {
         variant: "destructive",
       });
       setNavigationLock(false);
+      navigationAttemptRef.current = false;
     } finally {
       if (isSaving) {
         setIsSaving(false);
@@ -195,16 +240,26 @@ const VipProfileSetup = () => {
       const destination = pendingNavigation;
       setPendingNavigation(null);
       
+      // Use setTimeout to push navigation to next event loop tick
       setTimeout(() => {
+        cleanupDOM();
+        navigationAttemptRef.current = true;
         navigate(destination);
+        
+        // Reset navigation attempt flag after navigation
+        setTimeout(() => {
+          navigationAttemptRef.current = false;
+        }, 100);
       }, 100);
     }
   };
 
+  // Cleanup dialogs when component unmounts
   useEffect(() => {
     return () => {
       setShowUnsavedDialog(false);
       setShowSavingDialog(false);
+      cleanupDOM();
     };
   }, []);
 

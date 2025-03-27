@@ -1,5 +1,4 @@
-
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { useDialog } from '@/context/DialogContext';
@@ -25,6 +24,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const [chatHidden, setChatHidden] = useState(true); // Set to true by default
   const [isInitializing, setIsInitializing] = useState(true);
   const [redirectAttempts, setRedirectAttempts] = useState(0);
+  const navigationInProgressRef = useRef(false);
 
   // Improved initialization flow with better state management
   useEffect(() => {
@@ -36,7 +36,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       const modals = document.querySelectorAll('.fixed.inset-0');
       modals.forEach(modal => {
         if (modal.parentNode) {
-          modal.parentNode.removeChild(modal);
+          try {
+            modal.parentNode.removeChild(modal);
+          } catch (error) {
+            console.warn('Error removing modal:', error);
+          }
         }
       });
     };
@@ -54,14 +58,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     };
   }, []);
   
-  // Separated profile check logic with debounce to prevent redirect loops
+  // Separated profile check logic with navigation guard to prevent redirect loops
   useEffect(() => {
-    if (isInitializing || redirectAttempts > 2) return;
+    if (isInitializing || redirectAttempts > 2 || navigationInProgressRef.current) return;
     
     // Check if VIP and profile incomplete (with localStorage backup check)
     const checkProfileStatus = () => {
+      // If navigation is already in progress, skip this check
+      if (navigationInProgressRef.current) return;
+      
       // First check localStorage for immediate value (in case context isn't updated yet)
       const storedProfileComplete = localStorage.getItem('vipProfileComplete') === 'true';
+      
+      // Skip navigation if we already know profile is complete
+      if (storedProfileComplete) {
+        console.log('Profile is complete according to localStorage');
+        return;
+      }
       
       // Check if navigation is in progress from VIP profile
       const navigationInProgress = localStorage.getItem('vipNavigationInProgress') === 'true';
@@ -74,8 +87,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       
       // If user is VIP but profile is not complete based on both checks
       if (isVip && !isProfileComplete && !storedProfileComplete) {
+        // Set the navigation guard to prevent multiple redirects
+        navigationInProgressRef.current = true;
         setRedirectAttempts(prev => prev + 1);
-        navigate('/vip-profile');
+        
+        console.log('Redirecting to VIP profile setup');
+        
+        // Use setTimeout to push navigation to next event loop tick
+        setTimeout(() => {
+          navigate('/vip-profile');
+          
+          // Reset the navigation guard after a short delay
+          setTimeout(() => {
+            navigationInProgressRef.current = false;
+          }, 500);
+        }, 50);
       }
     };
     
