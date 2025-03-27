@@ -10,12 +10,66 @@ export const useSafeDOMOperations = () => {
   const lastOperationTimeRef = useRef(0);
   const pendingOperationsRef = useRef<Array<() => void>>([]);
   const timeoutsRef = useRef<number[]>([]);
+  const mutationObserverRef = useRef<MutationObserver | null>(null);
   
   // Clear all timeouts when component unmounts
   useEffect(() => {
+    // Set up mutation observer to detect and fix orphaned overlays
+    try {
+      const observer = new MutationObserver((mutations) => {
+        // Check for removed nodes that might cause issues
+        mutations.forEach(mutation => {
+          if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
+            // If we detect overlay removal during a navigation, ensure body scroll is restored
+            if (document.body) {
+              document.body.style.overflow = 'auto';
+              document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+            }
+          }
+        });
+      });
+      
+      // Observe the document body
+      if (document.body) {
+        observer.observe(document.body, { 
+          childList: true, 
+          subtree: true 
+        });
+      }
+      
+      mutationObserverRef.current = observer;
+    } catch (error) {
+      console.warn('Error setting up MutationObserver:', error);
+    }
+    
     return () => {
+      // Clean up timeouts
       timeoutsRef.current.forEach(id => window.clearTimeout(id));
       timeoutsRef.current = [];
+      
+      // Disconnect mutation observer
+      if (mutationObserverRef.current) {
+        mutationObserverRef.current.disconnect();
+        mutationObserverRef.current = null;
+      }
+      
+      // Final cleanup of any pending operations
+      if (pendingOperationsRef.current.length > 0) {
+        try {
+          requestAnimationFrame(() => {
+            pendingOperationsRef.current.forEach(operation => {
+              try {
+                operation();
+              } catch (err) {
+                console.warn('Error in pending operation cleanup:', err);
+              }
+            });
+            pendingOperationsRef.current = [];
+          });
+        } catch (error) {
+          console.warn('Error in final cleanup:', error);
+        }
+      }
     };
   }, []);
   
@@ -24,8 +78,19 @@ export const useSafeDOMOperations = () => {
     if (!element) return false;
     
     try {
+      // Only try to remove if element exists and has a parent
       if (element.parentNode && element.parentNode.contains(element)) {
-        element.parentNode.removeChild(element);
+        // Use requestAnimationFrame to ensure we're not in the middle of a render cycle
+        requestAnimationFrame(() => {
+          try {
+            // Double-check parent relationship right before removal
+            if (element.parentNode && element.parentNode.contains(element)) {
+              element.parentNode.removeChild(element);
+            }
+          } catch (e) {
+            console.warn('Element removal failed in animation frame:', e);
+          }
+        });
         return true;
       }
     } catch (e) {

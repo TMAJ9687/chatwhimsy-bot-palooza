@@ -10,6 +10,7 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { useDialog } from '@/context/DialogContext';
+import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
 
 // Memoized dialog content component to prevent unnecessary re-renders
 const AlertDialogContent = memo(({
@@ -23,27 +24,20 @@ const AlertDialogContent = memo(({
 }) => {
   const mounted = useRef(true);
   const [isVisible, setIsVisible] = useState(true);
+  const { cleanupOverlays } = useSafeDOMOperations();
 
   // Enhanced cleanup with safety checks
   useEffect(() => {
     return () => {
       mounted.current = false;
       try {
-        // Safe cleanup when dialog closes
-        if (document.body) {
-          // Use RAF to ensure we're not in the middle of a render cycle
-          requestAnimationFrame(() => {
-            if (document.body) {
-              document.body.style.overflow = 'auto';
-              document.body.classList.remove('overflow-hidden');
-            }
-          });
-        }
+        // Use our safe cleanup utility
+        cleanupOverlays();
       } catch (error) {
         console.warn('Error during alert dialog cleanup:', error);
       }
     };
-  }, []);
+  }, [cleanupOverlays]);
 
   return (
     <DialogContent 
@@ -73,6 +67,7 @@ const AlertDialogComponent = () => {
   const { state, closeDialog } = useDialog();
   const isClosingRef = useRef(false);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const { cleanupOverlays } = useSafeDOMOperations();
   
   const isOpen = state.isOpen && state.type === 'alert';
   
@@ -81,14 +76,11 @@ const AlertDialogComponent = () => {
     if (isClosingRef.current) return;
     isClosingRef.current = true;
     
-    // Ensure body scrolling is restored safely
+    // Use requestAnimationFrame to ensure DOM operations happen in the next paint cycle
     requestAnimationFrame(() => {
       try {
-        // First, safely handle DOM updates
-        if (document.body) {
-          document.body.style.overflow = 'auto';
-          document.body.classList.remove('overflow-hidden');
-        }
+        // Use our safe cleanup utility
+        cleanupOverlays();
         
         // Then close the dialog after a short delay to allow animations to complete
         setTimeout(() => {
@@ -105,35 +97,15 @@ const AlertDialogComponent = () => {
         isClosingRef.current = false;
       }
     });
-  }, [closeDialog]);
+  }, [closeDialog, cleanupOverlays]);
   
   // Cleanup any DOM issues when mounting/unmounting
   useEffect(() => {
     return () => {
-      if (document.body) {
-        document.body.style.overflow = 'auto';
-        document.body.classList.remove('overflow-hidden');
-      }
-      
-      // Clean up overlays that might be orphaned
-      try {
-        requestAnimationFrame(() => {
-          document.querySelectorAll('.fixed.inset-0.z-50.bg-black\\/80').forEach(overlay => {
-            if (overlay && overlay.parentNode && overlay.parentNode.contains(overlay)) {
-              try {
-                overlay.parentNode.removeChild(overlay);
-              } catch (e) {
-                // Ignore if already removed
-                console.warn('Overlay already removed:', e);
-              }
-            }
-          });
-        });
-      } catch (error) {
-        console.warn('Error during overlay cleanup:', error);
-      }
+      // Use our safe cleanup utility when unmounting
+      cleanupOverlays();
     };
-  }, []);
+  }, [cleanupOverlays]);
   
   // Handle unexpected changes to Dialog visibility
   useEffect(() => {

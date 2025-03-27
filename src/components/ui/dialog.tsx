@@ -1,9 +1,9 @@
-
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useSafeDOMOperations } from "@/hooks/useSafeDOMOperations"
 
 const Dialog = DialogPrimitive.Root
 
@@ -16,16 +16,33 @@ const DialogClose = DialogPrimitive.Close
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Overlay
-    ref={ref}
-    className={cn(
-      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      className
-    )}
-    {...props}
-  />
-))
+>(({ className, ...props }, ref) => {
+  const { safeRemoveElement } = useSafeDOMOperations();
+  const overlayRef = React.useRef<HTMLDivElement | null>(null);
+  
+  React.useImperativeHandle(ref, () => {
+    return overlayRef.current as HTMLDivElement;
+  }, [overlayRef.current]);
+  
+  React.useEffect(() => {
+    return () => {
+      if (overlayRef.current) {
+        safeRemoveElement(overlayRef.current);
+      }
+    };
+  }, [safeRemoveElement]);
+  
+  return (
+    <DialogPrimitive.Overlay
+      ref={overlayRef}
+      className={cn(
+        "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        className
+      )}
+      {...props}
+    />
+  )
+})
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
 const DialogContent = React.forwardRef<
@@ -36,24 +53,9 @@ const DialogContent = React.forwardRef<
   const cleanupAttemptTimeRef = React.useRef(0);
   const cleanupTimeoutsRef = React.useRef<number[]>([]);
   
-  // Helper to safely remove element
-  const safeRemoveElement = React.useCallback((element: Element) => {
-    if (element && element.parentNode && element.parentNode.contains(element)) {
-      try {
-        // Double check parent relationship right before removal to prevent race conditions
-        if (element.parentNode.contains(element)) {
-          element.parentNode.removeChild(element);
-        }
-      } catch (error) {
-        // Just log the error, don't throw - we want to continue with other cleanup
-        console.warn('Safe element removal failed:', error);
-      }
-    }
-  }, []);
+  const { cleanupOverlays } = useSafeDOMOperations();
   
-  // Add improved cleanup effect with safety checks
   React.useEffect(() => {
-    // Mark dialog as open
     const timeoutId = setTimeout(() => {
       if (document.body) {
         document.body.classList.add('dialog-open');
@@ -63,7 +65,6 @@ const DialogContent = React.forwardRef<
     cleanupTimeoutsRef.current.push(timeoutId as unknown as number);
     
     return () => {
-      // Prevent concurrent cleanup operations
       const now = Date.now();
       if ((now - cleanupAttemptTimeRef.current) < 100) {
         return; // Skip if we just attempted cleanup
@@ -72,62 +73,25 @@ const DialogContent = React.forwardRef<
       cleanupAttemptTimeRef.current = now;
       unmountingRef.current = true;
       
-      // Clear all timeouts first
       cleanupTimeoutsRef.current.forEach(id => window.clearTimeout(id));
       cleanupTimeoutsRef.current = [];
       
-      // Clear the dialog marker timeout
       clearTimeout(timeoutId);
       
       try {
-        // Use requestAnimationFrame to ensure DOM is ready for manipulation
-        const rafId = requestAnimationFrame(() => {
-          // Only cleanup if document exists (prevent errors in SSR or test environments)
-          if (!document || !document.body) return;
-          
-          // Ensure body scroll is restored when dialog is closed
-          document.body.style.overflow = 'auto';
-          document.body.classList.remove('overflow-hidden', 'dialog-open');
-          
-          // Queue cleanup in next animation frame to avoid race conditions
-          requestAnimationFrame(() => {
-            if (unmountingRef.current) {
-              // Safely clean overlays with parent node checks
-              try {
-                // Target all possible dialog-related overlays
-                const selectors = [
-                  '[data-radix-dialog-overlay]',
-                  '.fixed.inset-0.z-50.bg-black\\/80',
-                  '.fixed.inset-0.z-50',
-                  '.vaul-overlay'
-                ];
-                
-                selectors.forEach(selector => {
-                  document.querySelectorAll(selector).forEach(safeRemoveElement);
-                });
-              } catch (error) {
-                console.warn('Error removing overlays:', error);
-              }
-            }
-          });
-        });
-        
-        // Store RAF ID for cleanup
-        const cleanup = () => {
-          try {
-            cancelAnimationFrame(rafId);
-          } catch (e) {
-            // Ignore
+        requestAnimationFrame(() => {
+          if (document.body) {
+            document.body.style.overflow = 'auto';
+            document.body.classList.remove('overflow-hidden', 'dialog-open');
           }
-        };
-        
-        const timeoutId = setTimeout(cleanup, 500);
-        cleanupTimeoutsRef.current.push(timeoutId as unknown as number);
+          
+          cleanupOverlays();
+        });
       } catch (error) {
         console.warn('Error during dialog cleanup:', error);
       }
     };
-  }, [safeRemoveElement]);
+  }, [cleanupOverlays]);
 
   return (
     <DialogPortal>
@@ -139,11 +103,9 @@ const DialogContent = React.forwardRef<
           className
         )}
         onCloseAutoFocus={(event) => {
-          // Prevent focus issues that might cause DOM problems
           event.preventDefault();
         }}
         onEscapeKeyDown={(event) => {
-          // Ensure we don't get stuck dialogs
           if (props.onEscapeKeyDown) {
             props.onEscapeKeyDown(event);
           }

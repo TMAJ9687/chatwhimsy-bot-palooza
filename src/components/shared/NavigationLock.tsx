@@ -13,10 +13,10 @@ const NavigationLock: React.FC = () => {
   const cleanupTimeoutsRef = useRef<number[]>([]);
   const navigationInProgressRef = useRef(false);
   
-  // Use our safe DOM operations hook
+  // Use our enhanced safe DOM operations hook
   const { cleanupOverlays } = useSafeDOMOperations();
 
-  // Enhanced DOM cleanup utility with more robust error handling and element checks
+  // Enhanced DOM cleanup utility with more robust error handling
   const cleanupUI = useCallback(() => {
     const now = Date.now();
     // Debounce cleanup attempts that happen too quickly
@@ -112,43 +112,9 @@ const NavigationLock: React.FC = () => {
     
     window.addEventListener('error', handleError);
     
-    // Create a MutationObserver to detect problematic DOM changes
-    try {
-      const observer = new MutationObserver((mutations) => {
-        // Check for specific mutations that might lead to problems
-        const hasOverlayRemoval = mutations.some(mutation => 
-          Array.from(mutation.removedNodes).some(node => 
-            node instanceof HTMLElement && 
-            (node.classList.contains('fixed') || 
-             node.hasAttribute('data-radix-dialog-overlay'))
-          )
-        );
-        
-        if (hasOverlayRemoval && navigationInProgressRef.current) {
-          // Run cleanup if overlays are being removed during navigation
-          cleanupUI();
-        }
-      });
-      
-      // Observe the document body for relevant changes
-      observer.observe(document.body, { 
-        childList: true, 
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['class', 'style']
-      });
-      
-      return () => {
-        window.removeEventListener('error', handleError);
-        observer.disconnect();
-      };
-    } catch (error) {
-      // Fallback if MutationObserver fails
-      console.warn('Error setting up MutationObserver:', error);
-      return () => {
-        window.removeEventListener('error', handleError);
-      };
-    }
+    return () => {
+      window.removeEventListener('error', handleError);
+    };
   }, [cleanupUI]);
 
   // This is a utility component - it doesn't render anything

@@ -1,8 +1,8 @@
-
 import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "@/lib/utils"
+import { useSafeDOMOperations } from "@/hooks/useSafeDOMOperations"
 
 const Drawer = ({
   shouldScaleBackground = true,
@@ -41,18 +41,8 @@ const DrawerContent = React.forwardRef<
   const unmountedRef = React.useRef(false);
   const cleanupTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   
-  // Add a function to safely remove elements
-  const safeRemoveElement = React.useCallback((element: Element) => {
-    // Check if the element exists and has a parent
-    if (element && element.parentNode && element.parentNode.contains(element)) {
-      try {
-        element.parentNode.removeChild(element);
-      } catch (e) {
-        // Log but don't crash if there's still an error
-        console.warn('Error safely removing element:', e);
-      }
-    }
-  }, []);
+  // Use our enhanced safe DOM operations hook
+  const { safeRemoveElement, cleanupOverlays } = useSafeDOMOperations();
   
   React.useEffect(() => {
     return () => {
@@ -78,20 +68,15 @@ const DrawerContent = React.forwardRef<
           cleanupTimeoutRef.current = setTimeout(() => {
             if (!document || unmountedRef.current === false) return;
             
-            // Safely remove any orphaned drawer overlays
-            const overlays = document.querySelectorAll('.vaul-overlay');
-            overlays.forEach(safeRemoveElement);
-            
-            // Also look for any other potential overlay elements
-            const otherOverlays = document.querySelectorAll('.fixed.inset-0.z-50');
-            otherOverlays.forEach(safeRemoveElement);
+            // Use our safe overlay cleanup
+            cleanupOverlays();
           }, 100);
         });
       } catch (error) {
         console.warn('Error during drawer cleanup:', error);
       }
     };
-  }, [safeRemoveElement]);
+  }, [safeRemoveElement, cleanupOverlays]);
 
   return (
     <DrawerPortal>
