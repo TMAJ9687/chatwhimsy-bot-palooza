@@ -1,8 +1,9 @@
 
 import { toast } from "@/hooks/use-toast";
-import { MAX_CHAR_LIMIT, CONSECUTIVE_LIMIT } from "@/types/chat";
 
-// Re-export the constants so they can be imported from this file
+const MAX_CHAR_LIMIT = 120;
+const CONSECUTIVE_LIMIT = 3;
+
 export { MAX_CHAR_LIMIT, CONSECUTIVE_LIMIT };
 
 export const validateImageFile = (file: File): { valid: boolean; message?: string } => {

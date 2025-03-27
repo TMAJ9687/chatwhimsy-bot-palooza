@@ -1,6 +1,6 @@
 
 import React, { useRef, memo } from 'react';
-import { Message } from '@/types/chat';
+import { Message } from './MessageBubble';
 import { useUser } from '@/context/UserContext';
 import MessageList from './MessageList';
 import { useScrollToBottom } from '@/hooks/useScrollToBottom';

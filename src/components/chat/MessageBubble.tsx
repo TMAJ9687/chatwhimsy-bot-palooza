@@ -1,9 +1,15 @@
+
 import React, { useState } from 'react';
 import { Check, Clock, Eye, EyeOff, Maximize, X } from 'lucide-react';
-import { Message as MessageType, MessageStatus } from '@/types/chat';
-import { renderContentWithEmojis } from '@/utils/emojiUtils';
 
-export interface Message extends MessageType {}
+export interface Message {
+  id: string;
+  content: string;
+  sender: 'user' | 'bot' | 'system';
+  timestamp: Date;
+  status?: 'sending' | 'sent' | 'delivered' | 'read';
+  isImage?: boolean;
+}
 
 interface MessageBubbleProps {
   message: Message;
@@ -81,8 +87,30 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     setIsFullScreen(false);
   };
 
-  // Use our utility function for rendering content
-  const renderContent = () => isImage ? null : renderContentWithEmojis(content);
+  // Function to enhance the size of emojis in the message content
+  const renderContent = () => {
+    // Simple regex to detect emoji characters
+    const emojiRegex = /(\p{Emoji})/gu;
+    
+    if (!content.match(emojiRegex)) {
+      return <div className="whitespace-pre-wrap break-words text-sm">{content}</div>;
+    }
+    
+    // Split content by emoji and non-emoji parts
+    const parts = content.split(emojiRegex);
+    
+    return (
+      <div className="whitespace-pre-wrap break-words text-sm">
+        {parts.map((part, index) => {
+          // If this part matches an emoji, render it with larger font
+          if (part.match(emojiRegex)) {
+            return <span key={index} className="text-xl inline-block">{part}</span>;
+          }
+          return part;
+        })}
+      </div>
+    );
+  };
 
   return (
     <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}>

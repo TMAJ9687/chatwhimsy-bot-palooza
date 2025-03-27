@@ -39,7 +39,3 @@ export interface FilterState {
   ageRange: [number, number];
   countries: string[];
 }
-
-// Message validation constants
-export const MAX_CHAR_LIMIT = 120;
-export const CONSECUTIVE_LIMIT = 3;
