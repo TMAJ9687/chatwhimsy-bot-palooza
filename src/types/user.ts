@@ -3,7 +3,7 @@ export interface UserProfile {
   id: string;
   nickname: string;
   email: string;
-  gender: 'male' | 'female' | 'other';
+  gender: 'male' | 'female';
   age: number;
   country: string;
   interests: string[];

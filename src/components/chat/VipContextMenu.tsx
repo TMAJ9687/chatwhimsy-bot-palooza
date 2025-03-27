@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Flag, Trash2, UserX2, Image, Mic, Translate } from 'lucide-react';
+import { Flag, Trash2, UserX2, Image, Mic, Languages } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,7 +43,7 @@ const VipContextMenu = ({
           </div>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onTranslate} className="cursor-pointer">
-          <Translate className="h-4 w-4 mr-2" />
+          <Languages className="h-4 w-4 mr-2" />
           Translate
         </DropdownMenuItem>
         <DropdownMenuSeparator />

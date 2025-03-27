@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Translate } from 'lucide-react';
+import { X, Languages } from 'lucide-react';
 import { Message } from '@/types/chat';
 
 interface TranslateDialogProps {
@@ -129,7 +129,7 @@ const TranslateDialog: React.FC<TranslateDialogProps> = ({
           >
             {isTranslating ? 'Translating...' : (
               <>
-                <Translate className="h-4 w-4 mr-2" />
+                <Languages className="h-4 w-4 mr-2" />
                 Translate Messages
               </>
             )}

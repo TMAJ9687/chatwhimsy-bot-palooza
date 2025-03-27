@@ -57,7 +57,7 @@ const UserActions = ({
   const handleDeleteConversation = useCallback(() => {
     if (onDeleteConversation) {
       requestAnimationFrame(() => {
-        openDialog('confirmation', {
+        openDialog('logout', {
           title: "Delete Conversation",
           message: `Are you sure you want to delete your conversation with ${userName}? This cannot be undone.`,
           confirmLabel: "Delete",
