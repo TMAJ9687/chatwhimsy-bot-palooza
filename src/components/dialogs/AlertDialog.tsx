@@ -1,5 +1,5 @@
 
-import React, { memo, useCallback, useEffect } from 'react';
+import React, { memo, useCallback, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -21,12 +21,20 @@ const AlertDialogContent = memo(({
   message: string;
   onClose: () => void;
 }) => {
-  // Automatically clean up any DOM issues when unmounting
+  const mounted = useRef(true);
+
+  // Enhanced cleanup with safety checks
   useEffect(() => {
     return () => {
+      mounted.current = false;
       try {
         // Safe cleanup when dialog closes
-        document.body.style.overflow = 'auto';
+        requestAnimationFrame(() => {
+          if (document.body) {
+            document.body.style.overflow = 'auto';
+            document.body.classList.remove('overflow-hidden');
+          }
+        });
       } catch (error) {
         console.warn('Error during alert dialog cleanup:', error);
       }
@@ -34,7 +42,7 @@ const AlertDialogContent = memo(({
   }, []);
 
   return (
-    <DialogContent className="sm:max-w-[425px]">
+    <DialogContent className="sm:max-w-[425px]" onEscapeKeyDown={onClose}>
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>{message}</DialogDescription>
@@ -50,24 +58,46 @@ AlertDialogContent.displayName = 'AlertDialogContent';
 
 const AlertDialogComponent = () => {
   const { state, closeDialog } = useDialog();
+  const isClosingRef = useRef(false);
   
   const isOpen = state.isOpen && state.type === 'alert';
   
-  // Optimization: use requestAnimationFrame for smoother closing with safety checks
+  // Safer close method with debounce and checks
   const handleClose = useCallback(() => {
-    // Ensure body scrolling is restored
-    document.body.style.overflow = 'auto';
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
     
+    // Ensure body scrolling is restored
     requestAnimationFrame(() => {
+      if (document.body) {
+        document.body.style.overflow = 'auto';
+        document.body.classList.remove('overflow-hidden');
+      }
+      
       try {
         closeDialog();
+        // Reset closing state after a delay
+        setTimeout(() => {
+          isClosingRef.current = false;
+        }, 300);
       } catch (error) {
         console.warn('Error closing dialog:', error);
         // Force close as fallback
         closeDialog();
+        isClosingRef.current = false;
       }
     });
   }, [closeDialog]);
+  
+  // Cleanup any DOM issues when unmounting
+  useEffect(() => {
+    return () => {
+      if (document.body) {
+        document.body.style.overflow = 'auto';
+        document.body.classList.remove('overflow-hidden');
+      }
+    };
+  }, []);
   
   if (!isOpen) return null;
 

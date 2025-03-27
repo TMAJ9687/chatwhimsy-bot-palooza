@@ -37,13 +37,30 @@ const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
-  // Add cleanup on unmount
+  // Add enhanced cleanup on unmount with element existence checks
   React.useEffect(() => {
     return () => {
       try {
-        // Ensure body scroll is restored when drawer is closed
-        document.body.style.overflow = 'auto';
-        document.body.classList.remove('overflow-hidden');
+        // Use requestAnimationFrame to ensure we're not in the middle of a render cycle
+        requestAnimationFrame(() => {
+          if (document.body) {
+            // Ensure body scroll is restored when drawer is closed
+            document.body.style.overflow = 'auto';
+            document.body.classList.remove('overflow-hidden');
+          }
+          
+          // Safely remove any orphaned drawer overlays
+          const overlays = document.querySelectorAll('.vaul-overlay');
+          overlays.forEach(overlay => {
+            if (overlay && overlay.parentNode && overlay.parentNode.contains(overlay)) {
+              try {
+                overlay.parentNode.removeChild(overlay);
+              } catch (e) {
+                // Ignore errors if already being removed
+              }
+            }
+          });
+        });
       } catch (error) {
         console.warn('Error during drawer cleanup:', error);
       }

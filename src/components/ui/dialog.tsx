@@ -32,13 +32,55 @@ const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
-  // Add cleanup effect when dialog is unmounted
+  // Add improved cleanup effect with safety checks
   React.useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (document.body) {
+        // Add a class to indicate this dialog is open
+        document.body.classList.add('dialog-open');
+      }
+    }, 0);
+    
     return () => {
+      clearTimeout(timeoutId);
+      
       try {
-        // Ensure body scroll is restored when dialog is closed
-        document.body.style.overflow = 'auto';
-        document.body.classList.remove('overflow-hidden');
+        // Use requestAnimationFrame to ensure DOM is ready for manipulation
+        requestAnimationFrame(() => {
+          // Only cleanup if document exists (prevent errors in SSR or test environments)
+          if (document && document.body) {
+            // Ensure body scroll is restored when dialog is closed
+            document.body.style.overflow = 'auto';
+            document.body.classList.remove('overflow-hidden', 'dialog-open');
+            
+            // Safely remove any orphaned overlays with parent node checks
+            const dialogOverlays = document.querySelectorAll('[data-radix-dialog-overlay]');
+            dialogOverlays.forEach(overlay => {
+              if (overlay && overlay.parentNode && overlay.parentNode.contains(overlay)) {
+                try {
+                  overlay.parentNode.removeChild(overlay);
+                } catch (e) {
+                  // Ignore if already being removed
+                }
+              }
+            });
+            
+            // Also check for any other fixed overlays that might be orphaned
+            const otherOverlays = document.querySelectorAll('.fixed.inset-0.z-50.bg-black\\/80');
+            otherOverlays.forEach(overlay => {
+              if (overlay && overlay.parentNode && overlay.parentNode.contains(overlay)) {
+                try {
+                  // Only remove if it doesn't have open dialog content
+                  if (!overlay.querySelector('[role="dialog"][aria-modal="true"]')) {
+                    overlay.parentNode.removeChild(overlay);
+                  }
+                } catch (e) {
+                  // Ignore if already being removed
+                }
+              }
+            });
+          }
+        });
       } catch (error) {
         console.warn('Error during dialog cleanup:', error);
       }
@@ -57,6 +99,12 @@ const DialogContent = React.forwardRef<
         onCloseAutoFocus={(event) => {
           // Prevent focus issues that might cause DOM problems
           event.preventDefault();
+        }}
+        onEscapeKeyDown={(event) => {
+          // Ensure we don't get stuck dialogs
+          if (props.onEscapeKeyDown) {
+            props.onEscapeKeyDown(event);
+          }
         }}
         {...props}
       >
