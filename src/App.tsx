@@ -20,6 +20,7 @@ import DialogContainer from "./components/dialogs/DialogContainer";
 import { UserProvider } from "./context/UserContext";
 import { ChatProvider } from "./context/ChatContext";
 import { initPerformanceMonitoring } from "./utils/performanceMonitor";
+import NavigationLock from "./components/shared/NavigationLock";
 
 // Configure React Query for better performance
 const queryClient = new QueryClient({
@@ -93,6 +94,8 @@ const App = () => {
                 <MainLayout>
                   <Toaster />
                   <Sonner />
+                  {/* Add the NavigationLock component to help with navigation */}
+                  <NavigationLock />
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />

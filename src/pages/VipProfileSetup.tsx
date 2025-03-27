@@ -22,6 +22,7 @@ const VipProfileSetup = () => {
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showSavingDialog, setShowSavingDialog] = useState(false);
+  const [navigationLock, setNavigationLock] = useState(false);
   
   // Create a ref to access the VipProfileForm's saveForm method
   const profileFormRef = useRef<VipProfileFormRef>(null);
@@ -51,7 +52,22 @@ const VipProfileSetup = () => {
       setIsLoading(false);
     }, 800);
     
-    return () => clearTimeout(timer);
+    // Store profile completion status in localStorage for quick access
+    if (isVip && isProfileComplete) {
+      localStorage.setItem('vipProfileComplete', 'true');
+    }
+    
+    return () => {
+      clearTimeout(timer);
+      // Clean up any potential modal artifacts
+      document.body.style.overflow = 'auto';
+      const modals = document.querySelectorAll('.fixed.inset-0');
+      modals.forEach(modal => {
+        if (modal.parentNode) {
+          modal.parentNode.removeChild(modal);
+        }
+      });
+    };
   }, [isVip, navigate, toast, user, isProfileComplete]);
 
   // Add beforeunload event listener to prevent accidental navigation
@@ -67,16 +83,35 @@ const VipProfileSetup = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Remove any navigation locks when component unmounts
+      localStorage.removeItem('vipNavigationInProgress');
     };
   }, [hasUnsavedChanges]);
 
   // Custom navigation handler that checks for unsaved changes
   const handleNavigation = (path: string) => {
+    if (navigationLock) return;
+    
     if (hasUnsavedChanges) {
       setPendingNavigation(path);
       setShowUnsavedDialog(true);
     } else {
-      navigate(path);
+      // Use a controlled navigation sequence
+      setNavigationLock(true);
+      
+      // If profile is already marked as complete in context, also store in localStorage
+      if (isProfileComplete) {
+        localStorage.setItem('vipProfileComplete', 'true');
+      }
+      
+      // Short delay to ensure state is updated before navigation
+      setTimeout(() => {
+        navigate(path);
+        // Reset navigation lock after navigation
+        setTimeout(() => {
+          setNavigationLock(false);
+        }, 100);
+      }, 50);
     }
   };
 
@@ -85,6 +120,9 @@ const VipProfileSetup = () => {
   };
 
   const handleSaveAndNavigate = async () => {
+    if (navigationLock) return;
+    
+    setNavigationLock(true);
     setShowSavingDialog(true);
     setIsSaving(true);
     
@@ -94,14 +132,29 @@ const VipProfileSetup = () => {
         const saved = await profileFormRef.current.saveForm();
         
         if (saved) {
+          // Update local storage to indicate profile is complete
+          localStorage.setItem('vipProfileComplete', 'true');
+          
           setHasUnsavedChanges(false);
           setShowUnsavedDialog(false);
-          setShowSavingDialog(false);
           
-          if (pendingNavigation) {
-            navigate(pendingNavigation);
-            setPendingNavigation(null);
-          }
+          // Ensure dialogs are fully closed before navigation
+          setTimeout(() => {
+            setShowSavingDialog(false);
+            
+            if (pendingNavigation) {
+              const destination = pendingNavigation;
+              setPendingNavigation(null);
+              
+              // Add a short delay to ensure UI updates before navigation
+              setTimeout(() => {
+                navigate(destination);
+                setNavigationLock(false);
+              }, 100);
+            } else {
+              setNavigationLock(false);
+            }
+          }, 300);
         } else {
           // Form validation failed or save operation failed
           toast({
@@ -110,6 +163,7 @@ const VipProfileSetup = () => {
             variant: "destructive",
           });
           setShowSavingDialog(false);
+          setNavigationLock(false);
         }
       } else {
         // If for some reason we can't access the form ref
@@ -117,14 +171,30 @@ const VipProfileSetup = () => {
           title: "Changes Saved",
           description: "Your profile has been updated successfully."
         });
+        
+        // Update local storage to indicate profile is complete
+        localStorage.setItem('vipProfileComplete', 'true');
+        
         setHasUnsavedChanges(false);
         setShowUnsavedDialog(false);
-        setShowSavingDialog(false);
         
-        if (pendingNavigation) {
-          navigate(pendingNavigation);
-          setPendingNavigation(null);
-        }
+        // Ensure dialogs are fully closed before navigation
+        setTimeout(() => {
+          setShowSavingDialog(false);
+          
+          if (pendingNavigation) {
+            const destination = pendingNavigation;
+            setPendingNavigation(null);
+            
+            // Add a short delay to ensure UI updates before navigation
+            setTimeout(() => {
+              navigate(destination);
+              setNavigationLock(false);
+            }, 100);
+          } else {
+            setNavigationLock(false);
+          }
+        }, 300);
       }
     } catch (error) {
       console.error("Error saving profile:", error);
@@ -133,19 +203,36 @@ const VipProfileSetup = () => {
         description: "An error occurred while saving. Please try again.",
         variant: "destructive",
       });
+      setNavigationLock(false);
     } finally {
-      setIsSaving(false);
+      if (isSaving) {
+        setIsSaving(false);
+      }
     }
   };
 
   const handleDiscardAndNavigate = () => {
     setHasUnsavedChanges(false);
     setShowUnsavedDialog(false);
+    
     if (pendingNavigation) {
-      navigate(pendingNavigation);
+      const destination = pendingNavigation;
       setPendingNavigation(null);
+      
+      // Add a short delay to ensure UI updates before navigation
+      setTimeout(() => {
+        navigate(destination);
+      }, 100);
     }
   };
+
+  // Ensure all modals are properly closed on unmount
+  useEffect(() => {
+    return () => {
+      setShowUnsavedDialog(false);
+      setShowSavingDialog(false);
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -177,6 +264,7 @@ const VipProfileSetup = () => {
                 onClick={handleGoToChat} 
                 variant="outline" 
                 className="border-white/30 bg-white/10 hover:bg-white/20 text-white"
+                disabled={navigationLock}
               >
                 Go to Chat
               </Button>
@@ -204,36 +292,79 @@ const VipProfileSetup = () => {
         </div>
       </div>
 
-      {/* Custom Unsaved Changes Dialog */}
-      <Dialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
-        <DialogContent>
-          <DialogTitle>Unsaved Changes</DialogTitle>
-          <DialogDescription>
-            You have unsaved changes. What would you like to do?
-          </DialogDescription>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleDiscardAndNavigate}>
-              Discard Changes
-            </Button>
-            <Button onClick={handleSaveAndNavigate}>
-              Save and Continue
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Custom Unsaved Changes Dialog - Using controlled unmounting */}
+      {showUnsavedDialog && (
+        <Dialog 
+          open={showUnsavedDialog} 
+          onOpenChange={(open) => {
+            if (!open) {
+              setTimeout(() => setShowUnsavedDialog(false), 100);
+            }
+          }}
+        >
+          <DialogContent
+            onEscapeKeyDown={(e) => {
+              // Prevent escape key from closing modal during save operation
+              if (isSaving || navigationLock) {
+                e.preventDefault();
+              }
+            }}
+            onPointerDownOutside={(e) => {
+              // Prevent clicking outside from closing modal during save operation
+              if (isSaving || navigationLock) {
+                e.preventDefault();
+              }
+            }}
+          >
+            <DialogTitle>Unsaved Changes</DialogTitle>
+            <DialogDescription>
+              You have unsaved changes. What would you like to do?
+            </DialogDescription>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={handleDiscardAndNavigate}
+                disabled={navigationLock}
+              >
+                Discard Changes
+              </Button>
+              <Button 
+                onClick={handleSaveAndNavigate}
+                disabled={isSaving || navigationLock}
+              >
+                {isSaving ? 'Saving...' : 'Save and Continue'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
-      {/* Saving Dialog */}
-      <AlertDialog open={showSavingDialog} onOpenChange={setShowSavingDialog}>
-        <AlertDialogContent className="max-w-[350px]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Saving Profile</AlertDialogTitle>
-            <AlertDialogDescription className="flex flex-col items-center justify-center py-4">
-              <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
-              Please wait while your profile is being saved...
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Saving Dialog - Using controlled unmounting */}
+      {showSavingDialog && (
+        <AlertDialog 
+          open={showSavingDialog}
+          onOpenChange={(open) => {
+            // Don't allow this dialog to be closed manually while saving
+            if (!open && !isSaving) {
+              setTimeout(() => setShowSavingDialog(false), 100);
+            }
+          }}
+        >
+          <AlertDialogContent 
+            className="max-w-[350px]"
+            onEscapeKeyDown={(e) => e.preventDefault()}
+            onPointerDownOutside={(e) => e.preventDefault()}
+          >
+            <AlertDialogHeader>
+              <AlertDialogTitle>Saving Profile</AlertDialogTitle>
+              <AlertDialogDescription className="flex flex-col items-center justify-center py-4">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+                Please wait while your profile is being saved...
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </>
   );
 };

@@ -23,14 +23,69 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const navigate = useNavigate();
   const { openDialog } = useDialog();
   const [chatHidden, setChatHidden] = useState(true); // Set to true by default
-  
-  // Redirect VIP users with incomplete profiles to the profile setup page
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [redirectAttempts, setRedirectAttempts] = useState(0);
+
+  // Improved initialization flow with better state management
   useEffect(() => {
-    if (isVip && !isProfileComplete) {
-      navigate('/vip-profile');
-    }
-  }, [isVip, isProfileComplete, navigate]);
+    // Clean start for UI - avoid rapid UI flashes during redirect checks
+    document.body.style.overflow = 'auto';
+    
+    // Clean up any leftover modals from previous views
+    const cleanup = () => {
+      const modals = document.querySelectorAll('.fixed.inset-0');
+      modals.forEach(modal => {
+        if (modal.parentNode) {
+          modal.parentNode.removeChild(modal);
+        }
+      });
+    };
+    
+    cleanup();
+    
+    // Short delay to allow component to fully mount
+    const timer = setTimeout(() => {
+      setIsInitializing(false);
+    }, 300);
+    
+    return () => {
+      clearTimeout(timer);
+      cleanup();
+    };
+  }, []);
   
+  // Separated profile check logic with debounce to prevent redirect loops
+  useEffect(() => {
+    if (isInitializing || redirectAttempts > 2) return;
+    
+    // Check if VIP and profile incomplete (with localStorage backup check)
+    const checkProfileStatus = () => {
+      // First check localStorage for immediate value (in case context isn't updated yet)
+      const storedProfileComplete = localStorage.getItem('vipProfileComplete') === 'true';
+      
+      // Check if navigation is in progress from VIP profile
+      const navigationInProgress = localStorage.getItem('vipNavigationInProgress') === 'true';
+      
+      // Don't redirect during active navigation
+      if (navigationInProgress) {
+        localStorage.removeItem('vipNavigationInProgress');
+        return;
+      }
+      
+      // If user is VIP but profile is not complete based on both checks
+      if (isVip && !isProfileComplete && !storedProfileComplete) {
+        setRedirectAttempts(prev => prev + 1);
+        navigate('/vip-profile');
+      }
+    };
+    
+    // Debounce the check to prevent rapid checks
+    const timeoutId = setTimeout(checkProfileStatus, 300);
+    
+    return () => clearTimeout(timeoutId);
+  }, [isVip, isProfileComplete, navigate, isInitializing, redirectAttempts]);
+  
+  // Use existing chat state from the context
   const {
     userChats,
     imagesRemaining,
@@ -109,6 +164,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const handleCompletelyCloseChat = useCallback(() => {
     setChatHidden(true);
   }, []);
+
+  // Loading state while initializing
+  if (isInitializing) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="animate-pulse text-center">
+          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
+          <p className="text-muted-foreground">Loading chat...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background dark:bg-gray-950">
