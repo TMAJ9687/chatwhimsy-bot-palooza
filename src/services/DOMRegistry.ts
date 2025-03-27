@@ -109,6 +109,7 @@ class DOMRegistry {
         const isRealChild = parentChildNodes.includes(element);
         
         if (isRealChild) {
+          // Use parentNode.removeChild which accepts a Node type
           element.parentNode.removeChild(element);
           return true;
         }

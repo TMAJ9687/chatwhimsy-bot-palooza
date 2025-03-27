@@ -79,7 +79,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'OPEN_DIALOG', payload: { type, data } });
     
     // Reset transitioning state after a short delay
-    const timeoutId = setTimeout(() => {
+    const timeoutId = window.setTimeout(() => {
       isTransitioningRef.current = false;
     }, 100);
     
@@ -102,7 +102,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'CLOSE_DIALOG' });
     
     // Reset transitioning state after the animation completes
-    const timeoutId = setTimeout(() => {
+    const timeoutId = window.setTimeout(() => {
       isTransitioningRef.current = false;
     }, 300); // Match animation duration
     

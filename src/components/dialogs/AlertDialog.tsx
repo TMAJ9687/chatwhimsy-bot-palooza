@@ -104,11 +104,11 @@ const AlertDialogComponent = () => {
     closeDialog();
     
     // Then clean up overlays after a short delay
-    const timeoutId = setTimeout(() => {
+    const timeoutId = window.setTimeout(() => {
       cleanupOverlays();
       
       // Reset closing state after everything is done
-      const resetId = setTimeout(() => {
+      const resetId = window.setTimeout(() => {
         isClosingRef.current = false;
       }, 150);
       

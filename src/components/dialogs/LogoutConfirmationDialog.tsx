@@ -36,13 +36,13 @@ const LogoutConfirmationDialog = () => {
     closeDialog();
     
     // Then execute the callback after a short delay
-    const timeoutId = setTimeout(() => {
+    const timeoutId = window.setTimeout(() => {
       if (onConfirm && typeof onConfirm === 'function') {
         onConfirm();
       }
       
       // Clean up overlays after the callback
-      const cleanupTimeoutId = setTimeout(() => {
+      const cleanupTimeoutId = window.setTimeout(() => {
         cleanupOverlays();
         
         // Reset state
@@ -62,7 +62,7 @@ const LogoutConfirmationDialog = () => {
     closeDialog();
     
     // Clean up and reset state
-    const timeoutId = setTimeout(() => {
+    const timeoutId = window.setTimeout(() => {
       cleanupOverlays();
       isClosingRef.current = false;
     }, 100);
