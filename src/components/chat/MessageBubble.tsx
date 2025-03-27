@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Check, Clock, Eye, EyeOff, Maximize, X } from 'lucide-react';
+import AudioPlayer from './AudioPlayer';
 
 export interface Message {
   id: string;
@@ -9,6 +10,8 @@ export interface Message {
   timestamp: Date;
   status?: 'sending' | 'sent' | 'delivered' | 'read';
   isImage?: boolean;
+  isVoice?: boolean;
+  duration?: number;
 }
 
 interface MessageBubbleProps {
@@ -22,7 +25,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   isLastInGroup = false,
   showStatus = true
 }) => {
-  const { sender, content, timestamp, status, isImage } = message;
+  const { sender, content, timestamp, status, isImage, isVoice, duration } = message;
   const isUser = sender === 'user';
   
   const [isBlurred, setIsBlurred] = useState(isImage ? true : false);
@@ -89,6 +92,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   // Function to enhance the size of emojis in the message content
   const renderContent = () => {
+    // If this is a voice message
+    if (isVoice) {
+      return <AudioPlayer src={content} duration={duration} />;
+    }
+    
     // Simple regex to detect emoji characters
     const emojiRegex = /(\p{Emoji})/gu;
     

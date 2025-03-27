@@ -21,6 +21,8 @@ export interface Message {
   timestamp: Date;
   status?: MessageStatus;
   isImage?: boolean;
+  isVoice?: boolean;
+  duration?: number;
 }
 
 export interface Notification {

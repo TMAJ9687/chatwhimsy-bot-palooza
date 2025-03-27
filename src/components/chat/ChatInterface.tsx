@@ -1,5 +1,5 @@
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { useDialog } from '@/context/DialogContext';
@@ -51,16 +51,25 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     handleCloseChat,
     handleSendTextMessage,
     handleSendImageMessage,
+    handleSendVoiceMessage,
+    handleDeleteConversation,
     selectUser,
     handleFilterChange,
     handleNotificationRead,
     isUserBlocked
   } = useChat();
 
-  // Show site rules dialog after 3 seconds, but only if rules haven't been accepted yet
-  React.useEffect(() => {
-    // Only show the dialog if rules haven't been accepted yet
-    if (!rulesAccepted) {
+  // Automatically accept rules for VIP users
+  useEffect(() => {
+    if (isVip && !rulesAccepted) {
+      setRulesAccepted(true);
+    }
+  }, [isVip, rulesAccepted, setRulesAccepted]);
+
+  // Show site rules dialog after 3 seconds, but only if rules haven't been accepted yet and user is not VIP
+  useEffect(() => {
+    // Only show the dialog if rules haven't been accepted yet and user is not VIP
+    if (!rulesAccepted && !isVip) {
       const timer = setTimeout(() => {
         openDialog('siteRules', { 
           onAccept: () => {
@@ -72,7 +81,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       
       return () => clearTimeout(timer);
     }
-  }, [openDialog, rulesAccepted, setRulesAccepted]);
+  }, [openDialog, rulesAccepted, setRulesAccepted, isVip]);
 
   // Navigation handlers - optimized with useCallback
   const handleLogout = useCallback(() => {
@@ -102,6 +111,9 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     setChatHidden(true);
   }, []);
 
+  // Current bot messages
+  const currentBotMessages = userChats[currentBot.id] || [];
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background dark:bg-gray-950">
       {/* Header with icons */}
@@ -129,7 +141,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           />
           
           {/* VIP Upgrade Section */}
-          <VipUpgradeSection />
+          {!isVip && <VipUpgradeSection />}
         </div>
 
         {/* Mobile user list trigger */}
@@ -155,6 +167,8 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
                 currentUser={currentBot}
                 onBlockUser={handleBlockUser}
                 onCloseChat={handleCompletelyCloseChat}
+                onDeleteConversation={isVip ? handleDeleteConversation : undefined}
+                messages={currentBotMessages}
               />
 
               {isCurrentUserBlocked && (
@@ -171,7 +185,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
 
               {/* Messages area component */}
               <ChatMessages 
-                messages={userChats[currentBot.id] || []}
+                messages={currentBotMessages}
                 isTyping={typingBots[currentBot.id] || false}
                 showStatus={isVip}
                 showTyping={isVip}
@@ -181,6 +195,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
               <MessageInputBar
                 onSendMessage={handleSendTextMessage}
                 onSendImage={handleSendImageMessage}
+                onSendVoice={isVip ? handleSendVoiceMessage : undefined}
                 imagesRemaining={imagesRemaining}
                 disabled={isCurrentUserBlocked}
                 userType={isVip ? 'vip' : 'standard'}

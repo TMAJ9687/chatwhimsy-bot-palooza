@@ -1,5 +1,5 @@
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Bot, Message, Notification } from '@/types/chat';
 import { useChatInitialization } from './useChatInitialization';
 import { useUserBlocking } from './useUserBlocking';
@@ -60,6 +60,8 @@ export const useChatState = (isVip: boolean) => {
     simulateBotResponse,
     handleSendTextMessage,
     handleSendImageMessage,
+    handleSendVoiceMessage,
+    handleDeleteConversation,
     initializeImageRemaining
   } = useChatMessages(isVip, handleNewNotification);
 
@@ -139,6 +141,48 @@ export const useChatState = (isVip: boolean) => {
     simulateBotResponse(messageId, currentBot.id);
   }, [currentBot.id, currentBot.name, handleSendImageMessage, addHistoryItem, simulateBotResponse]);
 
+  // Handle sending a voice message (VIP only)
+  const handleSendVoiceMessageWrapper = useCallback(async (audioBlob: Blob) => {
+    if (!isVip) return;
+    
+    // Convert blob to dataURL
+    const reader = new FileReader();
+    reader.readAsDataURL(audioBlob);
+    
+    reader.onloadend = async () => {
+      const audioDataUrl = reader.result as string;
+      const messageId = await handleSendVoiceMessage(audioDataUrl, currentBot.id, audioBlob.size);
+      
+      const newNotification: Notification = {
+        id: Date.now().toString(),
+        title: `Voice message sent to ${currentBot.name}`,
+        message: 'You sent a voice message',
+        time: new Date(),
+        read: true
+      };
+      
+      addHistoryItem(newNotification);
+      simulateBotResponse(messageId, currentBot.id);
+    };
+  }, [isVip, currentBot.id, currentBot.name, handleSendVoiceMessage, addHistoryItem, simulateBotResponse]);
+
+  // Handle deleting a conversation (VIP only)
+  const handleDeleteConversationWrapper = useCallback(() => {
+    if (!isVip) return;
+    
+    handleDeleteConversation();
+    
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      title: `Conversation deleted`,
+      message: `Conversation with ${currentBot.name} has been deleted`,
+      time: new Date(),
+      read: true
+    };
+    
+    addHistoryItem(newNotification);
+  }, [isVip, currentBot.name, handleDeleteConversation, addHistoryItem]);
+
   // Enhanced select user to init chat as well
   const selectUserWithChat = useCallback((user: Bot) => {
     if (user.id !== currentBot.id) {
@@ -174,6 +218,8 @@ export const useChatState = (isVip: boolean) => {
     handleCloseChat,
     handleSendTextMessage: handleSendTextMessageWrapper,
     handleSendImageMessage: handleSendImageMessageWrapper,
+    handleSendVoiceMessage: handleSendVoiceMessageWrapper,
+    handleDeleteConversation: handleDeleteConversationWrapper,
     selectUser: selectUserWithChat,
     handleFilterChange,
     handleNotificationRead,
