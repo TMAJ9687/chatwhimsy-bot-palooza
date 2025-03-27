@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Bot } from '@/types/chat';
 import { botProfiles } from '@/data/botProfiles';
 import { sortUsers } from '@/utils/botUtils';
@@ -14,8 +14,8 @@ export const useChatInitialization = () => {
   const [rulesAccepted, setRulesAccepted] = useState(false);
   const [userCountry, setUserCountry] = useState<string>('');
 
-  // Sort bot profiles once
-  const sortedBotProfiles = sortUsers(botProfiles);
+  // Sort bot profiles once and memoize to avoid re-sorting
+  const sortedBotProfiles = useMemo(() => sortUsers(botProfiles), []);
 
   // Select a user to chat with
   const selectUser = useCallback((user: Bot) => {
@@ -50,10 +50,10 @@ export const useChatInitialization = () => {
     fetchUserCountry();
   }, []);
 
-  // Update sorted users when user country changes
+  // Update online users when user country changes - only once
   useEffect(() => {
     if (userCountry) {
-      console.log('Sorting users based on country:', userCountry);
+      // Remove the console.log to reduce noise
       setOnlineUsers(new Set(sortedBotProfiles.map(bot => bot.id)));
     }
   }, [userCountry, sortedBotProfiles]);

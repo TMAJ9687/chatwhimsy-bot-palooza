@@ -24,7 +24,7 @@ const LogoutConfirmationDialog = () => {
   };
 
   return (
-    <AlertDialog open={state.isOpen} onOpenChange={closeDialog}>
+    <AlertDialog open={state.isOpen && state.type === 'logout'} onOpenChange={closeDialog}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Leaving so soon?</AlertDialogTitle>

@@ -40,6 +40,8 @@ const ReasonOption = memo(({
         : 'border-gray-200 dark:border-gray-700 hover:border-teal-300 dark:hover:border-teal-600'
     }`}
     onClick={() => onSelect(reason)}
+    role="radio"
+    aria-checked={isSelected}
   >
     <div className="flex items-center">
       <div 
@@ -124,7 +126,7 @@ const ReportDialog = () => {
           </DialogDescription>
         </DialogHeader>
         
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 space-y-3" role="radiogroup" aria-label="Report reasons">
           {reportReasons.map((reason) => (
             <ReasonOption
               key={reason}
@@ -143,8 +145,9 @@ const ReportDialog = () => {
                 onChange={handleOtherReasonChange}
                 maxLength={100}
                 rows={3}
+                aria-label="Other reason description"
               />
-              <div className="text-right text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <div className="text-right text-xs text-gray-500 dark:text-gray-400 mt-1" aria-live="polite">
                 {otherReason.length}/100
               </div>
             </div>
