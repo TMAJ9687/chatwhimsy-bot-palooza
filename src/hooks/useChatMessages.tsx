@@ -126,23 +126,25 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
     }));
     
     try {
-      const remaining = await trackImageUpload();
+      // Only track image uploads for non-VIP users
+      const remaining = await trackImageUpload(isVip);
       setImagesRemaining(remaining);
     } catch (error) {
       console.error('Error tracking image upload:', error);
     }
     
     return newMessage.id;
-  }, [userChats]);
+  }, [userChats, isVip]);
 
   const initializeImageRemaining = useCallback(async () => {
     try {
-      const remaining = await getRemainingUploads(false);
+      // Get remaining uploads, passing isVip to properly handle unlimited uploads
+      const remaining = await getRemainingUploads(isVip);
       setImagesRemaining(remaining);
     } catch (error) {
       console.error('Error fetching remaining uploads:', error);
     }
-  }, []);
+  }, [isVip]);
 
   return {
     userChats,

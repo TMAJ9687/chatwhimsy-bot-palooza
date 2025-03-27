@@ -10,9 +10,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Crown, LogIn } from 'lucide-react';
 import { useDialog } from '@/context/DialogContext';
+import { useUser } from '@/context/UserContext';
+import { useToast } from '@/hooks/use-toast';
 
 const VipSelectDialog = () => {
   const { state, closeDialog } = useDialog();
+  const { updateUserProfile } = useUser();
+  const { toast } = useToast();
 
   const handleLoginClick = () => {
     closeDialog();
@@ -24,6 +28,24 @@ const VipSelectDialog = () => {
     closeDialog();
     // Now redirect to the VIP Subscription page to select a plan first
     window.location.href = '/vip-subscription';
+  };
+
+  const handleActivateTestVip = () => {
+    // Activate test VIP status
+    updateUserProfile({
+      isVip: true,
+      subscriptionTier: 'monthly',
+      subscriptionEndDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+      imagesRemaining: Infinity
+    });
+    
+    toast({
+      title: "VIP Access Granted",
+      description: "Test VIP account has been activated. You now have access to all VIP features.",
+      duration: 3000
+    });
+    
+    closeDialog();
   };
 
   return (
@@ -55,6 +77,25 @@ const VipSelectDialog = () => {
           >
             <Crown className="h-4 w-4 mr-2" />
             Become VIP
+          </Button>
+          
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-gray-300 dark:border-gray-600" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-white dark:bg-gray-900 px-2 text-muted-foreground">
+                For testing
+              </span>
+            </div>
+          </div>
+          
+          <Button
+            onClick={handleActivateTestVip}
+            variant="outline"
+            className="text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-800"
+          >
+            Activate Test VIP Account
           </Button>
         </div>
       </DialogContent>

@@ -42,7 +42,29 @@ const VipLogin = () => {
     setTimeout(() => {
       setIsLoading(false);
       
-      // This is just a simulation - in a real app, you would validate credentials
+      // Special test account
+      if (values.email === 'test@vip.com' && values.password === 'vippass') {
+        // Success case for test account
+        updateUserProfile({
+          nickname: 'VIP Tester',
+          email: values.email,
+          isVip: true,
+          subscriptionTier: 'monthly',
+          subscriptionEndDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+          imagesRemaining: Infinity
+        });
+        
+        toast({
+          title: "Login Successful",
+          description: "Welcome to your VIP account!",
+        });
+        
+        // Navigate back to chat
+        window.location.href = '/chat';
+        return;
+      }
+      
+      // General check for any valid email/password
       if (values.email.includes('@') && values.password.length >= 6) {
         // Success case
         updateUserProfile({
@@ -51,17 +73,16 @@ const VipLogin = () => {
           isVip: true,
           subscriptionTier: 'monthly',
           subscriptionEndDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
-          imagesRemaining: Infinity,
-          voiceMessagesRemaining: Infinity
+          imagesRemaining: Infinity
         });
         
         toast({
           title: "Login Successful",
-          description: "Welcome back to your VIP account!",
+          description: "Welcome to your VIP account!",
         });
         
-        // Use window.location for navigation
-        window.location.href = '/vip-profile';
+        // Navigate back to chat
+        window.location.href = '/chat';
       } else {
         // Failed login
         form.setError('password', { 
@@ -73,7 +94,7 @@ const VipLogin = () => {
   };
 
   const handleBackToHome = () => {
-    navigate('/');
+    navigate('/chat');
   };
 
   return (
@@ -82,7 +103,7 @@ const VipLogin = () => {
         <div className="flex items-center justify-between mb-8">
           <Button variant="ghost" onClick={handleBackToHome} className="flex items-center space-x-2">
             <ArrowLeft className="h-4 w-4" />
-            <span>Back to Home</span>
+            <span>Back to Chat</span>
           </Button>
           <ThemeToggle />
         </div>
@@ -148,6 +169,10 @@ const VipLogin = () => {
                 <Button type="submit" className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600" disabled={isLoading}>
                   {isLoading ? 'Logging in...' : 'Log In'}
                 </Button>
+                
+                <div className="mt-2 text-xs text-center text-muted-foreground">
+                  <p>For testing, use: test@vip.com / vippass</p>
+                </div>
               </form>
             </Form>
           </CardContent>

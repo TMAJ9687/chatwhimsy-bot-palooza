@@ -9,7 +9,7 @@ interface ImageUploadTracker {
   lastResetDate: string;
 }
 
-export const IMAGE_UPLOAD_LIMIT = 10;
+export const IMAGE_UPLOAD_LIMIT = 15; // Updated to match the limit mentioned in other files
 
 // Get the current date in YYYY-MM-DD format
 const getTodayDateString = (): string => {
@@ -81,7 +81,10 @@ export const getRemainingUploads = async (isVip: boolean = false): Promise<numbe
 };
 
 // Track a new image upload
-export const trackImageUpload = async (): Promise<number> => {
+export const trackImageUpload = async (isVip: boolean = false): Promise<number> => {
+  // If VIP, don't track uploads
+  if (isVip) return Infinity;
+  
   const tracker = await getTracker();
   
   // Increment the counter

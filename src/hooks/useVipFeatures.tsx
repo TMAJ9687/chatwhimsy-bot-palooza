@@ -2,14 +2,11 @@
 import { useUser } from '@/context/UserContext';
 
 export type VipFeature = 
-  | 'unlimitedImages'
-  | 'voiceMessages'
-  | 'chatHistory'
-  | 'readReceipts'
-  | 'typingIndicators'
+  | 'unlimitedUploads'
+  | 'unlimitedMessages'
+  | 'longerMessages'
   | 'messageStatus'
   | 'prioritySupport'
-  | 'interestMatching'
   | 'customAvatars';
 
 export const useVipFeatures = () => {
@@ -18,26 +15,19 @@ export const useVipFeatures = () => {
   const hasFeature = (feature: VipFeature): boolean => {
     if (!isVip) return false;
     
-    // Additional checks for specific features could be added here
-    // For example, checking if the subscription tier includes a particular feature
-    
+    // All VIP users have all features for now
+    // In the future, we could implement different tiers with different features
     return true;
   };
   
   const getImagesRemaining = (): number => {
     if (isVip) return Infinity;
-    return user?.imagesRemaining || 0;
-  };
-  
-  const getVoiceMessagesRemaining = (): number => {
-    if (isVip) return Infinity;
-    return user?.voiceMessagesRemaining || 0;
+    return user?.imagesRemaining || 15; // Default value
   };
   
   return {
     isVip,
     hasFeature,
-    getImagesRemaining,
-    getVoiceMessagesRemaining
+    getImagesRemaining
   };
 };

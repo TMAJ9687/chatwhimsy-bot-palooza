@@ -11,7 +11,7 @@ const VipUpgradeSection = () => {
   const navigate = useNavigate();
 
   const handleUpgradeClick = () => {
-    // Show the VIP selection dialog instead of going directly to subscription
+    // Show the VIP selection dialog
     openDialog('vipSelect');
   };
 
@@ -28,7 +28,7 @@ const VipUpgradeSection = () => {
           </div>
           <div className="flex-1">
             <div className="text-sm font-medium">VIP Status Active</div>
-            <div className="text-xs text-muted-foreground">All premium features unlocked</div>
+            <div className="text-xs text-muted-foreground">Premium features unlocked</div>
           </div>
           <div className="flex space-x-2">
             <button 
@@ -58,7 +58,7 @@ const VipUpgradeSection = () => {
         </div>
         <div className="flex-1">
           <div className="text-sm font-medium">Unlock premium features</div>
-          <div className="text-xs text-muted-foreground">Unlimited photos, messages & more</div>
+          <div className="text-xs text-muted-foreground">Longer messages, unlimited uploads & more</div>
         </div>
         <button 
           onClick={handleUpgradeClick}

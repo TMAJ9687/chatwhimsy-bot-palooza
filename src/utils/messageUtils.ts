@@ -1,9 +1,9 @@
 
 import { toast } from "@/hooks/use-toast";
-import { MAX_CHAR_LIMIT, CONSECUTIVE_LIMIT } from "@/types/chat";
+import { MAX_CHAR_LIMIT, VIP_CHAR_LIMIT, CONSECUTIVE_LIMIT } from "@/types/chat";
 
 // Re-export the constants so they can be imported from this file
-export { MAX_CHAR_LIMIT, CONSECUTIVE_LIMIT };
+export { MAX_CHAR_LIMIT, VIP_CHAR_LIMIT, CONSECUTIVE_LIMIT };
 
 export const validateImageFile = (file: File): { valid: boolean; message?: string } => {
   // Check file type
@@ -30,11 +30,15 @@ export const checkCharacterLimit = (
   isVip: boolean, 
   showToast: boolean = true
 ): boolean => {
-  if (!isVip && text.length > MAX_CHAR_LIMIT) {
+  const limit = isVip ? VIP_CHAR_LIMIT : MAX_CHAR_LIMIT;
+  
+  if (text.length > limit) {
     if (showToast) {
       toast({
         title: "Character limit reached",
-        description: `Messages are limited to ${MAX_CHAR_LIMIT} characters. Upgrade to VIP for unlimited messaging.`,
+        description: isVip ? 
+          `VIP messages are limited to ${VIP_CHAR_LIMIT} characters.` :
+          `Messages are limited to ${MAX_CHAR_LIMIT} characters. Upgrade to VIP for longer messages.`,
         duration: 3000
       });
     }

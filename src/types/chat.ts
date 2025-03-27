@@ -41,5 +41,7 @@ export interface FilterState {
 }
 
 // Message validation constants
-export const MAX_CHAR_LIMIT = 120;
+export const MAX_CHAR_LIMIT = 120; // Standard user character limit
+export const VIP_CHAR_LIMIT = 500; // VIP user character limit
 export const CONSECUTIVE_LIMIT = 3;
+
