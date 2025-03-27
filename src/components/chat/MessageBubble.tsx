@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Check, Clock, Eye, EyeOff, Maximize, X } from 'lucide-react';
 import { Message as MessageType, MessageStatus } from '@/types/chat';
@@ -82,7 +81,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     setIsFullScreen(false);
   };
 
-  // Use our new utility function for rendering content
+  // Use our utility function for rendering content
   const renderContent = () => isImage ? null : renderContentWithEmojis(content);
 
   return (
