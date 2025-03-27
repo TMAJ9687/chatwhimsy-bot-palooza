@@ -1,5 +1,5 @@
 
-export type Gender = 'male' | 'female' | 'other';
+export type Gender = 'male' | 'female';
 export type SubscriptionTier = 'none' | 'monthly' | 'semiannual' | 'annual';
 
 export interface UserProfile {

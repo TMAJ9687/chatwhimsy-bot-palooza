@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,7 +17,7 @@ import { User, Calendar, MapPin, Heart, Save, Check } from 'lucide-react';
 import { countries } from '@/data/countries';
 
 const profileFormSchema = z.object({
-  gender: z.enum(['male', 'female', 'other'], {
+  gender: z.enum(['male', 'female'], {
     required_error: "Please select a gender",
   }),
   age: z.string().min(1, "Age is required"),
@@ -187,10 +186,6 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="female" id="female" />
                         <FormLabel htmlFor="female" className="font-normal">Female</FormLabel>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="other" id="other" />
-                        <FormLabel htmlFor="other" className="font-normal">Other</FormLabel>
                       </div>
                     </RadioGroup>
                   </FormControl>
