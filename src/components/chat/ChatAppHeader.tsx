@@ -2,7 +2,7 @@
 import React, { memo } from 'react';
 import { LogOut, Clock, Bell } from 'lucide-react';
 import ThemeToggle from '../shared/ThemeToggle';
-import { Notification } from './NotificationSidebar';
+import { Notification } from '@/types/chat';
 
 interface ChatAppHeaderProps {
   unreadCount: number;
