@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 
 const VipProfileSetup = () => {
-  const { user, isVip, updateUserProfile } = useUser();
+  const { user, isVip, isProfileComplete, updateUserProfile } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
@@ -28,13 +28,22 @@ const VipProfileSetup = () => {
       navigate('/');
     }
     
+    // If profile is complete and the user tries to access this page again, redirect to chat
+    if (isVip && isProfileComplete) {
+      toast({
+        title: "Profile Already Complete",
+        description: "Your VIP profile is already set up.",
+      });
+      // Don't redirect automatically, let them edit their profile if they want
+    }
+    
     // Simulate loading user data
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 800);
     
     return () => clearTimeout(timer);
-  }, [isVip, navigate, toast, user]);
+  }, [isVip, navigate, toast, user, isProfileComplete]);
 
   // Handle unsaved changes when navigating away
   useEffect(() => {

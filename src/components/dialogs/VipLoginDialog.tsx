@@ -73,8 +73,8 @@ const VipLoginDialog = () => {
         
         closeDialog();
         
-        // Navigate to the chat page directly
-        navigate('/chat');
+        // Navigate to the profile setup page instead of chat
+        navigate('/vip-profile');
       } else {
         // Failed login
         form.setError('password', { 

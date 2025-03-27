@@ -3,6 +3,7 @@ import React from 'react';
 import MessageBubble, { Message } from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import { useChat } from '@/context/ChatContext';
+import { useUser } from '@/context/UserContext';
 
 interface MessageListProps {
   messages: Message[];
@@ -18,6 +19,7 @@ const MessageList = React.memo(({
   showTyping 
 }: MessageListProps) => {
   const { userChats } = useChat();
+  const { isVip } = useUser();
   
   // Collect all messages across all chats to make them available for reply references
   const allMessages = React.useMemo(() => {
@@ -30,12 +32,12 @@ const MessageList = React.memo(({
         <MessageBubble 
           key={message.id} 
           message={message}
-          showStatus={showStatus}
+          showStatus={isVip && showStatus}
           allMessages={allMessages.length > 0 ? allMessages : messages}
         />
       ))}
       
-      {isTyping && showTyping && <TypingIndicator />}
+      {isTyping && (isVip ? showTyping : false) && <TypingIndicator />}
     </>
   );
 });

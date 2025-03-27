@@ -59,8 +59,8 @@ const VipLogin = () => {
           description: "Welcome to your VIP account!",
         });
         
-        // Navigate back to chat
-        window.location.href = '/chat';
+        // Navigate to VIP profile setup instead of chat
+        navigate('/vip-profile');
         return;
       }
       
@@ -81,8 +81,8 @@ const VipLogin = () => {
           description: "Welcome to your VIP account!",
         });
         
-        // Navigate back to chat
-        window.location.href = '/chat';
+        // Navigate to VIP profile setup instead of chat
+        navigate('/vip-profile');
       } else {
         // Failed login
         form.setError('password', { 

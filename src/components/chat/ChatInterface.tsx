@@ -19,10 +19,17 @@ interface ChatInterfaceProps {
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
-  const { user, isVip } = useUser();
+  const { user, isVip, isProfileComplete } = useUser();
   const navigate = useNavigate();
   const { openDialog } = useDialog();
   const [chatHidden, setChatHidden] = useState(true); // Set to true by default
+  
+  // Redirect VIP users with incomplete profiles to the profile setup page
+  useEffect(() => {
+    if (isVip && !isProfileComplete) {
+      navigate('/vip-profile');
+    }
+  }, [isVip, isProfileComplete, navigate]);
   
   const {
     userChats,
