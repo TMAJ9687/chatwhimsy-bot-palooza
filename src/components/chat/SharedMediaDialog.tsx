@@ -327,12 +327,7 @@ const SharedMediaDialog: React.FC<SharedMediaDialogProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>Shared Media with {userName}</span>
-            <button 
-              onClick={handleClose} 
-              className="rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            {/* Only one close button here, removed duplicate */}
           </DialogTitle>
           <DialogDescription>
             View all shared photos and voice messages in this conversation.

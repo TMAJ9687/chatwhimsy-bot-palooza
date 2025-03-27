@@ -9,6 +9,7 @@ import MessageTextarea from './MessageTextarea';
 import SendButton from './SendButton';
 import VipStatusBar from './VipStatusBar';
 import VoiceMessageButton from './VoiceMessageButton';
+import { X } from 'lucide-react';
 
 interface MessageInputBarProps {
   onSendMessage: (text: string) => void;
@@ -30,7 +31,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   const [message, setMessage] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
-  const { isVip } = useChat();
+  const { isVip, replyingToMessage, setReplyingToMessage } = useChat();
   
   const isUserVip = userType === 'vip' || isVip;
   
@@ -74,10 +75,36 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     setIsRecordingVoice(false);
   };
 
+  const handleCancelReply = () => {
+    setReplyingToMessage(null);
+  };
+
   const isMessageValid = message.trim() && (isUserVip || message.length <= MAX_CHAR_LIMIT);
 
   return (
-    <div className={`border-t border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-800 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
+    <div className={`border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
+      {/* Reply preview */}
+      {isUserVip && replyingToMessage && (
+        <div className="px-3 py-2 bg-gray-100 dark:bg-gray-700 border-l-2 border-teal-500 flex justify-between items-center">
+          <div className="flex flex-col">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              {replyingToMessage.sender === 'user' ? 'Replying to yourself' : 'Replying to message'}
+            </span>
+            <span className="text-sm truncate max-w-[300px]">
+              {replyingToMessage.isImage ? '📷 Image' : 
+               replyingToMessage.isVoice ? '🎤 Voice message' : 
+               replyingToMessage.content.substring(0, 30) + (replyingToMessage.content.length > 30 ? '...' : '')}
+            </span>
+          </div>
+          <button 
+            onClick={handleCancelReply}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+      
       {imagePreview && (
         <ImagePreview 
           src={imagePreview} 
@@ -86,7 +113,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
         />
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 p-3">
         <ImageUploadButton 
           onImageSelected={setImagePreview}
           imagesRemaining={imagesRemaining}

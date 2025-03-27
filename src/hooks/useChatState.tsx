@@ -1,5 +1,4 @@
-
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Bot, Message, Notification } from '@/types/chat';
 import { useChatInitialization } from './useChatInitialization';
 import { useUserBlocking } from './useUserBlocking';
@@ -15,7 +14,8 @@ interface Translation {
 }
 
 export const useChatState = (isVip: boolean) => {
-  // Initialize chat-related state from custom hooks
+  const [replyingToMessage, setReplyingToMessage] = useState<Message | null>(null);
+  
   const {
     currentBot,
     onlineUsers,
@@ -46,17 +46,14 @@ export const useChatState = (isVip: boolean) => {
 
   const { toast } = useToast();
 
-  // Use VIP features
   const { shouldBypassRules } = useVipFeatures();
 
-  // If user is VIP, automatically accept rules
   useEffect(() => {
     if (shouldBypassRules() && !rulesAccepted) {
       setRulesAccepted(true);
     }
   }, [shouldBypassRules, rulesAccepted, setRulesAccepted]);
 
-  // Create a handler for new notifications
   const handleNewNotification = useCallback((botId: string, content: string, botName: string) => {
     const newNotification: Notification = {
       id: Date.now().toString(),
@@ -94,12 +91,10 @@ export const useChatState = (isVip: boolean) => {
     handleFilterChange
   } = useBotFiltering(onlineUsers, blockedUsers);
 
-  // Update the current bot ID reference when it changes
   useEffect(() => {
     setCurrentBotId(currentBot.id);
   }, [currentBot.id, setCurrentBotId]);
 
-  // Initialize chat for current bot
   useEffect(() => {
     initializeChat(currentBot.id, currentBot.name);
   }, [currentBot.id, currentBot.name, initializeChat]);
@@ -108,35 +103,28 @@ export const useChatState = (isVip: boolean) => {
     initializeImageRemaining();
   }, [initializeImageRemaining]);
 
-  // Handle opening a chat from a notification
   const handleOpenChatFromNotification = useCallback((botId: string) => {
     if (!botId) return;
     
-    // Find the bot in the list of online users
     const botToOpen = onlineUsers.find(user => user.id === botId);
     if (botToOpen) {
       selectUser(botToOpen);
       initializeChat(botToOpen.id, botToOpen.name);
       
-      // Close the notifications panel after selecting
       setShowInbox(false);
       setShowHistory(false);
     }
   }, [onlineUsers, selectUser, initializeChat, setShowInbox, setShowHistory]);
 
-  // Handle blocking a user
   const handleBlockUser = useCallback((userId: string) => {
     blockUser(userId);
     
-    // If the blocked user is current, select a different one
     if (userId === currentBot.id && filteredUsers.length > 1) {
-      // Find the first visible user that isn't blocked
       const newUser = filteredUsers.find(user => user.id !== userId && !blockedUsers.has(user.id));
       if (newUser) selectUser(newUser);
     }
   }, [currentBot.id, filteredUsers, blockedUsers, blockUser, selectUser]);
 
-  // Handle closing chat
   const handleCloseChat = useCallback(() => {
     if (filteredUsers.length > 1) {
       const newUser = filteredUsers.find(user => user.id !== currentBot.id);
@@ -144,9 +132,26 @@ export const useChatState = (isVip: boolean) => {
     }
   }, [currentBot.id, filteredUsers, selectUser]);
 
-  // Handle sending a text message
   const handleSendTextMessageWrapper = useCallback((text: string) => {
+    const replyId = replyingToMessage?.id;
     const messageId = handleSendTextMessage(text, currentBot.id, currentBot.name);
+    
+    if (replyId && isVip) {
+      setUserChats(prev => {
+        const newChats = { ...prev };
+        const botMessages = [...(newChats[currentBot.id] || [])];
+        const updatedMessages = botMessages.map(msg => {
+          if (msg.id === messageId) {
+            return { ...msg, replyTo: replyId };
+          }
+          return msg;
+        });
+        newChats[currentBot.id] = updatedMessages;
+        return newChats;
+      });
+      
+      setReplyingToMessage(null);
+    }
     
     const newNotification: Notification = {
       id: Date.now().toString(),
@@ -158,11 +163,28 @@ export const useChatState = (isVip: boolean) => {
     
     addHistoryItem(newNotification);
     simulateBotResponse(messageId, currentBot.id);
-  }, [currentBot.id, currentBot.name, handleSendTextMessage, addHistoryItem, simulateBotResponse]);
+  }, [currentBot.id, currentBot.name, handleSendTextMessage, addHistoryItem, simulateBotResponse, replyingToMessage, isVip, setUserChats]);
 
-  // Handle sending an image message
   const handleSendImageMessageWrapper = useCallback(async (imageDataUrl: string) => {
+    const replyId = replyingToMessage?.id;
     const messageId = await handleSendImageMessage(imageDataUrl, currentBot.id);
+    
+    if (replyId && isVip) {
+      setUserChats(prev => {
+        const newChats = { ...prev };
+        const botMessages = [...(newChats[currentBot.id] || [])];
+        const updatedMessages = botMessages.map(msg => {
+          if (msg.id === messageId) {
+            return { ...msg, replyTo: replyId };
+          }
+          return msg;
+        });
+        newChats[currentBot.id] = updatedMessages;
+        return newChats;
+      });
+      
+      setReplyingToMessage(null);
+    }
     
     const newNotification: Notification = {
       id: Date.now().toString(),
@@ -174,11 +196,28 @@ export const useChatState = (isVip: boolean) => {
     
     addHistoryItem(newNotification);
     simulateBotResponse(messageId, currentBot.id);
-  }, [currentBot.id, currentBot.name, handleSendImageMessage, addHistoryItem, simulateBotResponse]);
+  }, [currentBot.id, currentBot.name, handleSendImageMessage, addHistoryItem, simulateBotResponse, replyingToMessage, isVip, setUserChats]);
 
-  // Handle sending a voice message
   const handleSendVoiceMessageWrapper = useCallback((voiceDataUrl: string, duration: number) => {
+    const replyId = replyingToMessage?.id;
     const messageId = handleSendVoiceMessage(voiceDataUrl, duration, currentBot.id);
+    
+    if (replyId && isVip) {
+      setUserChats(prev => {
+        const newChats = { ...prev };
+        const botMessages = [...(newChats[currentBot.id] || [])];
+        const updatedMessages = botMessages.map(msg => {
+          if (msg.id === messageId) {
+            return { ...msg, replyTo: replyId };
+          }
+          return msg;
+        });
+        newChats[currentBot.id] = updatedMessages;
+        return newChats;
+      });
+      
+      setReplyingToMessage(null);
+    }
     
     const newNotification: Notification = {
       id: Date.now().toString(),
@@ -190,9 +229,8 @@ export const useChatState = (isVip: boolean) => {
     
     addHistoryItem(newNotification);
     simulateBotResponse(messageId, currentBot.id);
-  }, [currentBot.id, currentBot.name, handleSendVoiceMessage, addHistoryItem, simulateBotResponse]);
+  }, [currentBot.id, currentBot.name, handleSendVoiceMessage, addHistoryItem, simulateBotResponse, replyingToMessage, isVip, setUserChats]);
 
-  // Enhanced select user to init chat as well
   const selectUserWithChat = useCallback((user: Bot) => {
     if (user.id !== currentBot.id) {
       selectUser(user);
@@ -200,11 +238,9 @@ export const useChatState = (isVip: boolean) => {
     }
   }, [currentBot.id, selectUser, initializeChat]);
 
-  // NEW: Delete conversation
   const handleDeleteConversation = useCallback((userId: string) => {
     if (!userChats[userId]) return;
     
-    // Remove all messages for this user
     setUserChats(prev => {
       const newChats = { ...prev };
       delete newChats[userId];
@@ -216,17 +252,13 @@ export const useChatState = (isVip: boolean) => {
       description: `Your conversation has been deleted.`,
     });
     
-    // If it's the current chat, initialize a new empty one
     if (userId === currentBot.id) {
       initializeChat(currentBot.id, currentBot.name);
     }
   }, [userChats, currentBot.id, currentBot.name, initializeChat, toast, setUserChats]);
 
-  // NEW: Translate message
   const handleTranslateMessage = useCallback((messageId: string, targetLanguage: string) => {
-    // Simulated translation service
     const translateText = (text: string, language: string): string => {
-      // This is just a mock; in a real app, you'd use a translation API
       const mockTranslations: Record<string, Record<string, string>> = {
         en: {
           "Hello!": "Hello!",
@@ -250,23 +282,19 @@ export const useChatState = (isVip: boolean) => {
         }
       };
       
-      // If we have a mock translation, return it
       if (mockTranslations[language] && mockTranslations[language][text]) {
         return mockTranslations[language][text];
       }
       
-      // Otherwise, add a prefix to indicate translation
       return `[${language.toUpperCase()}] ${text}`;
     };
     
     setUserChats(prev => {
       const newChats = { ...prev };
       
-      // Find the message in all chats
       Object.keys(newChats).forEach(botId => {
         newChats[botId] = newChats[botId].map(msg => {
           if (msg.id === messageId) {
-            // Don't translate images or voice messages
             if (msg.isImage || msg.isVoice) return msg;
             
             const newTranslation: Translation = {
@@ -287,7 +315,6 @@ export const useChatState = (isVip: boolean) => {
     });
   }, [setUserChats]);
 
-  // NEW: Get shared media (images and voice messages)
   const getSharedMedia = useCallback((userId: string) => {
     const chatMessages = userChats[userId] || [];
     
@@ -296,6 +323,98 @@ export const useChatState = (isVip: boolean) => {
     
     return { images, voice };
   }, [userChats]);
+
+  const handleReplyToMessage = useCallback((messageId: string, content: string) => {
+    if (!isVip) return;
+    
+    const newMessageId = handleSendTextMessage(content, currentBot.id, currentBot.name);
+    
+    setUserChats(prev => {
+      const newChats = { ...prev };
+      const botMessages = [...(newChats[currentBot.id] || [])];
+      const updatedMessages = botMessages.map(msg => {
+        if (msg.id === newMessageId) {
+          return { ...msg, replyTo: messageId };
+        }
+        return msg;
+      });
+      newChats[currentBot.id] = updatedMessages;
+      return newChats;
+    });
+    
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      title: `Reply to message`,
+      message: content.slice(0, 30) + (content.length > 30 ? '...' : ''),
+      time: new Date(),
+      read: true
+    };
+    
+    addHistoryItem(newNotification);
+    simulateBotResponse(newMessageId, currentBot.id);
+  }, [isVip, currentBot.id, currentBot.name, handleSendTextMessage, setUserChats, addHistoryItem, simulateBotResponse]);
+
+  const handleReactToMessage = useCallback((messageId: string, emoji: string) => {
+    if (!isVip) return;
+    
+    setUserChats(prev => {
+      const newChats = { ...prev };
+      
+      Object.keys(newChats).forEach(botId => {
+        newChats[botId] = newChats[botId].map(msg => {
+          if (msg.id === messageId) {
+            const existingReactions = msg.reactions || [];
+            
+            const existingReaction = existingReactions.find(
+              r => r.userId === 'user' && r.emoji === emoji
+            );
+            
+            if (existingReaction) {
+              return {
+                ...msg,
+                reactions: existingReactions.filter(
+                  r => !(r.userId === 'user' && r.emoji === emoji)
+                )
+              };
+            }
+            
+            return {
+              ...msg,
+              reactions: [...existingReactions, { emoji, userId: 'user' }]
+            };
+          }
+          return msg;
+        });
+      });
+      
+      return newChats;
+    });
+  }, [isVip, setUserChats]);
+
+  const handleUnsendMessage = useCallback((messageId: string) => {
+    if (!isVip) return;
+    
+    setUserChats(prev => {
+      const newChats = { ...prev };
+      
+      Object.keys(newChats).forEach(botId => {
+        newChats[botId] = newChats[botId].map(msg => {
+          if (msg.id === messageId && msg.sender === 'user') {
+            return { ...msg, isDeleted: true };
+          }
+          return msg;
+        });
+      });
+      
+      return newChats;
+    });
+    
+    toast({
+      title: "Message unsent",
+      description: "Your message has been unsent",
+      duration: 3000
+    });
+  }, [isVip, setUserChats, toast]);
 
   return {
     userChats,
@@ -332,6 +451,11 @@ export const useChatState = (isVip: boolean) => {
     isUserBlocked,
     handleDeleteConversation,
     handleTranslateMessage,
-    getSharedMedia
+    getSharedMedia,
+    handleReplyToMessage,
+    handleReactToMessage,
+    handleUnsendMessage,
+    replyingToMessage,
+    setReplyingToMessage
   };
 };

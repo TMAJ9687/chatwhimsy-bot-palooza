@@ -1,3 +1,4 @@
+
 export interface Bot {
   id: string;
   name: string;
@@ -26,6 +27,13 @@ export interface Message {
     language: string;
     content: string;
   }>;
+  // New fields for VIP features
+  replyTo?: string; // ID of message being replied to
+  reactions?: Array<{
+    emoji: string;
+    userId: string;
+  }>;
+  isDeleted?: boolean; // For unsend functionality
 }
 
 export interface Notification {

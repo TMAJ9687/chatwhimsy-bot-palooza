@@ -2,188 +2,158 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Mic, Square, Send } from 'lucide-react';
 import { Button } from '../ui/button';
-import { useVipFeatures } from '@/hooks/useVipFeatures';
-import { useToast } from '@/hooks/use-toast';
 
 interface VoiceMessageButtonProps {
-  onVoiceMessageReady: (audioBlob: Blob, durationInSeconds: number) => void;
+  onVoiceMessageReady: (audioBlob: Blob, duration: number) => void;
   disabled?: boolean;
 }
 
 const VoiceMessageButton: React.FC<VoiceMessageButtonProps> = ({ 
-  onVoiceMessageReady, 
-  disabled = false 
+  onVoiceMessageReady,
+  disabled = false
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const { hasFeature, getVoiceMessagesRemaining } = useVipFeatures();
-  const { toast } = useToast();
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const recordedChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
-  const maxRecordingTime = 120; // 2 minutes in seconds
+  const streamRef = useRef<MediaStream | null>(null);
   
-  // Check if the browser supports voice recording
-  const isBrowserSupported = () => {
-    return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-  };
-  
-  // Clean up function for recording
+  // Clean up function for the recorder
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      
-      if (timerRef.current) {
-        window.clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    }
-  };
-  
-  // Cancel recording without saving
-  const cancelRecording = () => {
-    stopRecording();
-    audioChunksRef.current = [];
-    setRecordingTime(0);
-  };
-  
-  // Effect to set up voice recording
-  useEffect(() => {
-    if (isRecording) {
-      // Start timer
-      timerRef.current = window.setInterval(() => {
-        setRecordingTime(prev => {
-          if (prev >= maxRecordingTime) {
-            stopRecording();
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, 1000);
     }
     
-    return () => {
-      if (timerRef.current) {
-        window.clearInterval(timerRef.current);
-      }
-    };
-  }, [isRecording]);
-  
-  // Format seconds to MM:SS
-  const formatTime = (timeInSeconds: number) => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = timeInSeconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
   };
   
+  // Start recording
   const startRecording = async () => {
-    if (!isBrowserSupported()) {
-      toast({
-        title: "Browser not supported",
-        description: "Your browser doesn't support voice recording.",
-        duration: 3000
-      });
-      return;
-    }
-    
-    // Check if VIP user has voice messages remaining
-    const voiceMessagesRemaining = getVoiceMessagesRemaining();
-    if (voiceMessagesRemaining <= 0) {
-      toast({
-        title: "Voice message limit reached",
-        description: "You have used all your voice messages for today.",
-        duration: 3000
-      });
-      return;
-    }
-    
     try {
+      recordedChunksRef.current = [];
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
       
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          recordedChunksRef.current.push(e.data);
         }
       };
       
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const trackDuration = recordingTime;
-        onVoiceMessageReady(audioBlob, trackDuration);
-        
-        // Reset recording state
-        setRecordingTime(0);
-        
-        // Stop all audio tracks
-        stream.getTracks().forEach(track => track.stop());
+        const audioBlob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+        setAudioBlob(audioBlob);
+        // Don't automatically send here, allow user to send explicitly
       };
       
-      // Start recording
+      // Start the recorder
       mediaRecorder.start();
       setIsRecording(true);
+      setRecordingTime(0);
+      
+      // Set up timer for recording
+      timerRef.current = window.setInterval(() => {
+        setRecordingTime(prevTime => prevTime + 1);
+      }, 1000);
       
     } catch (error) {
-      console.error('Error accessing microphone:', error);
-      toast({
-        title: "Microphone access denied",
-        description: "Please allow microphone access to record voice messages.",
-        duration: 3000
-      });
+      console.error('Error starting recording:', error);
     }
   };
   
-  // If not a VIP feature, don't render the button
-  if (!hasFeature('voiceMessages')) {
-    return null;
-  }
+  // Handle clicking the record button
+  const handleRecordClick = () => {
+    if (disabled) return;
+    
+    if (!isRecording) {
+      startRecording();
+    } else {
+      stopRecording();
+      setIsRecording(false);
+    }
+  };
   
-  if (isRecording) {
-    return (
-      <div className="flex items-center gap-2">
-        <div className="text-xs font-medium text-red-500 mr-1 min-w-[48px]">
-          {formatTime(recordingTime)}
-        </div>
-        
-        <Button 
-          variant="destructive"
-          size="icon"
-          className="h-8 w-8"
-          onClick={cancelRecording}
-          title="Cancel recording"
-        >
-          <Square className="h-4 w-4" />
-        </Button>
-        
-        <Button 
-          variant="default"
-          size="icon"
-          className="h-8 w-8 bg-green-500 hover:bg-green-600"
-          onClick={stopRecording}
-          title="Stop recording"
-          disabled={recordingTime < 1}
-        >
-          <Send className="h-4 w-4" />
-        </Button>
-      </div>
-    );
-  }
+  // Handle sending the voice message
+  const handleSendVoiceMessage = () => {
+    if (audioBlob && recordingTime > 0) {
+      onVoiceMessageReady(audioBlob, recordingTime);
+      setAudioBlob(null);
+      setRecordingTime(0);
+    }
+  };
+  
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      stopRecording();
+    };
+  }, []);
+  
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
   
   return (
-    <Button 
-      variant="ghost" 
-      size="icon"
-      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" 
-      onClick={startRecording}
-      disabled={disabled}
-      title="Record voice message"
-    >
-      <Mic className="h-5 w-5" />
-    </Button>
+    <div className="flex items-center">
+      {isRecording ? (
+        <div className="flex items-center gap-2 bg-red-100 dark:bg-red-900/20 rounded-full px-3 py-1">
+          <span className="text-red-500 dark:text-red-400 text-sm font-medium animate-pulse">
+            {formatTime(recordingTime)}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30"
+            onClick={handleRecordClick}
+            disabled={disabled}
+          >
+            <Square className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : audioBlob ? (
+        <div className="flex items-center gap-2 bg-teal-100 dark:bg-teal-900/20 rounded-full px-3 py-1">
+          <span className="text-teal-600 dark:text-teal-400 text-sm font-medium">
+            {formatTime(recordingTime)}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300"
+            onClick={handleSendVoiceMessage}
+            disabled={disabled}
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+          onClick={handleRecordClick}
+          disabled={disabled}
+          title="Record voice message"
+        >
+          <Mic className="h-5 w-5" />
+        </Button>
+      )}
+    </div>
   );
 };
 

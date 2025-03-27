@@ -36,4 +36,10 @@ export interface ChatContextType {
   handleDeleteConversation: (userId: string) => void;
   handleTranslateMessage: (messageId: string, targetLanguage: string) => void;
   getSharedMedia: (userId: string) => { images: Message[], voice: Message[] };
+  // New VIP features
+  handleReplyToMessage: (messageId: string, content: string) => void;
+  handleReactToMessage: (messageId: string, emoji: string) => void;
+  handleUnsendMessage: (messageId: string) => void;
+  replyingToMessage: Message | null;
+  setReplyingToMessage: (message: Message | null) => void;
 }

@@ -23,6 +23,7 @@ const MessageList = React.memo(({
           key={message.id} 
           message={message}
           showStatus={showStatus}
+          allMessages={messages}
         />
       ))}
       

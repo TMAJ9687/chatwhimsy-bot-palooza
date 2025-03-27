@@ -1,12 +1,15 @@
 
 import React, { useState } from 'react';
-import { Check, Clock, Eye, EyeOff, Maximize, X, Globe } from 'lucide-react';
+import { Check, Clock, Eye, EyeOff, Maximize, X, Globe, Reply, Smile, Trash } from 'lucide-react';
 import { Message as MessageType, MessageStatus } from '@/types/chat';
 import { renderContentWithEmojis } from '@/utils/emojiUtils';
 import VoiceMessagePlayer from './VoiceMessagePlayer';
 import { useChat } from '@/context/ChatContext';
 import { useUser } from '@/context/UserContext';
 import TranslateMessageDialog from './TranslateMessageDialog';
+import { Button } from '../ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import EmojiPicker from './EmojiPicker';
 
 export interface Message extends MessageType {}
 
@@ -14,28 +17,65 @@ interface MessageBubbleProps {
   message: Message;
   isLastInGroup?: boolean;
   showStatus?: boolean;
+  allMessages?: Message[]; // Added to find reply reference
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ 
   message, 
   isLastInGroup = false,
-  showStatus = true
+  showStatus = true,
+  allMessages = []
 }) => {
-  const { sender, content, timestamp, status, isImage, isVoice, duration, translations } = message;
+  const { sender, content, timestamp, status, isImage, isVoice, duration, translations, replyTo, reactions, isDeleted } = message;
   const isUser = sender === 'user';
   const { isVip } = useUser();
-  const { handleTranslateMessage } = useChat();
+  const { 
+    handleTranslateMessage, 
+    handleReactToMessage, 
+    handleReplyToMessage, 
+    handleUnsendMessage,
+    setReplyingToMessage
+  } = useChat();
   
   const [isBlurred, setIsBlurred] = useState(isImage ? true : false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showTranslationDialog, setShowTranslationDialog] = useState(false);
   const [showTranslation, setShowTranslation] = useState(false);
+  const [showReactionPopover, setShowReactionPopover] = useState(false);
+  
+  // Find the message being replied to
+  const replyToMessage = replyTo ? allMessages.find(m => m.id === replyTo) : null;
   
   // If this is a system message, render differently
   if (sender === 'system') {
     return (
       <div className="text-center text-gray-500 dark:text-gray-400 text-sm py-2">
         {content}
+      </div>
+    );
+  }
+
+  // If message was deleted
+  if (isDeleted) {
+    return (
+      <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}>
+        <div
+          className={`
+            relative px-3 py-2 rounded-2xl max-w-[80%] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 italic
+            ${isUser ? 'rounded-br-none' : 'rounded-bl-none'}
+          `}
+        >
+          This message was unsent
+        </div>
+        {isLastInGroup && showStatus && (
+          <div className={`flex items-center mt-0.5 text-xs text-gray-500 dark:text-gray-400 ${isUser ? 'mr-1' : 'ml-1'}`}>
+            <span>{new Intl.DateTimeFormat('en-US', {
+              hour: 'numeric',
+              minute: 'numeric',
+              hour12: true
+            }).format(timestamp)}</span>
+          </div>
+        )}
       </div>
     );
   }
@@ -98,6 +138,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     if (message.id) {
       handleTranslateMessage(message.id, language);
       setShowTranslation(true);
+    }
+  };
+
+  const handleReplyClick = () => {
+    setReplyingToMessage(message);
+  };
+
+  const handleReactClick = (emoji: string) => {
+    if (message.id) {
+      handleReactToMessage(message.id, emoji);
+      setShowReactionPopover(false);
+    }
+  };
+
+  const handleUnsendClick = () => {
+    if (message.id && isUser) {
+      handleUnsendMessage(message.id);
     }
   };
 
@@ -176,9 +233,52 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   };
 
+  // Render the message reactions
+  const renderReactions = () => {
+    if (!reactions || reactions.length === 0) return null;
+    
+    // Group reactions by emoji
+    const emojiCounts: Record<string, number> = {};
+    reactions.forEach(reaction => {
+      emojiCounts[reaction.emoji] = (emojiCounts[reaction.emoji] || 0) + 1;
+    });
+    
+    return (
+      <div className="flex flex-wrap gap-1 mt-1">
+        {Object.entries(emojiCounts).map(([emoji, count]) => (
+          <div 
+            key={emoji} 
+            className="bg-gray-100 dark:bg-gray-700 rounded-full px-1.5 py-0.5 text-xs flex items-center"
+          >
+            <span>{emoji}</span>
+            {count > 1 && <span className="ml-1 text-gray-500">{count}</span>}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <>
       <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}>
+        {/* Reply preview if this message is replying to another */}
+        {replyToMessage && (
+          <div className={`
+            max-w-[80%] px-2 py-1 mb-1 text-xs bg-gray-100 dark:bg-gray-700 rounded-md
+            border-l-2 border-gray-300 dark:border-gray-500
+            ${isUser ? 'mr-2' : 'ml-2'}
+          `}>
+            <div className="font-medium text-gray-500 dark:text-gray-400">
+              {replyToMessage.sender === 'user' ? 'You' : 'Reply to'}
+            </div>
+            <div className="truncate">
+              {replyToMessage.isImage ? '📷 Image' : 
+               replyToMessage.isVoice ? '🎤 Voice message' : 
+               replyToMessage.content.substring(0, 30) + (replyToMessage.content.length > 30 ? '...' : '')}
+            </div>
+          </div>
+        )}
+        
         <div
           className={`
             relative px-3 py-2 rounded-2xl max-w-[80%]
@@ -190,6 +290,49 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         >
           {renderMessageContent()}
 
+          {/* VIP action buttons - only show for VIP users */}
+          {isVip && (
+            <div className={`absolute -bottom-5 ${isUser ? 'left-0' : 'right-0'} flex space-x-1`}>
+              {/* Reply button */}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-6 w-6 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                onClick={handleReplyClick}
+              >
+                <Reply className="h-3 w-3" />
+              </Button>
+              
+              {/* React button */}
+              <Popover open={showReactionPopover} onOpenChange={setShowReactionPopover}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  >
+                    <Smile className="h-3 w-3" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-2" side="top">
+                  <EmojiPicker onEmojiSelect={handleReactClick} useBasicPicker={true} />
+                </PopoverContent>
+              </Popover>
+              
+              {/* Unsend button - only for user's own messages */}
+              {isUser && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  onClick={handleUnsendClick}
+                >
+                  <Trash className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          )}
+
           {/* Translation toggle button - only show for text messages and VIP users */}
           {isVip && !isImage && !isVoice && translations && translations.length > 0 && (
             <button 
@@ -200,6 +343,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             </button>
           )}
         </div>
+        
+        {/* Reactions display */}
+        {renderReactions()}
         
         {isLastInGroup && showStatus && (
           <div className={`flex items-center mt-0.5 text-xs text-gray-500 dark:text-gray-400 ${isUser ? 'mr-1' : 'ml-1'}`}>
