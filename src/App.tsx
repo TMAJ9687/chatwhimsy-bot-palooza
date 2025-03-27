@@ -44,8 +44,8 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <UserProvider>
-          <BrowserRouter>
+        <BrowserRouter>
+          <UserProvider>
             <DialogProvider>
               <ChatProvider>
                 <MainLayout>
@@ -66,8 +66,8 @@ const App = () => {
                 </MainLayout>
               </ChatProvider>
             </DialogProvider>
-          </BrowserRouter>
-        </UserProvider>
+          </UserProvider>
+        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
   );
