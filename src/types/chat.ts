@@ -1,4 +1,3 @@
-
 export interface Bot {
   id: string;
   name: string;
@@ -22,7 +21,11 @@ export interface Message {
   status?: MessageStatus;
   isImage?: boolean;
   isVoice?: boolean;
-  duration?: number; // For voice messages, duration in seconds
+  duration?: number;
+  translations?: Array<{
+    language: string;
+    content: string;
+  }>;
 }
 
 export interface Notification {

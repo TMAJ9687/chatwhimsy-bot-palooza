@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Message, Bot } from '@/types/chat';
 import { getRandomBotResponse } from '@/utils/botUtils';
 import { trackImageUpload, getRemainingUploads, IMAGE_UPLOAD_LIMIT } from '@/utils/imageUploadLimiter';
@@ -171,6 +171,7 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
     userChats,
     typingBots,
     imagesRemaining,
+    setUserChats,
     setCurrentBotId,
     initializeChat,
     simulateBotResponse,

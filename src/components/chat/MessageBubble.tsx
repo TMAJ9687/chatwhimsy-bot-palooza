@@ -1,9 +1,12 @@
 
 import React, { useState } from 'react';
-import { Check, Clock, Eye, EyeOff, Maximize, X } from 'lucide-react';
+import { Check, Clock, Eye, EyeOff, Maximize, X, Globe } from 'lucide-react';
 import { Message as MessageType, MessageStatus } from '@/types/chat';
 import { renderContentWithEmojis } from '@/utils/emojiUtils';
 import VoiceMessagePlayer from './VoiceMessagePlayer';
+import { useChat } from '@/context/ChatContext';
+import { useUser } from '@/context/UserContext';
+import TranslateMessageDialog from './TranslateMessageDialog';
 
 export interface Message extends MessageType {}
 
@@ -18,11 +21,15 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   isLastInGroup = false,
   showStatus = true
 }) => {
-  const { sender, content, timestamp, status, isImage, isVoice, duration } = message;
+  const { sender, content, timestamp, status, isImage, isVoice, duration, translations } = message;
   const isUser = sender === 'user';
+  const { isVip } = useUser();
+  const { handleTranslateMessage } = useChat();
   
   const [isBlurred, setIsBlurred] = useState(isImage ? true : false);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [showTranslationDialog, setShowTranslationDialog] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
   
   // If this is a system message, render differently
   if (sender === 'system') {
@@ -82,6 +89,21 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     e.stopPropagation();
     setIsFullScreen(false);
   };
+
+  const handleTranslate = () => {
+    setShowTranslationDialog(true);
+  };
+
+  const handleTranslateConfirm = (language: string) => {
+    if (message.id) {
+      handleTranslateMessage(message.id, language);
+      setShowTranslation(true);
+    }
+  };
+
+  const currentContent = showTranslation && translations && translations[0]
+    ? translations[0].content
+    : content;
 
   // Render content based on message type
   const renderMessageContent = () => {
@@ -150,31 +172,61 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     } else if (isVoice && duration !== undefined) {
       return <VoiceMessagePlayer audioSrc={content} duration={duration} />;
     } else {
-      return renderContentWithEmojis(content);
+      return renderContentWithEmojis(currentContent);
     }
   };
 
   return (
-    <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}>
-      <div
-        className={`
-          relative px-3 py-2 rounded-2xl max-w-[80%]
-          ${isUser 
-            ? 'bg-teal-500 text-white rounded-br-none' 
-            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'}
-          ${isVoice ? 'p-0 overflow-hidden min-w-[240px]' : ''}
-        `}
-      >
-        {renderMessageContent()}
-      </div>
-      
-      {isLastInGroup && showStatus && (
-        <div className={`flex items-center mt-0.5 text-xs text-gray-500 dark:text-gray-400 ${isUser ? 'mr-1' : 'ml-1'}`}>
-          <span>{formattedTime}</span>
-          {getStatusIcon() && <span className="ml-1">{getStatusIcon()}</span>}
+    <>
+      <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}>
+        <div
+          className={`
+            relative px-3 py-2 rounded-2xl max-w-[80%]
+            ${isUser 
+              ? 'bg-teal-500 text-white rounded-br-none' 
+              : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'}
+            ${isVoice ? 'p-0 overflow-hidden min-w-[240px]' : ''}
+          `}
+        >
+          {renderMessageContent()}
+
+          {/* Translation toggle button - only show for text messages and VIP users */}
+          {isVip && !isImage && !isVoice && translations && translations.length > 0 && (
+            <button 
+              onClick={() => setShowTranslation(!showTranslation)}
+              className={`absolute bottom-0 right-0 p-1 rounded-full bg-white/20 -mb-1 -mr-1 ${showTranslation ? 'text-yellow-500' : 'text-gray-400'}`}
+            >
+              <Globe className="h-3 w-3" />
+            </button>
+          )}
         </div>
-      )}
-    </div>
+        
+        {isLastInGroup && showStatus && (
+          <div className={`flex items-center mt-0.5 text-xs text-gray-500 dark:text-gray-400 ${isUser ? 'mr-1' : 'ml-1'}`}>
+            <span>{formattedTime}</span>
+            {getStatusIcon() && <span className="ml-1">{getStatusIcon()}</span>}
+            
+            {/* Translation button - only show for text messages, not the user's own, and for VIP users */}
+            {isVip && !isUser && !isImage && !isVoice && (
+              <button 
+                onClick={handleTranslate}
+                className="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                title="Translate message"
+              >
+                <Globe className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Translation dialog */}
+      <TranslateMessageDialog 
+        isOpen={showTranslationDialog}
+        onClose={() => setShowTranslationDialog(false)}
+        onTranslate={handleTranslateConfirm}
+      />
+    </>
   );
 };
 

@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect } from 'react';
 import { Bot, Message, Notification } from '@/types/chat';
 import { useChatInitialization } from './useChatInitialization';
@@ -7,6 +6,12 @@ import { useNotifications } from './useNotifications';
 import { useChatMessages } from './useChatMessages';
 import { useBotFiltering } from './useBotFiltering';
 import { useVipFeatures } from './useVipFeatures';
+import { useToast } from './use-toast';
+
+interface Translation {
+  language: string;
+  content: string;
+}
 
 export const useChatState = (isVip: boolean) => {
   // Initialize chat-related state from custom hooks
@@ -37,6 +42,8 @@ export const useChatState = (isVip: boolean) => {
     addNotification,
     addHistoryItem
   } = useNotifications();
+
+  const { toast } = useToast();
 
   // Use VIP features
   const { shouldBypassRules } = useVipFeatures();
@@ -191,6 +198,103 @@ export const useChatState = (isVip: boolean) => {
     }
   }, [currentBot.id, selectUser, initializeChat]);
 
+  // NEW: Delete conversation
+  const handleDeleteConversation = useCallback((userId: string) => {
+    if (!userChats[userId]) return;
+    
+    // Remove all messages for this user
+    setUserChats(prev => {
+      const newChats = { ...prev };
+      delete newChats[userId];
+      return newChats;
+    });
+    
+    toast({
+      title: "Conversation deleted",
+      description: `Your conversation has been deleted.`,
+    });
+    
+    // If it's the current chat, initialize a new empty one
+    if (userId === currentBot.id) {
+      initializeChat(currentBot.id, currentBot.name);
+    }
+  }, [userChats, currentBot.id, currentBot.name, initializeChat, toast]);
+
+  // NEW: Translate message
+  const handleTranslateMessage = useCallback((messageId: string, targetLanguage: string) => {
+    // Simulated translation service
+    const translateText = (text: string, language: string): string => {
+      // This is just a mock; in a real app, you'd use a translation API
+      const mockTranslations: Record<string, Record<string, string>> = {
+        en: {
+          "Hello!": "Hello!",
+          "How are you?": "How are you?",
+          "I'm good": "I'm good",
+        },
+        es: {
+          "Hello!": "¡Hola!",
+          "How are you?": "¿Cómo estás?",
+          "I'm good": "Estoy bien",
+        },
+        fr: {
+          "Hello!": "Bonjour!",
+          "How are you?": "Comment ça va?",
+          "I'm good": "Je vais bien",
+        },
+        de: {
+          "Hello!": "Hallo!",
+          "How are you?": "Wie geht es dir?",
+          "I'm good": "Mir geht es gut",
+        }
+      };
+      
+      // If we have a mock translation, return it
+      if (mockTranslations[language] && mockTranslations[language][text]) {
+        return mockTranslations[language][text];
+      }
+      
+      // Otherwise, add a prefix to indicate translation
+      return `[${language.toUpperCase()}] ${text}`;
+    };
+    
+    setUserChats(prev => {
+      const newChats = { ...prev };
+      
+      // Find the message in all chats
+      Object.keys(newChats).forEach(botId => {
+        newChats[botId] = newChats[botId].map(msg => {
+          if (msg.id === messageId) {
+            // Don't translate images or voice messages
+            if (msg.isImage || msg.isVoice) return msg;
+            
+            const newTranslation: Translation = {
+              language: targetLanguage,
+              content: translateText(msg.content, targetLanguage)
+            };
+            
+            return {
+              ...msg,
+              translations: [newTranslation]
+            };
+          }
+          return msg;
+        });
+      });
+      
+      return newChats;
+    });
+  }, []);
+
+  // NEW: Get shared media (images and voice messages)
+  const getSharedMedia = useCallback((userId: string) => {
+    const chatMessages = userChats[userId] || [];
+    
+    const images = chatMessages.filter(msg => msg.isImage);
+    const voice = chatMessages.filter(msg => msg.isVoice);
+    
+    return { images, voice };
+  }, [userChats]);
+
   return {
     userChats,
     imagesRemaining,
@@ -223,6 +327,9 @@ export const useChatState = (isVip: boolean) => {
     handleFilterChange,
     handleNotificationRead,
     handleOpenChatFromNotification,
-    isUserBlocked
+    isUserBlocked,
+    handleDeleteConversation,
+    handleTranslateMessage,
+    getSharedMedia
   };
 };

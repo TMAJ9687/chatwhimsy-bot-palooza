@@ -33,4 +33,7 @@ export interface ChatContextType {
   handleFilterChange: (newFilters: FilterState) => void;
   handleNotificationRead: (id: string) => void;
   isUserBlocked: (userId: string) => boolean;
+  handleDeleteConversation: (userId: string) => void;
+  handleTranslateMessage: (messageId: string, targetLanguage: string) => void;
+  getSharedMedia: (userId: string) => { images: Message[], voice: Message[] };
 }

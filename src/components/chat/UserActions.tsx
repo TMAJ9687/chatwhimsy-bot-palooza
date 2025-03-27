@@ -1,14 +1,19 @@
 
-import React, { useCallback } from 'react';
-import { X, MoreVertical, UserX2, Flag } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
+import { MoreVertical, Ban, Flag, Trash2, Share, Globe, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useChat } from '@/context/ChatContext';
 import { useDialog } from '@/context/DialogContext';
+import { useUser } from '@/context/UserContext';
+import BlockUserDialog from '@/components/dialogs/BlockUserDialog';
+import SharedMediaDialog from './SharedMediaDialog';
 
 interface UserActionsProps {
   userId: string;
@@ -19,76 +24,125 @@ interface UserActionsProps {
   onCloseChat: () => void;
 }
 
-const UserActions = ({ 
-  userId, 
-  userName, 
-  isBlocked, 
-  onBlockUser, 
-  onUnblockUser, 
-  onCloseChat 
+const UserActions = ({
+  userId,
+  userName,
+  isBlocked,
+  onBlockUser,
+  onUnblockUser,
+  onCloseChat,
 }: UserActionsProps) => {
   const { openDialog } = useDialog();
+  const { isVip } = useUser();
+  const { getSharedMedia, handleDeleteConversation } = useChat();
   
-  const handleOpenReportDialog = useCallback(() => {
-    requestAnimationFrame(() => {
-      openDialog('report', { 
-        userName: userName,
-        userId: userId
-      });
-    });
-  }, [openDialog, userName, userId]);
-
-  const handleOpenBlockDialog = useCallback(() => {
-    requestAnimationFrame(() => {
-      openDialog('block', { 
-        userName: userName,
-        userId: userId, 
-        onBlockUser: onBlockUser
-      });
-    });
-  }, [openDialog, userName, userId, onBlockUser]);
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
+  const [showSharedMediaDialog, setShowSharedMediaDialog] = useState(false);
+  
+  const handleReport = () => {
+    openDialog('report', { userName });
+  };
+  
+  const handleBlock = () => {
+    setShowBlockDialog(true);
+  };
+  
+  const handleConfirmBlock = () => {
+    onBlockUser(userId);
+    setShowBlockDialog(false);
+  };
+  
+  const handleUnblock = () => {
+    onUnblockUser(userId);
+  };
+  
+  const handleDeleteChat = () => {
+    // Confirm before deleting
+    if (window.confirm(`Are you sure you want to delete the conversation with ${userName}?`)) {
+      handleDeleteConversation(userId);
+    }
+  };
+  
+  const handleOpenSharedMedia = () => {
+    setShowSharedMediaDialog(true);
+  };
 
   return (
-    <div className="flex items-center space-x-2">
-      {isBlocked ? (
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => onUnblockUser(userId)}
-          className="text-blue-600 dark:text-blue-400"
+    <>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onCloseChat}
+          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
         >
-          <UserX2 className="h-4 w-4 mr-1" />
-          Unblock
-        </Button>
-      ) : (
+          <X className="h-5 w-5" />
+        </button>
+        
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreVertical className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-            </Button>
+            <button className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+              <MoreVertical className="h-5 w-5" />
+            </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleOpenReportDialog}>
-              <Flag className="h-4 w-4 mr-2" />
-              Report User
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Chat Actions</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            
+            {isBlocked ? (
+              <DropdownMenuItem onClick={handleUnblock}>
+                <Ban className="h-4 w-4 mr-2 text-green-500" />
+                <span>Unblock User</span>
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={handleBlock}>
+                <Ban className="h-4 w-4 mr-2 text-red-500" />
+                <span>Block User</span>
+              </DropdownMenuItem>
+            )}
+            
+            <DropdownMenuItem onClick={handleReport}>
+              <Flag className="h-4 w-4 mr-2 text-amber-500" />
+              <span>Report User</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleOpenBlockDialog}>
-              <UserX2 className="h-4 w-4 mr-2" />
-              Block User
-            </DropdownMenuItem>
+            
+            {/* VIP-only options */}
+            {isVip && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>VIP Options</DropdownMenuLabel>
+                
+                <DropdownMenuItem onClick={handleOpenSharedMedia}>
+                  <Share className="h-4 w-4 mr-2 text-blue-500" />
+                  <span>Shared Media</span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem onClick={handleDeleteChat}>
+                  <Trash2 className="h-4 w-4 mr-2 text-red-500" />
+                  <span>Delete Conversation</span>
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
-      )}
+      </div>
       
-      <Button 
-        variant="ghost" 
-        size="icon"
-        onClick={onCloseChat}
-        title="Close Chat"
-      >
-        <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-      </Button>
-    </div>
+      {/* Block User Dialog */}
+      <BlockUserDialog
+        isOpen={showBlockDialog}
+        onClose={() => setShowBlockDialog(false)}
+        onConfirm={handleConfirmBlock}
+        userName={userName}
+      />
+      
+      {/* Shared Media Dialog - VIP only */}
+      {isVip && (
+        <SharedMediaDialog
+          isOpen={showSharedMediaDialog}
+          onClose={() => setShowSharedMediaDialog(false)}
+          media={getSharedMedia(userId)}
+          userName={userName}
+        />
+      )}
+    </>
   );
 };
 
