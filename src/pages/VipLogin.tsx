@@ -21,9 +21,14 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+// VIP test accounts
+const VIP_TEST_ACCOUNTS = [
+  { email: 'test@vip.com', password: 'vippass' }
+];
+
 const VipLogin = () => {
   const { toast } = useToast();
-  const { updateUserProfile } = useUser();
+  const { updateUserProfile, subscribeToVip } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   
@@ -38,12 +43,16 @@ const VipLogin = () => {
   const handleLogin = (values: LoginFormValues) => {
     setIsLoading(true);
     
+    // Check if the credentials match any of our test VIP accounts
+    const testAccount = VIP_TEST_ACCOUNTS.find(
+      account => account.email === values.email && account.password === values.password
+    );
+    
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
       
-      // This is just a simulation - in a real app, you would validate credentials
-      if (values.email.includes('@') && values.password.length >= 6) {
+      if (testAccount || (values.email.includes('@') && values.password.length >= 6)) {
         // Success case
         updateUserProfile({
           nickname: values.email.split('@')[0],
@@ -55,13 +64,16 @@ const VipLogin = () => {
           voiceMessagesRemaining: Infinity
         });
         
+        // Also call the subscribe function to ensure all VIP features are enabled
+        subscribeToVip('monthly');
+        
         toast({
           title: "Login Successful",
           description: "Welcome back to your VIP account!",
         });
         
         // Use window.location for navigation
-        window.location.href = '/vip-profile';
+        window.location.href = '/chat';
       } else {
         // Failed login
         form.setError('password', { 
@@ -165,6 +177,11 @@ const VipLogin = () => {
             </div>
           </CardFooter>
         </Card>
+
+        <div className="text-center text-sm text-muted-foreground mt-4">
+          <p>For testing, you can use:</p>
+          <p className="font-medium">test@vip.com / vippass</p>
+        </div>
       </div>
     </div>
   );

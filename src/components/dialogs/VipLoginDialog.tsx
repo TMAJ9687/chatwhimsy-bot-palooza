@@ -28,10 +28,15 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+// VIP test accounts
+const VIP_TEST_ACCOUNTS = [
+  { identifier: 'test@vip.com', password: 'vippass' }
+];
+
 const VipLoginDialog = () => {
   const { state, closeDialog, openDialog } = useDialog();
   const { toast } = useToast();
-  const { updateUserProfile } = useUser();
+  const { updateUserProfile, subscribeToVip } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   
@@ -43,25 +48,33 @@ const VipLoginDialog = () => {
     },
   });
 
-  // Mock login function - in a real app, this would connect to an API
+  // Login function with VIP test account support
   const handleLogin = (values: LoginFormValues) => {
     setIsLoading(true);
+    
+    // Check if the credentials match any of our test VIP accounts
+    const testAccount = VIP_TEST_ACCOUNTS.find(
+      account => account.identifier === values.identifier && account.password === values.password
+    );
     
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
       
-      // Test account credentials
-      if (values.identifier === 'test@vip.com' && values.password === 'vippass') {
-        // Success
+      if (testAccount) {
+        // Success - properly set up the VIP account with all required properties
         updateUserProfile({
-          email: 'test@vip.com',
+          email: values.identifier,
+          nickname: values.identifier.split('@')[0],
           isVip: true,
           subscriptionTier: 'monthly',
           subscriptionEndDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
           imagesRemaining: Infinity,
           voiceMessagesRemaining: Infinity
         });
+        
+        // Also call the subscribe function to ensure all VIP features are enabled
+        subscribeToVip('monthly');
         
         toast({
           title: "VIP Access Granted",
@@ -70,8 +83,13 @@ const VipLoginDialog = () => {
         
         closeDialog();
         
-        // Use window.location for navigation
-        window.location.href = '/vip-profile';
+        // Navigate to the proper VIP profile or chat
+        if (window.location.pathname === '/chat') {
+          // If already in chat, just reload to refresh VIP status
+          window.location.reload();
+        } else {
+          window.location.href = '/chat';
+        }
       } else {
         // Failed login
         form.setError('password', { 
