@@ -3,7 +3,7 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { useDialog } from '@/context/DialogContext';
-import { ChatProvider, useChat } from '@/context/ChatContext';
+import { useChat } from '@/context/ChatContext';
 import ChatHeader from './ChatHeader';
 import ChatMessages from './ChatMessages';
 import MessageInputBar from './MessageInputBar';
@@ -18,8 +18,7 @@ interface ChatInterfaceProps {
   onLogout: () => void;
 }
 
-// Main component that uses our new dialog context
-const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const { user, isVip } = useUser();
   const navigate = useNavigate();
   const { openDialog } = useDialog();
@@ -213,15 +212,6 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
         type="history"
       />
     </div>
-  );
-};
-
-// Create a wrapper component that provides the chat context
-const ChatInterface: React.FC<ChatInterfaceProps> = (props) => {
-  return (
-    <ChatProvider>
-      <ChatInterfaceContent {...props} />
-    </ChatProvider>
   );
 };
 
