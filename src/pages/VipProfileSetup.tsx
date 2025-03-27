@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { domRegistry } from '@/services/DOMRegistry';
+import { domRegistry } from '@/services/dom';
 
 const VipProfileSetup = () => {
   const { user, isVip, isProfileComplete, updateUserProfile } = useUser();
