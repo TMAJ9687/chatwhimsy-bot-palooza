@@ -13,6 +13,19 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Enhanced profile loading from localStorage
   useEffect(() => {
+    // Try to load user from localStorage if not already loaded
+    if (!user) {
+      const storedUser = localStorage.getItem('chatUser');
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+        } catch (error) {
+          console.error('Error parsing user data from localStorage:', error);
+        }
+      }
+    }
+    
     // If user is VIP, check localStorage for profile completion state
     if (user && user.isVip) {
       const storedProfileComplete = localStorage.getItem('vipProfileComplete') === 'true';
@@ -52,7 +65,13 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Memoized VIP status check
   const isVip = useMemo(() => 
-    Boolean(user?.isVip),
+    Boolean(user?.isVip) || Boolean(user?.isAdmin),
+    [user]
+  );
+  
+  // Memoized admin status check
+  const isAdmin = useMemo(() => 
+    Boolean(user?.isAdmin),
     [user]
   );
 
@@ -89,6 +108,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         profileSyncedRef.current = true;
       }
       
+      // Save updated user to localStorage
+      localStorage.setItem('chatUser', JSON.stringify(updatedUser));
+      
       // Use setTimeout to allow state updates to complete before releasing lock
       // Store the timeout reference so we can clear it later if needed
       profileUpdateTimeoutRef.current = setTimeout(() => {
@@ -111,6 +133,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
     // Clear profile completion status
     localStorage.removeItem('vipProfileComplete');
+    localStorage.removeItem('chatUser');
     profileSyncedRef.current = false;
   }, []);
 
@@ -124,6 +147,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     updateUserProfile,
     clearUser,
     isVip,
+    isAdmin,
     subscribeToVip,
     cancelVipSubscription
   }), [
@@ -132,7 +156,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isProfileComplete, 
     updateUserProfile, 
     clearUser, 
-    isVip, 
+    isVip,
+    isAdmin,
     subscribeToVip, 
     cancelVipSubscription
   ]);

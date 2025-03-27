@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,14 +8,24 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Lock, Mail } from "lucide-react";
 import PasswordResetDialog from '@/components/dialogs/PasswordResetDialog';
+import { useUser } from '@/context/UserContext';
+import { verifyAdminCredentials, setAdminLoggedIn } from '@/services/admin/adminService';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { setUser, user } = useUser();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  
+  // Check if already logged in as admin
+  useEffect(() => {
+    if (user?.isAdmin) {
+      navigate('/admin-dashboard');
+    }
+  }, [user, navigate]);
   
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,8 +33,26 @@ const AdminLogin = () => {
     
     // In a real app, this would validate against an API
     setTimeout(() => {
-      // Hardcoded admin credentials for demo purposes only
-      if (email === 'admin@example.com' && password === 'admin123') {
+      if (verifyAdminCredentials(email, password)) {
+        // Create admin user profile
+        setUser({
+          id: 'admin-user',
+          nickname: 'Admin',
+          email: email,
+          gender: 'male',
+          age: 30,
+          country: 'US',
+          interests: ['Administration'],
+          isVip: true,
+          isAdmin: true,
+          subscriptionTier: 'none',
+          imagesRemaining: Infinity,
+          voiceMessagesRemaining: Infinity
+        });
+        
+        // Set admin as logged in
+        setAdminLoggedIn(true);
+        
         toast({
           title: "Login successful",
           description: "Welcome to the admin dashboard",

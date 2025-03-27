@@ -16,14 +16,17 @@ export type VipFeature =
 
 // Constants for VIP and standard users
 export const VIP_CHAR_LIMIT = 200;
+export const ADMIN_CHAR_LIMIT = 500; // Admins get an extended character limit
 export const STANDARD_CHAR_LIMIT = 120;
 export const STANDARD_IMAGE_LIMIT = 15;
 export const VIP_VOICE_MESSAGE_LIMIT = 120; // 2 minutes * 60 seconds
+export const ADMIN_VOICE_MESSAGE_LIMIT = 300; // 5 minutes * 60 seconds
 
 export const useVipFeatures = () => {
-  const { isVip, user } = useUser();
+  const { isVip, isAdmin, user } = useUser();
   
   const hasFeature = (feature: VipFeature): boolean => {
+    if (isAdmin) return true; // Admins have all features
     if (!isVip) return false;
     
     // All VIP users have all features for now
@@ -31,21 +34,29 @@ export const useVipFeatures = () => {
   };
   
   const getImagesRemaining = (): number => {
+    if (isAdmin) return Infinity; // Admin has unlimited
     if (isVip) return Infinity;
     return user?.imagesRemaining || STANDARD_IMAGE_LIMIT;
   };
   
   const getVoiceMessagesRemaining = (): number => {
+    if (isAdmin) return ADMIN_VOICE_MESSAGE_LIMIT;
     if (!isVip) return 0;
     return user?.voiceMessagesRemaining || VIP_VOICE_MESSAGE_LIMIT;
   };
   
   const getCharacterLimit = (): number => {
+    if (isAdmin) return ADMIN_CHAR_LIMIT;
     return isVip ? VIP_CHAR_LIMIT : STANDARD_CHAR_LIMIT;
   };
   
   // Check if a file is an allowed image type (including GIFs for VIP users)
   const isAllowedImageType = (file: File): boolean => {
+    if (isAdmin) {
+      // Admins can upload any image type
+      return file.type.startsWith('image/');
+    }
+    
     if (isVip) {
       // VIP users can upload standard images and GIFs
       return file.type.startsWith('image/');
@@ -58,6 +69,9 @@ export const useVipFeatures = () => {
   // Validate if consecutive characters match the rules
   const validateConsecutiveChars = (text: string): boolean => {
     if (!text) return true;
+    
+    // Admins can bypass character validation
+    if (isAdmin) return true;
     
     // For VIP users: no more than 3 consecutive identical numbers and 6 consecutive letters
     if (isVip) {
@@ -81,13 +95,14 @@ export const useVipFeatures = () => {
     }
   };
   
-  // Check if VIP users should automatically bypass rules
+  // Check if VIP/admin users should automatically bypass rules
   const shouldBypassRules = (): boolean => {
-    return isVip;
+    return isVip || isAdmin;
   };
   
   return {
     isVip,
+    isAdmin,
     hasFeature,
     getImagesRemaining,
     getVoiceMessagesRemaining,
