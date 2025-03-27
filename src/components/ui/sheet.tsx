@@ -20,13 +20,20 @@ const SheetOverlay = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
 >(({ className, ...props }, ref) => {
   // Use our safe DOM operations
-  const { safeRemoveElement } = useSafeDOMOperations();
+  const { safeRemoveElement, registerNode } = useSafeDOMOperations();
   const overlayRef = React.useRef<HTMLDivElement | null>(null);
   
   // Connect the forwarded ref with our local ref
   React.useImperativeHandle(ref, () => {
     return overlayRef.current as HTMLDivElement;
   }, [overlayRef.current]);
+  
+  // Register the overlay element when it's created
+  React.useEffect(() => {
+    if (overlayRef.current) {
+      registerNode(overlayRef.current);
+    }
+  }, [registerNode]);
   
   // Cleanup this specific overlay when unmounting
   React.useEffect(() => {
@@ -80,7 +87,20 @@ const SheetContent = React.forwardRef<
   SheetContentProps
 >(({ side = "right", className, children, ...props }, ref) => {
   // Use safe DOM operations hook
-  const { cleanupOverlays } = useSafeDOMOperations();
+  const { cleanupOverlays, registerNode } = useSafeDOMOperations();
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
+  
+  // Connect our ref to the forwarded ref
+  React.useImperativeHandle(ref, () => {
+    return contentRef.current as HTMLDivElement;
+  }, [contentRef.current]);
+  
+  // Register the content element when it's created
+  React.useEffect(() => {
+    if (contentRef.current) {
+      registerNode(contentRef.current);
+    }
+  }, [registerNode]);
   
   // Improved cleanup effect
   React.useEffect(() => {
@@ -102,7 +122,7 @@ const SheetContent = React.forwardRef<
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Content
-        ref={ref}
+        ref={contentRef}
         className={cn(sheetVariants({ side }), className)}
         {...props}
         onCloseAutoFocus={(e) => {

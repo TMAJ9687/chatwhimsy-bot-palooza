@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useDialog } from '@/context/DialogContext';
 import {
   AlertDialog,
@@ -11,20 +11,29 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useDialogCleanup } from '@/hooks/useDialogCleanup';
 
 const LogoutConfirmationDialog = () => {
   const { state, closeDialog } = useDialog();
+  const { handleDialogClose } = useDialogCleanup();
   const { onConfirm } = state.data;
 
-  const handleConfirm = () => {
+  const handleSafeClose = useCallback(() => {
+    handleDialogClose(closeDialog);
+  }, [closeDialog, handleDialogClose]);
+
+  const handleConfirm = useCallback(() => {
     if (onConfirm && typeof onConfirm === 'function') {
       onConfirm();
     }
-    closeDialog();
-  };
+    handleSafeClose();
+  }, [onConfirm, handleSafeClose]);
 
   return (
-    <AlertDialog open={state.isOpen && state.type === 'logout'} onOpenChange={closeDialog}>
+    <AlertDialog 
+      open={state.isOpen && state.type === 'logout'} 
+      onOpenChange={(open) => !open && handleSafeClose()}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Leaving so soon?</AlertDialogTitle>

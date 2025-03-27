@@ -1,5 +1,5 @@
 
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 import { Button } from '../ui/button';
 import { useDialog } from '@/context/DialogContext';
 import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
+import { useDialogCleanup } from '@/hooks/useDialogCleanup';
 
 // Memoized dialog content component to prevent unnecessary re-renders
 const AlertDialogContent = memo(({
@@ -64,39 +65,21 @@ AlertDialogContent.displayName = 'AlertDialogContent';
 
 const AlertDialogComponent = () => {
   const { state, closeDialog } = useDialog();
-  const isClosingRef = useRef(false);
-  const { cleanupOverlays } = useSafeDOMOperations();
+  const { handleDialogClose, isClosingRef } = useDialogCleanup();
   
   const isOpen = state.isOpen && state.type === 'alert';
   
-  // Safer close method
+  // Safer close method using our hook
   const handleClose = useCallback(() => {
-    if (isClosingRef.current) return;
-    isClosingRef.current = true;
-    
-    // Use queueMicrotask for reliable timing
-    queueMicrotask(() => {
-      // Close the dialog first
-      closeDialog();
-      
-      // Then clean up overlays after a short delay
-      setTimeout(() => {
-        cleanupOverlays();
-        
-        // Reset closing state after everything is done
-        setTimeout(() => {
-          isClosingRef.current = false;
-        }, 100);
-      }, 50);
-    });
-  }, [closeDialog, cleanupOverlays]);
+    handleDialogClose(closeDialog);
+  }, [closeDialog, handleDialogClose]);
   
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       isClosingRef.current = true;
     };
-  }, []);
+  }, [isClosingRef]);
   
   if (!isOpen) return null;
 

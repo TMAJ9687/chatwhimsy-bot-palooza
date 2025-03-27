@@ -15,7 +15,10 @@ import VipSelectDialog from './VipSelectDialog';
 import ConfirmDialog from './ConfirmDialog';
 import AlertDialogComponent from './AlertDialog';
 
-// This component renders the appropriate dialog based on the current dialog state
+/**
+ * This component renders the appropriate dialog based on the current dialog state
+ * Each dialog component is lazily rendered only when needed
+ */
 const DialogContainer = () => {
   const { state } = useDialog();
   

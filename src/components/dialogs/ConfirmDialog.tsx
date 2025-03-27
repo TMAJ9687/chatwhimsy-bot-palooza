@@ -12,6 +12,7 @@ import {
 } from '../ui/alert-dialog';
 import { Button } from '../ui/button';
 import { useDialog } from '@/context/DialogContext';
+import { useDialogCleanup } from '@/hooks/useDialogCleanup';
 
 // Memoized dialog content component for better performance
 const ConfirmDialogContent = memo(({
@@ -51,6 +52,7 @@ ConfirmDialogContent.displayName = 'ConfirmDialogContent';
 
 const ConfirmDialog = () => {
   const { state, closeDialog } = useDialog();
+  const { handleDialogClose } = useDialogCleanup();
   
   // Only destructure when needed
   const isOpen = state.isOpen && state.type === 'confirm';
@@ -59,23 +61,27 @@ const ConfirmDialog = () => {
 
   const { title, message, onConfirm } = state.data;
 
+  const handleSafeClose = () => {
+    handleDialogClose(closeDialog);
+  };
+
   const handleConfirm = () => {
     if (typeof onConfirm === 'function') {
       // Use requestAnimationFrame to prevent UI freeze
       requestAnimationFrame(() => {
         onConfirm();
-        closeDialog();
+        handleSafeClose();
       });
     }
   };
 
   return (
-    <AlertDialog open={true} onOpenChange={(open) => !open && closeDialog()}>
+    <AlertDialog open={true} onOpenChange={(open) => !open && handleSafeClose()}>
       <ConfirmDialogContent
         title={title}
         message={message}
         onConfirm={handleConfirm}
-        onCancel={closeDialog}
+        onCancel={handleSafeClose}
       />
     </AlertDialog>
   );

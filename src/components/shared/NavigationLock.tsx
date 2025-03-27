@@ -1,64 +1,20 @@
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
-import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
-import { domRegistry } from '@/services/DOMRegistry';
+import { useNavigationCleanup } from '@/hooks/useNavigationCleanup';
+import { useErrorCleaner } from '@/hooks/useErrorCleaner';
 
-// This component helps prevent navigation issues by cleaning up any stale state
-// or UI elements that might interfere with smooth transitions between pages
+/**
+ * This component helps prevent navigation issues by cleaning up any stale state
+ * or UI elements that might interfere with smooth transitions between pages
+ */
 const NavigationLock: React.FC = () => {
   const location = useLocation();
   const navigationType = useNavigationType();
-  const cleanupAttemptRef = useRef(false);
-  const lastCleanupTimeRef = useRef(0);
-  const cleanupTimeoutsRef = useRef<number[]>([]);
-  const navigationInProgressRef = useRef(false);
+  const { cleanupUI, cleanupTimeoutsRef, navigationInProgressRef } = useNavigationCleanup();
   
-  // Use our enhanced safe DOM operations hook
-  const { cleanupOverlays, isDOMReady } = useSafeDOMOperations();
-
-  // Enhanced DOM cleanup utility with debouncing and safeguards
-  const cleanupUI = useCallback(() => {
-    if (!isDOMReady()) return;
-    
-    const now = Date.now();
-    // Debounce cleanup attempts that happen too quickly
-    if (cleanupAttemptRef.current || (now - lastCleanupTimeRef.current < 200)) return;
-    
-    cleanupAttemptRef.current = true;
-    lastCleanupTimeRef.current = now;
-    
-    try {
-      // Clear any stale timeouts
-      cleanupTimeoutsRef.current.forEach(id => window.clearTimeout(id));
-      cleanupTimeoutsRef.current = [];
-      
-      // Reset body scroll
-      if (document.body) {
-        document.body.style.overflow = 'auto';
-        document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-      }
-      
-      // Use our safe overlay cleanup after a short delay
-      const timeoutId = window.setTimeout(() => {
-        domRegistry.cleanupOverlays();
-      }, 50);
-      
-      cleanupTimeoutsRef.current.push(timeoutId);
-      
-      // Clear any navigation locks
-      localStorage.removeItem('vipNavigationInProgress');
-      navigationInProgressRef.current = false;
-    } catch (error) {
-      console.warn('Error during UI cleanup:', error);
-    } finally {
-      // Reset the cleanup attempt flag after a short delay
-      const timeoutId = window.setTimeout(() => {
-        cleanupAttemptRef.current = false;
-      }, 300);
-      cleanupTimeoutsRef.current.push(timeoutId);
-    }
-  }, [cleanupOverlays, isDOMReady]);
+  // Register error handler to catch and clean up DOM errors
+  useErrorCleaner(cleanupUI);
   
   // Watch for route changes to clean up UI with improved timing
   useEffect(() => {
@@ -97,7 +53,7 @@ const NavigationLock: React.FC = () => {
       // Clean up when component unmounts or before route change
       cleanupUI();
     };
-  }, [location.pathname, navigationType, cleanupUI]);
+  }, [location.pathname, navigationType, cleanupUI, cleanupTimeoutsRef, navigationInProgressRef]);
 
   // Clean up on component mount and unmount
   useEffect(() => {
@@ -111,40 +67,12 @@ const NavigationLock: React.FC = () => {
     cleanupTimeoutsRef.current.push(delayedCleanup);
     
     return () => {
-      // Clear all timeouts on component unmount
-      cleanupTimeoutsRef.current.forEach(id => window.clearTimeout(id));
-      cleanupTimeoutsRef.current = [];
-      
       // Final cleanup when unmounting
       queueMicrotask(() => {
         cleanupUI();
       });
     };
-  }, [cleanupUI]);
-
-  // Listen for potential errors that might indicate DOM issues
-  useEffect(() => {
-    const handleError = (error: ErrorEvent) => {
-      if (error.message && (
-        error.message.includes('removeChild') || 
-        error.message.includes('parentNode') || 
-        error.message.includes('Cannot read properties of null')
-      )) {
-        console.warn('DOM error detected, running cleanup:', error.message);
-        
-        // Use setTimeout to avoid potential event loop congestion
-        setTimeout(() => {
-          cleanupUI();
-        }, 0);
-      }
-    };
-    
-    window.addEventListener('error', handleError);
-    
-    return () => {
-      window.removeEventListener('error', handleError);
-    };
-  }, [cleanupUI]);
+  }, [cleanupUI, cleanupTimeoutsRef]);
 
   // This is a utility component - it doesn't render anything
   return null;

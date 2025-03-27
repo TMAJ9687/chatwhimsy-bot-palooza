@@ -1,10 +1,10 @@
 
 import { useEffect, useCallback, useRef } from 'react';
-import { domRegistry } from '@/services/DOMRegistry';
+import { domRegistry } from '@/services/dom';
 
 /**
  * A hook that provides safe DOM operations with additional checks and protections
- * against the "Failed to execute 'removeChild' on 'Node'" error
+ * against common DOM manipulation errors
  */
 export const useSafeDOMOperations = () => {
   const unmountedRef = useRef(false);
