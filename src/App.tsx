@@ -18,7 +18,6 @@ import { useEffect, useState } from "react";
 import { DialogProvider } from "./context/DialogContext";
 import DialogContainer from "./components/dialogs/DialogContainer";
 import { UserProvider } from "./context/UserContext";
-import { ChatProvider } from "./context/ChatContext";
 
 const queryClient = new QueryClient();
 
@@ -44,30 +43,28 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <BrowserRouter>
-          <UserProvider>
+        <UserProvider>
+          <BrowserRouter>
             <DialogProvider>
-              <ChatProvider>
-                <MainLayout>
-                  <Toaster />
-                  <Sonner />
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
-                    <Route path="/vip-profile" element={<VipProfileSetup />} />
-                    <Route path="/vip-signup" element={<VipSignup />} />
-                    <Route path="/vip-login" element={<VipLogin />} />
-                    <Route path="/vip-subscription" element={<VipSubscription />} />
-                    <Route path="/vip-payment" element={<VipPayment />} />
-                    <Route path="/vip-confirmation" element={<VipConfirmation />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                  <DialogContainer />
-                </MainLayout>
-              </ChatProvider>
+              <MainLayout>
+                <Toaster />
+                <Sonner />
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
+                  <Route path="/vip-profile" element={<VipProfileSetup />} />
+                  <Route path="/vip-signup" element={<VipSignup />} />
+                  <Route path="/vip-login" element={<VipLogin />} />
+                  <Route path="/vip-subscription" element={<VipSubscription />} />
+                  <Route path="/vip-payment" element={<VipPayment />} />
+                  <Route path="/vip-confirmation" element={<VipConfirmation />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+                <DialogContainer />
+              </MainLayout>
             </DialogProvider>
-          </UserProvider>
-        </BrowserRouter>
+          </BrowserRouter>
+        </UserProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

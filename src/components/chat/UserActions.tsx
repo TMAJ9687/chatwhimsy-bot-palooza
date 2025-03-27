@@ -34,7 +34,7 @@ const UserActions = ({
 }: UserActionsProps) => {
   const { openDialog } = useDialog();
   const { isVip } = useUser();
-  const { getSharedMedia, handleDeleteConversation, handleTranslateMessage } = useChat();
+  const { getSharedMedia, handleDeleteConversation } = useChat();
   
   const [showSharedMediaDialog, setShowSharedMediaDialog] = useState(false);
   const [showTranslateDialog, setShowTranslateDialog] = useState(false);
@@ -63,13 +63,15 @@ const UserActions = ({
     setShowSharedMediaDialog(true);
   };
 
-  const handleOpenTranslateDialog = (messageId: string) => {
+  const handleTranslateMessage = (messageId: string) => {
     setSelectedMessageId(messageId);
     setShowTranslateDialog(true);
   };
 
   const handleTranslate = (language: string) => {
     if (selectedMessageId) {
+      // Get the last message ID as a fallback
+      const { handleTranslateMessage } = useChat();
       handleTranslateMessage(selectedMessageId, language);
       setSelectedMessageId(null);
     }
