@@ -15,6 +15,8 @@ import VipSubscription from "./pages/VipSubscription";
 import VipPayment from "./pages/VipPayment";
 import VipConfirmation from "./pages/VipConfirmation";
 import Feedback from "./pages/Feedback";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
 import { useEffect, useState } from "react";
 import { DialogProvider } from "./context/DialogContext";
 import DialogContainer from "./components/dialogs/DialogContainer";
@@ -128,6 +130,9 @@ const App = () => {
                     <Route path="/vip-payment" element={<VipPayment />} />
                     <Route path="/vip-confirmation" element={<VipConfirmation />} />
                     <Route path="/feedback" element={<Feedback />} />
+                    {/* Admin routes */}
+                    <Route path="/admin" element={<AdminLogin />} />
+                    <Route path="/admin-dashboard" element={<AdminDashboard />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                   <DialogContainer />
