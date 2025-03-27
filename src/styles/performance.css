@@ -28,7 +28,44 @@
   contain: content;
 }
 
-/* Prevent GPU acceleration issues */
+/* Hardware acceleration */
 .hardware-accelerated {
   transform: translate3d(0, 0, 0);
+}
+
+/* Dialog content optimizations - NEW */
+[data-radix-dialog-content] {
+  transform: translateZ(0);
+  contain: layout;
+  will-change: transform, opacity;
+}
+
+/* Image optimizations - NEW */
+.chat-image {
+  content-visibility: auto;
+  contain-intrinsic-size: 400px;
+}
+
+/* Virtualization containers - NEW */
+.virtual-scroll-container {
+  contain: strict;
+  will-change: transform;
+}
+
+/* Animation optimizations - NEW */
+.optimize-animation {
+  will-change: transform, opacity;
+  transition-property: transform, opacity;
+}
+
+/* List item optimizations - NEW */
+.list-item {
+  contain: layout;
+  will-change: transform;
+}
+
+/* Rendering optimizations for large lists - NEW */
+.optimize-rendering {
+  contain: content;
+  content-visibility: auto;
 }

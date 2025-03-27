@@ -28,6 +28,10 @@ const queryClient = new QueryClient({
       retry: 1,
       staleTime: 30000,
       refetchOnWindowFocus: false,
+      // Improve performance with structural sharing
+      structuralSharing: true,
+      // Add caching for better performance
+      gcTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 });
@@ -35,24 +39,47 @@ const queryClient = new QueryClient({
 const App = () => {
   const [hasLoggedOut, setHasLoggedOut] = useState(false);
 
-  // Initialize performance monitoring
+  // Initialize performance monitoring with more detailed options
   useEffect(() => {
     initPerformanceMonitoring();
+    
+    // Log when app becomes visible/hidden (potential freeze point)
+    const handleVisibilityChange = () => {
+      performance.mark(`visibility_${document.visibilityState}`);
+      console.info(`App visibility changed to: ${document.visibilityState}`);
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Track initial load performance
+    performance.mark('app_load_start');
+    window.addEventListener('load', () => {
+      performance.mark('app_load_end');
+      performance.measure('App Load Time', 'app_load_start', 'app_load_end');
+    });
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
-  // Handle logout action
+  // Handle logout action with requestAnimationFrame for better performance
   const handleLogout = () => {
     setHasLoggedOut(true);
-    // Add a brief delay before navigating to ensure state updates
-    setTimeout(() => {
+    // Use requestAnimationFrame for smoother UI
+    requestAnimationFrame(() => {
       window.location.href = '/';
-    }, 100);
+    });
   };
 
   // Reset logout state when returning to the app
   useEffect(() => {
     if (hasLoggedOut && window.location.pathname === '/') {
-      setHasLoggedOut(false);
+      // Delay state update for better performance
+      const timer = setTimeout(() => {
+        setHasLoggedOut(false);
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [hasLoggedOut]);
 

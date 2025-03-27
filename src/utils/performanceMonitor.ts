@@ -44,6 +44,29 @@ export const initPerformanceMonitoring = (): void => {
     // Register observer for measures
     measureObserver.observe({ entryTypes: ['measure'] });
 
+    // NEW: Create observer for frame rates
+    if ('PerformanceObserver' in window && 'supportedEntryTypes' in PerformanceObserver) {
+      if (PerformanceObserver.supportedEntryTypes.includes('frame')) {
+        const frameObserver = new PerformanceObserver((list) => {
+          const frames = list.getEntries();
+          // Look for dropped frames (large gaps)
+          frames.forEach((frame, i) => {
+            if (i > 0) {
+              const previousFrame = frames[i - 1];
+              const gap = frame.startTime - previousFrame.startTime;
+              if (gap > 50) { // More than 50ms between frames (< 20fps)
+                console.warn('Frame drop detected:', {
+                  gap: Math.round(gap),
+                  timestamp: frame.startTime
+                });
+              }
+            }
+          });
+        });
+        frameObserver.observe({ entryTypes: ['frame'] });
+      }
+    }
+
     console.info('Performance monitoring initialized');
   } catch (error) {
     console.error('Error initializing performance monitoring:', error);
@@ -60,6 +83,65 @@ export const trackEvent = (eventName: string, callback: () => void): void => {
     `${eventName}_start`,
     `${eventName}_end`
   );
+};
+
+// NEW: Track async operations
+export const trackAsyncOperation = async <T>(
+  operationName: string, 
+  asyncCallback: () => Promise<T>
+): Promise<T> => {
+  performance.mark(`${operationName}_start`);
+  try {
+    const result = await asyncCallback();
+    performance.mark(`${operationName}_end`);
+    performance.measure(
+      `Async: ${operationName}`,
+      `${operationName}_start`,
+      `${operationName}_end`
+    );
+    return result;
+  } catch (error) {
+    performance.mark(`${operationName}_error`);
+    performance.measure(
+      `Async Error: ${operationName}`,
+      `${operationName}_start`,
+      `${operationName}_error`
+    );
+    throw error;
+  }
+};
+
+// NEW: Debounce function to prevent excessive operations
+export const debounce = <T extends (...args: any[]) => void>(
+  func: T,
+  wait: number
+): ((...args: Parameters<T>) => void) => {
+  let timeout: number | null = null;
+  
+  return (...args: Parameters<T>): void => {
+    if (timeout !== null) {
+      window.clearTimeout(timeout);
+    }
+    timeout = window.setTimeout(() => func(...args), wait);
+  };
+};
+
+// NEW: Memoize function for caching expensive calculations
+export const memoize = <T extends (...args: any[]) => any>(
+  fn: T
+): ((...args: Parameters<T>) => ReturnType<T>) => {
+  const cache = new Map<string, ReturnType<T>>();
+  
+  return (...args: Parameters<T>): ReturnType<T> => {
+    const key = JSON.stringify(args);
+    if (cache.has(key)) {
+      return cache.get(key)!;
+    }
+    
+    const result = fn(...args);
+    cache.set(key, result);
+    return result;
+  };
 };
 
 // Clear all performance marks and measures

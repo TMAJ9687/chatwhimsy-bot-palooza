@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, memo, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 import { Button } from '../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { debounce } from '@/utils/performanceMonitor';
 
 const LANGUAGES = [
   { code: 'en', name: 'English' },
@@ -46,7 +47,7 @@ const DialogContentComponent = memo(({
   onClose: () => void;
   onTranslate: () => void;
 }) => (
-  <DialogContent className="sm:max-w-[400px]">
+  <DialogContent className="sm:max-w-[400px] hardware-accelerated">
     <DialogHeader>
       <DialogTitle>Translate Message</DialogTitle>
       <DialogDescription>
@@ -61,7 +62,7 @@ const DialogContentComponent = memo(({
         </SelectTrigger>
         <SelectContent>
           {LANGUAGES.map((language) => (
-            <SelectItem key={language.code} value={language.code}>
+            <SelectItem key={language.code} value={language.code} className="list-item">
               {language.name}
             </SelectItem>
           ))}
@@ -90,34 +91,84 @@ const TranslateMessageDialog: React.FC<TranslateMessageDialogProps> = ({
   const [targetLanguage, setTargetLanguage] = useState('en');
   const { toast } = useToast();
 
-  // Use performance markers to track translation operations
-  const markTranslationOperation = useCallback(() => {
-    performance.mark('translation_start');
+  // Use a ref to avoid recreating the handler on each render
+  const requestRef = React.useRef<number | null>(null);
+
+  // Reset dialog state when it opens
+  useEffect(() => {
+    if (isOpen) {
+      setTargetLanguage('en');
+      
+      // Performance monitoring
+      performance.mark('translate_dialog_open');
+      
+      return () => {
+        performance.mark('translate_dialog_close');
+        performance.measure('Translation Dialog Session', 'translate_dialog_open', 'translate_dialog_close');
+        
+        // Clean up any pending animation frames
+        if (requestRef.current !== null) {
+          cancelAnimationFrame(requestRef.current);
+          requestRef.current = null;
+        }
+      };
+    }
+  }, [isOpen]);
+
+  // Debounced translate operation to prevent UI freeze
+  const debouncedToast = useCallback(
+    debounce((title: string, description: string) => {
+      toast({ title, description });
+    }, 100),
+    [toast]
+  );
+
+  // Optimized translation handler with requestAnimationFrame
+  const handleTranslate = useCallback(() => {
+    if (requestRef.current !== null) {
+      cancelAnimationFrame(requestRef.current);
+    }
     
-    const languageName = LANGUAGES.find(l => l.code === targetLanguage)?.name;
+    performance.mark('translation_action_start');
     
-    // Use requestAnimationFrame to prevent UI freeze
-    requestAnimationFrame(() => {
+    // Execute translation in the next animation frame
+    requestRef.current = requestAnimationFrame(() => {
+      requestRef.current = null;
+      
+      const languageName = LANGUAGES.find(l => l.code === targetLanguage)?.name;
+      
       onTranslate(targetLanguage);
       
-      toast({
-        title: 'Translation requested',
-        description: `Message will be translated to ${languageName}.`,
-      });
+      debouncedToast(
+        'Translation requested',
+        `Message will be translated to ${languageName}.`
+      );
       
       onClose();
       
-      performance.mark('translation_end');
-      performance.measure('Translation Operation', 'translation_start', 'translation_end');
+      performance.mark('translation_action_end');
+      performance.measure(
+        'Translation Action',
+        'translation_action_start',
+        'translation_action_end'
+      );
     });
-  }, [targetLanguage, onTranslate, toast, onClose]);
+  }, [targetLanguage, onTranslate, debouncedToast, onClose]);
 
   // Optimized close handler
   const handleClose = useCallback(() => {
-    requestAnimationFrame(() => {
+    if (requestRef.current !== null) {
+      cancelAnimationFrame(requestRef.current);
+    }
+    
+    requestRef.current = requestAnimationFrame(() => {
+      requestRef.current = null;
       onClose();
     });
   }, [onClose]);
+
+  // Don't render if not open to save resources
+  if (!isOpen) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -125,7 +176,7 @@ const TranslateMessageDialog: React.FC<TranslateMessageDialogProps> = ({
         targetLanguage={targetLanguage}
         setTargetLanguage={setTargetLanguage}
         onClose={handleClose}
-        onTranslate={markTranslationOperation}
+        onTranslate={handleTranslate}
       />
     </Dialog>
   );
