@@ -1,5 +1,5 @@
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,18 @@ const AlertDialogContent = memo(({
   message: string;
   onClose: () => void;
 }) => {
+  // Automatically clean up any DOM issues when unmounting
+  useEffect(() => {
+    return () => {
+      try {
+        // Safe cleanup when dialog closes
+        document.body.style.overflow = 'auto';
+      } catch (error) {
+        console.warn('Error during alert dialog cleanup:', error);
+      }
+    };
+  }, []);
+
   return (
     <DialogContent className="sm:max-w-[425px]">
       <DialogHeader>
@@ -41,10 +53,19 @@ const AlertDialogComponent = () => {
   
   const isOpen = state.isOpen && state.type === 'alert';
   
-  // Optimization: use requestAnimationFrame for smoother closing
+  // Optimization: use requestAnimationFrame for smoother closing with safety checks
   const handleClose = useCallback(() => {
+    // Ensure body scrolling is restored
+    document.body.style.overflow = 'auto';
+    
     requestAnimationFrame(() => {
-      closeDialog();
+      try {
+        closeDialog();
+      } catch (error) {
+        console.warn('Error closing dialog:', error);
+        // Force close as fallback
+        closeDialog();
+      }
     });
   }, [closeDialog]);
   

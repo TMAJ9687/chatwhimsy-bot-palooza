@@ -10,7 +10,7 @@ const NavigationLock: React.FC = () => {
   const cleanupAttemptRef = useRef(false);
   const lastCleanupTimeRef = useRef(0);
 
-  // Enhanced DOM cleanup utility with debouncing to avoid excessive cleanups
+  // Enhanced DOM cleanup utility with proper error handling and DOM element checks
   const cleanupUI = () => {
     const now = Date.now();
     // Debounce cleanup attempts that happen too quickly
@@ -19,32 +19,40 @@ const NavigationLock: React.FC = () => {
     cleanupAttemptRef.current = true;
     lastCleanupTimeRef.current = now;
     
-    // Ensure body scroll is restored
-    document.body.style.overflow = 'auto';
-    document.body.classList.remove('overflow-hidden');
-    
-    // Remove any leftover modal backdrops with safer DOM manipulation
-    const modals = document.querySelectorAll('.fixed.inset-0');
-    modals.forEach(modal => {
-      if (modal.parentNode) {
-        try {
-          modal.parentNode.removeChild(modal);
-        } catch (error) {
-          console.warn('Error removing modal:', error);
+    try {
+      // Ensure body scroll is restored
+      document.body.style.overflow = 'auto';
+      document.body.classList.remove('overflow-hidden');
+      
+      // Remove any leftover modal backdrops with safer DOM manipulation
+      const modals = document.querySelectorAll('.fixed.inset-0');
+      modals.forEach(modal => {
+        // Check if modal exists and has a parent before attempting removal
+        if (modal && modal.parentNode) {
+          try {
+            // Verify the element is actually a child before removing
+            if (modal.parentNode.contains(modal)) {
+              modal.parentNode.removeChild(modal);
+            }
+          } catch (error) {
+            console.warn('Error removing modal:', error);
+          }
         }
-      }
-    });
-    
-    // Clear dialog-related classes from the body
-    document.body.classList.remove('modal-open');
-    
-    // Remove any locks that might be active
-    localStorage.removeItem('vipNavigationInProgress');
-    
-    // Reset the cleanup attempt flag after a short delay
-    setTimeout(() => {
-      cleanupAttemptRef.current = false;
-    }, 500);
+      });
+      
+      // Clear dialog-related classes from the body
+      document.body.classList.remove('modal-open');
+      
+      // Remove any locks that might be active
+      localStorage.removeItem('vipNavigationInProgress');
+    } catch (error) {
+      console.warn('Error during UI cleanup:', error);
+    } finally {
+      // Reset the cleanup attempt flag after a short delay
+      setTimeout(() => {
+        cleanupAttemptRef.current = false;
+      }, 500);
+    }
   };
   
   // Watch for route changes to clean up UI
