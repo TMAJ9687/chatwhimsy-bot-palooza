@@ -152,7 +152,6 @@ const AlertDialogComponent = () => {
 
   return (
     <Dialog 
-      ref={dialogRef}
       open={true} 
       onOpenChange={(open) => !open && handleClose()}
       modal={true}
