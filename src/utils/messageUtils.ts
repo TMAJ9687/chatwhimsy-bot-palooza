@@ -1,9 +1,9 @@
 
 import { toast } from "@/hooks/use-toast";
-import { MAX_CHAR_LIMIT, VIP_CHAR_LIMIT, CONSECUTIVE_LIMIT, CONSECUTIVE_LETTERS_LIMIT } from "@/types/chat";
+import { MAX_CHAR_LIMIT, VIP_CHAR_LIMIT, CONSECUTIVE_LIMIT, CONSECUTIVE_LETTERS_LIMIT, MAX_VOICE_LENGTH } from "@/types/chat";
 
 // Re-export the constants so they can be imported from this file
-export { MAX_CHAR_LIMIT, VIP_CHAR_LIMIT, CONSECUTIVE_LIMIT, CONSECUTIVE_LETTERS_LIMIT };
+export { MAX_CHAR_LIMIT, VIP_CHAR_LIMIT, CONSECUTIVE_LIMIT, CONSECUTIVE_LETTERS_LIMIT, MAX_VOICE_LENGTH };
 
 export const validateImageFile = (file: File, isVip: boolean = false): { valid: boolean; message?: string } => {
   // Check file type
