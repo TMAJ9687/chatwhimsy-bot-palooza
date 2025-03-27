@@ -32,60 +32,102 @@ const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
+  const unmountingRef = React.useRef(false);
+  const cleanupAttemptTimeRef = React.useRef(0);
+  const cleanupTimeoutsRef = React.useRef<number[]>([]);
+  
+  // Helper to safely remove element
+  const safeRemoveElement = React.useCallback((element: Element) => {
+    if (element && element.parentNode && element.parentNode.contains(element)) {
+      try {
+        // Double check parent relationship right before removal to prevent race conditions
+        if (element.parentNode.contains(element)) {
+          element.parentNode.removeChild(element);
+        }
+      } catch (error) {
+        // Just log the error, don't throw - we want to continue with other cleanup
+        console.warn('Safe element removal failed:', error);
+      }
+    }
+  }, []);
+  
   // Add improved cleanup effect with safety checks
   React.useEffect(() => {
+    // Mark dialog as open
     const timeoutId = setTimeout(() => {
       if (document.body) {
-        // Add a class to indicate this dialog is open
         document.body.classList.add('dialog-open');
       }
     }, 0);
     
+    cleanupTimeoutsRef.current.push(timeoutId as unknown as number);
+    
     return () => {
+      // Prevent concurrent cleanup operations
+      const now = Date.now();
+      if ((now - cleanupAttemptTimeRef.current) < 100) {
+        return; // Skip if we just attempted cleanup
+      }
+      
+      cleanupAttemptTimeRef.current = now;
+      unmountingRef.current = true;
+      
+      // Clear all timeouts first
+      cleanupTimeoutsRef.current.forEach(id => window.clearTimeout(id));
+      cleanupTimeoutsRef.current = [];
+      
+      // Clear the dialog marker timeout
       clearTimeout(timeoutId);
       
       try {
         // Use requestAnimationFrame to ensure DOM is ready for manipulation
-        requestAnimationFrame(() => {
+        const rafId = requestAnimationFrame(() => {
           // Only cleanup if document exists (prevent errors in SSR or test environments)
-          if (document && document.body) {
-            // Ensure body scroll is restored when dialog is closed
-            document.body.style.overflow = 'auto';
-            document.body.classList.remove('overflow-hidden', 'dialog-open');
-            
-            // Safely remove any orphaned overlays with parent node checks
-            const dialogOverlays = document.querySelectorAll('[data-radix-dialog-overlay]');
-            dialogOverlays.forEach(overlay => {
-              if (overlay && overlay.parentNode && overlay.parentNode.contains(overlay)) {
-                try {
-                  overlay.parentNode.removeChild(overlay);
-                } catch (e) {
-                  // Ignore if already being removed
-                }
+          if (!document || !document.body) return;
+          
+          // Ensure body scroll is restored when dialog is closed
+          document.body.style.overflow = 'auto';
+          document.body.classList.remove('overflow-hidden', 'dialog-open');
+          
+          // Queue cleanup in next animation frame to avoid race conditions
+          requestAnimationFrame(() => {
+            if (unmountingRef.current) {
+              // Safely clean overlays with parent node checks
+              try {
+                // Target all possible dialog-related overlays
+                const selectors = [
+                  '[data-radix-dialog-overlay]',
+                  '.fixed.inset-0.z-50.bg-black\\/80',
+                  '.fixed.inset-0.z-50',
+                  '.vaul-overlay'
+                ];
+                
+                selectors.forEach(selector => {
+                  document.querySelectorAll(selector).forEach(safeRemoveElement);
+                });
+              } catch (error) {
+                console.warn('Error removing overlays:', error);
               }
-            });
-            
-            // Also check for any other fixed overlays that might be orphaned
-            const otherOverlays = document.querySelectorAll('.fixed.inset-0.z-50.bg-black\\/80');
-            otherOverlays.forEach(overlay => {
-              if (overlay && overlay.parentNode && overlay.parentNode.contains(overlay)) {
-                try {
-                  // Only remove if it doesn't have open dialog content
-                  if (!overlay.querySelector('[role="dialog"][aria-modal="true"]')) {
-                    overlay.parentNode.removeChild(overlay);
-                  }
-                } catch (e) {
-                  // Ignore if already being removed
-                }
-              }
-            });
-          }
+            }
+          });
         });
+        
+        // Store RAF ID for cleanup
+        const cleanup = () => {
+          try {
+            cancelAnimationFrame(rafId);
+          } catch (e) {
+            // Ignore
+          }
+        };
+        
+        const timeoutId = setTimeout(cleanup, 500);
+        cleanupTimeoutsRef.current.push(timeoutId as unknown as number);
       } catch (error) {
         console.warn('Error during dialog cleanup:', error);
       }
     };
-  }, []);
+  }, [safeRemoveElement]);
 
   return (
     <DialogPortal>

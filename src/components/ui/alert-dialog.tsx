@@ -1,8 +1,10 @@
+
 import * as React from "react"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
+import { useSafeDOMOperations } from "@/hooks/useSafeDOMOperations"
 
 const AlertDialog = AlertDialogPrimitive.Root
 
@@ -13,34 +15,87 @@ const AlertDialogPortal = AlertDialogPrimitive.Portal
 const AlertDialogOverlay = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Overlay
-    className={cn(
-      "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      className
-    )}
-    {...props}
-    ref={ref}
-  />
-))
+>(({ className, ...props }, ref) => {
+  // Track this instance for safer cleanup
+  const overlayRef = React.useRef<HTMLDivElement | null>(null);
+  const { safeRemoveElement } = useSafeDOMOperations();
+  
+  // Connect the forwarded ref with our local ref
+  React.useImperativeHandle(ref, () => {
+    return overlayRef.current as HTMLDivElement;
+  }, [overlayRef.current]);
+  
+  // Clean up this overlay on unmount
+  React.useEffect(() => {
+    return () => {
+      if (overlayRef.current) {
+        safeRemoveElement(overlayRef.current);
+      }
+    };
+  }, [safeRemoveElement]);
+
+  return (
+    <AlertDialogPrimitive.Overlay
+      ref={overlayRef}
+      className={cn(
+        "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        className
+      )}
+      {...props}
+    />
+  );
+})
 AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName
 
 const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <AlertDialogPortal>
-    <AlertDialogOverlay />
-    <AlertDialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
-        className
-      )}
-      {...props}
-    />
-  </AlertDialogPortal>
-))
+>(({ className, ...props }, ref) => {
+  // Use safe DOM operations
+  const { cleanupOverlays } = useSafeDOMOperations();
+  
+  // Clean up on unmount
+  React.useEffect(() => {
+    return () => {
+      // Use requestAnimationFrame to ensure we're not in the middle of a render cycle
+      requestAnimationFrame(() => {
+        // Safe body cleanup
+        if (document.body) {
+          document.body.style.overflow = 'auto';
+        }
+        
+        // Additional overlay cleanup with delay to avoid race conditions
+        setTimeout(() => {
+          cleanupOverlays();
+        }, 100);
+      });
+    };
+  }, [cleanupOverlays]);
+
+  return (
+    <AlertDialogPortal>
+      <AlertDialogOverlay />
+      <AlertDialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+          className
+        )}
+        onCloseAutoFocus={(e) => {
+          // Prevent focus issues that might lead to DOM problems
+          e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          // Ensure dialog closed state is properly handled with props
+          if (props.onEscapeKeyDown) {
+            props.onEscapeKeyDown(e);
+          }
+        }}
+        {...props}
+      />
+    </AlertDialogPortal>
+  )
+})
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName
 
 const AlertDialogHeader = ({

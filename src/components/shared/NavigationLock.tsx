@@ -1,6 +1,7 @@
 
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
+import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
 
 // This component helps prevent navigation issues by cleaning up any stale state
 // or UI elements that might interfere with smooth transitions between pages
@@ -10,6 +11,10 @@ const NavigationLock: React.FC = () => {
   const cleanupAttemptRef = useRef(false);
   const lastCleanupTimeRef = useRef(0);
   const cleanupTimeoutsRef = useRef<number[]>([]);
+  const navigationInProgressRef = useRef(false);
+  
+  // Use our safe DOM operations hook
+  const { cleanupOverlays } = useSafeDOMOperations();
 
   // Enhanced DOM cleanup utility with more robust error handling and element checks
   const cleanupUI = useCallback(() => {
@@ -21,60 +26,16 @@ const NavigationLock: React.FC = () => {
     lastCleanupTimeRef.current = now;
     
     try {
-      // Ensure body scroll is restored
-      if (document.body) {
-        document.body.style.overflow = 'auto';
-        document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-      }
-      
       // Clear any stale timeouts
       cleanupTimeoutsRef.current.forEach(id => window.clearTimeout(id));
       cleanupTimeoutsRef.current = [];
       
-      // Capture all overlay types to ensure comprehensive cleanup
-      const overlaySelectors = [
-        // Modal/dialog overlays
-        '.fixed.inset-0.z-50',
-        '.fixed.inset-0.bg-black\\/80',
-        // Radix UI specific overlays
-        '[data-radix-dialog-overlay]',
-        '[data-radix-alert-dialog-overlay]',
-        // Vaul drawer overlays
-        '.vaul-overlay',
-        // Any other potential overlays
-        '.backdrop',
-        '.modal-backdrop'
-      ];
-      
-      // Use requestAnimationFrame to ensure DOM is stable before manipulation
-      requestAnimationFrame(() => {
-        // First safely collect all overlays without modifying DOM
-        const overlaysToRemove: Element[] = [];
-        
-        overlaySelectors.forEach(selector => {
-          document.querySelectorAll(selector).forEach(overlay => {
-            // Only add to removal list if it has a parent and is a child of that parent
-            if (overlay && overlay.parentNode && overlay.parentNode.contains(overlay)) {
-              overlaysToRemove.push(overlay);
-            }
-          });
-        });
-        
-        // Then safely remove each overlay with additional checks
-        overlaysToRemove.forEach(overlay => {
-          try {
-            // Double-check parent relationship right before removal
-            if (overlay.parentNode && overlay.parentNode.contains(overlay)) {
-              overlay.parentNode.removeChild(overlay);
-            }
-          } catch (error) {
-            console.warn('Error safely removing overlay:', error);
-          }
-        });
-      });
+      // Use our safe overlay cleanup
+      cleanupOverlays();
       
       // Clear any navigation locks
       localStorage.removeItem('vipNavigationInProgress');
+      navigationInProgressRef.current = false;
     } catch (error) {
       console.warn('Error during UI cleanup:', error);
     } finally {
@@ -84,10 +45,13 @@ const NavigationLock: React.FC = () => {
       }, 500);
       cleanupTimeoutsRef.current.push(timeoutId);
     }
-  }, []);
+  }, [cleanupOverlays]);
   
   // Watch for route changes to clean up UI
   useEffect(() => {
+    // Set navigation in progress
+    navigationInProgressRef.current = true;
+    
     // Clean up on route change
     cleanupUI();
     
@@ -98,6 +62,13 @@ const NavigationLock: React.FC = () => {
     if (location.pathname === '/chat') {
       localStorage.setItem('vipProfileComplete', 'true');
     }
+    
+    // Mark navigation complete after a short delay
+    const navigationCompleteTimeout = window.setTimeout(() => {
+      navigationInProgressRef.current = false;
+    }, 500);
+    
+    cleanupTimeoutsRef.current.push(navigationCompleteTimeout);
     
     return () => {
       // Clean up when component unmounts or before route change
@@ -130,8 +101,8 @@ const NavigationLock: React.FC = () => {
   useEffect(() => {
     const handleError = (error: ErrorEvent) => {
       if (error.message && (
+        error.message.includes('removeChild') || 
         error.message.includes('parentNode') || 
-        error.message.includes('removeChild') ||
         error.message.includes('Cannot read properties of null')
       )) {
         console.warn('DOM error detected, running cleanup:', error.message);
@@ -141,9 +112,43 @@ const NavigationLock: React.FC = () => {
     
     window.addEventListener('error', handleError);
     
-    return () => {
-      window.removeEventListener('error', handleError);
-    };
+    // Create a MutationObserver to detect problematic DOM changes
+    try {
+      const observer = new MutationObserver((mutations) => {
+        // Check for specific mutations that might lead to problems
+        const hasOverlayRemoval = mutations.some(mutation => 
+          Array.from(mutation.removedNodes).some(node => 
+            node instanceof HTMLElement && 
+            (node.classList.contains('fixed') || 
+             node.hasAttribute('data-radix-dialog-overlay'))
+          )
+        );
+        
+        if (hasOverlayRemoval && navigationInProgressRef.current) {
+          // Run cleanup if overlays are being removed during navigation
+          cleanupUI();
+        }
+      });
+      
+      // Observe the document body for relevant changes
+      observer.observe(document.body, { 
+        childList: true, 
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style']
+      });
+      
+      return () => {
+        window.removeEventListener('error', handleError);
+        observer.disconnect();
+      };
+    } catch (error) {
+      // Fallback if MutationObserver fails
+      console.warn('Error setting up MutationObserver:', error);
+      return () => {
+        window.removeEventListener('error', handleError);
+      };
+    }
   }, [cleanupUI]);
 
   // This is a utility component - it doesn't render anything

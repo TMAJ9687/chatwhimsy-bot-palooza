@@ -38,34 +38,60 @@ const DrawerContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
   // Add enhanced cleanup on unmount with element existence checks
+  const unmountedRef = React.useRef(false);
+  const cleanupTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  
+  // Add a function to safely remove elements
+  const safeRemoveElement = React.useCallback((element: Element) => {
+    // Check if the element exists and has a parent
+    if (element && element.parentNode && element.parentNode.contains(element)) {
+      try {
+        element.parentNode.removeChild(element);
+      } catch (e) {
+        // Log but don't crash if there's still an error
+        console.warn('Error safely removing element:', e);
+      }
+    }
+  }, []);
+  
   React.useEffect(() => {
     return () => {
+      // Mark component as unmounted
+      unmountedRef.current = true;
+      
+      // Clear any existing timeout
+      if (cleanupTimeoutRef.current) {
+        clearTimeout(cleanupTimeoutRef.current);
+      }
+      
       try {
         // Use requestAnimationFrame to ensure we're not in the middle of a render cycle
         requestAnimationFrame(() => {
-          if (document.body) {
-            // Ensure body scroll is restored when drawer is closed
-            document.body.style.overflow = 'auto';
-            document.body.classList.remove('overflow-hidden');
-          }
+          // Don't proceed if document or body doesn't exist (SSR safety)
+          if (!document || !document.body || unmountedRef.current === false) return;
           
-          // Safely remove any orphaned drawer overlays
-          const overlays = document.querySelectorAll('.vaul-overlay');
-          overlays.forEach(overlay => {
-            if (overlay && overlay.parentNode && overlay.parentNode.contains(overlay)) {
-              try {
-                overlay.parentNode.removeChild(overlay);
-              } catch (e) {
-                // Ignore errors if already being removed
-              }
-            }
-          });
+          // Ensure body scroll is restored when drawer is closed
+          document.body.style.overflow = 'auto';
+          document.body.classList.remove('overflow-hidden');
+          
+          // Add a short delay before trying to remove overlays
+          cleanupTimeoutRef.current = setTimeout(() => {
+            if (!document || unmountedRef.current === false) return;
+            
+            // Safely remove any orphaned drawer overlays
+            const overlays = document.querySelectorAll('.vaul-overlay');
+            overlays.forEach(safeRemoveElement);
+            
+            // Also look for any other potential overlay elements
+            const otherOverlays = document.querySelectorAll('.fixed.inset-0.z-50');
+            otherOverlays.forEach(safeRemoveElement);
+          }, 100);
         });
       } catch (error) {
         console.warn('Error during drawer cleanup:', error);
       }
     };
-  }, []);
+  }, [safeRemoveElement]);
 
   return (
     <DrawerPortal>
