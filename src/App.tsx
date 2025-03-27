@@ -19,13 +19,8 @@ import { DialogProvider } from "./context/DialogContext";
 import DialogContainer from "./components/dialogs/DialogContainer";
 import { UserProvider } from "./context/UserContext";
 import { ChatProvider } from "./context/ChatContext";
-import { AdminProvider } from "./context/AdminContext";
 import { initPerformanceMonitoring } from "./utils/performanceMonitor";
 import NavigationLock from "./components/shared/NavigationLock";
-import ProtectedAdminRoute from "./components/admin/ProtectedAdminRoute";
-import AdminLogin from "./pages/admin/AdminLogin";
-import AdminDashboard from "./pages/admin/Dashboard";
-import UserManagement from "./pages/admin/UserManagement";
 
 // Configure React Query for better performance
 const queryClient = new QueryClient({
@@ -94,45 +89,28 @@ const App = () => {
       <TooltipProvider>
         <BrowserRouter>
           <UserProvider>
-            <AdminProvider>
-              <DialogProvider>
-                <ChatProvider>
-                  <MainLayout>
-                    <Toaster />
-                    <Sonner />
-                    {/* Add the NavigationLock component to help with navigation */}
-                    <NavigationLock />
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
-                      <Route path="/vip-profile" element={<VipProfileSetup />} />
-                      <Route path="/vip-signup" element={<VipSignup />} />
-                      <Route path="/vip-login" element={<VipLogin />} />
-                      <Route path="/vip-subscription" element={<VipSubscription />} />
-                      <Route path="/vip-payment" element={<VipPayment />} />
-                      <Route path="/vip-confirmation" element={<VipConfirmation />} />
-                      
-                      {/* Admin Routes */}
-                      <Route path="/admin/login" element={<AdminLogin />} />
-                      <Route path="/admin/dashboard" element={
-                        <ProtectedAdminRoute>
-                          <AdminDashboard />
-                        </ProtectedAdminRoute>
-                      } />
-                      <Route path="/admin/users" element={
-                        <ProtectedAdminRoute>
-                          <UserManagement />
-                        </ProtectedAdminRoute>
-                      } />
-                      
-                      {/* 404 Route */}
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                    <DialogContainer />
-                  </MainLayout>
-                </ChatProvider>
-              </DialogProvider>
-            </AdminProvider>
+            <DialogProvider>
+              <ChatProvider>
+                <MainLayout>
+                  <Toaster />
+                  <Sonner />
+                  {/* Add the NavigationLock component to help with navigation */}
+                  <NavigationLock />
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
+                    <Route path="/vip-profile" element={<VipProfileSetup />} />
+                    <Route path="/vip-signup" element={<VipSignup />} />
+                    <Route path="/vip-login" element={<VipLogin />} />
+                    <Route path="/vip-subscription" element={<VipSubscription />} />
+                    <Route path="/vip-payment" element={<VipPayment />} />
+                    <Route path="/vip-confirmation" element={<VipConfirmation />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                  <DialogContainer />
+                </MainLayout>
+              </ChatProvider>
+            </DialogProvider>
           </UserProvider>
         </BrowserRouter>
       </TooltipProvider>
