@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Check, Clock, Eye, EyeOff, Maximize, X, Globe, Reply, Smile, Trash } from 'lucide-react';
 import { Message as MessageType, MessageStatus } from '@/types/chat';
@@ -28,6 +27,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 }) => {
   const { sender, content, timestamp, status, isImage, isVoice, duration, translations, replyTo, reactions, isDeleted } = message;
   const isUser = sender === 'user';
+  const isBot = sender === 'bot';
   const { isVip } = useUser();
   const { 
     handleTranslateMessage, 
@@ -162,7 +162,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     ? translations[0].content
     : content;
 
-  // Render content based on message type
   const renderMessageContent = () => {
     if (isImage) {
       return (
@@ -203,7 +202,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             </div>
           </div>
           
-          {/* Fullscreen image modal */}
           {isFullScreen && (
             <div 
               className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
@@ -233,11 +231,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   };
 
-  // Render the message reactions
   const renderReactions = () => {
     if (!reactions || reactions.length === 0) return null;
     
-    // Group reactions by emoji
     const emojiCounts: Record<string, number> = {};
     reactions.forEach(reaction => {
       emojiCounts[reaction.emoji] = (emojiCounts[reaction.emoji] || 0) + 1;
@@ -261,7 +257,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   return (
     <>
       <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}>
-        {/* Reply preview if this message is replying to another */}
         {replyToMessage && (
           <div className={`
             max-w-[80%] px-2 py-1 mb-1 text-xs bg-gray-100 dark:bg-gray-700 rounded-md
@@ -290,10 +285,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         >
           {renderMessageContent()}
 
-          {/* VIP action buttons - only show for VIP users */}
-          {isVip && (
-            <div className={`absolute -bottom-5 ${isUser ? 'left-0' : 'right-0'} flex space-x-1`}>
-              {/* Reply button */}
+          {isVip && isBot && (
+            <div className={`absolute -bottom-5 right-0 flex space-x-1`}>
               <Button 
                 variant="ghost" 
                 size="icon" 
@@ -303,7 +296,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 <Reply className="h-3 w-3" />
               </Button>
               
-              {/* React button */}
               <Popover open={showReactionPopover} onOpenChange={setShowReactionPopover}>
                 <PopoverTrigger asChild>
                   <Button 
@@ -318,22 +310,22 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                   <EmojiPicker onEmojiSelect={handleReactClick} useBasicPicker={true} />
                 </PopoverContent>
               </Popover>
-              
-              {/* Unsend button - only for user's own messages */}
-              {isUser && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  onClick={handleUnsendClick}
-                >
-                  <Trash className="h-3 w-3" />
-                </Button>
-              )}
             </div>
           )}
 
-          {/* Translation toggle button - only show for text messages and VIP users */}
+          {isVip && isUser && (
+            <div className={`absolute -bottom-5 left-0 flex space-x-1`}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-6 w-6 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                onClick={handleUnsendClick}
+              >
+                <Trash className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+
           {isVip && !isImage && !isVoice && translations && translations.length > 0 && (
             <button 
               onClick={() => setShowTranslation(!showTranslation)}
@@ -344,16 +336,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           )}
         </div>
         
-        {/* Reactions display */}
         {renderReactions()}
         
-        {isLastInGroup && showStatus && (
+        {isLastInGroup && (
           <div className={`flex items-center mt-0.5 text-xs text-gray-500 dark:text-gray-400 ${isUser ? 'mr-1' : 'ml-1'}`}>
             <span>{formattedTime}</span>
-            {getStatusIcon() && <span className="ml-1">{getStatusIcon()}</span>}
+            {isUser && showStatus && <span className="ml-1">{getStatusIcon()}</span>}
             
-            {/* Translation button - only show for text messages, not the user's own, and for VIP users */}
-            {isVip && !isUser && !isImage && !isVoice && (
+            {isVip && isBot && !isImage && !isVoice && (
               <button 
                 onClick={handleTranslate}
                 className="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -366,7 +356,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         )}
       </div>
 
-      {/* Translation dialog */}
       <TranslateMessageDialog 
         isOpen={showTranslationDialog}
         onClose={() => setShowTranslationDialog(false)}

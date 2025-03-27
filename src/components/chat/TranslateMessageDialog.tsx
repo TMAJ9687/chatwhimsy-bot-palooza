@@ -74,7 +74,7 @@ const DialogContentComponent = memo(({
       <Button variant="outline" onClick={onClose}>
         Cancel
       </Button>
-      <Button onClick={onTranslate}>
+      <Button onClick={onTranslate} className="bg-teal-500 hover:bg-teal-600">
         Translate
       </Button>
     </DialogFooter>
@@ -88,7 +88,7 @@ const TranslateMessageDialog: React.FC<TranslateMessageDialogProps> = ({
   onClose,
   onTranslate,
 }) => {
-  const [targetLanguage, setTargetLanguage] = useState('en');
+  const [targetLanguage, setTargetLanguage] = useState('es'); // Default to Spanish for better UX
   const { toast } = useToast();
 
   // Use a ref to avoid recreating the handler on each render
@@ -97,7 +97,7 @@ const TranslateMessageDialog: React.FC<TranslateMessageDialogProps> = ({
   // Reset dialog state when it opens
   useEffect(() => {
     if (isOpen) {
-      setTargetLanguage('en');
+      setTargetLanguage('es'); // Default to Spanish for better UX
       
       // Performance monitoring
       performance.mark('translate_dialog_open');
@@ -115,7 +115,7 @@ const TranslateMessageDialog: React.FC<TranslateMessageDialogProps> = ({
     }
   }, [isOpen]);
 
-  // Debounced translate operation to prevent UI freeze
+  // Debounced toast operation to prevent UI freeze
   const debouncedToast = useCallback(
     debounce((title: string, description: string) => {
       toast({ title, description });
@@ -135,13 +135,13 @@ const TranslateMessageDialog: React.FC<TranslateMessageDialogProps> = ({
     requestRef.current = requestAnimationFrame(() => {
       requestRef.current = null;
       
-      const languageName = LANGUAGES.find(l => l.code === targetLanguage)?.name;
+      const languageName = LANGUAGES.find(l => l.code === targetLanguage)?.name || targetLanguage.toUpperCase();
       
       onTranslate(targetLanguage);
       
       debouncedToast(
-        'Translation requested',
-        `Message will be translated to ${languageName}.`
+        'Translation complete',
+        `Message has been translated to ${languageName}.`
       );
       
       onClose();
