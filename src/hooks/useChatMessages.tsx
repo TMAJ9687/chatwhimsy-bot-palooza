@@ -136,6 +136,27 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
     return newMessage.id;
   }, [userChats, isVip]);
 
+  const handleSendVoiceMessage = useCallback((voiceDataUrl: string, duration: number, currentBotId: string) => {
+    const currentMessages = userChats[currentBotId] || [];
+    
+    const newMessage: Message = {
+      id: `user-${Date.now()}`,
+      content: voiceDataUrl,
+      sender: 'user',
+      timestamp: new Date(),
+      status: 'sending',
+      isVoice: true,
+      duration: duration,
+    };
+    
+    setUserChats(prev => ({
+      ...prev,
+      [currentBotId]: [...currentMessages, newMessage]
+    }));
+    
+    return newMessage.id;
+  }, [userChats]);
+
   const initializeImageRemaining = useCallback(async () => {
     try {
       // Get remaining uploads, passing isVip to properly handle unlimited uploads
@@ -155,6 +176,7 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
     simulateBotResponse,
     handleSendTextMessage,
     handleSendImageMessage,
+    handleSendVoiceMessage,
     initializeImageRemaining
   };
 };

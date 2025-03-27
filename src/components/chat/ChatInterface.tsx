@@ -51,6 +51,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     handleCloseChat,
     handleSendTextMessage,
     handleSendImageMessage,
+    handleSendVoiceMessage,
     selectUser,
     handleFilterChange,
     handleNotificationRead,
@@ -182,6 +183,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
               <MessageInputBar
                 onSendMessage={handleSendTextMessage}
                 onSendImage={handleSendImageMessage}
+                onSendVoice={handleSendVoiceMessage}
                 imagesRemaining={imagesRemaining}
                 disabled={isCurrentUserBlocked}
                 userType={isVip ? 'vip' : 'standard'}

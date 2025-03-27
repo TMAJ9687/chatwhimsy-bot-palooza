@@ -71,6 +71,7 @@ export const useChatState = (isVip: boolean) => {
     simulateBotResponse,
     handleSendTextMessage,
     handleSendImageMessage,
+    handleSendVoiceMessage,
     initializeImageRemaining
   } = useChatMessages(isVip, handleNewNotification);
 
@@ -166,6 +167,22 @@ export const useChatState = (isVip: boolean) => {
     simulateBotResponse(messageId, currentBot.id);
   }, [currentBot.id, currentBot.name, handleSendImageMessage, addHistoryItem, simulateBotResponse]);
 
+  // Handle sending a voice message
+  const handleSendVoiceMessageWrapper = useCallback((voiceDataUrl: string, duration: number) => {
+    const messageId = handleSendVoiceMessage(voiceDataUrl, duration, currentBot.id);
+    
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      title: `Voice message sent to ${currentBot.name}`,
+      message: `You sent a ${Math.ceil(duration)}s voice message`,
+      time: new Date(),
+      read: true
+    };
+    
+    addHistoryItem(newNotification);
+    simulateBotResponse(messageId, currentBot.id);
+  }, [currentBot.id, currentBot.name, handleSendVoiceMessage, addHistoryItem, simulateBotResponse]);
+
   // Enhanced select user to init chat as well
   const selectUserWithChat = useCallback((user: Bot) => {
     if (user.id !== currentBot.id) {
@@ -201,6 +218,7 @@ export const useChatState = (isVip: boolean) => {
     handleCloseChat,
     handleSendTextMessage: handleSendTextMessageWrapper,
     handleSendImageMessage: handleSendImageMessageWrapper,
+    handleSendVoiceMessage: handleSendVoiceMessageWrapper,
     selectUser: selectUserWithChat,
     handleFilterChange,
     handleNotificationRead,

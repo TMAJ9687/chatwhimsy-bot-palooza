@@ -8,10 +8,12 @@ import EmojiButton from './EmojiButton';
 import MessageTextarea from './MessageTextarea';
 import SendButton from './SendButton';
 import VipStatusBar from './VipStatusBar';
+import VoiceMessageButton from './VoiceMessageButton';
 
 interface MessageInputBarProps {
   onSendMessage: (text: string) => void;
   onSendImage: (imageDataUrl: string) => void;
+  onSendVoice?: (voiceDataUrl: string, duration: number) => void;
   imagesRemaining: number;
   disabled?: boolean;
   userType?: 'standard' | 'vip';
@@ -20,12 +22,14 @@ interface MessageInputBarProps {
 const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   onSendMessage,
   onSendImage,
+  onSendVoice,
   imagesRemaining,
   disabled = false,
   userType = 'standard'
 }) => {
   const [message, setMessage] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const { isVip } = useChat();
   
   const isUserVip = userType === 'vip' || isVip;
@@ -56,6 +60,20 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     setMessage(newText);
   };
 
+  const handleVoiceMessageReady = (audioBlob: Blob, duration: number) => {
+    if (disabled || !onSendVoice) return;
+    
+    // Convert blob to data URL
+    const reader = new FileReader();
+    reader.readAsDataURL(audioBlob);
+    reader.onloadend = () => {
+      const base64data = reader.result as string;
+      onSendVoice(base64data, duration);
+    };
+    
+    setIsRecordingVoice(false);
+  };
+
   const isMessageValid = message.trim() && (isUserVip || message.length <= MAX_CHAR_LIMIT);
 
   return (
@@ -73,12 +91,19 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
           onImageSelected={setImagePreview}
           imagesRemaining={imagesRemaining}
           isVip={isUserVip}
-          disabled={disabled || !!imagePreview}
+          disabled={disabled || !!imagePreview || isRecordingVoice}
         />
+        
+        {isUserVip && (
+          <VoiceMessageButton 
+            onVoiceMessageReady={handleVoiceMessageReady}
+            disabled={disabled || !!imagePreview}
+          />
+        )}
         
         <EmojiButton 
           onEmojiSelect={handleEmojiClick}
-          disabled={disabled || !!imagePreview}
+          disabled={disabled || !!imagePreview || isRecordingVoice}
         />
         
         <MessageTextarea 
@@ -86,10 +111,10 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
           onChange={setMessage}
           onSubmit={handleSubmitMessage}
           isVip={isUserVip}
-          disabled={disabled || !!imagePreview}
+          disabled={disabled || !!imagePreview || isRecordingVoice}
         />
         
-        {!imagePreview && (
+        {!imagePreview && !isRecordingVoice && (
           <SendButton 
             onClick={handleSubmitMessage}
             disabled={!isMessageValid || disabled}

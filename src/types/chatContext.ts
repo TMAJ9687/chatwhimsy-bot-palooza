@@ -28,6 +28,7 @@ export interface ChatContextType {
   handleCloseChat: () => void;
   handleSendTextMessage: (text: string) => void;
   handleSendImageMessage: (imageDataUrl: string) => void;
+  handleSendVoiceMessage: (voiceDataUrl: string, duration: number) => void;
   selectUser: (user: Bot) => void;
   handleFilterChange: (newFilters: FilterState) => void;
   handleNotificationRead: (id: string) => void;
