@@ -171,7 +171,7 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
     userChats,
     typingBots,
     imagesRemaining,
-    setUserChats,
+    setUserChats, // Export this so it can be used in other hooks
     setCurrentBotId,
     initializeChat,
     simulateBotResponse,

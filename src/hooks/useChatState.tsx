@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect } from 'react';
 import { Bot, Message, Notification } from '@/types/chat';
 import { useChatInitialization } from './useChatInitialization';
@@ -79,7 +80,8 @@ export const useChatState = (isVip: boolean) => {
     handleSendTextMessage,
     handleSendImageMessage,
     handleSendVoiceMessage,
-    initializeImageRemaining
+    initializeImageRemaining,
+    setUserChats
   } = useChatMessages(isVip, handleNewNotification);
 
   const {
@@ -218,7 +220,7 @@ export const useChatState = (isVip: boolean) => {
     if (userId === currentBot.id) {
       initializeChat(currentBot.id, currentBot.name);
     }
-  }, [userChats, currentBot.id, currentBot.name, initializeChat, toast]);
+  }, [userChats, currentBot.id, currentBot.name, initializeChat, toast, setUserChats]);
 
   // NEW: Translate message
   const handleTranslateMessage = useCallback((messageId: string, targetLanguage: string) => {
@@ -283,7 +285,7 @@ export const useChatState = (isVip: boolean) => {
       
       return newChats;
     });
-  }, []);
+  }, [setUserChats]);
 
   // NEW: Get shared media (images and voice messages)
   const getSharedMedia = useCallback((userId: string) => {

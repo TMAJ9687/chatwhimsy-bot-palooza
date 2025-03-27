@@ -12,8 +12,8 @@ import {
 import { useChat } from '@/context/ChatContext';
 import { useDialog } from '@/context/DialogContext';
 import { useUser } from '@/context/UserContext';
-import BlockUserDialog from '@/components/dialogs/BlockUserDialog';
 import SharedMediaDialog from './SharedMediaDialog';
+import TranslateMessageDialog from './TranslateMessageDialog';
 
 interface UserActionsProps {
   userId: string;
@@ -36,20 +36,16 @@ const UserActions = ({
   const { isVip } = useUser();
   const { getSharedMedia, handleDeleteConversation } = useChat();
   
-  const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showSharedMediaDialog, setShowSharedMediaDialog] = useState(false);
+  const [showTranslateDialog, setShowTranslateDialog] = useState(false);
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   
   const handleReport = () => {
     openDialog('report', { userName });
   };
   
   const handleBlock = () => {
-    setShowBlockDialog(true);
-  };
-  
-  const handleConfirmBlock = () => {
-    onBlockUser(userId);
-    setShowBlockDialog(false);
+    openDialog('block', { userName, userId, onBlockUser });
   };
   
   const handleUnblock = () => {
@@ -65,6 +61,20 @@ const UserActions = ({
   
   const handleOpenSharedMedia = () => {
     setShowSharedMediaDialog(true);
+  };
+
+  const handleTranslateMessage = (messageId: string) => {
+    setSelectedMessageId(messageId);
+    setShowTranslateDialog(true);
+  };
+
+  const handleTranslate = (language: string) => {
+    if (selectedMessageId) {
+      // Get the last message ID as a fallback
+      const { handleTranslateMessage } = useChat();
+      handleTranslateMessage(selectedMessageId, language);
+      setSelectedMessageId(null);
+    }
   };
 
   return (
@@ -125,14 +135,6 @@ const UserActions = ({
         </DropdownMenu>
       </div>
       
-      {/* Block User Dialog */}
-      <BlockUserDialog
-        isOpen={showBlockDialog}
-        onClose={() => setShowBlockDialog(false)}
-        onConfirm={handleConfirmBlock}
-        userName={userName}
-      />
-      
       {/* Shared Media Dialog - VIP only */}
       {isVip && (
         <SharedMediaDialog
@@ -142,6 +144,13 @@ const UserActions = ({
           userName={userName}
         />
       )}
+
+      {/* Translate Message Dialog */}
+      <TranslateMessageDialog
+        isOpen={showTranslateDialog}
+        onClose={() => setShowTranslateDialog(false)}
+        onTranslate={handleTranslate}
+      />
     </>
   );
 };
