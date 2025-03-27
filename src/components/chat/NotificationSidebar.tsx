@@ -52,12 +52,25 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
         onClose(); // Close sidebar after selecting
       }
     } else if (type === 'inbox') {
-      // Try to find bot by name in title
+      // Try to find bot by name in title for inbox
       const senderName = notification.title.replace('New message from ', '');
       const bot = onlineUsers.find(user => user.name === senderName);
       if (bot) {
         selectUser(bot);
         onClose(); // Close sidebar after selecting
+      }
+    } else if (type === 'history') {
+      // For history items, parse the title to find the bot name
+      const pattern = /^(Message to|Image sent to) (.+)$/;
+      const match = notification.title.match(pattern);
+      
+      if (match && match[2]) {
+        const recipientName = match[2];
+        const bot = onlineUsers.find(user => user.name === recipientName);
+        if (bot) {
+          selectUser(bot);
+          onClose(); // Close sidebar after selecting
+        }
       }
     }
   };

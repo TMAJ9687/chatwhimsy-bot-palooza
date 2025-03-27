@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, memo, useEffect } from 'react';
 import { useChat } from '@/context/ChatContext';
 import { Button } from '../ui/button';
@@ -24,17 +23,14 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   disabled = false,
   userType = 'standard'
 }) => {
-  // State variables
   const [message, setMessage] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isVip } = useChat();
   const { toast } = useToast();
   
-  // Use the passed userType prop instead of context
   const isUserVip = userType === 'vip' || isVip;
   
-  // Handle submitting message
   const handleSubmitMessage = () => {
     if (disabled) return;
     
@@ -44,19 +40,16 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     }
   };
   
-  // Handle sending image
   const handleSendImage = () => {
     if (disabled || !imagePreview) return;
     
     onSendImage(imagePreview);
     setImagePreview(null);
-    // Reset the input to allow uploading the same file again
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
   
-  // Handle pressing enter
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -64,19 +57,16 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     }
   };
 
-  // Check if message exceeds character limit
   const isExceedingLimit = () => {
     return !isUserVip && message.length > MAX_CHAR_LIMIT;
   };
   
-  // Handle uploading image
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (disabled) return;
     
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Check if user has remaining uploads
     if (imagesRemaining <= 0 && !isUserVip) {
       toast({
         title: "Upload limit reached",
@@ -85,7 +75,6 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
       return;
     }
     
-    // Validate file
     const validation = validateImageFile(file);
     if (!validation.valid) {
       toast({
@@ -105,7 +94,6 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     reader.readAsDataURL(file);
   };
   
-  // Cancel image upload
   const handleCancelImage = () => {
     setImagePreview(null);
     if (fileInputRef.current) {
@@ -113,7 +101,6 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     }
   };
   
-  // Open file selection dialog
   const handleClickUpload = () => {
     if (disabled) return;
     
@@ -128,17 +115,14 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     fileInputRef.current?.click();
   };
 
-  // Handle message input
   const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
     
-    // Check if exceeding character limit (for non-VIP)
     if (!checkCharacterLimit(newText, isUserVip, true)) {
       setMessage(newText.slice(0, MAX_CHAR_LIMIT));
       return;
     }
     
-    // Check for consecutive characters
     if (newText.length > message.length && hasConsecutiveChars(newText)) {
       toast({
         title: "Pattern detected",
@@ -151,11 +135,9 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     setMessage(newText);
   };
 
-  // Handle emoji selection
   const handleEmojiClick = (emoji: string) => {
     const newText = message + emoji;
     
-    // Check if exceeding character limit
     if (!checkCharacterLimit(newText, isUserVip, true)) {
       return;
     }
@@ -163,7 +145,6 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     setMessage(newText);
   };
 
-  // Available emoji options
   const emojis = ["😊", "😂", "❤️", "👍", "😍", "🙏", "😘", "🥰", "😎", "🔥", "😁", "👋", "🤗", "🤔"];
 
   return (
@@ -214,17 +195,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-2" align="start">
-            <div className="flex flex-wrap gap-2 max-w-[200px]">
-              {emojis.map(emoji => (
-                <button
-                  key={emoji}
-                  className="w-8 h-8 flex items-center justify-center text-lg hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                  onClick={() => handleEmojiClick(emoji)}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
+            <EmojiPicker onEmojiSelect={handleEmojiClick} />
           </PopoverContent>
         </Popover>
         
