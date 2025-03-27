@@ -2,15 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
-
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  time: Date;
-  read: boolean;
-  botId?: string; // Add botId to connect notification to a specific conversation
-}
+import { Notification } from '@/types/chat';
 
 interface NotificationSidebarProps {
   isOpen: boolean;
@@ -40,34 +32,13 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
       }
     };
     
-    // Add the event listener with a small delay to prevent immediate closing
-    const timer = setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside);
-    }, 100);
+    // Add the event listener immediately
+    document.addEventListener('mousedown', handleClickOutside);
     
     return () => {
-      clearTimeout(timer);
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen, onClose]);
-
-  // Group notifications by sender/title to avoid duplicates
-  const groupedNotifications = React.useMemo(() => {
-    if (type === 'history') return notifications;
-    
-    const groups: Record<string, Notification> = {};
-    
-    notifications.forEach(notif => {
-      // Extract the name from the title (e.g., "New message from Sophia" -> "Sophia")
-      const sender = notif.title.replace('New message from ', '');
-      
-      if (!groups[sender] || new Date(notif.time) > new Date(groups[sender].time)) {
-        groups[sender] = notif;
-      }
-    });
-    
-    return Object.values(groups);
-  }, [notifications, type]);
 
   // Handle notification click - open conversation with that user
   const handleNotificationClick = (notification: Notification) => {
@@ -112,13 +83,13 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
         </div>
         
         <div className="flex-1 overflow-y-auto">
-          {groupedNotifications.length === 0 ? (
+          {notifications.length === 0 ? (
             <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400 text-sm">
               No {type === 'inbox' ? 'messages' : 'history'} to display
             </div>
           ) : (
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {groupedNotifications.map((notification) => (
+              {notifications.map((notification) => (
                 <div 
                   key={notification.id}
                   className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer ${!notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
