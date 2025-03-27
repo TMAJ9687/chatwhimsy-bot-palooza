@@ -46,9 +46,10 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
       });
     };
 
+    // Always update message status for VIP users to show sent and delivered
     if (isVip) {
       setTimeout(() => updateMessageStatus('sent'), 500);
-      setTimeout(() => updateMessageStatus('delivered'), 1000);
+      setTimeout(() => updateMessageStatus('delivered'), 1500);
     }
     
     setTimeout(() => {
@@ -62,6 +63,7 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
       setUserChats(prev => {
         const botMessages = [...(prev[botId] || [])];
         
+        // For VIP users, mark all user messages as read when bot responds
         const updatedMessages = isVip ? 
           botMessages.map(msg => 
             msg.sender === 'user' ? { ...msg, status: 'read' as const } : msg
@@ -74,8 +76,19 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
           timestamp: new Date(),
         };
         
+        // Find the botName to use in the notification
+        let botName = 'Bot';
+        // This assumes there's a system message in the chat with the bot name
+        const systemMsg = botMessages.find(msg => msg.sender === 'system');
+        if (systemMsg && systemMsg.content) {
+          const match = systemMsg.content.match(/Start a conversation with (.+)/);
+          if (match && match[1]) {
+            botName = match[1];
+          }
+        }
+        
         if (!isCurrent) {
-          onNewNotification(botId, botResponse.content, 'Bot');
+          onNewNotification(botId, botResponse.content, botName);
         }
         
         return {

@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from 'react';
 import { Bot, Message, Notification } from '@/types/chat';
 import { useChatInitialization } from './useChatInitialization';
@@ -133,16 +132,12 @@ export const useChatState = (isVip: boolean) => {
     }
   }, [currentBot.id, filteredUsers, selectUser]);
 
-  // Fixed send text message function to handle replies properly
   const handleSendTextMessageWrapper = useCallback((text: string) => {
-    // Create the message first
     const messageId = handleSendTextMessage(text, currentBot.id, currentBot.name);
     
-    // If we have a reply message and user is VIP, add the replyTo field
     if (replyingToMessage?.id && isVip) {
       const replyId = replyingToMessage.id;
       
-      // Update the message to include the replyTo field
       setUserChats(prev => {
         const newChats = { ...prev };
         const botMessages = [...(newChats[currentBot.id] || [])];
@@ -158,11 +153,9 @@ export const useChatState = (isVip: boolean) => {
         return newChats;
       });
       
-      // Clear the replying state after sending
       setReplyingToMessage(null);
     }
     
-    // Add to history
     const newNotification: Notification = {
       id: Date.now().toString(),
       title: `Message to ${currentBot.name}`,
@@ -173,22 +166,17 @@ export const useChatState = (isVip: boolean) => {
     
     addHistoryItem(newNotification);
     
-    // Simulate bot response
     simulateBotResponse(messageId, currentBot.id);
     
     return messageId;
   }, [currentBot.id, currentBot.name, handleSendTextMessage, addHistoryItem, simulateBotResponse, replyingToMessage, isVip, setUserChats, setReplyingToMessage]);
 
-  // Fixed function to handle sending image messages with replies
   const handleSendImageMessageWrapper = useCallback(async (imageDataUrl: string) => {
-    // First send the image message
     const messageId = await handleSendImageMessage(imageDataUrl, currentBot.id);
     
-    // If we have a reply message and user is VIP, add the replyTo field
     if (replyingToMessage?.id && isVip) {
       const replyId = replyingToMessage.id;
       
-      // Update the message to include the replyTo field
       setUserChats(prev => {
         const newChats = { ...prev };
         const botMessages = [...(newChats[currentBot.id] || [])];
@@ -204,11 +192,9 @@ export const useChatState = (isVip: boolean) => {
         return newChats;
       });
       
-      // Clear the replying state after sending
       setReplyingToMessage(null);
     }
     
-    // Add to history
     const newNotification: Notification = {
       id: Date.now().toString(),
       title: `Image sent to ${currentBot.name}`,
@@ -219,22 +205,17 @@ export const useChatState = (isVip: boolean) => {
     
     addHistoryItem(newNotification);
     
-    // Simulate bot response
     simulateBotResponse(messageId, currentBot.id);
     
     return messageId;
   }, [currentBot.id, currentBot.name, handleSendImageMessage, addHistoryItem, simulateBotResponse, replyingToMessage, isVip, setUserChats, setReplyingToMessage]);
 
-  // Fixed function to handle sending voice messages with replies
   const handleSendVoiceMessageWrapper = useCallback((voiceDataUrl: string, duration: number) => {
-    // First send the voice message
     const messageId = handleSendVoiceMessage(voiceDataUrl, duration, currentBot.id);
     
-    // If we have a reply message and user is VIP, add the replyTo field
     if (replyingToMessage?.id && isVip) {
       const replyId = replyingToMessage.id;
       
-      // Update the message to include the replyTo field
       setUserChats(prev => {
         const newChats = { ...prev };
         const botMessages = [...(newChats[currentBot.id] || [])];
@@ -250,11 +231,9 @@ export const useChatState = (isVip: boolean) => {
         return newChats;
       });
       
-      // Clear the replying state after sending
       setReplyingToMessage(null);
     }
     
-    // Add to history
     const newNotification: Notification = {
       id: Date.now().toString(),
       title: `Voice message sent to ${currentBot.name}`,
@@ -265,7 +244,6 @@ export const useChatState = (isVip: boolean) => {
     
     addHistoryItem(newNotification);
     
-    // Simulate bot response
     simulateBotResponse(messageId, currentBot.id);
     
     return messageId;
@@ -367,78 +345,70 @@ export const useChatState = (isVip: boolean) => {
   const handleReplyToMessage = useCallback((messageId: string, content: string) => {
     if (!isVip) return;
     
-    // First create a new message
-    const newMessageId = handleSendTextMessage(content, currentBot.id, currentBot.name);
+    let messageToReplyTo: Message | null = null;
     
-    // Update the message to include the replyTo field
-    setUserChats(prev => {
-      const newChats = { ...prev };
-      const botMessages = [...(newChats[currentBot.id] || [])];
-      
-      const updatedMessages = botMessages.map(msg => {
-        if (msg.id === newMessageId) {
-          return { ...msg, replyTo: messageId };
-        }
-        return msg;
-      });
-      
-      newChats[currentBot.id] = updatedMessages;
-      return newChats;
+    Object.keys(userChats).forEach(botId => {
+      const foundMessage = userChats[botId].find(msg => msg.id === messageId);
+      if (foundMessage) {
+        messageToReplyTo = foundMessage;
+      }
     });
     
-    // Add to history
-    const newNotification: Notification = {
-      id: Date.now().toString(),
-      title: `Reply to message`,
-      message: content.slice(0, 30) + (content.length > 30 ? '...' : ''),
-      time: new Date(),
-      read: true
-    };
+    if (!messageToReplyTo) return;
     
-    addHistoryItem(newNotification);
+    setReplyingToMessage(messageToReplyTo);
     
-    // Simulate bot response
-    simulateBotResponse(newMessageId, currentBot.id);
-    
-    return newMessageId;
-  }, [isVip, currentBot.id, currentBot.name, handleSendTextMessage, setUserChats, addHistoryItem, simulateBotResponse]);
+    return handleSendTextMessageWrapper(content);
+  }, [isVip, userChats, setReplyingToMessage, handleSendTextMessageWrapper]);
 
   const handleReactToMessage = useCallback((messageId: string, emoji: string) => {
     if (!isVip) return;
     
     setUserChats(prev => {
       const newChats = { ...prev };
+      let updated = false;
       
       Object.keys(newChats).forEach(botId => {
         newChats[botId] = newChats[botId].map(msg => {
           if (msg.id === messageId) {
+            updated = true;
             const existingReactions = msg.reactions || [];
             
-            const existingReaction = existingReactions.find(
+            const existingReactionIndex = existingReactions.findIndex(
               r => r.userId === 'user' && r.emoji === emoji
             );
             
-            if (existingReaction) {
-              return {
-                ...msg,
-                reactions: existingReactions.filter(
-                  r => !(r.userId === 'user' && r.emoji === emoji)
-                )
-              };
+            let newReactions;
+            
+            if (existingReactionIndex >= 0) {
+              newReactions = [
+                ...existingReactions.slice(0, existingReactionIndex),
+                ...existingReactions.slice(existingReactionIndex + 1)
+              ];
+            } else {
+              newReactions = [...existingReactions, { emoji, userId: 'user' }];
             }
             
             return {
               ...msg,
-              reactions: [...existingReactions, { emoji, userId: 'user' }]
+              reactions: newReactions
             };
           }
           return msg;
         });
       });
       
+      if (updated) {
+        toast({
+          title: "Reaction added",
+          description: `You reacted with ${emoji}`,
+          duration: 2000
+        });
+      }
+      
       return newChats;
     });
-  }, [isVip, setUserChats]);
+  }, [isVip, setUserChats, toast]);
 
   const handleUnsendMessage = useCallback((messageId: string) => {
     if (!isVip) return;

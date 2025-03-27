@@ -142,7 +142,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   };
 
   const handleReplyClick = () => {
-    setReplyingToMessage(message);
+    if (message.id) {
+      setReplyingToMessage(message);
+    }
   };
 
   const handleReactClick = (emoji: string) => {
@@ -286,7 +288,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           {renderMessageContent()}
 
           {isVip && isBot && (
-            <div className={`absolute -bottom-5 right-0 flex space-x-1`}>
+            <div className="absolute -bottom-5 right-0 flex space-x-1">
               <Button 
                 variant="ghost" 
                 size="icon" 
@@ -314,7 +316,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           )}
 
           {isVip && isUser && (
-            <div className={`absolute -bottom-5 left-0 flex space-x-1`}>
+            <div className="absolute -bottom-5 left-0 flex space-x-1">
               <Button 
                 variant="ghost" 
                 size="icon" 
@@ -338,7 +340,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         
         {renderReactions()}
         
-        {isLastInGroup && (
+        {(isLastInGroup || isVip) && (
           <div className={`flex items-center mt-0.5 text-xs text-gray-500 dark:text-gray-400 ${isUser ? 'mr-1' : 'ml-1'}`}>
             <span>{formattedTime}</span>
             {isUser && showStatus && <span className="ml-1">{getStatusIcon()}</span>}

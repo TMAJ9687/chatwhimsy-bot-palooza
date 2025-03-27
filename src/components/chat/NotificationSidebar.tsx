@@ -40,6 +40,12 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
     };
   }, [isOpen, onClose]);
 
+  // Helper to get proper bot name from ID
+  const getBotNameById = (botId: string): string => {
+    const bot = onlineUsers.find(user => user.id === botId);
+    return bot ? bot.name : 'Unknown';
+  };
+
   // Handle notification click - open conversation with that user
   const handleNotificationClick = (notification: Notification) => {
     onNotificationRead(notification.id);
@@ -61,7 +67,7 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
       }
     } else if (type === 'history') {
       // For history items, parse the title to find the bot name
-      const pattern = /^(Message to|Image sent to) (.+)$/;
+      const pattern = /^(Message to|Image sent to|Voice message sent to) (.+)$/;
       const match = notification.title.match(pattern);
       
       if (match && match[2]) {
@@ -102,21 +108,31 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
             </div>
           ) : (
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {notifications.map((notification) => (
-                <div 
-                  key={notification.id}
-                  className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer ${!notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
-                  onClick={() => handleNotificationClick(notification)}
-                >
-                  <div className="flex justify-between">
-                    <h4 className="font-medium text-sm dark:text-gray-200">{notification.title}</h4>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(notification.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+              {notifications.map((notification) => {
+                // Fix to show correct bot name in notification
+                let displayTitle = notification.title;
+                
+                if (type === 'inbox' && notification.botId && displayTitle.includes('New message from')) {
+                  const botName = getBotNameById(notification.botId);
+                  displayTitle = `New message from ${botName}`;
+                }
+                
+                return (
+                  <div 
+                    key={notification.id}
+                    className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer ${!notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    <div className="flex justify-between">
+                      <h4 className="font-medium text-sm dark:text-gray-200">{displayTitle}</h4>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(notification.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{notification.message}</p>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{notification.message}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
