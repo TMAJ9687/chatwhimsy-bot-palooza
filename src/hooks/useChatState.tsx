@@ -87,6 +87,22 @@ export const useChatState = (isVip: boolean) => {
     initializeImageRemaining();
   }, [initializeImageRemaining]);
 
+  // Handle opening a chat from a notification
+  const handleOpenChatFromNotification = useCallback((botId: string) => {
+    if (!botId) return;
+    
+    // Find the bot in the list of online users
+    const botToOpen = onlineUsers.find(user => user.id === botId);
+    if (botToOpen) {
+      selectUser(botToOpen);
+      initializeChat(botToOpen.id, botToOpen.name);
+      
+      // Close the notifications panel after selecting
+      setShowInbox(false);
+      setShowHistory(false);
+    }
+  }, [onlineUsers, selectUser, initializeChat, setShowInbox, setShowHistory]);
+
   // Handle blocking a user
   const handleBlockUser = useCallback((userId: string) => {
     blockUser(userId);
@@ -177,6 +193,7 @@ export const useChatState = (isVip: boolean) => {
     selectUser: selectUserWithChat,
     handleFilterChange,
     handleNotificationRead,
+    handleOpenChatFromNotification,
     isUserBlocked
   };
 };

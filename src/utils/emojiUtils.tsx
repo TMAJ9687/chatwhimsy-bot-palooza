@@ -29,3 +29,13 @@ export const renderContentWithEmojis = (content: string): React.ReactNode => {
     </div>
   );
 };
+
+/**
+ * Fixes a known issue with emoji-mart where some emojis might not display correctly
+ * @param emoji The emoji character or string
+ * @returns The fixed emoji string
+ */
+export const fixEmojiDisplay = (emoji: string): string => {
+  // This is a placeholder for any future emoji display fixes needed
+  return emoji;
+};

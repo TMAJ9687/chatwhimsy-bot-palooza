@@ -46,15 +46,16 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
       <Picker 
         data={data} 
         onEmojiSelect={handleEmojiSelect}
-        set="apple"
+        set="native"
         theme="auto"
         autoFocus={true}
-        skinTonePosition="none"
-        previewPosition="none"
+        skinTonePosition="search"
+        previewPosition="bottom"
         navPosition="top"
         perLine={8}
         emojiSize={20}
         emojiButtonSize={30}
+        maxFrequentRows={1}
       />
     </div>
   );
