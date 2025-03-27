@@ -14,10 +14,11 @@ import { Switch } from "@/components/ui/switch";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Settings, MessageSquare, LogOut, Ban, Edit, Trash2, Plus, Search, Bell, Mail, FileText, FileSearch, Shield, ShieldOff, CircleUser, CircleCheck, CircleX, ArrowRight, ArrowLeft, ChevronDown } from "lucide-react";
+import { Users, Settings, MessageSquare, LogOut, Ban, Edit, Trash2, Plus, Search, Bell, Mail, FileText, FileSearch, Shield, ShieldOff, CircleUser, CircleCheck, CircleX, ArrowRight, ArrowLeft, ChevronDown, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { useUser } from '@/context/UserContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { isAdminLoggedIn } from '@/services/admin/adminService';
+import { VipDuration } from '@/types/admin';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -32,6 +33,10 @@ const botFormSchema = z.object({
 
 const banFormSchema = z.object({
   reason: z.string().min(3, { message: "Reason must be at least 3 characters." }),
+  duration: z.string()
+});
+
+const upgradeFormSchema = z.object({
   duration: z.string()
 });
 
@@ -51,6 +56,7 @@ const AdminDashboard = () => {
     action: () => {}
   });
   const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<{ id: string, name: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -58,10 +64,12 @@ const AdminDashboard = () => {
   const {
     isAdmin: adminLoaded,
     loading,
+    isProcessing,
     vipUsers,
     standardUsers,
     bots,
     bannedUsers,
+    reportsFeedback,
     createBot,
     updateBot,
     deleteBot,
@@ -70,7 +78,10 @@ const AdminDashboard = () => {
     unbanUser,
     upgradeToVIP,
     downgradeToStandard,
+    resolveReportFeedback,
+    deleteReportFeedback,
     changeAdminPassword,
+    adminLogout,
     saveSiteSettings,
     getSiteSettings
   } = useAdmin();
@@ -98,6 +109,14 @@ const AdminDashboard = () => {
     defaultValues: {
       reason: "",
       duration: "7 Days"
+    }
+  });
+  
+  // Form setup for upgrading user to VIP
+  const upgradeForm = useForm<z.infer<typeof upgradeFormSchema>>({
+    resolver: zodResolver(upgradeFormSchema),
+    defaultValues: {
+      duration: "1 Month"
     }
   });
   
@@ -163,15 +182,9 @@ const AdminDashboard = () => {
       title: "Confirm Logout",
       description: "Are you sure you want to log out of the admin dashboard?",
       action: () => {
-        // Clear admin session
-        localStorage.removeItem('adminData');
-        
-        // Update UI
-        toast({
-          title: "Logged out",
-          description: "You have been logged out successfully"
-        });
-        navigate('/admin');
+        // Clear admin session and navigate to landing page
+        adminLogout();
+        navigate('/');
       }
     });
     setAlertOpen(true);
@@ -179,11 +192,14 @@ const AdminDashboard = () => {
 
   // User management actions
   const handleKickUser = (userId: string, username: string) => {
+    if (isProcessing) return; // Prevent multiple clicks during processing
+    
     setAlertConfig({
       title: "Confirm Kick User",
       description: `Are you sure you want to kick ${username}?`,
-      action: () => {
-        if (kickUser(userId)) {
+      action: async () => {
+        const success = await kickUser(userId);
+        if (success) {
           toast({
             title: "User kicked",
             description: `${username} has been kicked from the site`
@@ -195,14 +211,16 @@ const AdminDashboard = () => {
   };
 
   const handleBanUser = (userId: string, username: string) => {
+    if (isProcessing) return; // Prevent multiple clicks during processing
+    
     setSelectedUser({ id: userId, name: username });
     setBanDialogOpen(true);
   };
 
-  const submitBanUser = (data: z.infer<typeof banFormSchema>) => {
-    if (!selectedUser) return;
+  const submitBanUser = async (data: z.infer<typeof banFormSchema>) => {
+    if (!selectedUser || isProcessing) return;
     
-    const banRecord = banUser(selectedUser.id, 'user', data.reason, data.duration);
+    const banRecord = await banUser(selectedUser.id, 'user', data.reason, data.duration);
     
     if (banRecord) {
       toast({
@@ -218,11 +236,14 @@ const AdminDashboard = () => {
   };
 
   const handleUnbanUser = (banId: string, identifier: string) => {
+    if (isProcessing) return; // Prevent multiple clicks during processing
+    
     setAlertConfig({
       title: "Confirm Unban",
       description: `Are you sure you want to unban ${identifier}?`,
-      action: () => {
-        if (unbanUser(banId)) {
+      action: async () => {
+        const success = await unbanUser(banId);
+        if (success) {
           toast({
             title: "User unbanned",
             description: `${identifier} has been unbanned`
@@ -234,27 +255,39 @@ const AdminDashboard = () => {
   };
 
   const handleUpgradeToVIP = (userId: string, username: string) => {
-    setAlertConfig({
-      title: "Upgrade to VIP",
-      description: `Are you sure you want to upgrade ${username} to VIP status?`,
-      action: () => {
-        if (upgradeToVIP(userId)) {
-          toast({
-            title: "User upgraded",
-            description: `${username} has been upgraded to VIP status`
-          });
-        }
-      }
-    });
-    setAlertOpen(true);
+    if (isProcessing) return; // Prevent multiple clicks during processing
+    
+    setSelectedUser({ id: userId, name: username });
+    setUpgradeDialogOpen(true);
+  };
+
+  const submitUpgradeToVIP = async (data: z.infer<typeof upgradeFormSchema>) => {
+    if (!selectedUser || isProcessing) return;
+    
+    const success = await upgradeToVIP(selectedUser.id, data.duration as VipDuration);
+    
+    if (success) {
+      toast({
+        title: "User upgraded",
+        description: `${selectedUser.name} has been upgraded to VIP status for ${data.duration}`
+      });
+    }
+    
+    // Close dialog and reset form
+    setUpgradeDialogOpen(false);
+    upgradeForm.reset();
+    setSelectedUser(null);
   };
 
   const handleDowngradeToStandard = (userId: string, username: string) => {
+    if (isProcessing) return; // Prevent multiple clicks during processing
+    
     setAlertConfig({
       title: "Downgrade to Standard",
       description: `Are you sure you want to downgrade ${username} to Standard status?`,
-      action: () => {
-        if (downgradeToStandard(userId)) {
+      action: async () => {
+        const success = await downgradeToStandard(userId);
+        if (success) {
           toast({
             title: "User downgraded",
             description: `${username} has been downgraded to Standard status`
@@ -264,14 +297,56 @@ const AdminDashboard = () => {
     });
     setAlertOpen(true);
   };
+  
+  // Report and feedback management
+  const handleResolveReportFeedback = (id: string, type: string) => {
+    if (isProcessing) return; // Prevent multiple clicks during processing
+    
+    setAlertConfig({
+      title: "Confirm Resolution",
+      description: `Are you sure you want to mark this ${type} as resolved?`,
+      action: async () => {
+        const success = await resolveReportFeedback(id);
+        if (success) {
+          toast({
+            title: "Marked as resolved",
+            description: `The ${type} has been marked as resolved`
+          });
+        }
+      }
+    });
+    setAlertOpen(true);
+  };
+  
+  const handleDeleteReportFeedback = (id: string, type: string) => {
+    if (isProcessing) return; // Prevent multiple clicks during processing
+    
+    setAlertConfig({
+      title: "Confirm Deletion",
+      description: `Are you sure you want to delete this ${type}?`,
+      action: async () => {
+        const success = await deleteReportFeedback(id);
+        if (success) {
+          toast({
+            title: "Deleted",
+            description: `The ${type} has been deleted`
+          });
+        }
+      }
+    });
+    setAlertOpen(true);
+  };
 
   // Bot management
   const handleDeleteBot = (botId: string, botName: string) => {
+    if (isProcessing) return; // Prevent multiple clicks during processing
+    
     setAlertConfig({
       title: "Confirm Delete Bot",
       description: `Are you sure you want to delete ${botName}?`,
-      action: () => {
-        if (deleteBot(botId)) {
+      action: async () => {
+        const success = await deleteBot(botId);
+        if (success) {
           toast({
             title: "Bot deleted",
             description: `${botName} has been deleted`
@@ -282,11 +357,13 @@ const AdminDashboard = () => {
     setAlertOpen(true);
   };
 
-  const handleCreateBot = (data: z.infer<typeof botFormSchema>) => {
+  const handleCreateBot = async (data: z.infer<typeof botFormSchema>) => {
+    if (isProcessing) return; // Prevent multiple clicks during processing
+    
     // Convert interests from string to array
     const interestsArray = data.interests.split(',').map(i => i.trim()).filter(i => i.length > 0);
     
-    const newBot = createBot({
+    const newBot = await createBot({
       name: data.name,
       age: data.age,
       gender: data.gender,
@@ -388,6 +465,29 @@ const AdminDashboard = () => {
   const filteredStandardUsers = standardUsers.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  // Filter reports and feedback based on type
+  const reports = reportsFeedback.filter(item => item.type === 'report');
+  const feedback = reportsFeedback.filter(item => item.type === 'feedback');
+
+  // Format expiry date for display
+  const formatExpiryDate = (date: Date) => {
+    const expiryDate = new Date(date);
+    const now = new Date();
+    
+    // Calculate time difference in milliseconds
+    const diff = expiryDate.getTime() - now.getTime();
+    
+    // Convert to hours
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -448,6 +548,7 @@ const AdminDashboard = () => {
               variant="ghost" 
               className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-900/20" 
               onClick={handleLogout}
+              disabled={isProcessing}
             >
               <LogOut className="mr-2 h-5 w-5" />
               Logout
@@ -526,7 +627,7 @@ const AdminDashboard = () => {
                                     <TableCell>
                                       <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                          <Button variant="outline" size="sm">
+                                          <Button variant="outline" size="sm" disabled={isProcessing}>
                                             Actions <ChevronDown className="ml-2 h-4 w-4" />
                                           </Button>
                                         </DropdownMenuTrigger>
@@ -603,7 +704,7 @@ const AdminDashboard = () => {
                                     <TableCell>
                                       <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                          <Button variant="outline" size="sm">
+                                          <Button variant="outline" size="sm" disabled={isProcessing}>
                                             Actions <ChevronDown className="ml-2 h-4 w-4" />
                                           </Button>
                                         </DropdownMenuTrigger>
@@ -750,7 +851,7 @@ const AdminDashboard = () => {
                                     )}
                                   />
                                   
-                                  <Button type="submit">Create Bot</Button>
+                                  <Button type="submit" disabled={isProcessing}>Create Bot</Button>
                                 </form>
                               </Form>
                             </div>
@@ -782,6 +883,7 @@ const AdminDashboard = () => {
                                             size="sm" 
                                             className="text-red-500" 
                                             onClick={() => handleDeleteBot(bot.id, bot.name)}
+                                            disabled={isProcessing}
                                           >
                                             <Trash2 className="h-4 w-4" />
                                           </Button>
@@ -828,6 +930,7 @@ const AdminDashboard = () => {
                                         variant="outline" 
                                         size="sm" 
                                         onClick={() => handleUnbanUser(banned.id, banned.identifier)}
+                                        disabled={isProcessing}
                                       >
                                         Unban
                                       </Button>
@@ -1248,7 +1351,74 @@ const AdminDashboard = () => {
                           <CardDescription>Review reports submitted by users</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-center py-4">No reports available at this time</p>
+                          {reports.length === 0 ? (
+                            <p className="text-center py-4">No reports available at this time</p>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>User ID</TableHead>
+                                  <TableHead>Report Content</TableHead>
+                                  <TableHead>Submitted</TableHead>
+                                  <TableHead>Expires In</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead>Actions</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {reports.map((report) => (
+                                  <TableRow key={report.id}>
+                                    <TableCell>{report.userId}</TableCell>
+                                    <TableCell className="max-w-xs truncate">{report.content}</TableCell>
+                                    <TableCell>{new Date(report.timestamp).toLocaleString()}</TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center">
+                                        <Clock className="h-4 w-4 mr-1 text-yellow-500" />
+                                        {formatExpiryDate(report.expiresAt)}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      {report.resolved ? (
+                                        <span className="flex items-center text-green-500">
+                                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                                          Resolved
+                                        </span>
+                                      ) : (
+                                        <span className="flex items-center text-yellow-500">
+                                          <Clock className="h-4 w-4 mr-1" />
+                                          Pending
+                                        </span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex space-x-2">
+                                        {!report.resolved && (
+                                          <Button 
+                                            variant="outline" 
+                                            size="sm"
+                                            onClick={() => handleResolveReportFeedback(report.id, "report")}
+                                            disabled={isProcessing}
+                                          >
+                                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                                            Resolve
+                                          </Button>
+                                        )}
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm" 
+                                          onClick={() => handleDeleteReportFeedback(report.id, "report")}
+                                          disabled={isProcessing}
+                                        >
+                                          <XCircle className="h-4 w-4 mr-1" />
+                                          Delete
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          )}
                         </CardContent>
                       </Card>
                     </TabsContent>
@@ -1261,7 +1431,74 @@ const AdminDashboard = () => {
                           <CardDescription>Review feedback submitted by users</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-center py-4">No feedback available at this time</p>
+                          {feedback.length === 0 ? (
+                            <p className="text-center py-4">No feedback available at this time</p>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>User ID</TableHead>
+                                  <TableHead>Feedback Content</TableHead>
+                                  <TableHead>Submitted</TableHead>
+                                  <TableHead>Expires In</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead>Actions</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {feedback.map((item) => (
+                                  <TableRow key={item.id}>
+                                    <TableCell>{item.userId}</TableCell>
+                                    <TableCell className="max-w-xs truncate">{item.content}</TableCell>
+                                    <TableCell>{new Date(item.timestamp).toLocaleString()}</TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center">
+                                        <Clock className="h-4 w-4 mr-1 text-yellow-500" />
+                                        {formatExpiryDate(item.expiresAt)}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      {item.resolved ? (
+                                        <span className="flex items-center text-green-500">
+                                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                                          Resolved
+                                        </span>
+                                      ) : (
+                                        <span className="flex items-center text-yellow-500">
+                                          <Clock className="h-4 w-4 mr-1" />
+                                          Pending
+                                        </span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex space-x-2">
+                                        {!item.resolved && (
+                                          <Button 
+                                            variant="outline" 
+                                            size="sm"
+                                            onClick={() => handleResolveReportFeedback(item.id, "feedback")}
+                                            disabled={isProcessing}
+                                          >
+                                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                                            Resolve
+                                          </Button>
+                                        )}
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm" 
+                                          onClick={() => handleDeleteReportFeedback(item.id, "feedback")}
+                                          disabled={isProcessing}
+                                        >
+                                          <XCircle className="h-4 w-4 mr-1" />
+                                          Delete
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          )}
                         </CardContent>
                       </Card>
                     </TabsContent>
@@ -1386,7 +1623,7 @@ const AdminDashboard = () => {
                                       <Input {...field} />
                                     </FormControl>
                                     <FormDescription>
-                                      This name will be displayed to users in the chat interface.
+                                      This name will be displayed in the chat when you send messages.
                                     </FormDescription>
                                     <FormMessage />
                                   </FormItem>
@@ -1407,7 +1644,7 @@ const AdminDashboard = () => {
         </div>
       </div>
       
-      {/* Alert Dialog for confirmations */}
+      {/* Alert Dialog */}
       <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1417,8 +1654,16 @@ const AdminDashboard = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={alertConfig.action}>Confirm</AlertDialogAction>
+            <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                alertConfig.action();
+                setAlertOpen(false);
+              }}
+              disabled={isProcessing}
+            >
+              Confirm
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1429,7 +1674,7 @@ const AdminDashboard = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Ban User</AlertDialogTitle>
             <AlertDialogDescription>
-              {selectedUser && `Please select a duration and provide a reason for banning ${selectedUser.name}`}
+              {selectedUser && `Enter ban details for ${selectedUser.name}`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           
@@ -1437,17 +1682,31 @@ const AdminDashboard = () => {
             <form onSubmit={banForm.handleSubmit(submitBanUser)} className="space-y-4 py-4">
               <FormField
                 control={banForm.control}
+                name="reason"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reason</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Why are you banning this user?" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={banForm.control}
                 name="duration"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Ban Duration</FormLabel>
+                    <FormLabel>Duration</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select duration" />
+                          <SelectValue placeholder="Select ban duration" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -1463,27 +1722,78 @@ const AdminDashboard = () => {
                 )}
               />
               
+              <div className="flex justify-end space-x-2 pt-4">
+                <AlertDialogCancel
+                  onClick={() => {
+                    banForm.reset();
+                    setSelectedUser(null);
+                  }}
+                  disabled={isProcessing}
+                >
+                  Cancel
+                </AlertDialogCancel>
+                <Button type="submit" variant="destructive" disabled={isProcessing}>
+                  Ban User
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Upgrade to VIP Dialog */}
+      <AlertDialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Upgrade to VIP</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedUser && `Select VIP subscription duration for ${selectedUser.name}`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <Form {...upgradeForm}>
+            <form onSubmit={upgradeForm.handleSubmit(submitUpgradeToVIP)} className="space-y-4 py-4">
               <FormField
-                control={banForm.control}
-                name="reason"
+                control={upgradeForm.control}
+                name="duration"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Reason</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Reason for ban..." 
-                        {...field} 
-                        className="min-h-[100px]"
-                      />
-                    </FormControl>
+                    <FormLabel>Subscription Duration</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select subscription duration" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="1 Day">1 Day</SelectItem>
+                        <SelectItem value="1 Week">1 Week</SelectItem>
+                        <SelectItem value="1 Month">1 Month</SelectItem>
+                        <SelectItem value="1 Year">1 Year</SelectItem>
+                        <SelectItem value="Lifetime">Lifetime</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              <div className="flex justify-end space-x-2 pt-2">
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <Button type="submit">Ban User</Button>
+              <div className="flex justify-end space-x-2 pt-4">
+                <AlertDialogCancel
+                  onClick={() => {
+                    upgradeForm.reset();
+                    setSelectedUser(null);
+                  }}
+                  disabled={isProcessing}
+                >
+                  Cancel
+                </AlertDialogCancel>
+                <Button type="submit" variant="default" disabled={isProcessing}>
+                  Upgrade User
+                </Button>
               </div>
             </form>
           </Form>
@@ -1494,4 +1804,3 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
-

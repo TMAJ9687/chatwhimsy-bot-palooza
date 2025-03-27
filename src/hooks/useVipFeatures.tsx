@@ -100,6 +100,16 @@ export const useVipFeatures = () => {
     return isVip || isAdmin;
   };
   
+  // Special admin capabilities
+  const hasAdminCapabilities = (): boolean => {
+    return isAdmin === true;
+  };
+  
+  // Admin moderation powers
+  const canModerateChatroom = (): boolean => {
+    return isAdmin === true;
+  };
+  
   return {
     isVip,
     isAdmin,
@@ -109,6 +119,8 @@ export const useVipFeatures = () => {
     getCharacterLimit,
     isAllowedImageType,
     validateConsecutiveChars,
-    shouldBypassRules
+    shouldBypassRules,
+    hasAdminCapabilities,
+    canModerateChatroom
   };
 };

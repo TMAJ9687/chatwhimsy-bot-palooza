@@ -1,7 +1,7 @@
 
 import { Bot } from '@/types/chat';
 import { botProfiles } from '@/data/botProfiles';
-import { AdminAction, BanRecord } from '@/types/admin';
+import { AdminAction, BanRecord, ReportFeedback, VipDuration } from '@/types/admin';
 import { v4 as uuidv4 } from 'uuid';
 
 // Local storage keys
@@ -9,11 +9,13 @@ const ADMIN_KEY = 'adminData';
 const BANNED_USERS_KEY = 'bannedUsers';
 const ADMIN_ACTIONS_KEY = 'adminActions';
 const BOTS_KEY = 'adminBots';
+const REPORT_FEEDBACK_KEY = 'reportFeedback';
 
 // In-memory cache
 let botsCache: Bot[] = [];
 let bannedCache: BanRecord[] = [];
 let actionsCache: AdminAction[] = [];
+let reportFeedbackCache: ReportFeedback[] = [];
 let initialized = false;
 
 // Initialize by loading data from localStorage or using defaults
@@ -32,6 +34,13 @@ export const initializeAdminService = () => {
   const storedActions = localStorage.getItem(ADMIN_ACTIONS_KEY);
   actionsCache = storedActions ? JSON.parse(storedActions) : [];
   
+  // Load reports and feedback
+  const storedReportFeedback = localStorage.getItem(REPORT_FEEDBACK_KEY);
+  reportFeedbackCache = storedReportFeedback ? JSON.parse(storedReportFeedback) : [];
+  
+  // Clean up expired reports and feedback
+  cleanupExpiredReportsFeedback();
+  
   initialized = true;
   
   // Save initialized data back to localStorage
@@ -43,6 +52,7 @@ const saveToLocalStorage = () => {
   localStorage.setItem(BOTS_KEY, JSON.stringify(botsCache));
   localStorage.setItem(BANNED_USERS_KEY, JSON.stringify(bannedCache));
   localStorage.setItem(ADMIN_ACTIONS_KEY, JSON.stringify(actionsCache));
+  localStorage.setItem(REPORT_FEEDBACK_KEY, JSON.stringify(reportFeedbackCache));
 };
 
 // Bot Management
@@ -186,14 +196,90 @@ function calculateExpiryDate(duration: string): Date {
     return new Date(now.setDate(now.getDate() + 1));
   } else if (duration === '3 Days') {
     return new Date(now.setDate(now.getDate() + 3));
-  } else if (duration === '7 Days') {
+  } else if (duration === '7 Days' || duration === '1 Week') {
     return new Date(now.setDate(now.getDate() + 7));
-  } else if (duration === '30 Days') {
+  } else if (duration === '30 Days' || duration === '1 Month') {
     return new Date(now.setDate(now.getDate() + 30));
+  } else if (duration === '1 Year') {
+    return new Date(now.setFullYear(now.getFullYear() + 1));
   }
   
   return new Date(now.setDate(now.getDate() + 1)); // Default to 1 day
 }
+
+// Report and Feedback Management
+export const addReportOrFeedback = (
+  type: 'report' | 'feedback', 
+  userId: string, 
+  content: string
+): ReportFeedback => {
+  initializeAdminService();
+  
+  // Create timestamp for now
+  const now = new Date();
+  
+  // Create expiry date (24 hours from now)
+  const expiresAt = new Date(now);
+  expiresAt.setHours(expiresAt.getHours() + 24);
+  
+  const item: ReportFeedback = {
+    id: uuidv4(),
+    type,
+    userId,
+    content,
+    timestamp: now,
+    expiresAt,
+    resolved: false
+  };
+  
+  reportFeedbackCache.push(item);
+  saveToLocalStorage();
+  
+  return item;
+};
+
+export const getReportsAndFeedback = (): ReportFeedback[] => {
+  initializeAdminService();
+  // Clean up expired items before returning
+  cleanupExpiredReportsFeedback();
+  return [...reportFeedbackCache];
+};
+
+export const resolveReportOrFeedback = (id: string): boolean => {
+  initializeAdminService();
+  const item = reportFeedbackCache.find(item => item.id === id);
+  if (!item) return false;
+  
+  item.resolved = true;
+  saveToLocalStorage();
+  return true;
+};
+
+export const deleteReportOrFeedback = (id: string): boolean => {
+  initializeAdminService();
+  const initialLength = reportFeedbackCache.length;
+  reportFeedbackCache = reportFeedbackCache.filter(item => item.id !== id);
+  
+  const deleted = initialLength > reportFeedbackCache.length;
+  if (deleted) {
+    saveToLocalStorage();
+  }
+  
+  return deleted;
+};
+
+export const cleanupExpiredReportsFeedback = (): void => {
+  const now = new Date();
+  const initialLength = reportFeedbackCache.length;
+  
+  reportFeedbackCache = reportFeedbackCache.filter(item => {
+    return new Date(item.expiresAt) > now;
+  });
+  
+  if (initialLength > reportFeedbackCache.length) {
+    saveToLocalStorage();
+  }
+};
 
 // Admin Authentication
 export const verifyAdminCredentials = (email: string, password: string): boolean => {
@@ -217,6 +303,11 @@ export const isAdminLoggedIn = (): boolean => {
   }
 };
 
+export const adminLogout = (): void => {
+  // Clear admin session
+  localStorage.removeItem(ADMIN_KEY);
+};
+
 // User Management (for Standard/VIP users)
 export const kickUser = (userId: string, adminId: string): void => {
   // In a real application, this would interact with a backend service
@@ -235,7 +326,11 @@ export const kickUser = (userId: string, adminId: string): void => {
   saveToLocalStorage();
 };
 
-export const upgradeToVIP = (userId: string, adminId: string): void => {
+export const upgradeToVIP = (
+  userId: string, 
+  adminId: string, 
+  duration: VipDuration = 'Lifetime'
+): void => {
   // In a real application, this would update the user's status in a database
   
   // Log the action
@@ -244,6 +339,7 @@ export const upgradeToVIP = (userId: string, adminId: string): void => {
     actionType: 'upgrade',
     targetId: userId,
     targetType: 'user',
+    duration: duration,
     timestamp: new Date(),
     adminId: adminId
   });

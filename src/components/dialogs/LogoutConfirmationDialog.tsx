@@ -13,12 +13,16 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useDialogCleanup } from '@/hooks/useDialogCleanup';
 import { useUser } from '@/context/UserContext';
+import { useAdmin } from '@/hooks/useAdmin';
+import { useNavigate } from 'react-router-dom';
 
 const LogoutConfirmationDialog = () => {
   const { state, closeDialog } = useDialog();
   const { handleDialogClose } = useDialogCleanup();
   const { onConfirm } = state.data;
   const { user } = useUser();
+  const { adminLogout, isAdmin } = useAdmin();
+  const navigate = useNavigate();
   
   const isVip = user?.isVip || false;
 
@@ -39,13 +43,22 @@ const LogoutConfirmationDialog = () => {
         }
       }
       
+      // If user is admin, also perform admin logout
+      if (isAdmin) {
+        adminLogout();
+        // Navigate to landing page after admin logout
+        navigate('/');
+      }
+      
       onConfirm();
     }
     handleSafeClose();
-  }, [onConfirm, handleSafeClose, user, isVip]);
+  }, [onConfirm, handleSafeClose, user, isVip, isAdmin, adminLogout, navigate]);
 
   const getFeedbackMessage = () => {
-    if (isVip) {
+    if (isAdmin) {
+      return "Are you sure you want to log out from the admin dashboard?";
+    } else if (isVip) {
       return "Are you sure you want to leave? We'll miss you :(";
     } else {
       return "Before you go, would you like to share your feedback on the next screen?";
