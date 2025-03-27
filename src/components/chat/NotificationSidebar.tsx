@@ -112,7 +112,7 @@ const NotificationSidebar: React.FC<NotificationSidebarProps> = ({
                 // Fix to show correct bot name in notification
                 let displayTitle = notification.title;
                 
-                if (type === 'inbox' && notification.botId && displayTitle.includes('New message from')) {
+                if (type === 'inbox' && notification.botId) {
                   const botName = getBotNameById(notification.botId);
                   displayTitle = `New message from ${botName}`;
                 }

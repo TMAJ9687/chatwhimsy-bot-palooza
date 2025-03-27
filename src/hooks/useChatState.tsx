@@ -331,7 +331,13 @@ export const useChatState = (isVip: boolean) => {
       
       return newChats;
     });
-  }, [setUserChats]);
+    
+    toast({
+      title: "Message translated",
+      description: `Message has been translated to ${targetLanguage.toUpperCase()}.`,
+      duration: 3000
+    });
+  }, [setUserChats, toast]);
 
   const getSharedMedia = useCallback((userId: string) => {
     const chatMessages = userChats[userId] || [];
@@ -358,7 +364,9 @@ export const useChatState = (isVip: boolean) => {
     
     setReplyingToMessage(messageToReplyTo);
     
-    return handleSendTextMessageWrapper(content);
+    if (content) {
+      return handleSendTextMessageWrapper(content);
+    }
   }, [isVip, userChats, setReplyingToMessage, handleSendTextMessageWrapper]);
 
   const handleReactToMessage = useCallback((messageId: string, emoji: string) => {
@@ -415,23 +423,27 @@ export const useChatState = (isVip: boolean) => {
     
     setUserChats(prev => {
       const newChats = { ...prev };
+      let messageFound = false;
       
       Object.keys(newChats).forEach(botId => {
         newChats[botId] = newChats[botId].map(msg => {
           if (msg.id === messageId && msg.sender === 'user') {
+            messageFound = true;
             return { ...msg, isDeleted: true };
           }
           return msg;
         });
       });
       
+      if (messageFound) {
+        toast({
+          title: "Message unsent",
+          description: "Your message has been unsent",
+          duration: 3000
+        });
+      }
+      
       return newChats;
-    });
-    
-    toast({
-      title: "Message unsent",
-      description: "Your message has been unsent",
-      duration: 3000
     });
   }, [isVip, setUserChats, toast]);
 

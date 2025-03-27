@@ -23,8 +23,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const { endRef } = useScrollToBottom([messages, isTyping]);
   
   // Always show status for VIP users, overriding the passed prop
-  const shouldShowStatus = isVip ? true : showStatus;
-  const shouldShowTyping = isVip && showTyping;
+  const shouldShowStatus = isVip || showStatus;
+  const shouldShowTyping = isVip || showTyping;
 
   return (
     <div 

@@ -46,11 +46,9 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
       });
     };
 
-    // Always update message status for VIP users to show sent and delivered
-    if (isVip) {
-      setTimeout(() => updateMessageStatus('sent'), 500);
-      setTimeout(() => updateMessageStatus('delivered'), 1500);
-    }
+    // Always update message status for all users
+    setTimeout(() => updateMessageStatus('sent'), 500);
+    setTimeout(() => updateMessageStatus('delivered'), 1500);
     
     setTimeout(() => {
       const isCurrent = currentBotIdRef.current === botId;
