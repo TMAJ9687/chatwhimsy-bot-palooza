@@ -14,6 +14,7 @@ import VipLogin from "./pages/VipLogin";
 import VipSubscription from "./pages/VipSubscription";
 import VipPayment from "./pages/VipPayment";
 import VipConfirmation from "./pages/VipConfirmation";
+import Feedback from "./pages/Feedback";
 import { useEffect, useState } from "react";
 import { DialogProvider } from "./context/DialogContext";
 import DialogContainer from "./components/dialogs/DialogContainer";
@@ -39,6 +40,7 @@ const queryClient = new QueryClient({
 
 const App = () => {
   const [hasLoggedOut, setHasLoggedOut] = useState(false);
+  const [userType, setUserType] = useState<'standard' | 'vip' | null>(null);
 
   // Initialize performance monitoring with more detailed options
   useEffect(() => {
@@ -66,10 +68,30 @@ const App = () => {
 
   // Handle logout action with requestAnimationFrame for better performance
   const handleLogout = () => {
+    // Check if user exists in localStorage to determine the type
+    const userData = localStorage.getItem('chatUser');
+    let type: 'standard' | 'vip' | null = null;
+    
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        type = user.isVip ? 'vip' : 'standard';
+        setUserType(type);
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+    
     setHasLoggedOut(true);
+    
     // Use requestAnimationFrame for smoother UI
     requestAnimationFrame(() => {
-      window.location.href = '/';
+      // Redirect standard users to feedback, VIP users to home
+      if (type === 'standard') {
+        window.location.href = '/feedback';
+      } else {
+        window.location.href = '/';
+      }
     });
   };
 
@@ -105,6 +127,7 @@ const App = () => {
                     <Route path="/vip-subscription" element={<VipSubscription />} />
                     <Route path="/vip-payment" element={<VipPayment />} />
                     <Route path="/vip-confirmation" element={<VipConfirmation />} />
+                    <Route path="/feedback" element={<Feedback />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                   <DialogContainer />
