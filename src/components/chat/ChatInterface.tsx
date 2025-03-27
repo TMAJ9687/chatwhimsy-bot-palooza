@@ -1,5 +1,5 @@
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { useDialog } from '@/context/DialogContext';
@@ -58,9 +58,10 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   } = useChat();
 
   // Show site rules dialog after 3 seconds, but only if rules haven't been accepted yet
+  // and user is not VIP (VIP users bypass this)
   React.useEffect(() => {
-    // Only show the dialog if rules haven't been accepted yet
-    if (!rulesAccepted) {
+    // Only show the dialog if rules haven't been accepted yet and user is not VIP
+    if (!rulesAccepted && !isVip) {
       const timer = setTimeout(() => {
         openDialog('siteRules', { 
           onAccept: () => {
@@ -72,7 +73,7 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
       
       return () => clearTimeout(timer);
     }
-  }, [openDialog, rulesAccepted, setRulesAccepted]);
+  }, [openDialog, rulesAccepted, setRulesAccepted, isVip]);
 
   // Navigation handlers - optimized with useCallback
   const handleLogout = useCallback(() => {
@@ -128,8 +129,8 @@ const ChatInterfaceContent: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
             onFilterChange={handleFilterChange}
           />
           
-          {/* VIP Upgrade Section */}
-          <VipUpgradeSection />
+          {/* VIP Upgrade Section - Only show for non-VIP users */}
+          {!isVip && <VipUpgradeSection />}
         </div>
 
         {/* Mobile user list trigger */}

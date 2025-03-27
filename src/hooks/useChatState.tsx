@@ -6,6 +6,7 @@ import { useUserBlocking } from './useUserBlocking';
 import { useNotifications } from './useNotifications';
 import { useChatMessages } from './useChatMessages';
 import { useBotFiltering } from './useBotFiltering';
+import { useVipFeatures } from './useVipFeatures';
 
 export const useChatState = (isVip: boolean) => {
   // Initialize chat-related state from custom hooks
@@ -36,6 +37,16 @@ export const useChatState = (isVip: boolean) => {
     addNotification,
     addHistoryItem
   } = useNotifications();
+
+  // Use VIP features
+  const { shouldBypassRules } = useVipFeatures();
+
+  // If user is VIP, automatically accept rules
+  useEffect(() => {
+    if (shouldBypassRules() && !rulesAccepted) {
+      setRulesAccepted(true);
+    }
+  }, [shouldBypassRules, rulesAccepted, setRulesAccepted]);
 
   // Create a handler for new notifications
   const handleNewNotification = useCallback((botId: string, content: string, botName: string) => {

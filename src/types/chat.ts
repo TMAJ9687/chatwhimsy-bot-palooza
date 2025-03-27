@@ -21,6 +21,8 @@ export interface Message {
   timestamp: Date;
   status?: MessageStatus;
   isImage?: boolean;
+  isVoice?: boolean;
+  duration?: number; // For voice messages, duration in seconds
 }
 
 export interface Notification {
@@ -40,8 +42,8 @@ export interface FilterState {
   countries: string[];
 }
 
-// Message validation constants
+// Message validation constants - these will be used as a fallback
+// The actual limits are now in useVipFeatures.tsx
 export const MAX_CHAR_LIMIT = 120; // Standard user character limit
-export const VIP_CHAR_LIMIT = 500; // VIP user character limit
+export const VIP_CHAR_LIMIT = 200; // VIP user character limit (updated from 500 to 200)
 export const CONSECUTIVE_LIMIT = 3;
-

@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { MAX_CHAR_LIMIT, VIP_CHAR_LIMIT, checkCharacterLimit, hasConsecutiveChars } from '@/utils/messageUtils';
+import { useVipFeatures } from '@/hooks/useVipFeatures';
+import { checkCharacterLimit, hasConsecutiveChars } from '@/utils/messageUtils';
 import { useToast } from '@/hooks/use-toast';
 
 interface MessageTextareaProps {
@@ -21,7 +22,8 @@ const MessageTextarea: React.FC<MessageTextareaProps> = ({
   placeholder = "Type a message..."
 }) => {
   const { toast } = useToast();
-  const charLimit = isVip ? VIP_CHAR_LIMIT : MAX_CHAR_LIMIT;
+  const { getCharacterLimit, validateConsecutiveChars } = useVipFeatures();
+  const charLimit = getCharacterLimit();
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -38,10 +40,12 @@ const MessageTextarea: React.FC<MessageTextareaProps> = ({
       return;
     }
     
-    if (newText.length > message.length && hasConsecutiveChars(newText)) {
+    if (newText.length > message.length && hasConsecutiveChars(newText, isVip)) {
       toast({
         title: "Pattern detected",
-        description: "Please avoid sending more than 3 consecutive identical characters.",
+        description: isVip 
+          ? "Please avoid sending messages with more than 3 consecutive identical numbers or 6 consecutive identical letters."
+          : "Please avoid sending more than 3 consecutive identical characters.",
         duration: 3000
       });
       return;

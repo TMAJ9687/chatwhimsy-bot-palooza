@@ -12,22 +12,22 @@ import { Crown, LogIn } from 'lucide-react';
 import { useDialog } from '@/context/DialogContext';
 import { useUser } from '@/context/UserContext';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 const VipSelectDialog = () => {
   const { state, closeDialog } = useDialog();
   const { updateUserProfile } = useUser();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleLoginClick = () => {
     closeDialog();
-    // Use window.location instead of navigate
-    window.location.href = '/vip-login';
+    navigate('/vip-login');
   };
 
   const handleSignupClick = () => {
     closeDialog();
-    // Now redirect to the VIP Subscription page to select a plan first
-    window.location.href = '/vip-subscription';
+    navigate('/vip-subscription');
   };
 
   const handleActivateTestVip = () => {
@@ -36,7 +36,9 @@ const VipSelectDialog = () => {
       isVip: true,
       subscriptionTier: 'monthly',
       subscriptionEndDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
-      imagesRemaining: Infinity
+      imagesRemaining: Infinity,
+      voiceMessagesRemaining: 120,
+      nickname: 'VIP Tester',
     });
     
     toast({
@@ -46,6 +48,9 @@ const VipSelectDialog = () => {
     });
     
     closeDialog();
+    
+    // Navigate to the chat page
+    navigate('/chat');
   };
 
   return (

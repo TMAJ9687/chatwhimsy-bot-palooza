@@ -1,5 +1,5 @@
 
-import React, { memo, useState, useCallback } from 'react';
+import React, { memo, useState, useCallback, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,8 @@ import {
   AlertDialogTitle 
 } from '../ui/alert-dialog';
 import { useDialog } from '@/context/DialogContext';
+import { useUser } from '@/context/UserContext';
+import { useVipFeatures } from '@/hooks/useVipFeatures';
 
 // Memoized content component
 const SiteRulesContent = memo(({ 
@@ -88,9 +90,18 @@ const SiteRulesDialog = () => {
   const { state, closeDialog } = useDialog();
   const [showWarning, setShowWarning] = useState(false);
   const navigate = useNavigate();
-
+  const { isVip } = useUser();
+  
   // Only destructure when needed
   const isRulesOpen = state.isOpen && state.type === 'siteRules';
+  
+  useEffect(() => {
+    // Auto-accept rules for VIP users
+    if (isVip && isRulesOpen && state.data?.onAccept) {
+      state.data.onAccept();
+      closeDialog();
+    }
+  }, [isVip, isRulesOpen, closeDialog, state.data]);
   
   // Memoized handlers
   const handleAccept = useCallback(() => {
@@ -115,8 +126,8 @@ const SiteRulesDialog = () => {
     setShowWarning(false);
   }, []);
 
-  // Don't render if dialog isn't open
-  if (!isRulesOpen && !showWarning) return null;
+  // Don't render for VIP users or if dialog isn't open
+  if (isVip || (!isRulesOpen && !showWarning)) return null;
 
   return (
     <>

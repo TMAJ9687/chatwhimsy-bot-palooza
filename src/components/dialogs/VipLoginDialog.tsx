@@ -19,6 +19,7 @@ import { useUser } from '@/context/UserContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import PasswordResetDialog from './PasswordResetDialog';
+import { useNavigate } from 'react-router-dom';
 
 // Form schema
 const loginSchema = z.object({
@@ -34,6 +35,7 @@ const VipLoginDialog = () => {
   const { updateUserProfile } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const navigate = useNavigate();
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -60,7 +62,8 @@ const VipLoginDialog = () => {
           subscriptionTier: 'monthly',
           subscriptionEndDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
           imagesRemaining: Infinity,
-          voiceMessagesRemaining: Infinity
+          voiceMessagesRemaining: 120, // Adding voice message limit for VIP users
+          nickname: 'VIP Tester', // Adding nickname
         });
         
         toast({
@@ -70,8 +73,8 @@ const VipLoginDialog = () => {
         
         closeDialog();
         
-        // Use window.location for navigation
-        window.location.href = '/vip-profile';
+        // Navigate to the chat page directly
+        navigate('/chat');
       } else {
         // Failed login
         form.setError('password', { 
