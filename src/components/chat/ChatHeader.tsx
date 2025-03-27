@@ -4,7 +4,6 @@ import { useChat } from '@/context/ChatContext';
 import UserAvatar from './UserAvatar';
 import UserInfo from './UserInfo';
 import UserActions from './UserActions';
-import { Message } from '@/types/chat';
 
 interface ChatHeaderProps {
   currentUser: {
@@ -18,17 +17,13 @@ interface ChatHeaderProps {
   };
   onBlockUser: (userId: string) => void;
   onCloseChat: () => void;
-  onDeleteConversation?: () => void;
-  messages?: Message[];
 }
 
 // Optimized component with memoization
 const ChatHeader: React.FC<ChatHeaderProps> = memo(({ 
   currentUser, 
   onBlockUser, 
-  onCloseChat,
-  onDeleteConversation,
-  messages = []
+  onCloseChat 
 }) => {
   const { isUserBlocked, handleUnblockUser } = useChat();
   
@@ -60,8 +55,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = memo(({
         onBlockUser={onBlockUser}
         onUnblockUser={handleUnblockUser}
         onCloseChat={onCloseChat}
-        onDeleteConversation={onDeleteConversation}
-        messages={messages}
       />
     </div>
   );

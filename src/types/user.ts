@@ -1,9 +1,8 @@
-
 export interface UserProfile {
   id: string;
   nickname: string;
   email: string;
-  gender: 'male' | 'female';
+  gender: 'male' | 'female' | 'other';
   age: number;
   country: string;
   interests: string[];

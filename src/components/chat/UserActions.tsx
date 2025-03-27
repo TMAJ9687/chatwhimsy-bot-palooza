@@ -1,13 +1,14 @@
 
-import React, { useCallback, useState } from 'react';
-import { X } from 'lucide-react';
+import React, { useCallback } from 'react';
+import { X, MoreVertical, UserX2, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useDialog } from '@/context/DialogContext';
-import { useUser } from '@/context/UserContext';
-import VipContextMenu from './VipContextMenu';
-import SharedMediaDialog from './SharedMediaDialog';
-import TranslateDialog from './TranslateDialog';
-import { Message } from '@/types/chat';
 
 interface UserActionsProps {
   userId: string;
@@ -16,8 +17,6 @@ interface UserActionsProps {
   onBlockUser: (userId: string) => void;
   onUnblockUser: (userId: string) => void;
   onCloseChat: () => void;
-  onDeleteConversation?: () => void;
-  messages?: Message[];
 }
 
 const UserActions = ({ 
@@ -26,14 +25,9 @@ const UserActions = ({
   isBlocked, 
   onBlockUser, 
   onUnblockUser, 
-  onCloseChat,
-  onDeleteConversation,
-  messages = []
+  onCloseChat 
 }: UserActionsProps) => {
   const { openDialog } = useDialog();
-  const { isVip } = useUser();
-  const [isSharedMediaOpen, setIsSharedMediaOpen] = useState(false);
-  const [isTranslateOpen, setIsTranslateOpen] = useState(false);
   
   const handleOpenReportDialog = useCallback(() => {
     requestAnimationFrame(() => {
@@ -54,101 +48,38 @@ const UserActions = ({
     });
   }, [openDialog, userName, userId, onBlockUser]);
 
-  const handleDeleteConversation = useCallback(() => {
-    if (onDeleteConversation) {
-      requestAnimationFrame(() => {
-        openDialog('logout', {
-          title: "Delete Conversation",
-          message: `Are you sure you want to delete your conversation with ${userName}? This cannot be undone.`,
-          confirmLabel: "Delete",
-          cancelLabel: "Cancel",
-          onConfirm: onDeleteConversation,
-        });
-      });
-    }
-  }, [openDialog, userName, onDeleteConversation]);
-
-  if (isBlocked) {
-    return (
-      <div className="flex items-center space-x-2">
+  return (
+    <div className="flex items-center space-x-2">
+      {isBlocked ? (
         <Button 
           variant="outline" 
           size="sm"
           onClick={() => onUnblockUser(userId)}
           className="text-blue-600 dark:text-blue-400"
         >
+          <UserX2 className="h-4 w-4 mr-1" />
           Unblock
         </Button>
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={onCloseChat}
-          title="Close Chat"
-        >
-          <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-        </Button>
-      </div>
-    );
-  }
-
-  // For VIP users, show the enhanced context menu
-  if (isVip) {
-    return (
-      <>
-        <div className="flex items-center space-x-2">
-          <VipContextMenu 
-            onReport={handleOpenReportDialog}
-            onBlock={handleOpenBlockDialog}
-            onDeleteConversation={handleDeleteConversation}
-            onViewSharedMedia={() => setIsSharedMediaOpen(true)}
-            onTranslate={() => setIsTranslateOpen(true)}
-          />
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={onCloseChat}
-            title="Close Chat"
-          >
-            <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-          </Button>
-        </div>
-
-        {/* Shared Media Dialog */}
-        <SharedMediaDialog 
-          isOpen={isSharedMediaOpen}
-          onClose={() => setIsSharedMediaOpen(false)}
-          messages={messages}
-          userName={userName}
-        />
-        
-        {/* Translate Dialog */}
-        <TranslateDialog 
-          isOpen={isTranslateOpen}
-          onClose={() => setIsTranslateOpen(false)}
-          messages={messages}
-          userName={userName}
-        />
-      </>
-    );
-  }
-
-  // For regular users, show the standard menu
-  return (
-    <div className="flex items-center space-x-2">
-      <Button 
-        variant="outline" 
-        size="sm"
-        onClick={handleOpenBlockDialog}
-      >
-        Block
-      </Button>
-      <Button 
-        variant="outline" 
-        size="sm"
-        onClick={handleOpenReportDialog}
-      >
-        Report
-      </Button>
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreVertical className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleOpenReportDialog}>
+              <Flag className="h-4 w-4 mr-2" />
+              Report User
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleOpenBlockDialog}>
+              <UserX2 className="h-4 w-4 mr-2" />
+              Block User
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+      
       <Button 
         variant="ghost" 
         size="icon"

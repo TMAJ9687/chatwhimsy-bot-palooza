@@ -125,79 +125,24 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
       [currentBotId]: [...currentMessages, newMessage]
     }));
     
-    // Only track image uploads for non-VIP users
-    if (!isVip) {
-      try {
-        const remaining = await trackImageUpload();
-        setImagesRemaining(remaining);
-      } catch (error) {
-        console.error('Error tracking image upload:', error);
-      }
+    try {
+      const remaining = await trackImageUpload();
+      setImagesRemaining(remaining);
+    } catch (error) {
+      console.error('Error tracking image upload:', error);
     }
     
     return newMessage.id;
-  }, [userChats, isVip]);
-
-  const handleSendVoiceMessage = useCallback(async (audioDataUrl: string, currentBotId: string, blobSize?: number) => {
-    if (!isVip) return '';
-    
-    const currentMessages = userChats[currentBotId] || [];
-    
-    // Calculate duration based on blob size (approximate)
-    const approximateDuration = blobSize ? Math.round(blobSize / 16000) : 10; // Rough estimate
-    
-    const newMessage: Message = {
-      id: `user-${Date.now()}`,
-      content: audioDataUrl,
-      sender: 'user',
-      timestamp: new Date(),
-      status: 'sending',
-      isVoice: true,
-      duration: approximateDuration,
-    };
-    
-    setUserChats(prev => ({
-      ...prev,
-      [currentBotId]: [...currentMessages, newMessage]
-    }));
-    
-    return newMessage.id;
-  }, [userChats, isVip]);
-
-  const handleDeleteConversation = useCallback(() => {
-    const currentBotId = currentBotIdRef.current;
-    
-    if (currentBotId) {
-      setUserChats(prev => {
-        const newChats = { ...prev };
-        
-        // Create a new conversation with just a system message
-        newChats[currentBotId] = [{
-          id: `system-${Date.now()}`,
-          content: `Conversation cleared`,
-          sender: 'system',
-          timestamp: new Date(),
-        }];
-        
-        return newChats;
-      });
-    }
-  }, []);
+  }, [userChats]);
 
   const initializeImageRemaining = useCallback(async () => {
-    // VIP users have unlimited image uploads
-    if (isVip) {
-      setImagesRemaining(Infinity);
-      return;
-    }
-    
     try {
       const remaining = await getRemainingUploads(false);
       setImagesRemaining(remaining);
     } catch (error) {
       console.error('Error fetching remaining uploads:', error);
     }
-  }, [isVip]);
+  }, []);
 
   return {
     userChats,
@@ -208,8 +153,6 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
     simulateBotResponse,
     handleSendTextMessage,
     handleSendImageMessage,
-    handleSendVoiceMessage,
-    handleDeleteConversation,
     initializeImageRemaining
   };
 };

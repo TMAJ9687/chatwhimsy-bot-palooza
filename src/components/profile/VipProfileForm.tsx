@@ -16,10 +16,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { User, Calendar, MapPin, Heart, Save, Check } from 'lucide-react';
 import { countries } from '@/data/countries';
-import { validateUsername } from '@/utils/messageUtils';
 
 const profileFormSchema = z.object({
-  gender: z.enum(['male', 'female'], {
+  gender: z.enum(['male', 'female', 'other'], {
     required_error: "Please select a gender",
   }),
   age: z.string().min(1, "Age is required"),
@@ -27,7 +26,6 @@ const profileFormSchema = z.object({
   interests: z.array(z.string()).max(4, "You can select up to 4 interests"),
   isVisible: z.boolean(),
   avatarId: z.string(),
-  nickname: z.string().min(3, "Nickname must be at least 3 characters").max(22, "Nickname must be 22 characters or less"),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -67,7 +65,6 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
   const { user, updateUserProfile } = useUser();
   const { toast } = useToast();
   const [selectedAvatar, setSelectedAvatar] = useState('avatar1');
-  const [nicknameError, setNicknameError] = useState<string | null>(null);
   
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -78,7 +75,6 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
       interests: user?.interests || [],
       isVisible: true,
       avatarId: 'avatar1',
-      nickname: user?.nickname || 'VIP User',
     },
   });
 
@@ -95,7 +91,6 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
           interests: userData.interests || [],
           isVisible: userData.isVisible !== undefined ? userData.isVisible : true,
           avatarId: userData.avatarId || 'avatar1',
-          nickname: userData.nickname || 'VIP User',
         });
         setSelectedAvatar(userData.avatarId || 'avatar1');
       } else {
@@ -110,7 +105,6 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
             interests: userData.interests || [],
             isVisible: userData.isVisible !== undefined ? userData.isVisible : true,
             avatarId: userData.avatarId || 'avatar1',
-            nickname: userData.nickname || 'VIP User',
           });
           setSelectedAvatar(userData.avatarId || 'avatar1');
         }
@@ -120,25 +114,8 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
     loadUserData();
   }, [form]);
 
-  const validateVipNickname = (nickname: string) => {
-    const validation = validateUsername(nickname, true);
-    if (!validation.valid) {
-      setNicknameError(validation.message);
-      return false;
-    }
-    
-    setNicknameError(null);
-    return true;
-  };
-
   const onSubmit = (data: ProfileFormValues) => {
-    // Validate VIP nickname
-    if (!validateVipNickname(data.nickname)) {
-      return;
-    }
-    
     updateUserProfile({
-      nickname: data.nickname,
       gender: data.gender,
       age: parseInt(data.age),
       country: data.country,
@@ -175,38 +152,19 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} onChange={onChange} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="nickname"
-              render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <FormLabel className="text-sm font-medium flex items-center">
-                    <span className="text-red-500 mr-1">*</span> VIP Nickname
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      className="font-semibold border-amber-200 bg-white/50"
-                      onBlur={(e) => {
-                        validateVipNickname(e.target.value);
-                        field.onBlur();
-                      }}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        setNicknameError(null);
-                      }}
-                    />
-                  </FormControl>
-                  {nicknameError && (
-                    <div className="text-red-500 text-xs">{nicknameError}</div>
-                  )}
-                  <div className="text-xs text-gray-500">
-                    As a VIP, you can use up to 22 characters. Consecutive repeated characters are limited.
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
+              <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Your VIP Nickname</FormLabel>
+              <div className="mt-1 flex items-center">
+                <Input 
+                  value={user?.nickname || 'VIP User'} 
+                  className="font-semibold border-amber-200 bg-white/50"
+                  readOnly 
+                />
+                <div className="ml-2 bg-amber-100 dark:bg-amber-800 px-2 py-1 rounded text-xs font-medium text-amber-800 dark:text-amber-200">
+                  Cannot be changed
+                </div>
+              </div>
+            </div>
 
             <FormField
               control={form.control}
@@ -229,6 +187,10 @@ const VipProfileForm: React.FC<VipProfileFormProps> = ({ onChange, onSave }) => 
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="female" id="female" />
                         <FormLabel htmlFor="female" className="font-normal">Female</FormLabel>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="other" id="other" />
+                        <FormLabel htmlFor="other" className="font-normal">Other</FormLabel>
                       </div>
                     </RadioGroup>
                   </FormControl>
