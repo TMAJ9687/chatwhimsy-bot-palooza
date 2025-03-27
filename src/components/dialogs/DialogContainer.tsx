@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useDialog } from '@/context/DialogContext';
+import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
 import ReportDialog from './ReportDialog';
 import BlockUserDialog from './BlockUserDialog';
 import SiteRulesDialog from './SiteRulesDialog';
@@ -18,6 +19,36 @@ import AlertDialogComponent from './AlertDialog';
 // This component renders the appropriate dialog based on the current dialog state
 const DialogContainer = () => {
   const { state } = useDialog();
+  const { cleanupOverlays } = useSafeDOMOperations();
+  const prevDialogTypeRef = useRef<string | null>(null);
+  const timeoutRef = useRef<number | null>(null);
+  
+  // Cleanup overlays when dialog state changes
+  useEffect(() => {
+    // Clean up any previous cleanup timer
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    
+    // If dialog changed from open to closed, clean up overlays
+    if (prevDialogTypeRef.current !== null && !state.isOpen) {
+      timeoutRef.current = window.setTimeout(() => {
+        cleanupOverlays();
+        timeoutRef.current = null;
+      }, 300); // Delay to allow animations to complete
+    }
+    
+    // Track the previous dialog type
+    prevDialogTypeRef.current = state.isOpen ? state.type || null : null;
+    
+    return () => {
+      if (timeoutRef.current !== null) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [state.isOpen, state.type, cleanupOverlays]);
   
   if (!state.isOpen) {
     return null;

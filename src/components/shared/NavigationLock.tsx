@@ -2,7 +2,6 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
-import { domRegistry } from '@/services/DOMRegistry';
 
 // This component helps prevent navigation issues by cleaning up any stale state
 // or UI elements that might interfere with smooth transitions between pages
@@ -11,11 +10,11 @@ const NavigationLock: React.FC = () => {
   const navigationType = useNavigationType();
   const cleanupAttemptRef = useRef(false);
   const lastCleanupTimeRef = useRef(0);
-  const cleanupTimeoutsRef = useRef<number[]>([]);
+  const timeoutsRef = useRef<number[]>([]);
   const navigationInProgressRef = useRef(false);
   
   // Use our enhanced safe DOM operations hook
-  const { cleanupOverlays, isDOMReady } = useSafeDOMOperations();
+  const { cleanupOverlays, resetBodyScroll, isDOMReady } = useSafeDOMOperations();
 
   // Enhanced DOM cleanup utility with debouncing and safeguards
   const cleanupUI = useCallback(() => {
@@ -30,21 +29,18 @@ const NavigationLock: React.FC = () => {
     
     try {
       // Clear any stale timeouts
-      cleanupTimeoutsRef.current.forEach(id => window.clearTimeout(id));
-      cleanupTimeoutsRef.current = [];
+      timeoutsRef.current.forEach(id => window.clearTimeout(id));
+      timeoutsRef.current = [];
       
-      // Reset body scroll
-      if (document.body) {
-        document.body.style.overflow = 'auto';
-        document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-      }
+      // Reset body scroll state
+      resetBodyScroll();
       
       // Use our safe overlay cleanup after a short delay
       const timeoutId = window.setTimeout(() => {
-        domRegistry.cleanupOverlays();
+        cleanupOverlays();
       }, 50);
       
-      cleanupTimeoutsRef.current.push(timeoutId);
+      timeoutsRef.current.push(timeoutId);
       
       // Clear any navigation locks
       localStorage.removeItem('vipNavigationInProgress');
@@ -56,9 +52,9 @@ const NavigationLock: React.FC = () => {
       const timeoutId = window.setTimeout(() => {
         cleanupAttemptRef.current = false;
       }, 300);
-      cleanupTimeoutsRef.current.push(timeoutId);
+      timeoutsRef.current.push(timeoutId);
     }
-  }, [cleanupOverlays, isDOMReady]);
+  }, [cleanupOverlays, isDOMReady, resetBodyScroll]);
   
   // Watch for route changes to clean up UI with improved timing
   useEffect(() => {
@@ -83,14 +79,14 @@ const NavigationLock: React.FC = () => {
         cleanupUI();
       }, 300);
       
-      cleanupTimeoutsRef.current.push(secondCleanupId);
+      timeoutsRef.current.push(secondCleanupId);
       
       // Mark navigation complete after a delay
       const navigationCompleteTimeout = window.setTimeout(() => {
         navigationInProgressRef.current = false;
       }, 500);
       
-      cleanupTimeoutsRef.current.push(navigationCompleteTimeout);
+      timeoutsRef.current.push(navigationCompleteTimeout);
     });
     
     return () => {
@@ -108,12 +104,12 @@ const NavigationLock: React.FC = () => {
     const delayedCleanup = window.setTimeout(() => {
       cleanupUI();
     }, 300);
-    cleanupTimeoutsRef.current.push(delayedCleanup);
+    timeoutsRef.current.push(delayedCleanup);
     
     return () => {
       // Clear all timeouts on component unmount
-      cleanupTimeoutsRef.current.forEach(id => window.clearTimeout(id));
-      cleanupTimeoutsRef.current = [];
+      timeoutsRef.current.forEach(id => window.clearTimeout(id));
+      timeoutsRef.current = [];
       
       // Final cleanup when unmounting
       queueMicrotask(() => {
@@ -133,9 +129,11 @@ const NavigationLock: React.FC = () => {
         console.warn('DOM error detected, running cleanup:', error.message);
         
         // Use setTimeout to avoid potential event loop congestion
-        setTimeout(() => {
+        const timeoutId = window.setTimeout(() => {
           cleanupUI();
         }, 0);
+        
+        timeoutsRef.current.push(timeoutId);
       }
     };
     

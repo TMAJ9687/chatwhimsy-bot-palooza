@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useCallback, useRef, useEffect } from 'react';
 import { useDialog } from '@/context/DialogContext';
+import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,16 +16,69 @@ import {
 const LogoutConfirmationDialog = () => {
   const { state, closeDialog } = useDialog();
   const { onConfirm } = state.data;
+  const isClosingRef = useRef(false);
+  const timeoutsRef = useRef<number[]>([]);
+  const { cleanupOverlays } = useSafeDOMOperations();
 
-  const handleConfirm = () => {
-    if (onConfirm && typeof onConfirm === 'function') {
-      onConfirm();
-    }
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach(id => clearTimeout(id));
+      timeoutsRef.current = [];
+    };
+  }, []);
+
+  const handleConfirm = useCallback(() => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    
+    // Close the dialog first
     closeDialog();
-  };
+    
+    // Then execute the callback after a short delay
+    const timeoutId = setTimeout(() => {
+      if (onConfirm && typeof onConfirm === 'function') {
+        onConfirm();
+      }
+      
+      // Clean up overlays after the callback
+      const cleanupTimeoutId = setTimeout(() => {
+        cleanupOverlays();
+        
+        // Reset state
+        isClosingRef.current = false;
+      }, 100);
+      
+      timeoutsRef.current.push(cleanupTimeoutId);
+    }, 50);
+    
+    timeoutsRef.current.push(timeoutId);
+  }, [onConfirm, closeDialog, cleanupOverlays]);
+
+  const handleCancel = useCallback(() => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    
+    closeDialog();
+    
+    // Clean up and reset state
+    const timeoutId = setTimeout(() => {
+      cleanupOverlays();
+      isClosingRef.current = false;
+    }, 100);
+    
+    timeoutsRef.current.push(timeoutId);
+  }, [closeDialog, cleanupOverlays]);
 
   return (
-    <AlertDialog open={state.isOpen && state.type === 'logout'} onOpenChange={closeDialog}>
+    <AlertDialog 
+      open={state.isOpen && state.type === 'logout'} 
+      onOpenChange={(open) => {
+        if (!open && !isClosingRef.current) {
+          handleCancel();
+        }
+      }}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Leaving so soon?</AlertDialogTitle>
@@ -33,7 +87,7 @@ const LogoutConfirmationDialog = () => {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>No, Stay</AlertDialogCancel>
+          <AlertDialogCancel onClick={handleCancel}>No, Stay</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
             className="bg-red-500 hover:bg-red-600"

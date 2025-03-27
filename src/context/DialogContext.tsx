@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useReducer, ReactNode, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useMemo, useCallback, useRef, useEffect } from 'react';
 
 // Define dialog types
 type DialogType = 'report' | 'block' | 'siteRules' | 'logout' | 'vipLogin' | 'vipSignup' 
@@ -51,14 +51,62 @@ function dialogReducer(state: DialogState, action: DialogAction): DialogState {
 // Provider component
 export function DialogProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(dialogReducer, initialState);
+  const isTransitioningRef = useRef(false);
+  const timeoutsRef = useRef<number[]>([]);
+  
+  // Clean up timeouts on unmount
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach(id => clearTimeout(id));
+      timeoutsRef.current = [];
+    };
+  }, []);
 
   // Memoize functions to prevent unnecessary re-renders
   const openDialog = useCallback((type: DialogType, data?: Record<string, any>) => {
+    // Don't open a new dialog if we're already transitioning
+    if (isTransitioningRef.current) return;
+    
+    // Set transitioning state
+    isTransitioningRef.current = true;
+    
+    // Make sure body is prepared for the dialog
+    if (document.body) {
+      document.body.classList.add('dialog-open');
+    }
+    
+    // Open the dialog
     dispatch({ type: 'OPEN_DIALOG', payload: { type, data } });
+    
+    // Reset transitioning state after a short delay
+    const timeoutId = setTimeout(() => {
+      isTransitioningRef.current = false;
+    }, 100);
+    
+    timeoutsRef.current.push(timeoutId);
   }, []);
   
   const closeDialog = useCallback(() => {
+    // Don't close if we're already transitioning
+    if (isTransitioningRef.current) return;
+    
+    // Set transitioning state
+    isTransitioningRef.current = true;
+    
+    // Reset body state
+    if (document.body) {
+      document.body.classList.remove('dialog-open');
+    }
+    
+    // Close the dialog
     dispatch({ type: 'CLOSE_DIALOG' });
+    
+    // Reset transitioning state after the animation completes
+    const timeoutId = setTimeout(() => {
+      isTransitioningRef.current = false;
+    }, 300); // Match animation duration
+    
+    timeoutsRef.current.push(timeoutId);
   }, []);
 
   // Memoize the context value to prevent unnecessary re-renders
