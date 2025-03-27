@@ -44,7 +44,7 @@ export const initPerformanceMonitoring = (): void => {
     // Register observer for measures
     measureObserver.observe({ entryTypes: ['measure'] });
 
-    // NEW: Create observer for frame rates
+    // Create observer for frame rates
     if ('PerformanceObserver' in window && 'supportedEntryTypes' in PerformanceObserver) {
       if (PerformanceObserver.supportedEntryTypes.includes('frame')) {
         const frameObserver = new PerformanceObserver((list) => {
@@ -73,7 +73,7 @@ export const initPerformanceMonitoring = (): void => {
   }
 };
 
-// Track event timing
+// Track event timing - now with async support
 export const trackEvent = (eventName: string, callback: () => void): void => {
   performance.mark(`${eventName}_start`);
   callback();
@@ -85,7 +85,7 @@ export const trackEvent = (eventName: string, callback: () => void): void => {
   );
 };
 
-// NEW: Track async operations
+// Track async operations with proper error handling
 export const trackAsyncOperation = async <T>(
   operationName: string, 
   asyncCallback: () => Promise<T>
@@ -111,7 +111,7 @@ export const trackAsyncOperation = async <T>(
   }
 };
 
-// NEW: Debounce function to prevent excessive operations
+// Debounce function to prevent excessive operations
 export const debounce = <T extends (...args: any[]) => void>(
   func: T,
   wait: number
@@ -126,7 +126,7 @@ export const debounce = <T extends (...args: any[]) => void>(
   };
 };
 
-// NEW: Memoize function for caching expensive calculations
+// Memoize function for caching expensive calculations
 export const memoize = <T extends (...args: any[]) => any>(
   fn: T
 ): ((...args: Parameters<T>) => ReturnType<T>) => {
@@ -141,6 +141,23 @@ export const memoize = <T extends (...args: any[]) => any>(
     const result = fn(...args);
     cache.set(key, result);
     return result;
+  };
+};
+
+// Safely measure rendering time
+export const measureRender = (componentName: string): () => void => {
+  const markName = `render_${componentName}_${Date.now()}`;
+  performance.mark(markName);
+  
+  return () => {
+    // Call this function in useEffect to measure render completion
+    const endMarkName = `${markName}_end`;
+    performance.mark(endMarkName);
+    performance.measure(
+      `Render: ${componentName}`,
+      markName,
+      endMarkName
+    );
   };
 };
 

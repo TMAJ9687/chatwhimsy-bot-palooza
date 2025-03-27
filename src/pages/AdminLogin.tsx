@@ -9,8 +9,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Lock, Mail } from "lucide-react";
 import PasswordResetDialog from '@/components/dialogs/PasswordResetDialog';
 import { useUser } from '@/context/UserContext';
-import { verifyAdminCredentials, setAdminLoggedIn } from '@/services/admin/adminService';
+import { verifyAdminCredentials, setAdminLoggedIn, isAdminLoggedIn } from '@/services/admin/adminService';
+import { trackAsyncOperation } from '@/utils/performanceMonitor';
 
+/**
+ * Admin Login Page
+ * Handles authentication for admin users
+ */
 const AdminLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -22,18 +27,56 @@ const AdminLogin = () => {
   
   // Check if already logged in as admin
   useEffect(() => {
-    if (user?.isAdmin) {
-      navigate('/admin-dashboard');
-    }
-  }, [user, navigate]);
+    const checkAdminLogin = async () => {
+      // Check both user context and localStorage (for page refreshes)
+      const isLoggedIn = user?.isAdmin || isAdminLoggedIn();
+      
+      if (isLoggedIn) {
+        // If user object doesn't exist but localStorage says we're logged in,
+        // we need to create the user object (for page refreshes)
+        if (!user?.isAdmin && isAdminLoggedIn()) {
+          setUser({
+            id: 'admin-user',
+            nickname: 'Admin',
+            email: localStorage.getItem('adminEmail') || 'admin@example.com',
+            gender: 'male',
+            age: 30,
+            country: 'US',
+            interests: ['Administration'],
+            isVip: true,
+            isAdmin: true,
+            subscriptionTier: 'none',
+            imagesRemaining: Infinity,
+            voiceMessagesRemaining: Infinity
+          });
+        }
+        
+        navigate('/admin-dashboard');
+      }
+    };
+    
+    checkAdminLogin();
+  }, [user, navigate, setUser]);
   
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // In a real app, this would validate against an API
-    setTimeout(() => {
-      if (verifyAdminCredentials(email, password)) {
+    try {
+      // Use trackAsyncOperation for better performance insight
+      const result = await trackAsyncOperation('admin-login', async () => {
+        return new Promise<boolean>((resolve) => {
+          // In a real app, this would be an API call
+          setTimeout(() => {
+            resolve(verifyAdminCredentials(email, password));
+          }, 800);
+        });
+      });
+      
+      if (result) {
+        // Save admin email for session persistence
+        localStorage.setItem('adminEmail', email);
+        
         // Create admin user profile
         setUser({
           id: 'admin-user',
@@ -57,6 +100,7 @@ const AdminLogin = () => {
           title: "Login successful",
           description: "Welcome to the admin dashboard",
         });
+        
         navigate('/admin-dashboard');
       } else {
         toast({
@@ -65,8 +109,16 @@ const AdminLogin = () => {
           variant: "destructive",
         });
       }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (

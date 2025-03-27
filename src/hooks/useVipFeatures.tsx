@@ -22,6 +22,10 @@ export const STANDARD_IMAGE_LIMIT = 15;
 export const VIP_VOICE_MESSAGE_LIMIT = 120; // 2 minutes * 60 seconds
 export const ADMIN_VOICE_MESSAGE_LIMIT = 300; // 5 minutes * 60 seconds
 
+/**
+ * Hook to check and manage VIP and admin features
+ * @returns Feature management functions and status
+ */
 export const useVipFeatures = () => {
   const { isVip, isAdmin, user } = useUser();
   

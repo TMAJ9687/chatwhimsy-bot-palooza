@@ -15,12 +15,13 @@ import { useDialogCleanup } from '@/hooks/useDialogCleanup';
 import { useUser } from '@/context/UserContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useNavigate } from 'react-router-dom';
+import { trackEvent } from '@/utils/performanceMonitor';
 
 const LogoutConfirmationDialog = () => {
   const { state, closeDialog } = useDialog();
   const { handleDialogClose } = useDialogCleanup();
   const { onConfirm } = state.data;
-  const { user } = useUser();
+  const { user, clearUser } = useUser();
   const { adminLogout, isAdmin } = useAdmin();
   const navigate = useNavigate();
   
@@ -31,29 +32,35 @@ const LogoutConfirmationDialog = () => {
   }, [closeDialog, handleDialogClose]);
 
   const handleConfirm = useCallback(() => {
-    if (onConfirm && typeof onConfirm === 'function') {
-      // Store user type in localStorage for redirect after logout
-      if (user) {
-        try {
-          localStorage.setItem('chatUser', JSON.stringify({
-            isVip: isVip
-          }));
-        } catch (e) {
-          console.error('Error storing user type:', e);
+    // Track logout event for performance monitoring
+    trackEvent('user-logout', () => {
+      if (onConfirm && typeof onConfirm === 'function') {
+        // Store user type in localStorage for redirect after logout
+        if (user) {
+          try {
+            localStorage.setItem('chatUser', JSON.stringify({
+              isVip: isVip
+            }));
+          } catch (e) {
+            console.error('Error storing user type:', e);
+          }
+        }
+        
+        // If user is admin, perform admin logout
+        if (isAdmin) {
+          adminLogout();
+          clearUser();
+          // Navigate to landing page after admin logout
+          navigate('/');
+        } else {
+          // Standard user logout
+          onConfirm();
         }
       }
-      
-      // If user is admin, also perform admin logout
-      if (isAdmin) {
-        adminLogout();
-        // Navigate to landing page after admin logout
-        navigate('/');
-      }
-      
-      onConfirm();
-    }
+    });
+    
     handleSafeClose();
-  }, [onConfirm, handleSafeClose, user, isVip, isAdmin, adminLogout, navigate]);
+  }, [onConfirm, handleSafeClose, user, isVip, isAdmin, adminLogout, navigate, clearUser]);
 
   const getFeedbackMessage = () => {
     if (isAdmin) {

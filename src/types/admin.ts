@@ -10,6 +10,7 @@ export interface AdminProfile extends UserProfile {
 export interface AdminState {
   isAdmin: boolean;
   authenticated: boolean;
+  lastLogin?: Date;
 }
 
 export interface AdminAction {
@@ -44,4 +45,19 @@ export interface ReportFeedback {
   timestamp: Date;
   expiresAt: Date; // Auto-delete after 24 hours
   resolved: boolean;
+}
+
+// Admin dashboard specific types
+export interface AdminStats {
+  totalUsers: number;
+  activeUsers: number;
+  vipUsers: number;
+  bannedUsers: number;
+  reportsPending: number;
+}
+
+export interface AdminSettings {
+  emailNotifications: boolean;
+  autoDeleteReports: boolean;
+  autoDeleteAfterHours: number;
 }

@@ -14,6 +14,7 @@ import AccountDeletionDialog from './AccountDeletionDialog';
 import VipSelectDialog from './VipSelectDialog';
 import ConfirmDialog from './ConfirmDialog';
 import AlertDialogComponent from './AlertDialog';
+import { trackEvent } from '@/utils/performanceMonitor';
 
 /**
  * This component renders the appropriate dialog based on the current dialog state
@@ -22,6 +23,13 @@ import AlertDialogComponent from './AlertDialog';
 const DialogContainer = () => {
   const { state } = useDialog();
   
+  // Track dialog rendering for performance monitoring
+  React.useEffect(() => {
+    if (state.isOpen) {
+      trackEvent(`dialog-render-${state.type}`, () => {});
+    }
+  }, [state.isOpen, state.type]);
+
   if (!state.isOpen) {
     return null;
   }
