@@ -110,7 +110,8 @@ class DOMRegistry {
         
         if (isRealChild) {
           const parent = element.parentNode;
-          // Properly cast the element to ChildNode type for removeChild
+          // Use proper type assertion to satisfy TS compiler
+          // The cast is safe because we've verified element is a child of parent
           parent.removeChild(element as unknown as ChildNode);
           return true;
         }
