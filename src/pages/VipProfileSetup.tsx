@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
@@ -11,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { domRegistry } from '@/services/DOMRegistry';
 
 const VipProfileSetup = () => {
   const { user, isVip, isProfileComplete, updateUserProfile } = useUser();
@@ -27,31 +27,22 @@ const VipProfileSetup = () => {
   const profileFormRef = useRef<VipProfileFormRef>(null);
   const navigationAttemptRef = useRef(false);
   const saveOperationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mountedRef = useRef(true);
 
-  // DOM cleanup utility with safety checks
   const cleanupDOM = () => {
-    // Safe DOM manipulation
-    document.body.style.overflow = 'auto';
-    
-    try {
-      const modals = document.querySelectorAll('.fixed.inset-0');
-      modals.forEach(modal => {
-        if (modal && modal.parentNode) {
-          try {
-            modal.parentNode.removeChild(modal);
-          } catch (error) {
-            console.warn('Error removing modal element:', error);
-          }
-        }
-      });
-    } catch (error) {
-      console.warn('Error during DOM cleanup:', error);
+    if (document.body) {
+      document.body.style.overflow = 'auto';
+      document.body.classList.remove('dialog-open', 'modal-open', 'overflow-hidden');
     }
+    
+    domRegistry.cleanupOverlays();
     
     localStorage.removeItem('vipNavigationInProgress');
   };
 
   useEffect(() => {
+    mountedRef.current = true;
+    
     if (!isVip && user !== null) {
       toast({
         title: "VIP Access Required",
@@ -77,8 +68,13 @@ const VipProfileSetup = () => {
     }
     
     return () => {
-      clearTimeout(timer);
+      mountedRef.current = false;
       cleanupDOM();
+      
+      if (saveOperationTimeoutRef.current) {
+        clearTimeout(saveOperationTimeoutRef.current);
+        saveOperationTimeoutRef.current = null;
+      }
     };
   }, [isVip, navigate, toast, user, isProfileComplete]);
 
@@ -96,16 +92,15 @@ const VipProfileSetup = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       localStorage.removeItem('vipNavigationInProgress');
       
-      // Clear any pending timeout
       if (saveOperationTimeoutRef.current) {
         clearTimeout(saveOperationTimeoutRef.current);
+        saveOperationTimeoutRef.current = null;
       }
     };
   }, [hasUnsavedChanges]);
 
   const handleNavigation = (path: string) => {
-    // Prevent navigation if already in progress
-    if (navigationLock || navigationAttemptRef.current) {
+    if (navigationLock || navigationAttemptRef.current || !mountedRef.current) {
       console.log('Navigation already in progress, ignoring request');
       return;
     }
@@ -114,7 +109,6 @@ const VipProfileSetup = () => {
       setPendingNavigation(path);
       setShowUnsavedDialog(true);
     } else {
-      // Set navigation lock to prevent concurrent navigation attempts
       setNavigationLock(true);
       navigationAttemptRef.current = true;
       
@@ -122,12 +116,16 @@ const VipProfileSetup = () => {
         localStorage.setItem('vipProfileComplete', 'true');
       }
       
-      // Use setTimeout to push navigation to next event loop tick
+      cleanupDOM();
+      
       setTimeout(() => {
+        if (!mountedRef.current) return;
+        
         navigate(path);
         
-        // Reset navigation lock after a short delay
         setTimeout(() => {
+          if (!mountedRef.current) return;
+          
           setNavigationLock(false);
           navigationAttemptRef.current = false;
         }, 300);
@@ -140,13 +138,11 @@ const VipProfileSetup = () => {
   };
 
   const handleSaveAndNavigate = async () => {
-    // Prevent multiple concurrent save operations
-    if (isSaving || navigationLock || navigationAttemptRef.current) {
+    if (isSaving || navigationLock || navigationAttemptRef.current || !mountedRef.current) {
       console.log('Save operation already in progress, ignoring request');
       return;
     }
     
-    // Set locks to prevent concurrent operations
     setNavigationLock(true);
     navigationAttemptRef.current = true;
     setIsSaving(true);
@@ -158,56 +154,58 @@ const VipProfileSetup = () => {
       if (profileFormRef.current) {
         saved = await profileFormRef.current.saveForm();
       } else {
-        // If no form ref, just mark as saved
         saved = true;
       }
       
       if (saved) {
-        // Ensure the profile completion state is saved
         localStorage.setItem('vipProfileComplete', 'true');
         setHasUnsavedChanges(false);
         
-        // Wait a bit to ensure state updates are processed
         await new Promise<void>(resolve => {
           saveOperationTimeoutRef.current = setTimeout(() => {
+            if (!mountedRef.current) {
+              resolve();
+              return;
+            }
+            
             setShowSavingDialog(false);
             setShowUnsavedDialog(false);
             
-            // Clean up and navigate if needed
             if (pendingNavigation) {
               const destination = pendingNavigation;
               setPendingNavigation(null);
               
-              // Clean DOM before navigation
               cleanupDOM();
               
-              // Navigate after a short delay
               setTimeout(() => {
-                // Double-check that we're not already navigating
-                if (!navigationAttemptRef.current) {
-                  navigationAttemptRef.current = true;
-                  navigate(destination);
+                if (!mountedRef.current) {
+                  resolve();
+                  return;
                 }
                 
-                // Reset navigation locks with a short delay
+                navigate(destination);
+                
                 setTimeout(() => {
+                  if (!mountedRef.current) {
+                    resolve();
+                    return;
+                  }
+                  
                   setNavigationLock(false);
                   navigationAttemptRef.current = false;
                   setIsSaving(false);
+                  resolve();
                 }, 300);
               }, 50);
             } else {
-              // Just reset locks if no navigation needed
               setNavigationLock(false);
               navigationAttemptRef.current = false;
               setIsSaving(false);
+              resolve();
             }
-            
-            resolve();
-          }, 500); // Increased delay to ensure state updates have processed
+          }, 500);
         });
       } else {
-        // Handle save failure
         toast({
           title: "Error",
           description: "Please fix the form errors before continuing.",
@@ -219,7 +217,6 @@ const VipProfileSetup = () => {
         setIsSaving(false);
       }
     } catch (error) {
-      // Handle unexpected errors
       console.error("Error during save and navigate:", error);
       toast({
         title: "Error",
@@ -234,7 +231,8 @@ const VipProfileSetup = () => {
   };
 
   const handleDiscardAndNavigate = () => {
-    // Safely discard changes and navigate
+    if (!mountedRef.current) return;
+    
     setHasUnsavedChanges(false);
     setShowUnsavedDialog(false);
     
@@ -242,19 +240,19 @@ const VipProfileSetup = () => {
       const destination = pendingNavigation;
       setPendingNavigation(null);
       
-      // Set navigation lock to prevent concurrent navigation
       setNavigationLock(true);
       navigationAttemptRef.current = true;
       
-      // Clean up DOM before navigation
       cleanupDOM();
       
-      // Navigate after a short delay
       setTimeout(() => {
+        if (!mountedRef.current) return;
+        
         navigate(destination);
         
-        // Reset navigation locks after navigation
         setTimeout(() => {
+          if (!mountedRef.current) return;
+          
           setNavigationLock(false);
           navigationAttemptRef.current = false;
         }, 300);
@@ -262,17 +260,17 @@ const VipProfileSetup = () => {
     }
   };
 
-  // Cleanup dialogs when component unmounts
   useEffect(() => {
     return () => {
-      // Ensure dialogs are closed and DOM is cleaned
+      mountedRef.current = false;
+      
       setShowUnsavedDialog(false);
       setShowSavingDialog(false);
       cleanupDOM();
       
-      // Clear any pending timeout
       if (saveOperationTimeoutRef.current) {
         clearTimeout(saveOperationTimeoutRef.current);
+        saveOperationTimeoutRef.current = null;
       }
     };
   }, []);
@@ -336,14 +334,18 @@ const VipProfileSetup = () => {
         <Dialog 
           open={showUnsavedDialog} 
           onOpenChange={(open) => {
-            if (!open && !isSaving) {
-              setTimeout(() => setShowUnsavedDialog(false), 100);
+            if (!open && !isSaving && mountedRef.current) {
+              setTimeout(() => {
+                if (mountedRef.current) {
+                  setShowUnsavedDialog(false);
+                }
+              }, 100);
             }
           }}
         >
           <DialogContent
             onEscapeKeyDown={(e) => {
-              if (isSaving || navigationLock) {
+              if (isSaving || navigationLock || !mountedRef.current) {
                 e.preventDefault();
               }
             }}
@@ -375,8 +377,12 @@ const VipProfileSetup = () => {
         <AlertDialog 
           open={showSavingDialog}
           onOpenChange={(open) => {
-            if (!open && !isSaving) {
-              setTimeout(() => setShowSavingDialog(false), 100);
+            if (!open && !isSaving && mountedRef.current) {
+              setTimeout(() => {
+                if (mountedRef.current) {
+                  setShowSavingDialog(false);
+                }
+              }, 100);
             }
           }}
         >
