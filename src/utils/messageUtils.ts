@@ -1,10 +1,6 @@
 
 import { toast } from "@/hooks/use-toast";
-
-const MAX_CHAR_LIMIT = 120;
-const CONSECUTIVE_LIMIT = 3;
-
-export { MAX_CHAR_LIMIT, CONSECUTIVE_LIMIT };
+import { MAX_CHAR_LIMIT, CONSECUTIVE_LIMIT } from "@/types/chat";
 
 export const validateImageFile = (file: File): { valid: boolean; message?: string } => {
   // Check file type

@@ -1,8 +1,12 @@
+
+export type Gender = 'male' | 'female' | 'other';
+export type SubscriptionTier = 'none' | 'monthly' | 'semiannual' | 'annual';
+
 export interface UserProfile {
   id: string;
   nickname: string;
   email: string;
-  gender: 'male' | 'female' | 'other';
+  gender: Gender;
   age: number;
   country: string;
   interests: string[];
@@ -23,5 +27,3 @@ export interface UserContextType {
   subscribeToVip: (tier: SubscriptionTier) => void;
   cancelVipSubscription: () => void;
 }
-
-export type SubscriptionTier = 'none' | 'monthly' | 'semiannual' | 'annual';
