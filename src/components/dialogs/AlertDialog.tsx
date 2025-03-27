@@ -1,5 +1,5 @@
 
-import React, { memo, useCallback, useEffect, useRef } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -25,9 +25,8 @@ const AlertDialogContent = memo(({
   const contentRef = useRef<HTMLDivElement>(null);
   const { registerNode } = useSafeDOMOperations();
   const mountedRef = useRef(true);
-  const animationFrameRef = useRef<number | null>(null);
 
-  // Register the content element for tracking and cleanup
+  // Register the content element for tracking
   useEffect(() => {
     if (contentRef.current) {
       registerNode(contentRef.current);
@@ -35,40 +34,16 @@ const AlertDialogContent = memo(({
     
     return () => {
       mountedRef.current = false;
-      
-      // Clear any pending animation frames
-      if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
     };
   }, [registerNode]);
-
-  // Handle close with animation frame for better performance
-  const handleClose = useCallback(() => {
-    if (!mountedRef.current) return;
-    
-    // Cancel any pending animation
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-    
-    // Use requestAnimationFrame for smoother UI
-    animationFrameRef.current = requestAnimationFrame(() => {
-      animationFrameRef.current = null;
-      if (mountedRef.current) {
-        onClose();
-      }
-    });
-  }, [onClose]);
 
   return (
     <DialogContent 
       ref={contentRef}
       className="sm:max-w-[425px]" 
-      onEscapeKeyDown={handleClose}
+      onEscapeKeyDown={onClose}
       onInteractOutside={(e) => {
-        // Prevent closing during animations and unmounts
+        // Prevent closing during animations
         if (!mountedRef.current) {
           e.preventDefault();
         }
@@ -79,7 +54,7 @@ const AlertDialogContent = memo(({
         <DialogDescription>{message}</DialogDescription>
       </DialogHeader>
       <DialogFooter>
-        <Button onClick={handleClose}>OK</Button>
+        <Button onClick={onClose}>OK</Button>
       </DialogFooter>
     </DialogContent>
   );
@@ -90,47 +65,38 @@ AlertDialogContent.displayName = 'AlertDialogContent';
 const AlertDialogComponent = () => {
   const { state, closeDialog } = useDialog();
   const isClosingRef = useRef(false);
-  const timeoutsRef = useRef<number[]>([]);
   const { cleanupOverlays } = useSafeDOMOperations();
   
   const isOpen = state.isOpen && state.type === 'alert';
   
-  // Enhanced close method with better timing
+  // Safer close method
   const handleClose = useCallback(() => {
     if (isClosingRef.current) return;
     isClosingRef.current = true;
     
-    // Close the dialog first
-    closeDialog();
-    
-    // Then clean up overlays after a short delay
-    const timeoutId = window.setTimeout(() => {
-      cleanupOverlays();
+    // Use queueMicrotask for reliable timing
+    queueMicrotask(() => {
+      // Close the dialog first
+      closeDialog();
       
-      // Reset closing state after everything is done
-      const resetId = window.setTimeout(() => {
-        isClosingRef.current = false;
-      }, 150);
-      
-      timeoutsRef.current.push(resetId);
-    }, 50);
-    
-    timeoutsRef.current.push(timeoutId);
+      // Then clean up overlays after a short delay
+      setTimeout(() => {
+        cleanupOverlays();
+        
+        // Reset closing state after everything is done
+        setTimeout(() => {
+          isClosingRef.current = false;
+        }, 100);
+      }, 50);
+    });
   }, [closeDialog, cleanupOverlays]);
   
-  // Cleanup on unmount to prevent memory leaks
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       isClosingRef.current = true;
-      
-      // Clear all timeouts
-      timeoutsRef.current.forEach(id => clearTimeout(id));
-      timeoutsRef.current = [];
-      
-      // Final cleanup
-      cleanupOverlays();
     };
-  }, [cleanupOverlays]);
+  }, []);
   
   if (!isOpen) return null;
 

@@ -6,12 +6,11 @@
 class DOMRegistry {
   private static instance: DOMRegistry;
   private elements = new WeakMap<Node, { parent: Node | null; registered: number }>();
-  private operationQueue: Array<() => void> = [];
-  private isProcessingQueue = false;
-  private cleanupTimeoutIds: number[] = [];
-  private lastCleanupTime = 0;
-  private readonly debounceTime = 50; // ms
-  private readonly maxQueueSize = 100;
+  private operationInProgress = false;
+  private pendingCleanups: Array<() => void> = [];
+  private cleanupTimeouts: number[] = [];
+  private operationDebounceTime = 50; // ms
+  private lastOperationTime = 0;
 
   private constructor() {
     // Initialize singleton
@@ -41,18 +40,12 @@ class DOMRegistry {
         });
       });
 
-      // Start observing document body when it becomes available
-      if (typeof document !== 'undefined') {
-        if (document.body) {
-          observer.observe(document.body, { childList: true, subtree: true });
-        } else {
-          // If body isn't available yet, wait for it
-          document.addEventListener('DOMContentLoaded', () => {
-            if (document.body) {
-              observer.observe(document.body, { childList: true, subtree: true });
-            }
-          });
-        }
+      // Start observing document body for DOM changes
+      if (typeof document !== 'undefined' && document.body) {
+        observer.observe(document.body, { 
+          childList: true, 
+          subtree: true 
+        });
       }
     } catch (error) {
       console.warn('[DOMRegistry] Error setting up MutationObserver:', error);
@@ -83,9 +76,7 @@ class DOMRegistry {
     if (!node) return false;
     
     try {
-      // A node is valid if it has a parent node and is registered or if it's a direct child of its parent
-      return (this.elements.has(node) && !!node.parentNode) || 
-             (!!node.parentNode && Array.from(node.parentNode.childNodes).includes(node));
+      return this.elements.has(node) && !!node.parentNode;
     } catch (error) {
       console.warn('[DOMRegistry] Error checking node validity:', error);
       return false;
@@ -109,11 +100,10 @@ class DOMRegistry {
         const isRealChild = parentChildNodes.includes(element);
         
         if (isRealChild) {
-          const parent = element.parentNode;
-          // Use proper type assertion to satisfy TS compiler
-          // The cast is safe because we've verified element is a child of parent
-          parent.removeChild(element as unknown as ChildNode);
+          element.parentNode.removeChild(element);
           return true;
+        } else {
+          console.warn('[DOMRegistry] Element is not a real child of its parent node');
         }
       }
     } catch (e) {
@@ -127,158 +117,135 @@ class DOMRegistry {
    * Queue an operation to run when safe
    */
   public queueOperation(operation: () => void): void {
-    // Limit queue size to prevent memory issues
-    if (this.operationQueue.length >= this.maxQueueSize) {
-      this.operationQueue.shift(); // Remove oldest operation
-    }
-    
-    this.operationQueue.push(operation);
+    this.pendingCleanups.push(operation);
     
     // Process the queue if no operation is in progress
-    if (!this.isProcessingQueue) {
-      this.processOperationQueue();
+    if (!this.operationInProgress) {
+      this.processPendingOperations();
     }
   }
 
   /**
-   * Process queued operations with debouncing
+   * Process pending operations with debouncing
    */
-  private processOperationQueue(): void {
-    if (this.isProcessingQueue || this.operationQueue.length === 0) {
+  private processPendingOperations(): void {
+    // Don't run if already processing or no operations
+    if (this.operationInProgress || this.pendingCleanups.length === 0) {
       return;
     }
     
     const now = Date.now();
-    if (now - this.lastCleanupTime < this.debounceTime) {
+    // Throttle operations
+    if (now - this.lastOperationTime < this.operationDebounceTime) {
       const timeoutId = window.setTimeout(
-        () => this.processOperationQueue(), 
-        this.debounceTime
+        () => this.processPendingOperations(), 
+        this.operationDebounceTime
       );
-      this.cleanupTimeoutIds.push(timeoutId);
+      this.cleanupTimeouts.push(timeoutId);
       return;
     }
     
-    this.isProcessingQueue = true;
-    this.lastCleanupTime = now;
+    this.operationInProgress = true;
+    this.lastOperationTime = now;
     
-    // Use queueMicrotask for more reliable timing
     queueMicrotask(() => {
       try {
         // Execute the next operation
-        const nextOperation = this.operationQueue.shift();
+        const nextOperation = this.pendingCleanups.shift();
         if (nextOperation) {
           nextOperation();
         }
       } catch (error) {
-        console.warn('[DOMRegistry] Error during queued operation:', error);
+        console.warn('[DOMRegistry] Error during operation:', error);
       } finally {
-        this.isProcessingQueue = false;
+        this.operationInProgress = false;
         
-        // Process next operation with a small delay
-        if (this.operationQueue.length > 0) {
-          const timeoutId = window.setTimeout(() => {
-            this.processOperationQueue();
-          }, 10);
-          
-          this.cleanupTimeoutIds.push(timeoutId);
-        }
+        // Process next operation after a small delay
+        const timeoutId = window.setTimeout(() => {
+          if (this.pendingCleanups.length > 0) {
+            this.processPendingOperations();
+          }
+        }, 10);
+        
+        this.cleanupTimeouts.push(timeoutId);
       }
     });
   }
 
   /**
-   * Clean up overlay elements with improved error handling
+   * Clean up overlay elements using a staged approach
    */
   public cleanupOverlays(): void {
-    const now = Date.now();
-    
-    // Debounce cleanup operations
-    if (now - this.lastCleanupTime < 100) {
+    if (this.operationInProgress) {
+      // Queue if another operation is in progress
+      this.queueOperation(() => this.cleanupOverlays());
       return;
     }
     
-    this.lastCleanupTime = now;
-    
-    // Queue the cleanup operation
-    this.queueOperation(() => {
-      if (!this.isDOMReady()) return;
+    const cleanupOperation = () => {
+      if (typeof document === 'undefined' || !document.body) return;
       
       // Reset body scroll
-      if (document.body) {
-        document.body.style.overflow = 'auto';
-        document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-      }
+      document.body.style.overflow = 'auto';
+      document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
       
-      try {
-        // Combined selectors for potential overlay elements
-        const selectors = [
-          '.fixed.inset-0.z-50',
-          '.fixed.inset-0.bg-black\\/80',
-          '[data-radix-dialog-overlay]',
-          '[data-radix-alert-dialog-overlay]',
-          '.vaul-overlay',
-          '.backdrop',
-          '.modal-backdrop',
-          '[data-overlay]',
-          '[role="dialog"]',
-          '.radix-portal',
-          '.dialog-portal'
-        ];
-        
-        // Collect all overlays that are still in the DOM
-        const overlaysToRemove: Element[] = [];
-        
-        selectors.forEach(selector => {
-          try {
-            document.querySelectorAll(selector).forEach(overlay => {
-              if (overlay.parentNode) {
-                overlaysToRemove.push(overlay);
-              }
-            });
-          } catch (e) {
-            console.warn(`[DOMRegistry] Error finding selector ${selector}:`, e);
-          }
-        });
-        
-        // Process overlays in chunks to avoid blocking the main thread
-        if (overlaysToRemove.length > 0) {
-          const processChunk = (startIdx: number, chunkSize: number) => {
-            const endIdx = Math.min(startIdx + chunkSize, overlaysToRemove.length);
-            
-            for (let i = startIdx; i < endIdx; i++) {
-              try {
-                this.safeRemoveElement(overlaysToRemove[i]);
-              } catch (e) {
-                console.warn('[DOMRegistry] Error removing overlay:', e);
-              }
+      // Combined selectors for potential overlay elements
+      const selectors = [
+        '.fixed.inset-0.z-50',
+        '.fixed.inset-0.bg-black\\/80',
+        '[data-radix-dialog-overlay]',
+        '[data-radix-alert-dialog-overlay]',
+        '.vaul-overlay',
+        '.backdrop',
+        '.modal-backdrop'
+      ];
+      
+      // Collect all overlays
+      const overlaysToRemove: Element[] = [];
+      
+      // First find all elements to remove
+      selectors.forEach(selector => {
+        try {
+          document.querySelectorAll(selector).forEach(overlay => {
+            if (overlay.parentNode) {
+              overlaysToRemove.push(overlay);
             }
-            
-            // Process next chunk if needed
-            if (endIdx < overlaysToRemove.length) {
-              const timeoutId = window.setTimeout(() => {
-                processChunk(endIdx, chunkSize);
-              }, 16); // ~60fps
-              this.cleanupTimeoutIds.push(timeoutId);
-            }
-          };
-          
-          // Start processing in chunks of 5
-          processChunk(0, 5);
+          });
+        } catch (e) {
+          console.warn(`[DOMRegistry] Error finding selector ${selector}:`, e);
         }
-      } catch (error) {
-        console.warn('[DOMRegistry] Error during overlay cleanup:', error);
+      });
+      
+      // Then remove them sequentially with delays
+      if (overlaysToRemove.length > 0) {
+        let index = 0;
+        
+        const removeNext = () => {
+          if (index < overlaysToRemove.length) {
+            const overlay = overlaysToRemove[index];
+            this.safeRemoveElement(overlay);
+            index++;
+            
+            const timeoutId = window.setTimeout(removeNext, 16); // ~60fps
+            this.cleanupTimeouts.push(timeoutId);
+          }
+        };
+        
+        removeNext();
       }
-    });
+    };
+    
+    this.queueOperation(cleanupOperation);
   }
 
   /**
    * Clean up resources and timeouts
    */
   public cleanup(): void {
-    this.cleanupTimeoutIds.forEach(id => window.clearTimeout(id));
-    this.cleanupTimeoutIds = [];
-    this.operationQueue = [];
-    this.isProcessingQueue = false;
+    this.cleanupTimeouts.forEach(id => window.clearTimeout(id));
+    this.cleanupTimeouts = [];
+    this.pendingCleanups = [];
+    this.operationInProgress = false;
   }
 
   /**
