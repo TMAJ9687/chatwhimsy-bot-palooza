@@ -194,8 +194,8 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
               <Smile className="h-5 w-5" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-2" align="start">
-            <EmojiPicker onEmojiSelect={handleEmojiClick} />
+          <PopoverContent className="w-auto p-0" align="start" side="top">
+            <EmojiPicker onEmojiSelect={handleEmojiClick} useBasicPicker={false} />
           </PopoverContent>
         </Popover>
         

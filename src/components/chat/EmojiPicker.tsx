@@ -42,14 +42,21 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
   }
   
   return (
-    <Picker 
-      data={data} 
-      onEmojiSelect={handleEmojiSelect}
-      set="apple"
-      theme="light"
-      skinTonePosition="none"
-      previewPosition="none"
-    />
+    <div className="emoji-mart-container">
+      <Picker 
+        data={data} 
+        onEmojiSelect={handleEmojiSelect}
+        set="apple"
+        theme="auto"
+        autoFocus={true}
+        skinTonePosition="none"
+        previewPosition="none"
+        navPosition="top"
+        perLine={8}
+        emojiSize={20}
+        emojiButtonSize={30}
+      />
+    </div>
   );
 };
 
