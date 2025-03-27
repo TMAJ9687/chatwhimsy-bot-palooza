@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React, { memo, useCallback } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,6 +12,42 @@ import {
 } from '../ui/alert-dialog';
 import { Button } from '../ui/button';
 import { useDialog } from '@/context/DialogContext';
+
+// Memoized dialog content component for better performance
+const ConfirmDialogContent = memo(({
+  title,
+  message,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) => {
+  return (
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>{title}</AlertDialogTitle>
+        <AlertDialogDescription>{message}</AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel asChild>
+          <Button variant="outline" onClick={onCancel} type="button">
+            Cancel
+          </Button>
+        </AlertDialogCancel>
+        <AlertDialogAction asChild>
+          <Button variant="destructive" onClick={onConfirm} type="button">
+            Confirm
+          </Button>
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  );
+});
+
+ConfirmDialogContent.displayName = 'ConfirmDialogContent';
 
 const ConfirmDialog = () => {
   const { state, closeDialog } = useDialog();
@@ -35,24 +71,12 @@ const ConfirmDialog = () => {
 
   return (
     <AlertDialog open={true} onOpenChange={(open) => !open && closeDialog()}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{message}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel asChild>
-            <Button variant="outline" onClick={closeDialog} type="button">
-              Cancel
-            </Button>
-          </AlertDialogCancel>
-          <AlertDialogAction asChild>
-            <Button variant="destructive" onClick={handleConfirm} type="button">
-              Confirm
-            </Button>
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
+      <ConfirmDialogContent
+        title={title}
+        message={message}
+        onConfirm={handleConfirm}
+        onCancel={closeDialog}
+      />
     </AlertDialog>
   );
 };

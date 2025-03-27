@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { MoreVertical, Ban, Flag, Trash2, Share, Globe, X } from 'lucide-react';
 import {
   DropdownMenu,
@@ -32,6 +32,7 @@ const UserActions = ({
   onUnblockUser,
   onCloseChat,
 }: UserActionsProps) => {
+  // Properly defined hooks at the top level
   const { openDialog } = useDialog();
   const { isVip } = useUser();
   const { userChats, getSharedMedia, handleDeleteConversation, handleTranslateMessage } = useChat();
@@ -40,39 +41,76 @@ const UserActions = ({
   const [showTranslateDialog, setShowTranslateDialog] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   
-  // Use useMemo to find the last text message efficiently
-  const lastTextMessage = useMemo(() => {
+  // Message cache reference to prevent recalculations
+  const messageCache = useRef<Map<string, any>>(new Map());
+  
+  // Clear cache when chats change
+  useMemo(() => {
+    messageCache.current.clear();
+  }, [userChats]);
+  
+  // Optimized function to find the last text message
+  const getLastTextMessage = useCallback(() => {
+    // Use cached result if available
+    if (messageCache.current.has(userId)) {
+      return messageCache.current.get(userId);
+    }
+    
     const messages = userChats[userId] || [];
-    // Use reverse find for better performance
-    return [...messages].reverse().find(msg => !msg.isImage && !msg.isVoice);
+    let result = null;
+    
+    // Reverse iteration without creating new array
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (!messages[i].isImage && !messages[i].isVoice) {
+        result = messages[i];
+        break;
+      }
+    }
+    
+    // Cache the result
+    messageCache.current.set(userId, result);
+    return result;
   }, [userChats, userId]);
   
-  const handleReport = () => {
+  // Memoize handlers to prevent recreation on every render
+  const handleReport = useCallback(() => {
     openDialog('report', { userName });
-  };
+  }, [userName, openDialog]);
   
-  const handleBlock = () => {
+  const handleBlock = useCallback(() => {
     openDialog('block', { userName, userId, onBlockUser });
-  };
+  }, [userName, userId, onBlockUser, openDialog]);
   
-  const handleUnblock = () => {
-    onUnblockUser(userId);
-  };
+  const handleUnblock = useCallback(() => {
+    // Use requestAnimationFrame to prevent UI freeze
+    requestAnimationFrame(() => {
+      onUnblockUser(userId);
+    });
+  }, [userId, onUnblockUser]);
   
-  const handleDeleteChat = () => {
-    // Replace window.confirm with dialog
+  const handleDeleteChat = useCallback(() => {
     openDialog('confirm', {
       title: 'Delete Conversation',
       message: `Are you sure you want to delete the conversation with ${userName}?`,
-      onConfirm: () => handleDeleteConversation(userId),
+      onConfirm: () => {
+        // Use requestAnimationFrame for better performance
+        requestAnimationFrame(() => {
+          handleDeleteConversation(userId);
+        });
+      },
     });
-  };
+  }, [userId, userName, handleDeleteConversation, openDialog]);
   
-  const handleOpenSharedMedia = () => {
+  const handleOpenSharedMedia = useCallback(() => {
     setShowSharedMediaDialog(true);
-  };
+  }, []);
 
-  const handleOpenTranslateDialog = () => {
+  const handleOpenTranslateDialog = useCallback(() => {
+    // Performance mark to track operation duration
+    performance.mark('translate_dialog_start');
+    
+    const lastTextMessage = getLastTextMessage();
+    
     if (lastTextMessage) {
       setSelectedMessageId(lastTextMessage.id);
       setShowTranslateDialog(true);
@@ -82,14 +120,20 @@ const UserActions = ({
         message: "No text messages found to translate"
       });
     }
-  };
+    
+    performance.mark('translate_dialog_end');
+    performance.measure('Translate Dialog Operation', 'translate_dialog_start', 'translate_dialog_end');
+  }, [getLastTextMessage, openDialog]);
 
-  const handleTranslate = (language: string) => {
+  const handleTranslate = useCallback((language: string) => {
     if (selectedMessageId) {
-      handleTranslateMessage(selectedMessageId, language);
-      setSelectedMessageId(null);
+      // Use requestAnimationFrame to prevent UI freeze
+      requestAnimationFrame(() => {
+        handleTranslateMessage(selectedMessageId, language);
+        setSelectedMessageId(null);
+      });
     }
-  };
+  }, [selectedMessageId, handleTranslateMessage]);
 
   return (
     <>

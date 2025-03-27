@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +34,54 @@ interface TranslateMessageDialogProps {
   onTranslate: (language: string) => void;
 }
 
+// Memoized dialog content for better performance
+const DialogContentComponent = memo(({
+  targetLanguage,
+  setTargetLanguage,
+  onClose,
+  onTranslate,
+}: {
+  targetLanguage: string;
+  setTargetLanguage: (lang: string) => void;
+  onClose: () => void;
+  onTranslate: () => void;
+}) => (
+  <DialogContent className="sm:max-w-[400px]">
+    <DialogHeader>
+      <DialogTitle>Translate Message</DialogTitle>
+      <DialogDescription>
+        Select a language to translate this message to.
+      </DialogDescription>
+    </DialogHeader>
+
+    <div className="py-4">
+      <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Select language" />
+        </SelectTrigger>
+        <SelectContent>
+          {LANGUAGES.map((language) => (
+            <SelectItem key={language.code} value={language.code}>
+              {language.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+
+    <DialogFooter>
+      <Button variant="outline" onClick={onClose}>
+        Cancel
+      </Button>
+      <Button onClick={onTranslate}>
+        Translate
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+));
+
+DialogContentComponent.displayName = 'TranslateDialogContent';
+
 const TranslateMessageDialog: React.FC<TranslateMessageDialogProps> = ({
   isOpen,
   onClose,
@@ -42,51 +90,45 @@ const TranslateMessageDialog: React.FC<TranslateMessageDialogProps> = ({
   const [targetLanguage, setTargetLanguage] = useState('en');
   const { toast } = useToast();
 
-  const handleTranslate = () => {
-    onTranslate(targetLanguage);
-    toast({
-      title: 'Translation requested',
-      description: `Message will be translated to ${LANGUAGES.find(l => l.code === targetLanguage)?.name}.`,
+  // Use performance markers to track translation operations
+  const markTranslationOperation = useCallback(() => {
+    performance.mark('translation_start');
+    
+    const languageName = LANGUAGES.find(l => l.code === targetLanguage)?.name;
+    
+    // Use requestAnimationFrame to prevent UI freeze
+    requestAnimationFrame(() => {
+      onTranslate(targetLanguage);
+      
+      toast({
+        title: 'Translation requested',
+        description: `Message will be translated to ${languageName}.`,
+      });
+      
+      onClose();
+      
+      performance.mark('translation_end');
+      performance.measure('Translation Operation', 'translation_start', 'translation_end');
     });
-    onClose();
-  };
+  }, [targetLanguage, onTranslate, toast, onClose]);
+
+  // Optimized close handler
+  const handleClose = useCallback(() => {
+    requestAnimationFrame(() => {
+      onClose();
+    });
+  }, [onClose]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[400px]">
-        <DialogHeader>
-          <DialogTitle>Translate Message</DialogTitle>
-          <DialogDescription>
-            Select a language to translate this message to.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="py-4">
-          <Select value={targetLanguage} onValueChange={setTargetLanguage}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select language" />
-            </SelectTrigger>
-            <SelectContent>
-              {LANGUAGES.map((language) => (
-                <SelectItem key={language.code} value={language.code}>
-                  {language.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleTranslate}>
-            Translate
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContentComponent
+        targetLanguage={targetLanguage}
+        setTargetLanguage={setTargetLanguage}
+        onClose={handleClose}
+        onTranslate={markTranslationOperation}
+      />
     </Dialog>
   );
 };
 
-export default TranslateMessageDialog;
+export default memo(TranslateMessageDialog);

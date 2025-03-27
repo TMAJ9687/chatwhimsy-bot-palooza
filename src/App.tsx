@@ -19,11 +19,26 @@ import { DialogProvider } from "./context/DialogContext";
 import DialogContainer from "./components/dialogs/DialogContainer";
 import { UserProvider } from "./context/UserContext";
 import { ChatProvider } from "./context/ChatContext";
+import { initPerformanceMonitoring } from "./utils/performanceMonitor";
 
-const queryClient = new QueryClient();
+// Configure React Query for better performance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 30000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => {
   const [hasLoggedOut, setHasLoggedOut] = useState(false);
+
+  // Initialize performance monitoring
+  useEffect(() => {
+    initPerformanceMonitoring();
+  }, []);
 
   // Handle logout action
   const handleLogout = () => {

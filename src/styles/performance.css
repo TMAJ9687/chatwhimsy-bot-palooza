@@ -1,0 +1,34 @@
+
+/* Performance optimization CSS */
+
+/* Prevent layout thrashing */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* Media optimizations */
+.media-item {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Dialog optimizations */
+.action-menu {
+  will-change: transform, opacity;
+  contain: layout;
+  transform: translateZ(0);
+}
+
+/* Content optimizations */
+.content-container {
+  contain: content;
+}
+
+/* Prevent GPU acceleration issues */
+.hardware-accelerated {
+  transform: translate3d(0, 0, 0);
+}
