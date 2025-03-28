@@ -7,8 +7,35 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+// Create form schemas
+const passwordFormSchema = z.object({
+  currentPassword: z.string().min(1, { message: "Current password is required" }),
+  newPassword: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  confirmPassword: z.string().min(1, { message: "Please confirm your password" })
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
 
 const AdminSettings: React.FC = () => {
+  // Initialize form with react-hook-form
+  const form = useForm<z.infer<typeof passwordFormSchema>>({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    }
+  });
+
+  const onSubmit = (data: z.infer<typeof passwordFormSchema>) => {
+    console.log("Form submitted:", data);
+    // Here you would handle the actual password update
+  };
+
   return (
     <div>
       <div className="mb-6">
@@ -25,46 +52,49 @@ const AdminSettings: React.FC = () => {
             <CardDescription>Update your admin security settings</CardDescription>
           </CardHeader>
           <CardContent>
-            <Form>
-              <div className="space-y-4">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
-                  name="current-password"
-                  render={() => (
+                  control={form.control}
+                  name="currentPassword"
+                  render={({ field }) => (
                     <FormItem>
                       <FormLabel>Current Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="Enter your current password" />
+                        <Input type="password" placeholder="Enter your current password" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 <FormField
-                  name="new-password"
-                  render={() => (
+                  control={form.control}
+                  name="newPassword"
+                  render={({ field }) => (
                     <FormItem>
                       <FormLabel>New Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="Enter your new password" />
+                        <Input type="password" placeholder="Enter your new password" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 <FormField
-                  name="confirm-password"
-                  render={() => (
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
                     <FormItem>
                       <FormLabel>Confirm New Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="Confirm your new password" />
+                        <Input type="password" placeholder="Confirm your new password" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 <Button type="submit">Update Password</Button>
-              </div>
+              </form>
             </Form>
           </CardContent>
         </Card>

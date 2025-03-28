@@ -80,11 +80,22 @@ const AdminDashboard = () => {
       title: "Impersonate User",
       description: `Are you sure you want to impersonate ${user.name}?`,
       action: () => {
+        // Create a proper UserProfile object with all required fields
         setUser({
-          id: user.id,
+          id: user.id.toString(),
+          nickname: user.name,
           email: user.email,
-          isAdmin: user.role === "admin"
+          gender: 'male',  // Default values for required fields
+          age: 30,
+          country: 'US',
+          interests: [],
+          isVip: user.role === "vip",
+          isAdmin: user.role === "admin",
+          subscriptionTier: 'none',
+          imagesRemaining: 10,
+          voiceMessagesRemaining: 10
         });
+        
         toast({
           title: "User Impersonated",
           description: `You are now impersonating ${user.name}.`,
