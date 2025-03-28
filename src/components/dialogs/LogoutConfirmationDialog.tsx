@@ -50,33 +50,37 @@ const LogoutConfirmationDialog = () => {
     handleDialogClose(() => closeDialog());
   }, [closeDialog, handleDialogClose]);
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = useCallback(async () => {
     // Prevent multiple clicks and skip if unmounted
     if (isNavigatingRef.current || !isMountedRef.current) return;
     isNavigatingRef.current = true;
     
-    // Close the dialog first
+    // Close the dialog first with a slight delay
     handleSafeClose();
     
-    // Clear any additional session data immediately
-    try {
-      localStorage.removeItem('sessionToken');
-      sessionStorage.clear();
-    } catch (e) {
-      console.error('Error clearing storage during logout:', e);
-    }
-    
-    // Use a short timeout to ensure dialog is closing before logout
-    setTimeout(() => {
+    // Add a small delay to allow dialog to start closing animation
+    setTimeout(async () => {
       if (!isMountedRef.current) return;
       
-      // Use our centralized logout function with a destination
-      const destination = isVip ? '/' : '/feedback';
-      performLogout();
-      
-      // Force a full page reload to clear any lingering state
-      window.location.href = destination;
-    }, 100);
+      try {
+        // Use our centralized logout function
+        await performLogout();
+        
+        console.log('Redirecting after logout');
+        
+        // Force a full page reload to clear any lingering state
+        // This happens last, after all cleanup is done
+        const destination = isVip ? '/' : '/feedback';
+        window.location.href = destination;
+      } catch (error) {
+        console.error('Failed during logout confirmation:', error);
+        
+        // If all else fails, try a direct reload
+        if (isMountedRef.current) {
+          window.location.reload();
+        }
+      }
+    }, 150); // Slight delay to allow dialog to start closing
   }, [handleSafeClose, performLogout, isVip]);
 
   const getFeedbackMessage = () => {

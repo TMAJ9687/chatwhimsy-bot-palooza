@@ -122,19 +122,25 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   }, []);
 
-  // User cleanup function
+  // Enhanced user cleanup function to ensure complete state reset
   const clearUser = useCallback(() => {
+    console.log('Clearing user state from context');
+    
     // Clean up any pending timeouts first
     if (profileUpdateTimeoutRef.current) {
       clearTimeout(profileUpdateTimeoutRef.current);
       profileUpdateTimeoutRef.current = null;
     }
     
+    // Reset user state
     setUser(null);
-    // Clear profile completion status
-    localStorage.removeItem('vipProfileComplete');
-    localStorage.removeItem('chatUser');
+    
+    // Reset profile completion status
     profileSyncedRef.current = false;
+    
+    // Only remove specific localStorage items to avoid conflicts with logout flow
+    // We don't want to clear 'chatUser' here as it's used for redirection after logout
+    localStorage.removeItem('vipProfileComplete');
   }, []);
 
   const { subscribeToVip, cancelVipSubscription } = useVipSubscription(updateUserProfile);

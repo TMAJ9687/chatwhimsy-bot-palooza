@@ -24,6 +24,8 @@ import { ChatProvider } from "./context/ChatContext";
 import { initPerformanceMonitoring } from "./utils/performanceMonitor";
 import NavigationLock from "./components/shared/NavigationLock";
 import { toast } from "@/hooks/use-toast";
+import { onAuthStateChange } from "./firebase/auth";
+import { UserProvider } from "./context/UserContext";
 
 // Configure React Query for better performance
 const queryClient = new QueryClient({
@@ -45,6 +47,7 @@ const App = () => {
   const [userType, setUserType] = useState<'standard' | 'vip' | null>(null);
   const logoutInProgressRef = useRef(false);
   const errorHandlerSetRef = useRef(false);
+  const authListenerSetRef = useRef(false);
 
   // Initialize performance monitoring with more detailed options
   useEffect(() => {
@@ -115,6 +118,56 @@ const App = () => {
       };
       
       window.addEventListener('error', handleError, { capture: true });
+    }
+    
+    // Setup Firebase auth state listener
+    if (!authListenerSetRef.current) {
+      authListenerSetRef.current = true;
+      
+      // Setup auth state listener
+      const unsubscribe = onAuthStateChange((user) => {
+        console.log('Firebase auth state changed:', user ? 'logged in' : 'logged out');
+        
+        // If user logs out and we're not already handling logout
+        if (!user && !logoutInProgressRef.current) {
+          // Check if we need to clean up and redirect
+          const currentPath = window.location.pathname;
+          if (
+            currentPath !== '/' && 
+            currentPath !== '/vip-login' && 
+            currentPath !== '/vip-signup' &&
+            currentPath !== '/admin' &&
+            currentPath !== '/admin-login' &&
+            currentPath !== '/feedback'
+          ) {
+            console.log('Detected Firebase logout, redirecting to home');
+            
+            // Try to get saved user type from localStorage for proper redirection
+            try {
+              const savedUserData = localStorage.getItem('chatUser');
+              if (savedUserData) {
+                const userData = JSON.parse(savedUserData);
+                if (userData.isVip) {
+                  window.location.href = '/';
+                } else {
+                  window.location.href = '/feedback';
+                }
+                return;
+              }
+            } catch (e) {
+              console.error('Error parsing saved user data:', e);
+            }
+            
+            // Default redirect to home if no user data
+            window.location.href = '/';
+          }
+        }
+      });
+      
+      return () => {
+        unsubscribe();
+        authListenerSetRef.current = false;
+      };
     }
     
     return () => {

@@ -34,9 +34,7 @@ export const sendPasswordReset = async (email: string): Promise<void> => {
 // Enhanced sign out with better cleanup
 export const signOutUser = async (): Promise<void> => {
   try {
-    // First clear local storage to ensure state is reset
-    localStorage.removeItem('adminData');
-    localStorage.removeItem('adminEmail');
+    console.log('Firebase signOut started');
     
     // Clean up any UI elements that might cause issues during navigation
     try {
@@ -74,9 +72,9 @@ export const signOutUser = async (): Promise<void> => {
     
     // Now perform the actual signOut operation
     await signOut(auth);
-    console.log('User signed out successfully');
+    console.log('Firebase signOut completed successfully');
   } catch (error) {
-    console.error('Error signing out:', error);
+    console.error('Firebase signOut error:', error);
     throw error;
   }
 };
