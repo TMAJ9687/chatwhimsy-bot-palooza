@@ -1,5 +1,4 @@
 
-import { DialogType } from '@/context/DialogContext';
 import { useCallback } from 'react';
 import { useDialog } from '@/context/DialogContext';
 import { useLogout } from '@/hooks/useLogout';

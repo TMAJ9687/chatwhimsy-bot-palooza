@@ -1,6 +1,5 @@
 
 import React, { useCallback, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useDialog } from '@/context/DialogContext';
 import {
   AlertDialog,
@@ -16,13 +15,13 @@ import { useUser } from '@/context/UserContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { signOutUser } from '@/firebase/auth';
 import { useDialogCleanup } from '@/hooks/useDialogCleanup';
+import { useLogout } from '@/hooks/useLogout';
 
 const LogoutConfirmationDialog = () => {
   const { state, closeDialog } = useDialog();
   const { onConfirm } = state.data || {}; // Handle potential undefined state.data
-  const { user, clearUser } = useUser();
-  const { adminLogout, isAdmin } = useAdmin();
-  const navigate = useNavigate();
+  const { user } = useUser();
+  const { isAdmin } = useAdmin();
   
   // Get dialog cleanup utilities
   const { handleDialogClose, isClosingRef } = useDialogCleanup();
@@ -34,6 +33,9 @@ const LogoutConfirmationDialog = () => {
   const isNavigatingRef = useRef(false);
   
   const isVip = user?.isVip || false;
+  
+  // Get the logout functionality from our centralized hook
+  const { performLogout } = useLogout();
 
   // Track mounted state
   useEffect(() => {
@@ -59,78 +61,25 @@ const LogoutConfirmationDialog = () => {
     handleSafeClose();
     
     // Use a timeout to ensure dialog is fully closed before proceeding
-    setTimeout(async () => {
+    setTimeout(() => {
       if (!isMountedRef.current) {
         isNavigatingRef.current = false;
         return;
       }
       
-      try {
-        // Store user type in localStorage for redirect after logout
-        if (user) {
+      // Use our centralized logout function
+      performLogout(() => {
+        // This callback runs after user state is cleared but before navigation
+        if (onConfirm && typeof onConfirm === 'function') {
           try {
-            localStorage.setItem('chatUser', JSON.stringify({
-              isVip: isVip
-            }));
-          } catch (e) {
-            console.error('Error storing user type:', e);
-          }
-        }
-        
-        // If user is admin, perform admin logout
-        if (isAdmin) {
-          try {
-            await signOutUser(); // Use the Firebase signOut directly
-            
-            // Only continue if still mounted
-            if (!isMountedRef.current) {
-              isNavigatingRef.current = false;
-              return;
-            }
-            
-            await adminLogout(); // Also run adminLogout for any app-specific cleanup
-            clearUser();
-            
-            // Use window.location for a full page reload to avoid DOM state issues
-            window.location.href = '/admin-login';
-            console.log('Admin logged out successfully');
+            onConfirm();
           } catch (error) {
-            console.error('Error during admin logout:', error);
-            if (isMountedRef.current) {
-              isNavigatingRef.current = false;
-            }
-          }
-        } else {
-          // Clear user data first
-          clearUser();
-          
-          // Standard users go to feedback page, VIP users go to home
-          if (!isVip) {
-            console.log('Standard user logging out, redirecting to feedback');
-            // Use window.location for more reliable navigation during cleanup
-            window.location.href = '/feedback';
-          } else {
-            console.log('VIP user logging out, redirecting to home');
-            window.location.href = '/';
-          }
-          
-          // Call the onConfirm callback if it exists
-          if (isMountedRef.current && onConfirm && typeof onConfirm === 'function') {
-            try {
-              onConfirm();
-            } catch (error) {
-              console.error('Error calling onConfirm callback', error);
-            }
+            console.error('Error calling onConfirm callback', error);
           }
         }
-      } catch (error) {
-        console.error('Error during logout:', error);
-        if (isMountedRef.current) {
-          isNavigatingRef.current = false;
-        }
-      }
+      });
     }, 50);
-  }, [onConfirm, handleSafeClose, user, isVip, isAdmin, adminLogout, clearUser]);
+  }, [onConfirm, handleSafeClose, performLogout]);
 
   const getFeedbackMessage = () => {
     if (isAdmin) {

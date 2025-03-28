@@ -6,6 +6,7 @@ import { signOutUser } from '@/firebase/auth';
 
 /**
  * Hook that provides logout functionality with proper redirection
+ * This hook should only be used within components that are descendants of UserProvider
  */
 export const useLogout = () => {
   const { user, clearUser } = useUser();
