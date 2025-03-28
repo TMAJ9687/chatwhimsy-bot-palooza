@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +18,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
  * Handles authentication for admin users
  */
 const AdminLogin = () => {
+  console.log('AdminLogin component rendering');
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { setUser, user } = useUser();
   const [email, setEmail] = useState('');
@@ -27,15 +28,23 @@ const AdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [adminCheckComplete, setAdminCheckComplete] = useState(false);
   
   // Check if already logged in as admin
   useEffect(() => {
-    console.log('Checking admin login state...');
+    console.log('Checking admin login state in AdminLogin component...');
+    console.log('Current path:', location.pathname);
+    
     const checkAdminLogin = async () => {
       // Check both user context and Firebase auth
       const isLoggedIn = (user?.isAdmin === true) || isAdminLoggedIn();
       const firebaseUser = getCurrentUser();
-      console.log('Admin login check:', { contextAdmin: user?.isAdmin, serviceAdmin: isAdminLoggedIn(), firebaseUser: !!firebaseUser });
+      console.log('Admin login check:', { 
+        contextAdmin: user?.isAdmin, 
+        serviceAdmin: isAdminLoggedIn(), 
+        firebaseUser: !!firebaseUser,
+        path: location.pathname
+      });
       
       if (isLoggedIn || (firebaseUser && isUserAdmin(firebaseUser))) {
         console.log('Admin is already logged in, redirecting to dashboard');
@@ -65,10 +74,12 @@ const AdminLogin = () => {
         // Clear any stale admin data
         localStorage.removeItem('adminEmail');
       }
+      
+      setAdminCheckComplete(true);
     };
     
     checkAdminLogin();
-  }, [user, navigate, setUser]);
+  }, [user, navigate, setUser, location.pathname]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,6 +178,20 @@ const AdminLogin = () => {
       setIsLoading(false);
     }
   };
+
+  // Only render the form if admin check is complete and we're still on this page
+  if (!adminCheckComplete) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-900 p-4">
+        <Card className="w-full max-w-md shadow-lg p-8 text-center">
+          <div className="animate-pulse flex flex-col items-center">
+            <ShieldAlert className="h-10 w-10 text-amber-500 mb-4" />
+            <p>Checking authentication...</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-900 p-4">

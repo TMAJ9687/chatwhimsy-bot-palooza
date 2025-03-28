@@ -134,22 +134,37 @@ export const setAdminLoggedIn = (isLoggedIn: boolean): void => {
 };
 
 export const isAdminLoggedIn = (): boolean => {
+  console.log('Checking if admin is logged in');
+  
   // Check Firebase auth state first
   const user = firebaseAuth.getCurrentUser();
   if (user && firebaseAuth.isUserAdmin(user)) {
+    console.log('Admin is logged in via Firebase auth', user.email);
     return true;
   }
   
   // Fall back to localStorage for backward compatibility
   const adminData = localStorage.getItem('adminData');
-  if (!adminData) return false;
+  const adminEmail = localStorage.getItem('adminEmail');
   
-  try {
-    const data = JSON.parse(adminData);
-    return data.authenticated === true;
-  } catch {
-    return false;
+  if (adminData) {
+    try {
+      const data = JSON.parse(adminData);
+      const isAuthenticated = data.authenticated === true;
+      console.log('Admin authentication from localStorage:', isAuthenticated);
+      return isAuthenticated;
+    } catch (e) {
+      console.error('Error parsing admin data from localStorage', e);
+      return false;
+    }
+  } else if (adminEmail) {
+    // If we have an admin email but no adminData, they might be logged in
+    console.log('Admin email found in localStorage:', adminEmail);
+    return true;
   }
+  
+  console.log('No admin session found');
+  return false;
 };
 
 export const adminLogout = async (): Promise<void> => {

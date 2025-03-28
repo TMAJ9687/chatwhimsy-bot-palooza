@@ -1,6 +1,5 @@
-
-import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
 import { isAdminLoggedIn } from '@/services/admin/adminService';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +12,7 @@ import { onAuthStateChange, isUserAdmin } from '@/firebase/auth';
  */
 export const useAdminSession = (redirectPath: string = '/secretadminportal') => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, setUser } = useUser();
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -21,13 +21,21 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
   // Check admin authentication on mount and when user changes
   const checkAdminAuth = useCallback(() => {
     console.log('Checking admin authentication status...');
+    console.log('Current path:', location.pathname);
     const adminLoggedIn = isAdminLoggedIn();
     console.log('Admin logged in (service):', adminLoggedIn);
     console.log('Admin logged in (context):', Boolean(user?.isAdmin));
     
     setIsAuthenticated(adminLoggedIn || Boolean(user?.isAdmin));
     
-    // If not logged in as admin, redirect
+    // If we're already on the admin login page, don't redirect
+    if (location.pathname === '/secretadminportal') {
+      console.log('Already on admin login page, not redirecting');
+      setIsLoading(false);
+      return;
+    }
+    
+    // If not logged in as admin and not on the login page, redirect
     if (!adminLoggedIn && !user?.isAdmin) {
       console.log('Not authenticated as admin, redirecting to:', redirectPath);
       setIsLoading(false);
@@ -63,7 +71,7 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
     
     setIsLoading(false);
     console.log('Admin authentication check complete');
-  }, [navigate, redirectPath, user, setUser]);
+  }, [navigate, redirectPath, user, setUser, location.pathname]);
   
   useEffect(() => {
     console.log('useAdminSession hook initialized');

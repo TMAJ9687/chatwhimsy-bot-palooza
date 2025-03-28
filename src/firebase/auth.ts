@@ -1,4 +1,3 @@
-
 import { 
   signInWithEmailAndPassword, 
   signOut, 
@@ -14,7 +13,7 @@ export const signInWithEmail = async (email: string, password: string): Promise<
   try {
     console.log('Attempting Firebase sign in:', email);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    console.log('Firebase sign in successful');
+    console.log('Firebase sign in successful, user:', userCredential.user.email);
     return userCredential.user;
   } catch (error: any) {
     console.error("Firebase signIn error:", error.code, error.message);
@@ -24,13 +23,17 @@ export const signInWithEmail = async (email: string, password: string): Promise<
 
 // Create a new user with email and password
 export const createUserWithEmail = async (email: string, password: string): Promise<FirebaseUser> => {
+  console.log('Creating new user with email:', email);
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  console.log('User created successfully:', userCredential.user.email);
   return userCredential.user;
 };
 
 // Send password reset email
 export const sendPasswordReset = async (email: string): Promise<void> => {
+  console.log('Sending password reset email to:', email);
   await sendPasswordResetEmail(auth, email);
+  console.log('Password reset email sent successfully');
 };
 
 // Enhanced sign out with better cleanup
@@ -92,13 +95,18 @@ export const signOutUser = async (): Promise<void> => {
 
 // Get current user
 export const getCurrentUser = (): FirebaseUser | null => {
-  return auth.currentUser;
+  const currentUser = auth.currentUser;
+  console.log('Current Firebase user:', currentUser ? currentUser.email : 'None');
+  return currentUser;
 };
 
 // Check if user is admin
 export const isUserAdmin = (user: FirebaseUser | null): boolean => {
   // In a real application, you would check custom claims or roles in Firestore
-  if (!user) return false;
+  if (!user) {
+    console.log('No user provided for admin check');
+    return false;
+  }
   
   // For demo purposes, consider these emails as admin
   const adminEmails = ['admin@example.com', 'your-email@example.com', 'user@example.com'];
@@ -109,7 +117,11 @@ export const isUserAdmin = (user: FirebaseUser | null): boolean => {
 
 // Listen to auth state changes
 export const onAuthStateChange = (callback: (user: FirebaseUser | null) => void): (() => void) => {
-  return onAuthStateChanged(auth, callback);
+  console.log('Setting up Firebase auth state listener');
+  return onAuthStateChanged(auth, (user) => {
+    console.log('Firebase auth state changed:', user ? user.email : 'logged out');
+    callback(user);
+  });
 };
 
 // For demo purposes - this simulates verifying admin credentials
