@@ -115,12 +115,12 @@ export class DOMSafetyUtils {
    * This is useful for cleanup functions in useEffect
    */
   public createSafeRemovalFn(element: Element | null): () => void {
-    // Store a weak reference to avoid memory leaks
-    const elementRef = new WeakRef(element);
+    // Store a reference to the element
+    let elementRef = element;
     
     return () => {
       try {
-        const el = elementRef.deref();
+        const el = elementRef;
         if (!el || !el.parentNode) return;
         
         // Verify element is still valid
@@ -134,6 +134,9 @@ export class DOMSafetyUtils {
             }
           }
         }
+        
+        // Clear the reference after attempted removal
+        elementRef = null;
       } catch (err) {
         console.warn('[DOMSafetyUtils] Error in safe removal function:', err);
       }
