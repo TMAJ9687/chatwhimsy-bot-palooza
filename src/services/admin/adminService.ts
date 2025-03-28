@@ -1,321 +1,110 @@
-
 import { Bot } from '@/types/chat';
-import { botProfiles } from '@/data/botProfiles';
 import { AdminAction, BanRecord, ReportFeedback, VipDuration } from '@/types/admin';
-import { v4 as uuidv4 } from 'uuid';
-import { createStorageBatcher } from '@/utils/adminUtils';
+import * as firebaseAuth from '@/firebase/auth';
+import * as firestoreService from '@/firebase/firestore';
 
-// Local storage keys
-const ADMIN_KEY = 'adminData';
-const BANNED_USERS_KEY = 'bannedUsers';
-const ADMIN_ACTIONS_KEY = 'adminActions';
-const BOTS_KEY = 'adminBots';
-const REPORT_FEEDBACK_KEY = 'reportFeedback';
-
-// In-memory cache
-let botsCache: Bot[] = [];
-let bannedCache: BanRecord[] = [];
-let actionsCache: AdminAction[] = [];
-let reportFeedbackCache: ReportFeedback[] = [];
-let initialized = false;
-
-// Initialize the storage batcher
-const storageBatcher = createStorageBatcher();
-
-// Initialize by loading data from localStorage or using defaults
-export const initializeAdminService = () => {
-  if (initialized) return;
-  
+// Initialize the admin service
+export const initializeAdminService = async (): Promise<void> => {
   console.time('adminServiceInit');
   
-  // Try to load bots from localStorage, if not present use botProfiles
-  try {
-    const storedBots = localStorage.getItem(BOTS_KEY);
-    botsCache = storedBots ? JSON.parse(storedBots) : [...botProfiles];
+  // Initialize Firestore with default data if needed
+  await firestoreService.initializeFirestoreData();
   
-    // Load banned users
-    const storedBanned = localStorage.getItem(BANNED_USERS_KEY);
-    bannedCache = storedBanned ? JSON.parse(storedBanned) : [];
-  
-    // Load admin actions
-    const storedActions = localStorage.getItem(ADMIN_ACTIONS_KEY);
-    actionsCache = storedActions ? JSON.parse(storedActions) : [];
-  
-    // Load reports and feedback
-    const storedReportFeedback = localStorage.getItem(REPORT_FEEDBACK_KEY);
-    reportFeedbackCache = storedReportFeedback ? JSON.parse(storedReportFeedback) : [];
-  } catch (error) {
-    console.error('Error loading admin data:', error);
-    // Use defaults if parsing fails
-    botsCache = [...botProfiles];
-    bannedCache = [];
-    actionsCache = [];
-    reportFeedbackCache = [];
-  }
-  
-  // Clean up expired reports and feedback
-  cleanupExpiredReportsFeedback();
-  
-  initialized = true;
   console.timeEnd('adminServiceInit');
 };
 
-// Save data to localStorage using the batcher
-const saveToLocalStorage = () => {
-  storageBatcher.queueItem(BOTS_KEY, botsCache);
-  storageBatcher.queueItem(BANNED_USERS_KEY, bannedCache);
-  storageBatcher.queueItem(ADMIN_ACTIONS_KEY, actionsCache);
-  storageBatcher.queueItem(REPORT_FEEDBACK_KEY, reportFeedbackCache);
-};
-
-// Force immediate save (for critical operations)
-const forceSave = () => {
-  storageBatcher.flush();
-};
-
 // Bot Management
-export const getAllBots = (): Bot[] => {
-  initializeAdminService();
-  return [...botsCache];
+export const getAllBots = async (): Promise<Bot[]> => {
+  return await firestoreService.getAllBots();
 };
 
-export const getBot = (id: string): Bot | undefined => {
-  initializeAdminService();
-  return botsCache.find(bot => bot.id === id);
+export const getBot = async (id: string): Promise<Bot | undefined> => {
+  return await firestoreService.getBot(id);
 };
 
-export const createBot = (bot: Omit<Bot, 'id'>): Bot => {
-  initializeAdminService();
-  const newBot: Bot = {
-    ...bot,
-    id: `bot-${uuidv4().slice(0, 8)}`
-  };
-  
-  botsCache.push(newBot);
-  saveToLocalStorage();
-  return newBot;
+export const createBot = async (bot: Omit<Bot, 'id'>): Promise<Bot> => {
+  return await firestoreService.createBot(bot);
 };
 
-export const updateBot = (id: string, updates: Partial<Bot>): Bot | null => {
-  initializeAdminService();
-  const index = botsCache.findIndex(bot => bot.id === id);
-  if (index === -1) return null;
-  
-  botsCache[index] = { ...botsCache[index], ...updates };
-  saveToLocalStorage();
-  return botsCache[index];
+export const updateBot = async (id: string, updates: Partial<Bot>): Promise<Bot | null> => {
+  return await firestoreService.updateBot(id, updates);
 };
 
-export const deleteBot = (id: string): boolean => {
-  initializeAdminService();
-  const initialLength = botsCache.length;
-  botsCache = botsCache.filter(bot => bot.id !== id);
-  
-  // Check if a bot was removed
-  const botRemoved = initialLength > botsCache.length;
-  if (botRemoved) {
-    saveToLocalStorage();
-  }
-  
-  return botRemoved;
+export const deleteBot = async (id: string): Promise<boolean> => {
+  return await firestoreService.deleteBot(id);
 };
 
 // Ban Management
-export const getBannedUsers = (): BanRecord[] => {
-  initializeAdminService();
-  return [...bannedCache];
+export const getBannedUsers = async (): Promise<BanRecord[]> => {
+  return await firestoreService.getBannedUsers();
 };
 
-export const banUser = (banRecord: Omit<BanRecord, 'id' | 'timestamp'>): BanRecord => {
-  initializeAdminService();
-  
-  // Create a new ban record
-  const newBan: BanRecord = {
-    ...banRecord,
-    id: uuidv4(),
-    timestamp: new Date(),
-    expiresAt: banRecord.duration !== 'Permanent' ? 
-      calculateExpiryDate(banRecord.duration) : undefined
-  };
-  
-  bannedCache.push(newBan);
-  
-  // Log admin action
-  const action = logAdminAction({
-    id: uuidv4(),
-    actionType: 'ban',
-    targetId: banRecord.identifier,
-    targetType: banRecord.identifierType,
-    reason: banRecord.reason,
-    duration: banRecord.duration,
-    timestamp: new Date(),
-    adminId: banRecord.adminId
-  });
-  
-  saveToLocalStorage();
-  return newBan;
+export const banUser = async (banRecord: Omit<BanRecord, 'id' | 'timestamp'>): Promise<BanRecord> => {
+  return await firestoreService.banUser(banRecord);
 };
 
-export const unbanUser = (id: string, adminId: string): boolean => {
-  initializeAdminService();
-  const banRecord = bannedCache.find(ban => ban.id === id);
-  if (!banRecord) return false;
-  
-  bannedCache = bannedCache.filter(ban => ban.id !== id);
-  
-  // Log admin action
-  logAdminAction({
-    id: uuidv4(),
-    actionType: 'unban',
-    targetId: banRecord.identifier,
-    targetType: banRecord.identifierType,
-    timestamp: new Date(),
-    adminId: adminId
-  });
-  
-  saveToLocalStorage();
-  return true;
+export const unbanUser = async (id: string, adminId: string): Promise<boolean> => {
+  return await firestoreService.unbanUser(id, adminId);
 };
 
-export const isUserBanned = (identifier: string): BanRecord | null => {
-  initializeAdminService();
-  const ban = bannedCache.find(ban => ban.identifier === identifier);
-  
-  if (!ban) return null;
-  
-  // Check if ban has expired
-  if (ban.expiresAt && new Date() > new Date(ban.expiresAt)) {
-    // Remove expired ban
-    bannedCache = bannedCache.filter(b => b.id !== ban.id);
-    saveToLocalStorage();
-    return null;
-  }
-  
-  return ban;
+export const isUserBanned = async (identifier: string): Promise<BanRecord | null> => {
+  return await firestoreService.isUserBanned(identifier);
 };
 
 // Admin Actions Logging
-export const getAdminActions = (): AdminAction[] => {
-  initializeAdminService();
-  return [...actionsCache];
+export const getAdminActions = async (): Promise<AdminAction[]> => {
+  return await firestoreService.getAdminActions();
 };
 
-export const logAdminAction = (action: AdminAction): AdminAction => {
-  initializeAdminService();
-  actionsCache.push(action);
-  saveToLocalStorage();
-  return action;
+export const logAdminAction = async (action: AdminAction): Promise<AdminAction> => {
+  return await firestoreService.logAdminAction(action);
 };
-
-// Helper functions
-function calculateExpiryDate(duration: string): Date {
-  const now = new Date();
-  
-  if (duration === '1 Day') {
-    return new Date(now.setDate(now.getDate() + 1));
-  } else if (duration === '3 Days') {
-    return new Date(now.setDate(now.getDate() + 3));
-  } else if (duration === '7 Days' || duration === '1 Week') {
-    return new Date(now.setDate(now.getDate() + 7));
-  } else if (duration === '30 Days' || duration === '1 Month') {
-    return new Date(now.setDate(now.getDate() + 30));
-  } else if (duration === '1 Year') {
-    return new Date(now.setFullYear(now.getFullYear() + 1));
-  }
-  
-  return new Date(now.setDate(now.getDate() + 1)); // Default to 1 day
-}
 
 // Report and Feedback Management
-export const addReportOrFeedback = (
+export const addReportOrFeedback = async (
   type: 'report' | 'feedback', 
   userId: string, 
   content: string
-): ReportFeedback => {
-  initializeAdminService();
-  
-  // Create timestamp for now
-  const now = new Date();
-  
-  // Create expiry date (24 hours from now)
-  const expiresAt = new Date(now);
-  expiresAt.setHours(expiresAt.getHours() + 24);
-  
-  const item: ReportFeedback = {
-    id: uuidv4(),
-    type,
-    userId,
-    content,
-    timestamp: now,
-    expiresAt,
-    resolved: false
-  };
-  
-  reportFeedbackCache.push(item);
-  saveToLocalStorage();
-  
-  return item;
+): Promise<ReportFeedback> => {
+  return await firestoreService.addReportOrFeedback(type, userId, content);
 };
 
-export const getReportsAndFeedback = (): ReportFeedback[] => {
-  initializeAdminService();
-  // Clean up expired items before returning
-  cleanupExpiredReportsFeedback();
-  return [...reportFeedbackCache];
+export const getReportsAndFeedback = async (): Promise<ReportFeedback[]> => {
+  return await firestoreService.getReportsAndFeedback();
 };
 
-export const resolveReportOrFeedback = (id: string): boolean => {
-  initializeAdminService();
-  const item = reportFeedbackCache.find(item => item.id === id);
-  if (!item) return false;
-  
-  item.resolved = true;
-  saveToLocalStorage();
-  return true;
+export const resolveReportOrFeedback = async (id: string): Promise<boolean> => {
+  return await firestoreService.resolveReportOrFeedback(id);
 };
 
-export const deleteReportOrFeedback = (id: string): boolean => {
-  initializeAdminService();
-  const initialLength = reportFeedbackCache.length;
-  reportFeedbackCache = reportFeedbackCache.filter(item => item.id !== id);
-  
-  const deleted = initialLength > reportFeedbackCache.length;
-  if (deleted) {
-    saveToLocalStorage();
-  }
-  
-  return deleted;
+export const deleteReportOrFeedback = async (id: string): Promise<boolean> => {
+  return await firestoreService.deleteReportOrFeedback(id);
 };
 
-export const cleanupExpiredReportsFeedback = (): void => {
-  const now = new Date();
-  const initialLength = reportFeedbackCache.length;
-  
-  reportFeedbackCache = reportFeedbackCache.filter(item => {
-    return new Date(item.expiresAt) > now;
-  });
-  
-  if (initialLength > reportFeedbackCache.length) {
-    saveToLocalStorage();
-  }
+export const cleanupExpiredReportsFeedback = async (): Promise<void> => {
+  await firestoreService.cleanupExpiredReportsFeedback();
 };
 
 // Admin Authentication
-export const verifyAdminCredentials = (email: string, password: string): boolean => {
-  // For demo purposes, hardcoded credentials
-  return email === 'admin@example.com' && password === 'admin123';
+export const verifyAdminCredentials = async (email: string, password: string): Promise<boolean> => {
+  return await firebaseAuth.verifyAdminCredentials(email, password);
 };
 
 export const setAdminLoggedIn = (isLoggedIn: boolean): void => {
-  localStorage.setItem(ADMIN_KEY, JSON.stringify({ authenticated: isLoggedIn }));
-  if (isLoggedIn) {
-    // Force immediate save for login state
-    forceSave();
-  }
+  // This is now handled by Firebase Auth directly
+  // Only keeping for backward compatibility
+  localStorage.setItem('adminData', JSON.stringify({ authenticated: isLoggedIn }));
 };
 
 export const isAdminLoggedIn = (): boolean => {
-  const adminData = localStorage.getItem(ADMIN_KEY);
+  // Check Firebase auth state first
+  const user = firebaseAuth.getCurrentUser();
+  if (user && firebaseAuth.isUserAdmin(user)) {
+    return true;
+  }
+  
+  // Fall back to localStorage for backward compatibility
+  const adminData = localStorage.getItem('adminData');
   if (!adminData) return false;
   
   try {
@@ -326,64 +115,46 @@ export const isAdminLoggedIn = (): boolean => {
   }
 };
 
-export const adminLogout = (): void => {
-  // Clear admin session
-  localStorage.removeItem(ADMIN_KEY);
-  // Force immediate save
-  forceSave();
+export const adminLogout = async (): Promise<void> => {
+  // Sign out from Firebase
+  await firebaseAuth.signOutUser();
+  
+  // Clear admin session from localStorage for backward compatibility
+  localStorage.removeItem('adminData');
 };
 
 // User Management (for Standard/VIP users)
-export const kickUser = (userId: string, adminId: string): AdminAction => {
-  // In a real application, this would interact with a backend service
-  // to force disconnect a user from the chat
-  
-  // Log the action
-  const action = logAdminAction({
-    id: uuidv4(),
-    actionType: 'kick',
-    targetId: userId,
-    targetType: 'user',
-    timestamp: new Date(),
-    adminId: adminId
-  });
-  
-  return action;
+export const kickUser = async (userId: string, adminId: string): Promise<AdminAction> => {
+  return await firestoreService.kickUser(userId, adminId);
 };
 
-export const upgradeToVIP = (
+export const upgradeToVIP = async (
   userId: string, 
   adminId: string, 
   duration: VipDuration = 'Lifetime'
-): AdminAction => {
-  // In a real application, this would update the user's status in a database
-  
-  // Log the action
-  const action = logAdminAction({
-    id: uuidv4(),
-    actionType: 'upgrade',
-    targetId: userId,
-    targetType: 'user',
-    duration: duration,
-    timestamp: new Date(),
-    adminId: adminId
-  });
-  
-  return action;
+): Promise<AdminAction> => {
+  return await firestoreService.upgradeToVIP(userId, adminId, duration);
 };
 
-export const downgradeToStandard = (userId: string, adminId: string): AdminAction => {
-  // In a real application, this would update the user's status in a database
+export const downgradeToStandard = async (userId: string, adminId: string): Promise<AdminAction> => {
+  return await firestoreService.downgradeToStandard(userId, adminId);
+};
+
+// For compatibility with existing code that expects synchronous operations
+export const calculateExpiryDate = (duration: VipDuration): Date | null => {
+  const now = new Date();
   
-  // Log the action
-  const action = logAdminAction({
-    id: uuidv4(),
-    actionType: 'downgrade',
-    targetId: userId,
-    targetType: 'user',
-    timestamp: new Date(),
-    adminId: adminId
-  });
+  if (duration === '1 Day') {
+    return new Date(now.setDate(now.getDate() + 1));
+  } else if (duration === '1 Week') {
+    return new Date(now.setDate(now.getDate() + 7));
+  } else if (duration === '1 Month') {
+    return new Date(now.setMonth(now.getMonth() + 1));
+  } else if (duration === '1 Year') {
+    return new Date(now.setFullYear(now.getFullYear() + 1));
+  } else if (duration === 'Lifetime') {
+    return null; // No expiry
+  }
   
-  return action;
+  return new Date(now.setDate(now.getDate() + 1)); // Default to 1 day if unknown
 };

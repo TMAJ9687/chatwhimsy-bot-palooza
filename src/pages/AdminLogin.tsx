@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,8 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Lock, Mail } from "lucide-react";
 import PasswordResetDialog from '@/components/dialogs/PasswordResetDialog';
 import { useUser } from '@/context/UserContext';
-import { verifyAdminCredentials, setAdminLoggedIn, isAdminLoggedIn } from '@/services/admin/adminService';
+import { isAdminLoggedIn, verifyAdminCredentials } from '@/services/admin/adminService';
 import { trackAsyncOperation } from '@/utils/performanceMonitor';
+import { signInWithEmail, isUserAdmin, getCurrentUser } from '@/firebase/auth';
 
 /**
  * Admin Login Page
@@ -28,17 +28,17 @@ const AdminLogin = () => {
   // Check if already logged in as admin
   useEffect(() => {
     const checkAdminLogin = async () => {
-      // Check both user context and localStorage (for page refreshes)
-      const isLoggedIn = user?.isAdmin || isAdminLoggedIn();
+      // Check both user context and Firebase auth
+      const isLoggedIn = (user?.isAdmin === true) || isAdminLoggedIn();
+      const firebaseUser = getCurrentUser();
       
-      if (isLoggedIn) {
-        // If user object doesn't exist but localStorage says we're logged in,
-        // we need to create the user object (for page refreshes)
-        if (!user?.isAdmin && isAdminLoggedIn()) {
+      if (isLoggedIn || (firebaseUser && isUserAdmin(firebaseUser))) {
+        // If user object doesn't exist but we're logged in through Firebase
+        if (!user?.isAdmin && firebaseUser && isUserAdmin(firebaseUser)) {
           setUser({
             id: 'admin-user',
             nickname: 'Admin',
-            email: localStorage.getItem('adminEmail') || 'admin@example.com',
+            email: firebaseUser.email || 'admin@example.com',
             gender: 'male',
             age: 30,
             country: 'US',
@@ -51,6 +51,7 @@ const AdminLogin = () => {
           });
         }
         
+        // Navigate to dashboard
         navigate('/admin-dashboard');
       }
     };
@@ -65,12 +66,15 @@ const AdminLogin = () => {
     try {
       // Use trackAsyncOperation for better performance insight
       const result = await trackAsyncOperation('admin-login', async () => {
-        return new Promise<boolean>((resolve) => {
-          // In a real app, this would be an API call
-          setTimeout(() => {
-            resolve(verifyAdminCredentials(email, password));
-          }, 800);
-        });
+        try {
+          // Try to log in with Firebase Auth
+          await signInWithEmail(email, password);
+          return true;
+        } catch (error) {
+          console.error('Firebase login error:', error);
+          // Fall back to local authentication for demo
+          return verifyAdminCredentials(email, password);
+        }
       });
       
       if (result) {
@@ -92,9 +96,6 @@ const AdminLogin = () => {
           imagesRemaining: Infinity,
           voiceMessagesRemaining: Infinity
         });
-        
-        // Set admin as logged in
-        setAdminLoggedIn(true);
         
         toast({
           title: "Login successful",
