@@ -144,26 +144,6 @@ export const memoize = <T extends (...args: any[]) => any>(
   };
 };
 
-// Throttle function to limit execution rate
-export const throttle = <T extends (...args: any[]) => any>(
-  func: T,
-  limit: number
-): ((...args: Parameters<T>) => ReturnType<T> | undefined) => {
-  let inThrottle = false;
-  let lastResult: ReturnType<T> | undefined;
-  
-  return (...args: Parameters<T>): ReturnType<T> | undefined => {
-    if (!inThrottle) {
-      lastResult = func(...args);
-      inThrottle = true;
-      setTimeout(() => {
-        inThrottle = false;
-      }, limit);
-    }
-    return lastResult;
-  };
-};
-
 // Safely measure rendering time
 export const measureRender = (componentName: string): () => void => {
   const markName = `render_${componentName}_${Date.now()}`;
@@ -185,16 +165,4 @@ export const measureRender = (componentName: string): () => void => {
 export const clearPerformanceMarks = (): void => {
   performance.clearMarks();
   performance.clearMeasures();
-};
-
-// High-resolution timer for more accurate measurements
-export const highResTimer = () => {
-  const start = performance.now();
-  return {
-    elapsed: () => performance.now() - start,
-    stop: () => {
-      const elapsed = performance.now() - start;
-      return elapsed;
-    }
-  };
 };

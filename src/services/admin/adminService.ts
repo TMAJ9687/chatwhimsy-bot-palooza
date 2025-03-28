@@ -1,9 +1,9 @@
+
 import { Bot } from '@/types/chat';
 import { botProfiles } from '@/data/botProfiles';
 import { AdminAction, BanRecord, ReportFeedback, VipDuration } from '@/types/admin';
 import { v4 as uuidv4 } from 'uuid';
 import { createStorageBatcher } from '@/utils/adminUtils';
-import { storageWorker } from '@/utils/storageWorkerManager';
 
 // Local storage keys
 const ADMIN_KEY = 'adminData';
@@ -23,29 +23,30 @@ let initialized = false;
 const storageBatcher = createStorageBatcher();
 
 // Initialize by loading data from localStorage or using defaults
-export const initializeAdminService = async () => {
+export const initializeAdminService = () => {
   if (initialized) return;
   
   console.time('adminServiceInit');
   
-  // Try to load bots from localStorage using the worker
+  // Try to load bots from localStorage, if not present use botProfiles
   try {
-    // Load data asynchronously to prevent main thread blocking
-    const [storedBots, storedBanned, storedActions, storedReportFeedback] = await Promise.all([
-      storageWorker.load(BOTS_KEY),
-      storageWorker.load(BANNED_USERS_KEY),
-      storageWorker.load(ADMIN_ACTIONS_KEY),
-      storageWorker.load(REPORT_FEEDBACK_KEY)
-    ]);
-    
-    // Set caches with loaded data or defaults
-    botsCache = storedBots || [...botProfiles];
-    bannedCache = storedBanned || [];
-    actionsCache = storedActions || [];
-    reportFeedbackCache = storedReportFeedback || [];
+    const storedBots = localStorage.getItem(BOTS_KEY);
+    botsCache = storedBots ? JSON.parse(storedBots) : [...botProfiles];
+  
+    // Load banned users
+    const storedBanned = localStorage.getItem(BANNED_USERS_KEY);
+    bannedCache = storedBanned ? JSON.parse(storedBanned) : [];
+  
+    // Load admin actions
+    const storedActions = localStorage.getItem(ADMIN_ACTIONS_KEY);
+    actionsCache = storedActions ? JSON.parse(storedActions) : [];
+  
+    // Load reports and feedback
+    const storedReportFeedback = localStorage.getItem(REPORT_FEEDBACK_KEY);
+    reportFeedbackCache = storedReportFeedback ? JSON.parse(storedReportFeedback) : [];
   } catch (error) {
     console.error('Error loading admin data:', error);
-    // Use defaults if loading fails
+    // Use defaults if parsing fails
     botsCache = [...botProfiles];
     bannedCache = [];
     actionsCache = [];
@@ -68,16 +69,13 @@ const saveToLocalStorage = () => {
 };
 
 // Force immediate save (for critical operations)
-const forceSave = async () => {
-  await storageBatcher.flush();
+const forceSave = () => {
+  storageBatcher.flush();
 };
 
 // Bot Management
 export const getAllBots = (): Bot[] => {
-  if (!initialized) {
-    // Initialize synchronously if needed
-    initializeAdminService();
-  }
+  initializeAdminService();
   return [...botsCache];
 };
 
@@ -234,9 +232,7 @@ export const addReportOrFeedback = (
   userId: string, 
   content: string
 ): ReportFeedback => {
-  if (!initialized) {
-    initializeAdminService();
-  }
+  initializeAdminService();
   
   // Create timestamp for now
   const now = new Date();
@@ -310,31 +306,19 @@ export const verifyAdminCredentials = (email: string, password: string): boolean
   return email === 'admin@example.com' && password === 'admin123';
 };
 
-export const setAdminLoggedIn = async (isLoggedIn: boolean): Promise<void> => {
-  // Use direct worker save for critical operations
-  await storageWorker.save(ADMIN_KEY, { authenticated: isLoggedIn });
-  
+export const setAdminLoggedIn = (isLoggedIn: boolean): void => {
+  localStorage.setItem(ADMIN_KEY, JSON.stringify({ authenticated: isLoggedIn }));
   if (isLoggedIn) {
     // Force immediate save for login state
-    await forceSave();
+    forceSave();
   }
 };
 
-export const isAdminLoggedIn = async (): Promise<boolean> => {
+export const isAdminLoggedIn = (): boolean => {
+  const adminData = localStorage.getItem(ADMIN_KEY);
+  if (!adminData) return false;
+  
   try {
-    const adminData = await storageWorker.load(ADMIN_KEY);
-    return adminData?.authenticated === true;
-  } catch {
-    return false;
-  }
-};
-
-// Synchronous version for immediate UI needs (uses cached result if possible)
-export const isAdminLoggedInSync = (): boolean => {
-  try {
-    const adminData = localStorage.getItem(ADMIN_KEY);
-    if (!adminData) return false;
-    
     const data = JSON.parse(adminData);
     return data.authenticated === true;
   } catch {
@@ -342,11 +326,11 @@ export const isAdminLoggedInSync = (): boolean => {
   }
 };
 
-export const adminLogout = async (): Promise<void> => {
+export const adminLogout = (): void => {
   // Clear admin session
-  await storageWorker.delete(ADMIN_KEY);
+  localStorage.removeItem(ADMIN_KEY);
   // Force immediate save
-  await forceSave();
+  forceSave();
 };
 
 // User Management (for Standard/VIP users)
