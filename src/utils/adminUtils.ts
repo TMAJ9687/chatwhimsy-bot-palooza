@@ -108,6 +108,16 @@ export const createStorageBatcher = () => {
     isWriteScheduled = false;
   }, 300);
   
+  const enhancedProcessQueue = () => {
+    processQueue();
+  };
+  // Add flush method to the enhanced function
+  enhancedProcessQueue.flush = () => {
+    if (typeof processQueue.flush === 'function') {
+      processQueue.flush();
+    }
+  };
+  
   return {
     /**
      * Schedule an item to be written to localStorage
@@ -117,7 +127,7 @@ export const createStorageBatcher = () => {
       
       if (!isWriteScheduled) {
         isWriteScheduled = true;
-        processQueue();
+        enhancedProcessQueue();
       }
     },
     
@@ -125,7 +135,7 @@ export const createStorageBatcher = () => {
      * Force immediate processing of the queue
      */
     flush: () => {
-      processQueue.flush();
+      enhancedProcessQueue.flush();
     }
   };
 };

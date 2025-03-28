@@ -15,12 +15,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
-  Chart,
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent
+  ChartTooltipContent,
+  ChartConfig
 } from '@/components/ui/chart';
 import { countries } from '@/data/countries';
+import { AreaChart, Area, BarChart as RechartsBarChart, Bar, LineChart as RechartsLineChart, Line, PieChart as RechartsPieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 // Mock traffic data by country for demonstration
 const mockTrafficData = countries.map(country => ({
@@ -55,6 +56,45 @@ const mockPerformanceMetrics = {
   networkLatency: 120, // ms
   activeConnections: 1258,
   failedRequests: 23
+};
+
+// Chart configuration for consistent styling
+const chartConfig: ChartConfig = {
+  logins: {
+    label: "User Logins",
+    theme: {
+      light: "#3b82f6",
+      dark: "#60a5fa",
+    },
+  },
+  messages: {
+    label: "Messages",
+    theme: {
+      light: "#10b981",
+      dark: "#34d399",
+    },
+  },
+  reports: {
+    label: "Reports",
+    theme: {
+      light: "#ef4444",
+      dark: "#f87171",
+    },
+  },
+  latency: {
+    label: "Latency (ms)",
+    theme: {
+      light: "#3b82f6",
+      dark: "#60a5fa",
+    },
+  },
+  cpu: {
+    label: "CPU (%)",
+    theme: {
+      light: "#f97316",
+      dark: "#fb923c",
+    },
+  },
 };
 
 export const StatisticsMenu = () => {
@@ -254,20 +294,16 @@ export const StatisticsMenu = () => {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <ChartContainer
-                  data={mockActivityData}
-                  xAxisKey="date"
-                  yAxisKey="logins"
-                  tooltip={
-                    <ChartTooltip content={<ChartTooltipContent formatValues={(v) => `${v}`} />} />
-                  }
-                >
-                  <Chart
-                    type="bar"
-                    dataKey="logins"
-                    name="User Logins"
-                    className="fill-primary"
-                  />
+                <ChartContainer config={chartConfig}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsBarChart data={mockActivityData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="logins" name="User Logins" fill="#3b82f6" />
+                    </RechartsBarChart>
+                  </ResponsiveContainer>
                 </ChartContainer>
               </div>
             </CardContent>
@@ -336,31 +372,19 @@ export const StatisticsMenu = () => {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <ChartContainer
-                  data={mockActivityData}
-                  xAxisKey="date"
-                  tooltip={
-                    <ChartTooltip content={<ChartTooltipContent formatValues={(v) => `${v}`} />} />
-                  }
-                >
-                  <Chart
-                    type="line"
-                    dataKey="logins"
-                    name="Logins"
-                    className="stroke-blue-500 fill-blue-500/20"
-                  />
-                  <Chart
-                    type="line"
-                    dataKey="messages"
-                    name="Messages"
-                    className="stroke-green-500 fill-green-500/20"
-                  />
-                  <Chart
-                    type="line"
-                    dataKey="reports"
-                    name="Reports"
-                    className="stroke-red-500 fill-red-500/20"
-                  />
+                <ChartContainer config={chartConfig}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsLineChart data={mockActivityData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="logins" name="Logins" stroke="#3b82f6" strokeWidth={2} activeDot={{ r: 8 }} />
+                      <Line type="monotone" dataKey="messages" name="Messages" stroke="#10b981" strokeWidth={2} />
+                      <Line type="monotone" dataKey="reports" name="Reports" stroke="#ef4444" strokeWidth={2} />
+                    </RechartsLineChart>
+                  </ResponsiveContainer>
                 </ChartContainer>
               </div>
             </CardContent>
@@ -395,25 +419,37 @@ export const StatisticsMenu = () => {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <ChartContainer
-                  data={[
-                    { name: 'Text', value: 65 },
-                    { name: 'Images', value: 25 },
-                    { name: 'Voice', value: 8 },
-                    { name: 'Other', value: 2 }
-                  ]}
-                  xAxisKey="name"
-                  yAxisKey="value"
-                  tooltip={
-                    <ChartTooltip content={<ChartTooltipContent formatValues={(v) => `${v}%`} />} />
-                  }
-                >
-                  <Chart
-                    type="pie"
-                    dataKey="value"
-                    nameKey="name"
-                    className="stroke-background stroke-2"
-                  />
+                <ChartContainer config={chartConfig}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPieChart>
+                      <Pie
+                        data={[
+                          { name: 'Text', value: 65 },
+                          { name: 'Images', value: 25 },
+                          { name: 'Voice', value: 8 },
+                          { name: 'Other', value: 2 }
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={true}
+                        outerRadius={120}
+                        fill="#8884d8"
+                        dataKey="value"
+                        nameKey="name"
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {[
+                          { name: 'Text', color: '#3b82f6' },
+                          { name: 'Images', color: '#10b981' },
+                          { name: 'Voice', color: '#f97316' },
+                          { name: 'Other', color: '#8b5cf6' }
+                        ].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => `${value}%`} />
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
                 </ChartContainer>
               </div>
             </CardContent>
@@ -497,29 +533,24 @@ export const StatisticsMenu = () => {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <ChartContainer
-                  data={Array.from({ length: 24 }, (_, i) => ({
-                    hour: `${i}:00`,
-                    latency: Math.floor(Math.random() * 200) + 50,
-                    cpu: Math.floor(Math.random() * 60) + 20,
-                  }))}
-                  xAxisKey="hour"
-                  tooltip={
-                    <ChartTooltip content={<ChartTooltipContent formatValues={(v) => `${v}`} />} />
-                  }
-                >
-                  <Chart
-                    type="line"
-                    dataKey="latency"
-                    name="Latency (ms)"
-                    className="stroke-blue-500 fill-blue-500/20"
-                  />
-                  <Chart
-                    type="line"
-                    dataKey="cpu"
-                    name="CPU (%)"
-                    className="stroke-orange-500 fill-orange-500/20"
-                  />
+                <ChartContainer config={chartConfig}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsLineChart
+                      data={Array.from({ length: 24 }, (_, i) => ({
+                        hour: `${i}:00`,
+                        latency: Math.floor(Math.random() * 200) + 50,
+                        cpu: Math.floor(Math.random() * 60) + 20,
+                      }))}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="hour" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="latency" name="Latency (ms)" stroke="#3b82f6" strokeWidth={2} />
+                      <Line type="monotone" dataKey="cpu" name="CPU (%)" stroke="#f97316" strokeWidth={2} />
+                    </RechartsLineChart>
+                  </ResponsiveContainer>
                 </ChartContainer>
               </div>
             </CardContent>
