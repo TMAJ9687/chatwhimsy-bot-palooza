@@ -35,7 +35,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       {isDark ? (
-        <Moon className="h-5 w-5 text-amber-300" />
+        <Moon className="h-5 w-5 text-amber-400" />
       ) : (
         <Sun className="h-5 w-5 text-amber-500" />
       )}

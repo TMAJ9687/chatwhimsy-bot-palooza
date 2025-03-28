@@ -1,8 +1,10 @@
+
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { useDialog } from '@/context/DialogContext';
 import { useChat } from '@/context/ChatContext';
+import { useLogout } from '@/hooks/useLogout'; // Add this import
 import ChatHeader from './ChatHeader';
 import ChatMessages from './ChatMessages';
 import MessageInputBar from './MessageInputBar';
@@ -12,7 +14,6 @@ import ChatAppHeader from './ChatAppHeader';
 import VipUpgradeSection from './VipUpgradeSection';
 import NotificationSidebar from './NotificationSidebar';
 import EmptyChatState from './EmptyChatState';
-import { useLogout } from '@/hooks/useLogout';
 
 interface ChatInterfaceProps {
   onLogout: () => void;
@@ -22,6 +23,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const { user, isVip, isProfileComplete } = useUser();
   const navigate = useNavigate();
   const { openDialog } = useDialog();
+  const { performLogout } = useLogout(); // Add this hook
   const [chatHidden, setChatHidden] = useState(true);
   const [isInitializing, setIsInitializing] = useState(true);
   const [redirectAttempts, setRedirectAttempts] = useState(0);

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -9,20 +10,33 @@ import { useToast } from '@/hooks/use-toast';
 
 interface ProfileSetupProps {
   onProfileComplete?: () => void;
+  nickname?: string; // Add nickname as an optional prop
+  onComplete?: (profile: {
+    gender: string;
+    age: number;
+    country: string;
+    interests: string[];
+  }) => void; // Add onComplete callback
 }
 
-const ProfileSetup: React.FC<ProfileSetupProps> = ({ onProfileComplete }) => {
-  const [name, setName] = useState('');
+const ProfileSetup: React.FC<ProfileSetupProps> = ({ 
+  onProfileComplete, 
+  nickname, 
+  onComplete 
+}) => {
+  const [name, setName] = useState(nickname || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load name from local storage on component mount
-    const storedName = localStorage.getItem('userName');
-    if (storedName) {
-      setName(storedName);
+    // Load name from local storage on component mount if no nickname provided
+    if (!nickname) {
+      const storedName = localStorage.getItem('userName');
+      if (storedName) {
+        setName(storedName);
+      }
     }
-  }, []);
+  }, [nickname]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -40,6 +54,16 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onProfileComplete }) => {
       // Call the onProfileComplete callback if it exists
       if (onProfileComplete) {
         onProfileComplete();
+      }
+      
+      // Call the onComplete callback with dummy data if it exists
+      if (onComplete) {
+        onComplete({
+          gender: 'prefer not to say',
+          age: 25,
+          country: 'United States',
+          interests: ['Chat']
+        });
       }
     }, 1500);
   };
