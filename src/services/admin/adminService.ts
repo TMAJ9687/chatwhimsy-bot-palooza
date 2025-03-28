@@ -2,20 +2,42 @@ import { Bot } from '@/types/chat';
 import { AdminAction, BanRecord, ReportFeedback, VipDuration } from '@/types/admin';
 import * as firebaseAuth from '@/firebase/auth';
 import * as firestoreService from '@/firebase/firestore';
+import { botProfiles } from '@/data/botProfiles';
 
 // Initialize the admin service
 export const initializeAdminService = async (): Promise<void> => {
   console.time('adminServiceInit');
   
-  // Initialize Firestore with default data if needed
-  await firestoreService.initializeFirestoreData();
+  try {
+    // Initialize Firestore with default data if needed
+    await firestoreService.initializeFirestoreData();
+    console.log('Admin service initialized successfully');
+  } catch (error) {
+    console.error('Error initializing admin service:', error);
+    
+    // Fallback to using local data if Firestore access fails
+    console.log('Using local fallback data for admin service');
+  }
   
   console.timeEnd('adminServiceInit');
 };
 
 // Bot Management
 export const getAllBots = async (): Promise<Bot[]> => {
-  return await firestoreService.getAllBots();
+  try {
+    const bots = await firestoreService.getAllBots();
+    
+    // If Firestore returned empty results or failed, use local data
+    if (!bots || bots.length === 0) {
+      console.log('Using local bot profiles as fallback');
+      return botProfiles;
+    }
+    
+    return bots;
+  } catch (error) {
+    console.error('Error getting bots from Firestore, using local fallback:', error);
+    return botProfiles;
+  }
 };
 
 export const getBot = async (id: string): Promise<Bot | undefined> => {
@@ -36,7 +58,12 @@ export const deleteBot = async (id: string): Promise<boolean> => {
 
 // Ban Management
 export const getBannedUsers = async (): Promise<BanRecord[]> => {
-  return await firestoreService.getBannedUsers();
+  try {
+    return await firestoreService.getBannedUsers();
+  } catch (error) {
+    console.error('Error getting banned users, using empty array:', error);
+    return [];
+  }
 };
 
 export const banUser = async (banRecord: Omit<BanRecord, 'id' | 'timestamp'>): Promise<BanRecord> => {
@@ -53,7 +80,12 @@ export const isUserBanned = async (identifier: string): Promise<BanRecord | null
 
 // Admin Actions Logging
 export const getAdminActions = async (): Promise<AdminAction[]> => {
-  return await firestoreService.getAdminActions();
+  try {
+    return await firestoreService.getAdminActions();
+  } catch (error) {
+    console.error('Error getting admin actions, using empty array:', error);
+    return [];
+  }
 };
 
 export const logAdminAction = async (action: AdminAction): Promise<AdminAction> => {
@@ -70,7 +102,12 @@ export const addReportOrFeedback = async (
 };
 
 export const getReportsAndFeedback = async (): Promise<ReportFeedback[]> => {
-  return await firestoreService.getReportsAndFeedback();
+  try {
+    return await firestoreService.getReportsAndFeedback();
+  } catch (error) {
+    console.error('Error getting reports/feedback, using empty array:', error);
+    return [];
+  }
 };
 
 export const resolveReportOrFeedback = async (id: string): Promise<boolean> => {

@@ -12,6 +12,7 @@ import { useUser } from '@/context/UserContext';
 import { isAdminLoggedIn } from '@/services/admin/adminService';
 import { trackAsyncOperation } from '@/utils/performanceMonitor';
 import { signInWithEmail, isUserAdmin, getCurrentUser } from '@/firebase/auth';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 /**
  * Admin Login Page
@@ -38,7 +39,7 @@ const AdminLogin = () => {
         // If user object doesn't exist but we're logged in through Firebase
         if (!user?.isAdmin && firebaseUser && isUserAdmin(firebaseUser)) {
           setUser({
-            id: 'admin-user',
+            id: firebaseUser.uid || 'admin-user',
             nickname: 'Admin',
             email: firebaseUser.email || 'admin@example.com',
             gender: 'male',
@@ -73,10 +74,30 @@ const AdminLogin = () => {
           // Try to log in with Firebase Auth
           const user = await signInWithEmail(email, password);
           console.log('Firebase login successful:', user);
+          
+          // Check if the user is an admin
+          const admin = isUserAdmin(user);
+          
+          if (!admin) {
+            setLoginError('Account does not have admin privileges');
+            return false;
+          }
+          
           return true;
         } catch (error: any) {
           console.error('Firebase login error:', error);
-          setLoginError(error.message || 'Authentication failed');
+          
+          if (error.code === 'auth/invalid-credential') {
+            setLoginError('Invalid email or password');
+          } else if (error.code === 'auth/user-not-found') {
+            setLoginError('User not found');
+          } else if (error.code === 'auth/wrong-password') {
+            setLoginError('Incorrect password');
+          } else if (error.code === 'auth/too-many-requests') {
+            setLoginError('Too many failed login attempts. Please try again later.');
+          } else {
+            setLoginError(error.message || 'Authentication failed');
+          }
           
           // For demo purposes, allow login with hardcoded credentials
           if (email === 'admin@example.com' && password === 'admin123') {
@@ -94,7 +115,7 @@ const AdminLogin = () => {
         
         // Create admin user profile
         setUser({
-          id: 'admin-user',
+          id: getCurrentUser()?.uid || 'admin-user',
           nickname: 'Admin',
           email: email,
           gender: 'male',
@@ -186,9 +207,11 @@ const AdminLogin = () => {
             </div>
             
             {loginError && (
-              <div className="text-sm text-red-500 p-2 border border-red-300 rounded bg-red-50 dark:bg-red-900/20">
-                {loginError}
-              </div>
+              <Alert variant="destructive" className="text-sm p-3">
+                <AlertDescription>
+                  {loginError}
+                </AlertDescription>
+              </Alert>
             )}
             
             <div className="text-sm text-muted-foreground p-2 border border-amber-300 rounded bg-amber-50 dark:bg-amber-900/20">

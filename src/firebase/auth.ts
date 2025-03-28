@@ -33,10 +33,16 @@ export const sendPasswordReset = async (email: string): Promise<void> => {
 
 // Sign out
 export const signOutUser = async (): Promise<void> => {
-  await signOut(auth);
-  // Also clear local storage items related to admin session
-  localStorage.removeItem('adminData');
-  localStorage.removeItem('adminEmail');
+  try {
+    await signOut(auth);
+    // Also clear local storage items related to admin session
+    localStorage.removeItem('adminData');
+    localStorage.removeItem('adminEmail');
+    console.log('User signed out successfully');
+  } catch (error) {
+    console.error('Error signing out:', error);
+    throw error;
+  }
 };
 
 // Get current user
@@ -49,8 +55,8 @@ export const isUserAdmin = (user: FirebaseUser | null): boolean => {
   // In a real application, you would check custom claims or roles in Firestore
   if (!user) return false;
   
-  // For demo purposes, we'll consider any user with these emails as admin
-  const adminEmails = ['admin@example.com', 'your-email@example.com'];
+  // For demo purposes, consider these emails as admin
+  const adminEmails = ['admin@example.com', 'your-email@example.com', 'user@example.com'];
   return adminEmails.includes(user.email || '');
 };
 
@@ -60,12 +66,15 @@ export const onAuthStateChange = (callback: (user: FirebaseUser | null) => void)
 };
 
 // For demo purposes - this simulates verifying admin credentials
-// In a real app, this would be handled by Firebase Authentication
 export const verifyAdminCredentials = async (email: string, password: string): Promise<boolean> => {
   try {
     // This will throw if credentials are invalid
     await signInWithEmail(email, password);
-    return true;
+    
+    // Check if email is in the admin list
+    const isAdmin = isUserAdmin({email} as any);
+    
+    return isAdmin;
   } catch (error) {
     console.error('Authentication error:', error);
     

@@ -16,6 +16,7 @@ import { useUser } from '@/context/UserContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useNavigate } from 'react-router-dom';
 import { trackEvent } from '@/utils/performanceMonitor';
+import { signOutUser } from '@/firebase/auth';
 
 const LogoutConfirmationDialog = () => {
   const { state, closeDialog } = useDialog();
@@ -31,35 +32,45 @@ const LogoutConfirmationDialog = () => {
     handleDialogClose(closeDialog);
   }, [closeDialog, handleDialogClose]);
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = useCallback(async () => {
     // Track logout event for performance monitoring
-    trackEvent('user-logout', () => {
-      if (onConfirm && typeof onConfirm === 'function') {
-        // Store user type in localStorage for redirect after logout
-        if (user) {
-          try {
-            localStorage.setItem('chatUser', JSON.stringify({
-              isVip: isVip
-            }));
-          } catch (e) {
-            console.error('Error storing user type:', e);
+    try {
+      trackEvent('user-logout', async () => {
+        if (onConfirm && typeof onConfirm === 'function') {
+          // Store user type in localStorage for redirect after logout
+          if (user) {
+            try {
+              localStorage.setItem('chatUser', JSON.stringify({
+                isVip: isVip
+              }));
+            } catch (e) {
+              console.error('Error storing user type:', e);
+            }
+          }
+          
+          // If user is admin, perform admin logout
+          if (isAdmin) {
+            try {
+              await signOutUser(); // Use the Firebase signOut directly
+              await adminLogout(); // Also run adminLogout for any app-specific cleanup
+              clearUser();
+              // Navigate to landing page after admin logout
+              navigate('/admin-login');
+              console.log('Admin logged out successfully');
+            } catch (error) {
+              console.error('Error during admin logout:', error);
+            }
+          } else {
+            // Standard user logout
+            onConfirm();
           }
         }
-        
-        // If user is admin, perform admin logout
-        if (isAdmin) {
-          adminLogout();
-          clearUser();
-          // Navigate to landing page after admin logout
-          navigate('/');
-        } else {
-          // Standard user logout
-          onConfirm();
-        }
-      }
-    });
-    
-    handleSafeClose();
+      });
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
+      handleSafeClose();
+    }
   }, [onConfirm, handleSafeClose, user, isVip, isAdmin, adminLogout, navigate, clearUser]);
 
   const getFeedbackMessage = () => {

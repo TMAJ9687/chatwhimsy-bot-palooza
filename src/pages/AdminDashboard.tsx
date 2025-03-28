@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAdminSession from '@/hooks/useAdminSession';
@@ -7,32 +8,55 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { 
   Users, Settings, UserPlus, ShieldAlert, MessageSquare, 
-  LogOut, BarChart4, User, Ban, Activity
+  LogOut, BarChart4, User, Ban, Activity, RefreshCw
 } from 'lucide-react';
 import Statistics from '@/components/admin/statistics/Statistics';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { signOutUser } from '@/firebase/auth';
 
 const AdminDashboard = () => {
-  const { isAuthenticated, user } = useAdminSession();
+  const { isAuthenticated, user, isLoading: sessionLoading } = useAdminSession();
   const { adminLogout, isAdmin, loading } = useAdmin();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentTab, setCurrentTab] = useState('overview');
+  const [retryCount, setRetryCount] = useState(0);
   
   useEffect(() => {
     // If not authenticated as admin, redirect to login
-    if (!isAuthenticated && !loading) {
-      navigate('/admin');
+    if (!isAuthenticated && !sessionLoading && !loading) {
+      navigate('/admin-login');
     }
-  }, [isAuthenticated, navigate, loading]);
+  }, [isAuthenticated, navigate, sessionLoading, loading]);
   
   const handleLogout = async () => {
-    await adminLogout();
-    navigate('/admin');
+    try {
+      // First sign out from Firebase
+      await signOutUser();
+      // Then run app-specific logout
+      await adminLogout();
+      toast({
+        title: "Logged out",
+        description: "You have been logged out successfully",
+      });
+      navigate('/admin-login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
-  if (!isAuthenticated) {
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+    window.location.reload();
+  };
+  
+  if (!isAuthenticated && !sessionLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Card className="w-[350px]">
@@ -45,7 +69,7 @@ const AdminDashboard = () => {
               </AlertDescription>
             </Alert>
             <div className="flex justify-center mt-4">
-              <Button onClick={() => navigate('/admin')}>Go to Login</Button>
+              <Button onClick={() => navigate('/admin-login')}>Go to Login</Button>
             </div>
           </CardContent>
         </Card>
@@ -53,7 +77,7 @@ const AdminDashboard = () => {
     );
   }
   
-  if (loading) {
+  if (sessionLoading || loading) {
     return (
       <div className="container mx-auto p-6">
         <div className="flex justify-between items-center mb-6">
@@ -64,6 +88,11 @@ const AdminDashboard = () => {
             <div className="flex flex-col items-center justify-center space-y-4 py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
               <p>Loading admin data...</p>
+              {retryCount > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Attempt {retryCount + 1}...
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -79,6 +108,10 @@ const AdminDashboard = () => {
           <div className="hidden md:block text-sm text-muted-foreground mr-4">
             Logged in as <span className="font-medium">{user?.email}</span>
           </div>
+          <Button variant="outline" size="sm" onClick={handleRetry} title="Refresh dashboard data">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
           <Button variant="outline" size="sm" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" />
             Logout

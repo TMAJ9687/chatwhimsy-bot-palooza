@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
 import { isAdminLoggedIn } from '@/services/admin/adminService';
 import { useToast } from '@/hooks/use-toast';
+import { onAuthStateChange, isUserAdmin } from '@/firebase/auth';
 
 /**
  * Hook to manage admin session persistence and protection
@@ -15,6 +16,7 @@ export const useAdminSession = (redirectPath: string = '/admin-login') => {
   const { user, setUser } = useUser();
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Check admin authentication on mount and when user changes
   const checkAdminAuth = useCallback(() => {
@@ -23,6 +25,7 @@ export const useAdminSession = (redirectPath: string = '/admin-login') => {
     
     // If not logged in as admin, redirect
     if (!adminLoggedIn && !user?.isAdmin) {
+      setIsLoading(false);
       navigate(redirectPath);
       return;
     }
@@ -47,10 +50,46 @@ export const useAdminSession = (redirectPath: string = '/admin-login') => {
         voiceMessagesRemaining: Infinity
       });
     }
+    
+    setIsLoading(false);
   }, [navigate, redirectPath, user, setUser]);
   
   useEffect(() => {
-    checkAdminAuth();
+    // Set up Firebase auth state listener
+    const unsubscribe = onAuthStateChange((firebaseUser) => {
+      if (firebaseUser) {
+        const admin = isUserAdmin(firebaseUser);
+        
+        if (admin) {
+          setIsAuthenticated(true);
+          
+          // Create admin user profile if not already set
+          if (!user?.isAdmin) {
+            setUser({
+              id: firebaseUser.uid || 'admin-user',
+              nickname: 'Admin',
+              email: firebaseUser.email || 'admin@example.com',
+              gender: 'male',
+              age: 30,
+              country: 'US',
+              interests: ['Administration'],
+              isVip: true,
+              isAdmin: true,
+              subscriptionTier: 'none',
+              imagesRemaining: Infinity,
+              voiceMessagesRemaining: Infinity
+            });
+          }
+        } else {
+          setIsAuthenticated(false);
+        }
+      } else {
+        // No user signed in, check localStorage fallback
+        checkAdminAuth();
+      }
+      
+      setIsLoading(false);
+    });
     
     // Set up interval to periodically check admin session
     const intervalId = setInterval(() => {
@@ -58,12 +97,14 @@ export const useAdminSession = (redirectPath: string = '/admin-login') => {
     }, 60000); // Check every minute
     
     return () => {
+      unsubscribe();
       clearInterval(intervalId);
     };
-  }, [checkAdminAuth]);
+  }, [checkAdminAuth, user, setUser]);
   
   return {
     isAuthenticated,
+    isLoading,
     user,
     refreshSession: checkAdminAuth
   };

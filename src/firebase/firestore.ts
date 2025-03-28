@@ -1,4 +1,3 @@
-
 import { 
   collection, 
   doc, 
@@ -12,7 +11,8 @@ import {
   addDoc,
   Timestamp
 } from 'firebase/firestore';
-import { db } from './config';
+import { db, storage } from './config';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Bot } from '@/types/chat';
 import { AdminAction, BanRecord, ReportFeedback, VipDuration } from '@/types/admin';
 import { botProfiles } from '@/data/botProfiles';
@@ -36,70 +36,126 @@ export const dateToTimestamp = (date: Date): Timestamp => {
 
 // Initialize the database with default data
 export const initializeFirestoreData = async (): Promise<void> => {
-  // Check if bots collection is already populated
-  const botsSnapshot = await getDocs(collection(db, BOTS_COLLECTION));
-  
-  // If bots collection is empty, populate with default bots
-  if (botsSnapshot.empty) {
-    const promises = botProfiles.map(bot => setDoc(doc(db, BOTS_COLLECTION, bot.id), bot));
-    await Promise.all(promises);
-    console.log('Firestore initialized with default bot data');
+  try {
+    // Check if bots collection is already populated
+    const botsSnapshot = await getDocs(collection(db, BOTS_COLLECTION));
+    
+    // If bots collection is empty, populate with default bots
+    if (botsSnapshot.empty) {
+      const promises = botProfiles.map(bot => setDoc(doc(db, BOTS_COLLECTION, bot.id), bot));
+      await Promise.all(promises);
+      console.log('Firestore initialized with default bot data');
+    }
+  } catch (error) {
+    console.error('Error initializing Firestore data:', error);
+    throw error;
+  }
+};
+
+// File upload to Firebase Storage
+export const uploadFile = async (file: File, path: string): Promise<string> => {
+  try {
+    const storageRef = ref(storage, `${path}/${file.name}`);
+    await uploadBytes(storageRef, file);
+    const downloadUrl = await getDownloadURL(storageRef);
+    return downloadUrl;
+  } catch (error) {
+    console.error('Error uploading file to Firebase Storage:', error);
+    throw error;
   }
 };
 
 // Bot Management
 export const getAllBots = async (): Promise<Bot[]> => {
-  const botsSnapshot = await getDocs(collection(db, BOTS_COLLECTION));
-  return botsSnapshot.docs.map(doc => doc.data() as Bot);
+  try {
+    const botsSnapshot = await getDocs(collection(db, BOTS_COLLECTION));
+    return botsSnapshot.docs.map(doc => doc.data() as Bot);
+  } catch (error) {
+    console.error('Error getting all bots:', error);
+    // Return botProfiles as fallback
+    return botProfiles;
+  }
 };
 
 export const getBot = async (id: string): Promise<Bot | undefined> => {
-  const botDoc = await getDoc(doc(db, BOTS_COLLECTION, id));
-  return botDoc.exists() ? botDoc.data() as Bot : undefined;
+  try {
+    const botDoc = await getDoc(doc(db, BOTS_COLLECTION, id));
+    return botDoc.exists() ? botDoc.data() as Bot : undefined;
+  } catch (error) {
+    console.error('Error getting bot:', error);
+    // Return from botProfiles as fallback
+    return botProfiles.find(bot => bot.id === id);
+  }
 };
 
 export const createBot = async (bot: Omit<Bot, 'id'>): Promise<Bot> => {
-  const newBot: Bot = {
-    ...bot,
-    id: `bot-${uuidv4().slice(0, 8)}`
-  };
-  
-  await setDoc(doc(db, BOTS_COLLECTION, newBot.id), newBot);
-  return newBot;
+  try {
+    const newBot: Bot = {
+      ...bot,
+      id: `bot-${uuidv4().slice(0, 8)}`
+    };
+    
+    await setDoc(doc(db, BOTS_COLLECTION, newBot.id), newBot);
+    return newBot;
+  } catch (error) {
+    console.error('Error creating bot:', error);
+    throw error;
+  }
 };
 
 export const updateBot = async (id: string, updates: Partial<Bot>): Promise<Bot | null> => {
-  const botRef = doc(db, BOTS_COLLECTION, id);
-  const botDoc = await getDoc(botRef);
-  
-  if (!botDoc.exists()) return null;
-  
-  const updatedBot = { ...botDoc.data(), ...updates } as Bot;
-  await updateDoc(botRef, updates);
-  return updatedBot;
+  try {
+    const botRef = doc(db, BOTS_COLLECTION, id);
+    const botDoc = await getDoc(botRef);
+    
+    if (!botDoc.exists()) return null;
+    
+    const updatedBot = { ...botDoc.data(), ...updates } as Bot;
+    await updateDoc(botRef, updates);
+    return updatedBot;
+  } catch (error) {
+    console.error('Error updating bot:', error);
+    // Find bot in local data and return updated version as fallback
+    const localBot = botProfiles.find(bot => bot.id === id);
+    if (localBot) {
+      return { ...localBot, ...updates };
+    }
+    return null;
+  }
 };
 
 export const deleteBot = async (id: string): Promise<boolean> => {
-  const botRef = doc(db, BOTS_COLLECTION, id);
-  const botDoc = await getDoc(botRef);
-  
-  if (!botDoc.exists()) return false;
-  
-  await deleteDoc(botRef);
-  return true;
+  try {
+    const botRef = doc(db, BOTS_COLLECTION, id);
+    const botDoc = await getDoc(botRef);
+    
+    if (!botDoc.exists()) return false;
+    
+    await deleteDoc(botRef);
+    return true;
+  } catch (error) {
+    console.error('Error deleting bot:', error);
+    throw error;
+  }
 };
 
 // Ban Management
 export const getBannedUsers = async (): Promise<BanRecord[]> => {
-  const bannedSnapshot = await getDocs(collection(db, BANNED_USERS_COLLECTION));
-  return bannedSnapshot.docs.map(doc => {
-    const data = doc.data();
-    return {
-      ...data,
-      timestamp: timestampToDate(data.timestamp as Timestamp),
-      expiresAt: data.expiresAt ? timestampToDate(data.expiresAt as Timestamp) : undefined
-    } as BanRecord;
-  });
+  try {
+    const bannedSnapshot = await getDocs(collection(db, BANNED_USERS_COLLECTION));
+    return bannedSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        timestamp: data.timestamp ? timestampToDate(data.timestamp as Timestamp) : new Date(),
+        expiresAt: data.expiresAt ? timestampToDate(data.expiresAt as Timestamp) : undefined,
+        id: doc.id
+      } as BanRecord;
+    });
+  } catch (error) {
+    console.error('Error getting banned users:', error);
+    return []; // Return empty array as fallback
+  }
 };
 
 export const banUser = async (banRecord: Omit<BanRecord, 'id' | 'timestamp'>): Promise<BanRecord> => {
@@ -198,30 +254,44 @@ export const isUserBanned = async (identifier: string): Promise<BanRecord | null
 
 // Admin Actions Logging
 export const getAdminActions = async (): Promise<AdminAction[]> => {
-  const actionsSnapshot = await getDocs(collection(db, ADMIN_ACTIONS_COLLECTION));
-  return actionsSnapshot.docs.map(doc => {
-    const data = doc.data();
-    return {
-      ...data,
-      timestamp: timestampToDate(data.timestamp as Timestamp),
-      id: doc.id
-    } as AdminAction;
-  });
+  try {
+    const actionsSnapshot = await getDocs(collection(db, ADMIN_ACTIONS_COLLECTION));
+    return actionsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        timestamp: data.timestamp ? timestampToDate(data.timestamp as Timestamp) : new Date(),
+        id: doc.id
+      } as AdminAction;
+    });
+  } catch (error) {
+    console.error('Error getting admin actions:', error);
+    return []; // Return empty array as fallback
+  }
 };
 
 export const logAdminAction = async (action: AdminAction): Promise<AdminAction> => {
-  const actionToStore = {
-    ...action,
-    timestamp: dateToTimestamp(action.timestamp)
-  };
-  
-  const docRef = await addDoc(collection(db, ADMIN_ACTIONS_COLLECTION), actionToStore);
-  
-  // Return the action with the generated id
-  return {
-    ...action,
-    id: docRef.id
-  };
+  try {
+    const actionToStore = {
+      ...action,
+      timestamp: dateToTimestamp(action.timestamp)
+    };
+    
+    const docRef = await addDoc(collection(db, ADMIN_ACTIONS_COLLECTION), actionToStore);
+    
+    // Return the action with the generated id
+    return {
+      ...action,
+      id: docRef.id
+    };
+  } catch (error) {
+    console.error('Error logging admin action:', error);
+    // Return the action with a temporary ID as fallback
+    return {
+      ...action,
+      id: `temp-${uuidv4()}`
+    };
+  }
 };
 
 // Helper function
@@ -245,19 +315,24 @@ function calculateExpiryDate(duration: string): Date {
 
 // Report and Feedback Management
 export const getReportsAndFeedback = async (): Promise<ReportFeedback[]> => {
-  // Clean up expired items first
-  await cleanupExpiredReportsFeedback();
-  
-  const reportsSnapshot = await getDocs(collection(db, REPORTS_COLLECTION));
-  return reportsSnapshot.docs.map(doc => {
-    const data = doc.data();
-    return {
-      ...data,
-      timestamp: timestampToDate(data.timestamp as Timestamp),
-      expiresAt: timestampToDate(data.expiresAt as Timestamp),
-      id: doc.id
-    } as ReportFeedback;
-  });
+  try {
+    // Clean up expired items first
+    await cleanupExpiredReportsFeedback();
+    
+    const reportsSnapshot = await getDocs(collection(db, REPORTS_COLLECTION));
+    return reportsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        timestamp: data.timestamp ? timestampToDate(data.timestamp as Timestamp) : new Date(),
+        expiresAt: data.expiresAt ? timestampToDate(data.expiresAt as Timestamp) : new Date(Date.now() + 86400000),
+        id: doc.id
+      } as ReportFeedback;
+    });
+  } catch (error) {
+    console.error('Error getting reports and feedback:', error);
+    return []; // Return empty array as fallback
+  }
 };
 
 export const addReportOrFeedback = async (
