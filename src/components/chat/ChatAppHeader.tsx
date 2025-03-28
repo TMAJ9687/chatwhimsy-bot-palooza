@@ -22,6 +22,8 @@ const ChatAppHeader = ({
         <button 
           className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 relative"
           onClick={onOpenInbox}
+          aria-label="Open notifications"
+          title="Open notifications"
         >
           <Bell className="h-5 w-5 text-gray-700 dark:text-gray-300" />
           {unreadCount > 0 && (
@@ -33,6 +35,8 @@ const ChatAppHeader = ({
         <button 
           className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
           onClick={onOpenHistory}
+          aria-label="Chat history"
+          title="Chat history"
         >
           <Clock className="h-5 w-5 text-gray-700 dark:text-gray-300" />
         </button>

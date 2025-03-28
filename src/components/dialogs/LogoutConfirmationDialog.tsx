@@ -19,7 +19,7 @@ import { useDialogCleanup } from '@/hooks/useDialogCleanup';
 
 const LogoutConfirmationDialog = () => {
   const { state, closeDialog } = useDialog();
-  const { onConfirm } = state.data;
+  const { onConfirm } = state.data || {}; // Handle potential undefined state.data
   const { user, clearUser } = useUser();
   const { adminLogout, isAdmin } = useAdmin();
   const navigate = useNavigate();
@@ -101,26 +101,27 @@ const LogoutConfirmationDialog = () => {
             }
           }
         } else {
-          // For standard users, clear user data and navigate
+          // Clear user data first
           clearUser();
           
           // Standard users go to feedback page, VIP users go to home
           if (!isVip) {
             console.log('Standard user logging out, redirecting to feedback');
-            // Direct navigation instead of using the callback
-            navigate('/feedback');
+            // Use window.location for more reliable navigation during cleanup
+            window.location.href = '/feedback';
           } else {
             console.log('VIP user logging out, redirecting to home');
-            navigate('/');
+            window.location.href = '/';
           }
           
           // Call the onConfirm callback if it exists
           if (isMountedRef.current && onConfirm && typeof onConfirm === 'function') {
-            onConfirm();
+            try {
+              onConfirm();
+            } catch (error) {
+              console.error('Error calling onConfirm callback', error);
+            }
           }
-          
-          // Reset navigation flag
-          isNavigatingRef.current = false;
         }
       } catch (error) {
         console.error('Error during logout:', error);
@@ -129,7 +130,7 @@ const LogoutConfirmationDialog = () => {
         }
       }
     }, 50);
-  }, [onConfirm, handleSafeClose, user, isVip, isAdmin, adminLogout, clearUser, navigate]);
+  }, [onConfirm, handleSafeClose, user, isVip, isAdmin, adminLogout, clearUser]);
 
   const getFeedbackMessage = () => {
     if (isAdmin) {

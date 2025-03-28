@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,6 +24,7 @@ import { ChatProvider } from "./context/ChatContext";
 import { initPerformanceMonitoring } from "./utils/performanceMonitor";
 import NavigationLock from "./components/shared/NavigationLock";
 import { toast } from "@/hooks/use-toast";
+import { useLogout } from "@/hooks/useLogout";
 
 // Configure React Query for better performance
 const queryClient = new QueryClient({
@@ -92,64 +92,19 @@ const App = () => {
     };
   }, []);
 
-  // Handle logout action with a more careful approach
+  // Handle logout action with the new reusable hook
+  const { performLogout } = useLogout();
+  
   const handleLogout = useCallback(() => {
     // Set logout in progress flag
     logoutInProgressRef.current = true;
     
-    // Check if user exists in localStorage to determine the type
-    const userData = localStorage.getItem('chatUser');
-    let type: 'standard' | 'vip' | null = null;
-    
-    if (userData) {
-      try {
-        const user = JSON.parse(userData);
-        type = user.isVip ? 'vip' : 'standard';
-        setUserType(type);
-      } catch (e) {
-        console.error('Error parsing user data:', e);
-      }
-    }
-    
-    setHasLoggedOut(true);
-    
-    // Clean up DOM state before navigation
-    if (document.body) {
-      document.body.style.overflow = 'auto';
-      document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-    }
-    
-    // Clean up overlay elements
-    try {
-      document.querySelectorAll('.fixed.inset-0, [data-radix-dialog-overlay], [data-radix-alert-dialog-overlay]')
-        .forEach(element => {
-          try {
-            if (element.parentNode) {
-              element.parentNode.removeChild(element);
-            }
-          } catch (e) {
-            // Ignore errors during emergency cleanup
-          }
-        });
-    } catch (e) {
-      console.warn('Error during emergency cleanup:', e);
-    }
-    
-    // Use a timeout to ensure DOM updates have time to complete
-    setTimeout(() => {
-      // Redirect standard users to feedback, VIP users to home
-      if (type === 'standard') {
-        window.location.href = '/feedback';
-      } else {
-        window.location.href = '/';
-      }
-      
-      // Reset the flag after navigation starts
-      setTimeout(() => {
-        logoutInProgressRef.current = false;
-      }, 500);
-    }, 100);
-  }, []);
+    // Perform the logout
+    performLogout(() => {
+      // This callback runs after user state is cleared but before navigation
+      setHasLoggedOut(true);
+    });
+  }, [performLogout]);
 
   // Reset logout state when returning to the app
   useEffect(() => {
