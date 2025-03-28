@@ -97,14 +97,17 @@ const SiteRulesDialog = () => {
   const handleWarningYes = useCallback(() => {
     if (!mountedRef.current) return;
     
+    // Close both dialogs
     setShowWarning(false);
+    closeDialog();
+    
     // Use setTimeout to ensure state updates before navigation
     setTimeout(() => {
       if (mountedRef.current) {
         navigate('/');
       }
     }, 0);
-  }, [navigate]);
+  }, [navigate, closeDialog]);
 
   const handleWarningNo = useCallback(() => {
     if (!mountedRef.current) return;

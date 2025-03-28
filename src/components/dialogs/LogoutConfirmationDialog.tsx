@@ -67,8 +67,15 @@ const LogoutConfirmationDialog = () => {
       
       // Use our centralized logout function
       performLogout();
+      
+      // Ensure the page is redirected if the logout function doesn't handle it
+      setTimeout(() => {
+        if (isMountedRef.current && window.location.pathname !== '/' && window.location.pathname !== '/feedback') {
+          window.location.href = isVip ? '/' : '/feedback';
+        }
+      }, 300);
     }, 50);
-  }, [handleSafeClose, performLogout]);
+  }, [handleSafeClose, performLogout, isVip]);
 
   const getFeedbackMessage = () => {
     if (isAdmin) {

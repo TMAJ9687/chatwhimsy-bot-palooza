@@ -11,9 +11,21 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
 
   // Check for system preference or saved preference on mount
   useEffect(() => {
-    const isDarkMode = document.documentElement.classList.contains('dark') ||
-      (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const savedTheme = localStorage.getItem('theme');
+    const isDarkMode = 
+      savedTheme === 'dark' || 
+      (savedTheme !== 'light' && 
+        document.documentElement.classList.contains('dark') ||
+        (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches));
+    
     setIsDark(isDarkMode);
+    
+    // Set the initial class on the document element based on the detected theme
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   }, []);
 
   const toggleTheme = () => {

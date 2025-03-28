@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
-import { Check, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, ArrowRight, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 import Button from '../shared/Button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
+import { useNavigate } from 'react-router-dom';
 
 interface ProfileSetupProps {
   nickname: string;
@@ -15,6 +15,7 @@ interface ProfileSetupProps {
 }
 
 const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => {
+  const navigate = useNavigate();
   const [gender, setGender] = useState<string>('');
   const [age, setAge] = useState<number>(25);
   const [country, setCountry] = useState<string>('');
@@ -29,7 +30,6 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
     'Fashion', 'Fitness', 'Nature', 'Science', 'Animals'
   ];
 
-  // Generate age options from 18 to 90
   useEffect(() => {
     const options = [];
     for (let i = 18; i <= 90; i++) {
@@ -38,14 +38,12 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
     setAgeOptions(options);
   }, []);
 
-  // Auto detect country
   useEffect(() => {
     const detectCountry = async () => {
       try {
         const response = await fetch('https://ipapi.co/json/');
         const data = await response.json();
         if (data.country_name) {
-          // Skip Israel
           if (data.country_name.toLowerCase() === 'israel') {
             setCountry('Palestine');
             setCountryFlag('ps');
@@ -71,7 +69,6 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
     if (interests.includes(interest)) {
       setInterests(interests.filter(i => i !== interest));
     } else {
-      // Limit to 2 interests for standard users
       if (interests.length < 2) {
         setInterests([...interests, interest]);
       }
@@ -91,12 +88,24 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
 
   const isValid = gender && age >= 18 && country;
 
+  const handleBackToLanding = () => {
+    navigate('/');
+  };
+
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="text-center mb-2">
+      <div className="flex justify-between items-center mb-2">
+        <button 
+          onClick={handleBackToLanding}
+          className="text-primary hover:text-primary/80 transition-colors"
+          aria-label="Back to landing page"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
         <p className="text-primary font-medium">
           Hi {nickname}
         </p>
+        <div className="w-5"></div>
       </div>
 
       <div className="space-y-4">
@@ -193,7 +202,6 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
           </CollapsibleContent>
         </Collapsible>
 
-        {/* AdSense Placeholder */}
         <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="h-16 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
             Google AdSense Placeholder
