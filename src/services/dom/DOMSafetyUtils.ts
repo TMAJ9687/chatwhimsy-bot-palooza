@@ -32,7 +32,7 @@ export class DOMSafetyUtils {
         // Use try-catch for the actual removal operation
         try {
           // Remove the element
-          element.parentNode.removeChild(element);
+          element.remove(); // Use safer .remove() method instead of parentNode.removeChild
           return true;
         } catch (e) {
           console.warn('[DOMSafetyUtils] Element removal failed:', e);

@@ -1,5 +1,5 @@
 
-import React, { memo, useState, useCallback, useEffect } from 'react';
+import React, { memo, useState, useCallback, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,7 @@ import {
 } from '../ui/alert-dialog';
 import { useDialog } from '@/context/DialogContext';
 import { useUser } from '@/context/UserContext';
+import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
 
 // Memoized warning dialog content
 const WarningContent = memo(({ 
@@ -52,13 +53,25 @@ const SiteRulesDialog = () => {
   const [showWarning, setShowWarning] = useState(false);
   const navigate = useNavigate();
   const { isVip } = useUser();
+  const { cleanupOverlays } = useSafeDOMOperations();
+  const mountedRef = useRef(true);
   
   // Only destructure when needed
   const isRulesOpen = state.isOpen && state.type === 'siteRules';
   
+  // Track mounted state
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      // Clean up overlays when component unmounts
+      cleanupOverlays();
+    };
+  }, [cleanupOverlays]);
+  
   useEffect(() => {
     // Auto-accept rules for VIP users
-    if (isVip && isRulesOpen && state.data?.onAccept) {
+    if (isVip && isRulesOpen && state.data?.onAccept && mountedRef.current) {
       state.data.onAccept();
       closeDialog();
     }
@@ -66,6 +79,8 @@ const SiteRulesDialog = () => {
   
   // Memoized handlers
   const handleAccept = useCallback(() => {
+    if (!mountedRef.current) return;
+    
     // Call the onAccept callback if it exists
     if (state.data?.onAccept) {
       state.data.onAccept();
@@ -75,20 +90,29 @@ const SiteRulesDialog = () => {
   }, [state.data, closeDialog]);
 
   const handleDecline = useCallback(() => {
+    if (!mountedRef.current) return;
     setShowWarning(true);
   }, []);
 
   const handleWarningYes = useCallback(() => {
+    if (!mountedRef.current) return;
+    
     setShowWarning(false);
-    navigate('/');
+    // Use setTimeout to ensure state updates before navigation
+    setTimeout(() => {
+      if (mountedRef.current) {
+        navigate('/');
+      }
+    }, 0);
   }, [navigate]);
 
   const handleWarningNo = useCallback(() => {
+    if (!mountedRef.current) return;
     setShowWarning(false);
   }, []);
 
   // Don't render for VIP users or if dialog isn't open
-  if (isVip || (!isRulesOpen && !showWarning)) return null;
+  if (isVip || (!isRulesOpen && !showWarning) || !mountedRef.current) return null;
 
   return (
     <>

@@ -8,6 +8,19 @@ import { DOMSafetyUtils } from './DOMSafetyUtils';
 export class DOMCleanupService {
   private cleanupInProgress = false;
   private overlaysBeingRemoved = new Set<Element>();
+  private isMounted = true; // Track mounted state
+
+  constructor() {
+    this.isMounted = true;
+  }
+
+  /**
+   * Mark service as unmounted (for cleanup)
+   */
+  public unmount(): void {
+    this.isMounted = false;
+    this.overlaysBeingRemoved.clear();
+  }
 
   /**
    * Clean up overlay elements using a staged approach
@@ -16,14 +29,14 @@ export class DOMCleanupService {
     operationQueue: DOMOperationQueue,
     safetyUtils: DOMSafetyUtils
   ): void {
-    // If cleanup is already in progress, don't start another one
-    if (this.cleanupInProgress) {
-      console.log('[DOMCleanupService] Cleanup already in progress, skipping');
+    // If cleanup is already in progress or service is unmounted, don't start another one
+    if (this.cleanupInProgress || !this.isMounted) {
+      console.log('[DOMCleanupService] Cleanup already in progress or service unmounted, skipping');
       return;
     }
 
     const cleanupOperation = () => {
-      if (typeof document === 'undefined' || !document.body) return;
+      if (typeof document === 'undefined' || !document.body || !this.isMounted) return;
       
       this.cleanupInProgress = true;
       
@@ -72,6 +85,13 @@ export class DOMCleanupService {
         let index = 0;
         
         const removeNext = () => {
+          // Check if service is still mounted
+          if (!this.isMounted) {
+            this.cleanupInProgress = false;
+            this.overlaysBeingRemoved.clear();
+            return;
+          }
+          
           if (index < overlaysToRemove.length) {
             const overlay = overlaysToRemove[index];
             
@@ -79,9 +99,12 @@ export class DOMCleanupService {
             if (overlay && 
                 overlay.parentNode && 
                 document.contains(overlay)) {
-              const removed = safetyUtils.safeRemoveElement(overlay, new WeakMap());
-              if (removed) {
+              // Use element.remove() instead of parentNode.removeChild
+              try {
+                overlay.remove();
                 console.log(`[DOMCleanupService] Successfully removed overlay ${index + 1}/${overlaysToRemove.length}`);
+              } catch (e) {
+                console.warn(`[DOMCleanupService] Error removing overlay:`, e);
               }
             }
             
@@ -92,7 +115,9 @@ export class DOMCleanupService {
             index++;
             
             // Use setTimeout for better performance and to avoid blocking the main thread
-            const timeoutId = window.setTimeout(removeNext, 16); // ~60fps
+            if (this.isMounted) {
+              const timeoutId = window.setTimeout(removeNext, 16); // ~60fps
+            }
           } else {
             // All overlays processed
             this.cleanupInProgress = false;

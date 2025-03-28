@@ -11,6 +11,8 @@ export const useSafeDOMOperations = () => {
   
   // Clean up on unmount
   useEffect(() => {
+    unmountedRef.current = false;
+    
     return () => {
       unmountedRef.current = true;
     };
@@ -18,19 +20,33 @@ export const useSafeDOMOperations = () => {
 
   // Register a node to track its lifecycle
   const registerNode = useCallback((node: Node | null) => {
-    if (unmountedRef.current) return;
+    if (unmountedRef.current || !node) return;
     domRegistry.registerNode(node);
   }, []);
   
   // Check if a node is registered and still valid
   const isNodeValid = useCallback((node: Node | null) => {
+    if (unmountedRef.current || !node) return false;
     return domRegistry.isNodeValid(node);
   }, []);
   
   // Safe element removal with enhanced parent checks
   const safeRemoveElement = useCallback((element: Element | null) => {
-    if (unmountedRef.current) return false;
-    return domRegistry.safeRemoveElement(element);
+    if (unmountedRef.current || !element) return false;
+    
+    try {
+      // Use the safer .remove() method if available
+      if (element && typeof element.remove === 'function') {
+        element.remove();
+        return true;
+      }
+      
+      // Fallback to domRegistry method
+      return domRegistry.safeRemoveElement(element);
+    } catch (e) {
+      console.warn('Error in safeRemoveElement:', e);
+      return false;
+    }
   }, []);
   
   // Queue an operation to be executed when safe
@@ -56,6 +72,7 @@ export const useSafeDOMOperations = () => {
     queueOperation,
     registerNode,
     isNodeValid,
-    isDOMReady
+    isDOMReady,
+    isMounted: !unmountedRef.current
   };
 };

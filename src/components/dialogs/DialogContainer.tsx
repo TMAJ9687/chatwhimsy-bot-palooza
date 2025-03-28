@@ -1,5 +1,5 @@
 
-import React, { memo, useEffect, Suspense } from 'react';
+import React, { memo, useEffect, Suspense, useRef } from 'react';
 import { useDialog } from '@/context/DialogContext';
 import { trackEvent } from '@/utils/performanceMonitor';
 
@@ -38,15 +38,26 @@ const DialogFallback = () => (
  */
 const DialogContainer = () => {
   const { state } = useDialog();
+  const mountedRef = useRef(true);
+  
+  // Track when component unmounts to prevent setState after unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   
   // Track dialog rendering for performance monitoring
   useEffect(() => {
+    if (!mountedRef.current) return;
+    
     if (state.isOpen) {
       trackEvent(`dialog-render-${state.type}`, () => {});
     }
   }, [state.isOpen, state.type]);
 
-  if (!state.isOpen) {
+  if (!state.isOpen || !mountedRef.current) {
     return null;
   }
 
@@ -58,6 +69,9 @@ const DialogContainer = () => {
   return (
     <Suspense fallback={<DialogFallback />}>
       {(() => {
+        // Don't render anything if component is unmounting
+        if (!mountedRef.current) return null;
+        
         // Render the appropriate dialog component based on the dialog type
         switch (state.type) {
           case 'report':

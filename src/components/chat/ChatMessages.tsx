@@ -42,7 +42,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   // Use useLayoutEffect to ensure DOM operations are performed synchronously
   // before the browser paints, helping prevent race conditions
   useLayoutEffect(() => {
-    // Make sure the container exists and component is still mounted
+    // Make sure the component is still mounted and container exists
     if (!containerRef.current || !isMountedRef.current) return;
     
     // Find any potential problematic elements
@@ -50,47 +50,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       '.fixed.inset-0, [data-radix-dialog-overlay], [data-radix-alert-dialog-overlay]'
     );
     
-    // Safely remove them if found
-    if (problematicElements.length > 0) {
+    // Safely remove them if found, but only if component is still mounted
+    if (problematicElements.length > 0 && isMountedRef.current) {
       console.log(`[ChatMessages] Found ${problematicElements.length} problematic elements, removing...`);
       
       problematicElements.forEach(element => {
-        // Only attempt removal if still mounted
         if (isMountedRef.current) {
           safeRemoveElement(element);
         }
       });
     }
   }, [messages, safeRemoveElement]); // Re-run when messages change
-
-  // Additional cleanup on component unmount to prevent removeChild errors
-  useEffect(() => {
-    return () => {
-      // Important: when component unmounts, make sure we don't leave problematic elements
-      if (containerRef.current) {
-        const problematicElements = containerRef.current.querySelectorAll(
-          '.fixed.inset-0, [data-radix-dialog-overlay], [data-radix-alert-dialog-overlay]'
-        );
-        
-        if (problematicElements.length > 0) {
-          problematicElements.forEach(element => {
-            try {
-              // Check parent exists before removal
-              if (element.parentNode && document.contains(element)) {
-                // Double-check element is a child of its parent
-                const parentChildNodes = Array.from(element.parentNode.childNodes);
-                if (parentChildNodes.includes(element)) {
-                  element.parentNode.removeChild(element);
-                }
-              }
-            } catch (error) {
-              console.warn('[ChatMessages] Error removing element on unmount:', error);
-            }
-          });
-        }
-      }
-    };
-  }, []);
 
   return (
     <div 
