@@ -25,7 +25,7 @@ const ctx: Worker | Window = typeof self !== 'undefined' ? self : window;
 // Check if we're in a worker context by checking for typical worker-only properties
 const isWorkerContext = typeof self !== 'undefined' && 
                         typeof window === 'undefined' && 
-                        typeof importScripts === 'function';
+                        self.constructor.name === 'DedicatedWorkerGlobalScope';
 
 // Handle messages in worker context
 if (isWorkerContext) {
