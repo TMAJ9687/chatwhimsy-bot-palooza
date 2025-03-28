@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +31,7 @@ const AdminLogin = () => {
   const [adminCheckComplete, setAdminCheckComplete] = useState(false);
   const redirectInProgressRef = React.useRef(false);
   
-  // Check if already logged in as admin
+  // Check if already logged in as admin but prevent immediate redirect
   useEffect(() => {
     console.log('Checking admin login state in AdminLogin component...');
     console.log('Current path:', location.pathname);
@@ -42,58 +41,16 @@ const AdminLogin = () => {
       return;
     }
     
-    const checkAdminLogin = async () => {
-      // Check both user context and Firebase auth
-      const isLoggedIn = (user?.isAdmin === true) || isAdminLoggedIn();
-      const firebaseUser = getCurrentUser();
-      console.log('Admin login check:', { 
-        contextAdmin: user?.isAdmin, 
-        serviceAdmin: isAdminLoggedIn(), 
-        firebaseUser: !!firebaseUser,
-        path: location.pathname
-      });
-      
-      if (isLoggedIn || (firebaseUser && isUserAdmin(firebaseUser))) {
-        console.log('Admin is already logged in, redirecting to dashboard');
-        redirectInProgressRef.current = true;
-        
-        // If user object doesn't exist but we're logged in through Firebase
-        if (!user?.isAdmin && firebaseUser && isUserAdmin(firebaseUser)) {
-          console.log('Creating admin user from Firebase credentials');
-          setUser({
-            id: firebaseUser.uid || 'admin-user',
-            nickname: 'Admin',
-            email: firebaseUser.email || 'admin@example.com',
-            gender: 'male',
-            age: 30,
-            country: 'US',
-            interests: ['Administration'],
-            isVip: true,
-            isAdmin: true,
-            subscriptionTier: 'none',
-            imagesRemaining: Infinity,
-            voiceMessagesRemaining: Infinity
-          });
-        }
-        
-        // Navigate to dashboard with a delay to ensure state updates
-        setTimeout(() => {
-          navigate('/admin-dashboard');
-          // Reset the flag after redirection
-          setTimeout(() => {
-            redirectInProgressRef.current = false;
-          }, 500);
-        }, 300);
-      } else {
-        console.log('No admin session detected, showing login form');
-        // Clear any stale admin data
-        localStorage.removeItem('adminEmail');
-        setAdminCheckComplete(true);
-      }
-    };
+    // Remove any stale admin data to ensure we start fresh
+    if (location.pathname === '/secretadminportal') {
+      localStorage.removeItem('adminData');
+      localStorage.removeItem('adminEmail');
+    }
     
-    checkAdminLogin();
-  }, [user, navigate, setUser, location.pathname]);
+    // Always set adminCheckComplete to true to show the login form
+    setAdminCheckComplete(true);
+    
+  }, [location.pathname]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

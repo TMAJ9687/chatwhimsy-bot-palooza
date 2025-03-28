@@ -128,10 +128,13 @@ export const verifyAdminCredentials = async (email: string, password: string): P
 };
 
 export const setAdminLoggedIn = (isLoggedIn: boolean): void => {
-  // Store admin authentication state
-  localStorage.setItem('adminData', JSON.stringify({ authenticated: isLoggedIn }));
+  console.log('Setting admin logged in state:', isLoggedIn);
   
-  if (!isLoggedIn) {
+  // Store admin authentication state
+  if (isLoggedIn) {
+    localStorage.setItem('adminData', JSON.stringify({ authenticated: true }));
+  } else {
+    localStorage.removeItem('adminData');
     localStorage.removeItem('adminEmail');
   }
 };
@@ -148,7 +151,6 @@ export const isAdminLoggedIn = (): boolean => {
   
   // Fall back to localStorage for backward compatibility
   const adminData = localStorage.getItem('adminData');
-  const adminEmail = localStorage.getItem('adminEmail');
   
   if (adminData) {
     try {
@@ -158,14 +160,9 @@ export const isAdminLoggedIn = (): boolean => {
       return isAuthenticated;
     } catch (e) {
       console.error('Error parsing admin data from localStorage', e);
+      localStorage.removeItem('adminData');
       return false;
     }
-  } else if (adminEmail) {
-    // If we have an admin email but no adminData, they might be logged in
-    console.log('Admin email found in localStorage:', adminEmail);
-    // Create adminData for consistency
-    localStorage.setItem('adminData', JSON.stringify({ authenticated: true }));
-    return true;
   }
   
   console.log('No admin session found');

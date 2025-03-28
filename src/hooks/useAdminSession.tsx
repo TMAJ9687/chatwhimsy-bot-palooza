@@ -30,9 +30,9 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
     
     setIsAuthenticated(adminLoggedIn || Boolean(user?.isAdmin));
     
-    // If we're already on the admin login page, don't redirect
+    // Don't redirect if we're on the login page
     if (location.pathname === '/secretadminportal') {
-      console.log('Already on admin login page, not redirecting');
+      console.log('On admin login page, not redirecting');
       setIsLoading(false);
       return;
     }
@@ -45,9 +45,9 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
       return;
     }
     
-    // If not logged in as admin and not on the login page, redirect to login
-    if (!adminLoggedIn && !user?.isAdmin && !location.pathname.includes('/secretadminportal') && 
-        location.pathname.includes('/admin') && !redirectAttempted) {
+    // If not logged in as admin and on a protected page, redirect to login
+    if (!adminLoggedIn && !user?.isAdmin && location.pathname.includes('/admin') && 
+        location.pathname !== '/secretadminportal' && !redirectAttempted) {
       console.log('Not authenticated as admin, redirecting to:', redirectPath);
       setIsLoading(false);
       setRedirectAttempted(true);

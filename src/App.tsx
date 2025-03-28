@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -50,7 +49,7 @@ const AuthListener = () => {
     
     // Don't interfere with admin login/dashboard paths
     if (location.pathname === '/secretadminportal' || 
-        location.pathname === '/admin-dashboard') {
+        location.pathname.includes('/admin')) {
       console.log('On admin page, skipping auth redirects');
       return;
     }
@@ -74,8 +73,7 @@ const AuthListener = () => {
             currentPath !== '/' && 
             currentPath !== '/vip-login' && 
             currentPath !== '/vip-signup' &&
-            currentPath !== '/admin' &&
-            currentPath !== '/admin-login' &&
+            !currentPath.includes('/admin') &&
             currentPath !== '/secretadminportal' &&
             currentPath !== '/feedback'
           ) {

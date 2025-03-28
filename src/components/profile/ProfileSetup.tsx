@@ -65,6 +65,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
 
   const handleSubmit = () => {
     if (gender && age && country) {
+      console.log('Saving profile data and navigating to chat');
       // Save profile data
       onComplete({
         gender,
@@ -73,8 +74,13 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
         interests
       });
       
-      // Navigate to chat route directly
-      navigate('/chat');
+      // Force navigation to chat with a delay to ensure states are updated
+      setTimeout(() => {
+        console.log('Navigation to /chat triggered');
+        navigate('/chat', { replace: true });
+      }, 50);
+    } else {
+      console.log('Profile data invalid, not navigating');
     }
   };
 
