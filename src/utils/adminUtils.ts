@@ -108,22 +108,6 @@ export const createStorageBatcher = () => {
     isWriteScheduled = false;
   }, 300);
   
-  // Create an enhanced process queue without checking for flush method
-  const enhancedProcessQueue = () => {
-    processQueue();
-  };
-  
-  // Add a custom flush method that doesn't rely on the debounced function's flush
-  enhancedProcessQueue.flush = () => {
-    // Just force immediate processing by calling processQueue directly
-    // This bypasses the need for the flush method on the debounced function
-    for (const [key, value] of Object.entries(batchQueue)) {
-      localStorage.setItem(key, JSON.stringify(value));
-    }
-    batchQueue = {};
-    isWriteScheduled = false;
-  };
-  
   return {
     /**
      * Schedule an item to be written to localStorage
@@ -133,7 +117,7 @@ export const createStorageBatcher = () => {
       
       if (!isWriteScheduled) {
         isWriteScheduled = true;
-        enhancedProcessQueue();
+        processQueue();
       }
     },
     
@@ -141,7 +125,7 @@ export const createStorageBatcher = () => {
      * Force immediate processing of the queue
      */
     flush: () => {
-      enhancedProcessQueue.flush();
+      processQueue.flush();
     }
   };
 };

@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,27 +24,31 @@ import { UserProvider } from "./context/UserContext";
 import { ChatProvider } from "./context/ChatContext";
 import { initPerformanceMonitoring } from "./utils/performanceMonitor";
 import NavigationLock from "./components/shared/NavigationLock";
-import { AdminStatistics } from './components/admin/AdminStatistics';
 
+// Configure React Query for better performance
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       staleTime: 30000,
       refetchOnWindowFocus: false,
+      // Improve performance with structural sharing
       structuralSharing: true,
-      gcTime: 5 * 60 * 1000,
+      // Add caching for better performance
+      gcTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 });
 
-function App() {
+const App = () => {
   const [hasLoggedOut, setHasLoggedOut] = useState(false);
   const [userType, setUserType] = useState<'standard' | 'vip' | null>(null);
 
+  // Initialize performance monitoring with more detailed options
   useEffect(() => {
     initPerformanceMonitoring();
     
+    // Log when app becomes visible/hidden (potential freeze point)
     const handleVisibilityChange = () => {
       performance.mark(`visibility_${document.visibilityState}`);
       console.info(`App visibility changed to: ${document.visibilityState}`);
@@ -51,6 +56,7 @@ function App() {
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
+    // Track initial load performance
     performance.mark('app_load_start');
     window.addEventListener('load', () => {
       performance.mark('app_load_end');
@@ -62,7 +68,9 @@ function App() {
     };
   }, []);
 
+  // Handle logout action with requestAnimationFrame for better performance
   const handleLogout = () => {
+    // Check if user exists in localStorage to determine the type
     const userData = localStorage.getItem('chatUser');
     let type: 'standard' | 'vip' | null = null;
     
@@ -78,7 +86,9 @@ function App() {
     
     setHasLoggedOut(true);
     
+    // Use requestAnimationFrame for smoother UI
     requestAnimationFrame(() => {
+      // Redirect standard users to feedback, VIP users to home
       if (type === 'standard') {
         window.location.href = '/feedback';
       } else {
@@ -87,8 +97,10 @@ function App() {
     });
   };
 
+  // Reset logout state when returning to the app
   useEffect(() => {
     if (hasLoggedOut && window.location.pathname === '/') {
+      // Delay state update for better performance
       const timer = setTimeout(() => {
         setHasLoggedOut(false);
       }, 100);
@@ -106,6 +118,7 @@ function App() {
                 <MainLayout>
                   <Toaster />
                   <Sonner />
+                  {/* Add the NavigationLock component to help with navigation */}
                   <NavigationLock />
                   <Routes>
                     <Route path="/" element={<Index />} />
@@ -117,9 +130,9 @@ function App() {
                     <Route path="/vip-payment" element={<VipPayment />} />
                     <Route path="/vip-confirmation" element={<VipConfirmation />} />
                     <Route path="/feedback" element={<Feedback />} />
-                    <Route path="/admin-login" element={<AdminLogin />} />
+                    {/* Admin routes */}
+                    <Route path="/admin" element={<AdminLogin />} />
                     <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                    <Route path="/admin-statistics" element={<AdminStatistics />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                   <DialogContainer />
@@ -131,6 +144,6 @@ function App() {
       </TooltipProvider>
     </QueryClientProvider>
   );
-}
+};
 
 export default App;
