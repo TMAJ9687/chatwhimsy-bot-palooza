@@ -77,7 +77,10 @@ const AlertDialogComponent = () => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      isClosingRef.current = true;
+      // Mark dialog as closing when component unmounts
+      if (isClosingRef) {
+        isClosingRef.current = true;
+      }
     };
   }, [isClosingRef]);
   
