@@ -129,3 +129,187 @@ export const createStorageBatcher = () => {
     }
   };
 };
+
+/**
+ * Generate mock traffic statistics data
+ */
+export const getTrafficStatistics = () => {
+  // Last 7 days data
+  const dailyTraffic = Array(7).fill(0).map((_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    return {
+      date: date.toLocaleDateString('en-US', { weekday: 'short' }),
+      visitors: Math.floor(Math.random() * 500) + 200,
+      pageViews: Math.floor(Math.random() * 1500) + 500,
+      uniqueVisitors: Math.floor(Math.random() * 400) + 150,
+    };
+  });
+
+  // Traffic sources
+  const trafficSources = [
+    { name: 'Direct', value: Math.floor(Math.random() * 40) + 20 },
+    { name: 'Search', value: Math.floor(Math.random() * 30) + 15 },
+    { name: 'Social', value: Math.floor(Math.random() * 20) + 10 },
+    { name: 'Referral', value: Math.floor(Math.random() * 15) + 5 },
+    { name: 'Other', value: Math.floor(Math.random() * 10) + 5 },
+  ];
+
+  // Visitors by country
+  const visitorsByCountry = [
+    { name: 'United States', value: Math.floor(Math.random() * 40) + 20 },
+    { name: 'United Kingdom', value: Math.floor(Math.random() * 20) + 10 },
+    { name: 'Germany', value: Math.floor(Math.random() * 15) + 5 },
+    { name: 'France', value: Math.floor(Math.random() * 10) + 5 },
+    { name: 'Canada', value: Math.floor(Math.random() * 10) + 5 },
+    { name: 'Other', value: Math.floor(Math.random() * 20) + 10 },
+  ];
+
+  return {
+    dailyTraffic,
+    trafficSources,
+    visitorsByCountry,
+    totalVisitors: dailyTraffic.reduce((acc, day) => acc + day.visitors, 0),
+    totalPageViews: dailyTraffic.reduce((acc, day) => acc + day.pageViews, 0),
+    averageSessionDuration: Math.floor(Math.random() * 180) + 60, // in seconds
+  };
+};
+
+/**
+ * Generate mock user statistics data
+ */
+export const getUserStatistics = () => {
+  // User registrations over time (last 7 days)
+  const userRegistrations = Array(7).fill(0).map((_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    return {
+      date: date.toLocaleDateString('en-US', { weekday: 'short' }),
+      standard: Math.floor(Math.random() * 30) + 10,
+      vip: Math.floor(Math.random() * 15) + 5,
+    };
+  });
+
+  // User demographics
+  const userDemographics = {
+    age: [
+      { name: '18-24', value: Math.floor(Math.random() * 20) + 10 },
+      { name: '25-34', value: Math.floor(Math.random() * 30) + 20 },
+      { name: '35-44', value: Math.floor(Math.random() * 20) + 15 },
+      { name: '45-54', value: Math.floor(Math.random() * 15) + 10 },
+      { name: '55+', value: Math.floor(Math.random() * 10) + 5 },
+    ],
+    gender: [
+      { name: 'Male', value: Math.floor(Math.random() * 60) + 40 },
+      { name: 'Female', value: Math.floor(Math.random() * 40) + 20 },
+      { name: 'Other', value: Math.floor(Math.random() * 5) + 1 },
+    ]
+  };
+
+  // Online users by hour (last 24 hours)
+  const onlineUsers = Array(24).fill(0).map((_, i) => {
+    return {
+      hour: i.toString().padStart(2, '0') + ':00',
+      users: Math.floor(Math.random() * 100) + 50,
+    };
+  });
+
+  return {
+    userRegistrations,
+    userDemographics,
+    onlineUsers,
+    totalStandardUsers: Math.floor(Math.random() * 1000) + 500,
+    totalVipUsers: Math.floor(Math.random() * 300) + 100,
+    activeUsersToday: Math.floor(Math.random() * 200) + 100,
+    conversionRate: (Math.random() * 10 + 5).toFixed(2) + '%', // Standard to VIP conversion
+  };
+};
+
+/**
+ * Generate mock content statistics data
+ */
+export const getContentStatistics = () => {
+  // Messages per day (last 7 days)
+  const messagesPerDay = Array(7).fill(0).map((_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    return {
+      date: date.toLocaleDateString('en-US', { weekday: 'short' }),
+      standard: Math.floor(Math.random() * 1000) + 500,
+      vip: Math.floor(Math.random() * 2000) + 1000,
+      bot: Math.floor(Math.random() * 3000) + 1500,
+    };
+  });
+
+  // Media uploads per day (last 7 days)
+  const uploadsPerDay = Array(7).fill(0).map((_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    return {
+      date: date.toLocaleDateString('en-US', { weekday: 'short' }),
+      images: Math.floor(Math.random() * 50) + 20,
+      videos: Math.floor(Math.random() * 20) + 5,
+    };
+  });
+
+  // Bot interactions
+  const botInteractions = Array(10).fill(0).map((_, i) => {
+    return {
+      botName: `Bot ${i + 1}`,
+      interactions: Math.floor(Math.random() * 500) + 100,
+    };
+  }).sort((a, b) => b.interactions - a.interactions);
+
+  return {
+    messagesPerDay,
+    uploadsPerDay,
+    botInteractions,
+    totalMessages: messagesPerDay.reduce((acc, day) => 
+      acc + day.standard + day.vip + day.bot, 0),
+    totalUploads: uploadsPerDay.reduce((acc, day) => 
+      acc + day.images + day.videos, 0),
+    averageMessagesPerUser: Math.floor(Math.random() * 20) + 10,
+  };
+};
+
+/**
+ * Generate mock system performance statistics
+ */
+export const getSystemStatistics = () => {
+  // Server response time over time (last 24 hours)
+  const serverResponse = Array(24).fill(0).map((_, i) => {
+    return {
+      hour: i.toString().padStart(2, '0') + ':00',
+      responseTime: Math.floor(Math.random() * 200) + 50, // in ms
+    };
+  });
+
+  // Error rates over time (last 7 days)
+  const errorRates = Array(7).fill(0).map((_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    return {
+      date: date.toLocaleDateString('en-US', { weekday: 'short' }),
+      errors: Math.floor(Math.random() * 50), // number of errors
+      requests: Math.floor(Math.random() * 5000) + 1000, // total requests
+    };
+  });
+
+  // Resource usage
+  const resourceUsage = [
+    { name: 'CPU', value: Math.floor(Math.random() * 60) + 20 },
+    { name: 'Memory', value: Math.floor(Math.random() * 70) + 30 },
+    { name: 'Disk', value: Math.floor(Math.random() * 50) + 30 },
+    { name: 'Network', value: Math.floor(Math.random() * 40) + 20 },
+  ];
+
+  return {
+    serverResponse,
+    errorRates,
+    resourceUsage,
+    uptime: Math.floor(Math.random() * 30) + 5, // in days
+    totalRequests: errorRates.reduce((acc, day) => acc + day.requests, 0),
+    averageResponseTime: serverResponse.reduce((acc, hour) => 
+      acc + hour.responseTime, 0) / serverResponse.length,
+  };
+};

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -14,13 +13,41 @@ import { Switch } from "@/components/ui/switch";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Settings, MessageSquare, LogOut, Ban, Edit, Trash2, Plus, Search, Bell, Mail, FileText, FileSearch, Shield, ShieldOff, CircleUser, CircleCheck, CircleX, ArrowRight, ArrowLeft, ChevronDown, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Users, Settings, MessageSquare, LogOut, Ban, Edit, Trash2, Plus, Search, Bell, Mail, FileText, FileSearch, Shield, ShieldOff, CircleUser, CircleCheck, CircleX, ArrowRight, ArrowLeft, ChevronDown, CheckCircle2, XCircle, Clock, BarChart } from "lucide-react";
 import { useUser } from '@/context/UserContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { isAdminLoggedIn } from '@/services/admin/adminService';
 import { VipDuration } from '@/types/admin';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { 
+  ChartContainer, 
+  ChartTooltip, 
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent
+} from "@/components/ui/chart";
+import { 
+  Bar, 
+  BarChart, 
+  Line, 
+  LineChart, 
+  Pie, 
+  PieChart, 
+  ResponsiveContainer, 
+  XAxis, 
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+  Cell
+} from "recharts";
+import { 
+  getTrafficStatistics, 
+  getUserStatistics, 
+  getContentStatistics, 
+  getSystemStatistics 
+} from '@/utils/adminUtils';
 
 // Create form validation schemas
 const botFormSchema = z.object({
@@ -49,6 +76,7 @@ const AdminDashboard = () => {
   const [siteTab, setSiteTab] = useState("general");
   const [reportTab, setReportTab] = useState("reports");
   const [adminTab, setAdminTab] = useState("avatar");
+  const [statsTab, setStatsTab] = useState("traffic");
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertConfig, setAlertConfig] = useState({
     title: "",
@@ -59,6 +87,15 @@ const AdminDashboard = () => {
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<{ id: string, name: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Statistics data
+  const [trafficStats, setTrafficStats] = useState(getTrafficStatistics());
+  const [userStats, setUserStats] = useState(getUserStatistics());
+  const [contentStats, setContentStats] = useState(getContentStatistics());
+  const [systemStats, setSystemStats] = useState(getSystemStatistics());
+  
+  // Statistics chart colors
+  const CHART_COLORS = ['#8B5CF6', '#D946EF', '#F97316', '#0EA5E9', '#10B981', '#EF4444', '#F59E0B', '#6366F1'];
   
   // Get admin functionality
   const {
@@ -175,6 +212,20 @@ const AdminDashboard = () => {
       displayName: user?.nickname || "Admin"
     }
   });
+
+  // Refresh statistics data every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (activeTab === 'statistics') {
+        setTrafficStats(getTrafficStatistics());
+        setUserStats(getUserStatistics());
+        setContentStats(getContentStatistics());
+        setSystemStats(getSystemStatistics());
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [activeTab]);
 
   // Handle logout action
   const handleLogout = () => {
@@ -489,6 +540,18 @@ const AdminDashboard = () => {
     }
   };
 
+  // Format number for display
+  const formatNumber = (num: number): string => {
+    return num.toLocaleString();
+  };
+
+  // Calculate percentage change
+  const getPercentChange = (): string => {
+    // Random percentage change for demo
+    const change = (Math.random() * 20 - 10).toFixed(1);
+    return change.startsWith('-') ? change + '%' : '+' + change + '%';
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Navigation */}
@@ -524,6 +587,15 @@ const AdminDashboard = () => {
             >
               <FileText className="mr-2 h-5 w-5" />
               Report & Feedback
+            </Button>
+            
+            <Button 
+              variant={activeTab === "statistics" ? "secondary" : "ghost"} 
+              className="w-full justify-start" 
+              onClick={() => setActiveTab("statistics")}
+            >
+              <BarChart className="mr-2 h-5 w-5" />
+              Statistics
             </Button>
             
             <Button 
@@ -753,1054 +825,4 @@ const AdminDashboard = () => {
                                       <FormItem>
                                         <FormLabel>Name</FormLabel>
                                         <FormControl>
-                                          <Input placeholder="Bot name" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                  
-                                  <FormField
-                                    control={botForm.control}
-                                    name="age"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Age</FormLabel>
-                                        <FormControl>
-                                          <Input 
-                                            type="number" 
-                                            {...field} 
-                                            min={18} 
-                                            max={70} 
-                                            onChange={e => field.onChange(parseInt(e.target.value))}
-                                          />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                  
-                                  <FormField
-                                    control={botForm.control}
-                                    name="gender"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Gender</FormLabel>
-                                        <Select 
-                                          onValueChange={field.onChange} 
-                                          defaultValue={field.value}
-                                        >
-                                          <FormControl>
-                                            <SelectTrigger>
-                                              <SelectValue placeholder="Select gender" />
-                                            </SelectTrigger>
-                                          </FormControl>
-                                          <SelectContent>
-                                            <SelectItem value="male">Male</SelectItem>
-                                            <SelectItem value="female">Female</SelectItem>
-                                            <SelectItem value="other">Other</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                  
-                                  <FormField
-                                    control={botForm.control}
-                                    name="country"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Country</FormLabel>
-                                        <Select 
-                                          onValueChange={field.onChange} 
-                                          defaultValue={field.value}
-                                        >
-                                          <FormControl>
-                                            <SelectTrigger>
-                                              <SelectValue placeholder="Select country" />
-                                            </SelectTrigger>
-                                          </FormControl>
-                                          <SelectContent>
-                                            <SelectItem value="United States">United States</SelectItem>
-                                            <SelectItem value="United Kingdom">United Kingdom</SelectItem>
-                                            <SelectItem value="Canada">Canada</SelectItem>
-                                            <SelectItem value="Australia">Australia</SelectItem>
-                                            <SelectItem value="Japan">Japan</SelectItem>
-                                            <SelectItem value="Brazil">Brazil</SelectItem>
-                                            <SelectItem value="Mexico">Mexico</SelectItem>
-                                            <SelectItem value="India">India</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                  
-                                  <FormField
-                                    control={botForm.control}
-                                    name="interests"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Interests (comma separated)</FormLabel>
-                                        <FormControl>
-                                          <Input placeholder="Music, Travel, Sports..." {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                  
-                                  <Button type="submit" disabled={isProcessing}>Create Bot</Button>
-                                </form>
-                              </Form>
-                            </div>
-                            
-                            <div>
-                              <h3 className="text-lg font-medium mb-4">Bot List</h3>
-                              <div className="space-y-4">
-                                {bots.length === 0 ? (
-                                  <p>No bots available. Create your first bot!</p>
-                                ) : (
-                                  bots.map((bot) => (
-                                    <Card key={bot.id} className="p-4">
-                                      <div className="flex justify-between items-start">
-                                        <div>
-                                          <h4 className="font-medium">{bot.name}</h4>
-                                          <p className="text-sm text-gray-500">
-                                            {bot.age} years • {bot.gender} • {bot.country}
-                                          </p>
-                                          <div className="mt-2">
-                                            <p className="text-sm">Interests: {bot.interests.join(", ")}</p>
-                                          </div>
-                                        </div>
-                                        <div className="flex space-x-2">
-                                          <Button variant="outline" size="sm">
-                                            <Edit className="h-4 w-4" />
-                                          </Button>
-                                          <Button 
-                                            variant="outline" 
-                                            size="sm" 
-                                            className="text-red-500" 
-                                            onClick={() => handleDeleteBot(bot.id, bot.name)}
-                                            disabled={isProcessing}
-                                          >
-                                            <Trash2 className="h-4 w-4" />
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    </Card>
-                                  ))
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                    
-                    {/* Banned Users */}
-                    <TabsContent value="banned-users">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Banned IPs/Users</CardTitle>
-                          <CardDescription>Manage banned users and IP addresses</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          {bannedUsers.length === 0 ? (
-                            <p className="text-center py-4">No banned users or IPs found</p>
-                          ) : (
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Identifier</TableHead>
-                                  <TableHead>Reason</TableHead>
-                                  <TableHead>Duration</TableHead>
-                                  <TableHead>Action</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {bannedUsers.map((banned) => (
-                                  <TableRow key={banned.id}>
-                                    <TableCell>{banned.identifier}</TableCell>
-                                    <TableCell>{banned.reason}</TableCell>
-                                    <TableCell>{banned.duration}</TableCell>
-                                    <TableCell>
-                                      <Button 
-                                        variant="outline" 
-                                        size="sm" 
-                                        onClick={() => handleUnbanUser(banned.id, banned.identifier)}
-                                        disabled={isProcessing}
-                                      >
-                                        Unban
-                                      </Button>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              )}
-              
-              {/* Site Management Content */}
-              {activeTab === "site-management" && (
-                <div>
-                  <div className="mb-6">
-                    <h2 className="text-3xl font-bold">Site Management</h2>
-                  </div>
-                  
-                  <Tabs value={siteTab} onValueChange={setSiteTab} className="w-full">
-                    <TabsList className="mb-4">
-                      <TabsTrigger value="general">General</TabsTrigger>
-                      <TabsTrigger value="chat-settings">Chat Settings</TabsTrigger>
-                      <TabsTrigger value="profanity">Profanity Words</TabsTrigger>
-                      <TabsTrigger value="vip-prices">VIP Prices</TabsTrigger>
-                      <TabsTrigger value="avatars">Avatars</TabsTrigger>
-                    </TabsList>
-                    
-                    {/* General Settings */}
-                    <TabsContent value="general">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>General Settings</CardTitle>
-                          <CardDescription>Configure general site settings</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <Form {...generalForm}>
-                            <form onSubmit={generalForm.handleSubmit(handleSaveGeneral)} className="space-y-6">
-                              <div className="space-y-4">
-                                <h3 className="text-lg font-medium">Google AdSense Links</h3>
-                                
-                                <FormField
-                                  control={generalForm.control}
-                                  name="adUnit1"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Ad Unit 1 Link</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder="https://adservice.google.com/..." {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                
-                                <FormField
-                                  control={generalForm.control}
-                                  name="adUnit2"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Ad Unit 2 Link</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder="https://adservice.google.com/..." {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                
-                                <FormField
-                                  control={generalForm.control}
-                                  name="adUnit3"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Ad Unit 3 Link</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder="https://adservice.google.com/..." {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                              
-                              <div className="space-y-4">
-                                <h3 className="text-lg font-medium">Maintenance Mode</h3>
-                                
-                                <FormField
-                                  control={generalForm.control}
-                                  name="maintenanceMode"
-                                  render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                                      <div className="space-y-0.5">
-                                        <FormLabel className="text-base">
-                                          Maintenance Mode
-                                        </FormLabel>
-                                        <FormDescription>
-                                          When enabled, the site will be in maintenance mode and only administrators can access it.
-                                        </FormDescription>
-                                      </div>
-                                      <FormControl>
-                                        <Switch
-                                          checked={field.value}
-                                          onCheckedChange={field.onChange}
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                              
-                              <Button type="submit">Save Settings</Button>
-                            </form>
-                          </Form>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                    
-                    {/* Chat Settings */}
-                    <TabsContent value="chat-settings">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Chat Settings</CardTitle>
-                          <CardDescription>Configure chat-related settings</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <Form {...chatSettingsForm}>
-                            <form onSubmit={chatSettingsForm.handleSubmit(handleSaveChatSettings)} className="space-y-6">
-                              <FormField
-                                control={chatSettingsForm.control}
-                                name="maxImageUpload"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Max Image Upload Count (Standard Users)</FormLabel>
-                                    <FormControl>
-                                      <Input type="number" {...field} min={1} max={50} />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Maximum number of images standard users can upload per day.
-                                    </FormDescription>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <Button type="submit">Save Settings</Button>
-                            </form>
-                          </Form>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                    
-                    {/* Profanity Words */}
-                    <TabsContent value="profanity">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Profanity Words List</CardTitle>
-                          <CardDescription>Manage blocked words in nicknames and chat</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <Form {...profanityForm}>
-                            <form onSubmit={profanityForm.handleSubmit(handleSaveProfanity)} className="space-y-6">
-                              <FormField
-                                control={profanityForm.control}
-                                name="nicknameProfanity"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Nickname Profanity</FormLabel>
-                                    <FormControl>
-                                      <Textarea 
-                                        placeholder="Enter words separated by commas..." 
-                                        {...field} 
-                                        className="min-h-[100px]"
-                                      />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Words to be blocked in user nicknames (comma separated).
-                                    </FormDescription>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <FormField
-                                control={profanityForm.control}
-                                name="chatProfanity"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Chat Profanity</FormLabel>
-                                    <FormControl>
-                                      <Textarea 
-                                        placeholder="Enter words separated by commas..." 
-                                        {...field} 
-                                        className="min-h-[100px]"
-                                      />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Words to be blocked in chat messages (comma separated).
-                                    </FormDescription>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <Button type="submit">Save Settings</Button>
-                            </form>
-                          </Form>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                    
-                    {/* VIP Prices */}
-                    <TabsContent value="vip-prices">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>VIP Prices</CardTitle>
-                          <CardDescription>Configure VIP subscription plan prices</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <Form {...vipPricesForm}>
-                            <form onSubmit={vipPricesForm.handleSubmit(handleSaveVIPPrices)} className="space-y-6">
-                              <FormField
-                                control={vipPricesForm.control}
-                                name="plan1Price"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Plan 1 Price ($)</FormLabel>
-                                    <FormControl>
-                                      <Input type="number" step="0.01" {...field} />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Monthly subscription price.
-                                    </FormDescription>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <FormField
-                                control={vipPricesForm.control}
-                                name="plan2Price"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Plan 2 Price ($)</FormLabel>
-                                    <FormControl>
-                                      <Input type="number" step="0.01" {...field} />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Semi-annual subscription price.
-                                    </FormDescription>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <FormField
-                                control={vipPricesForm.control}
-                                name="plan3Price"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Plan 3 Price ($)</FormLabel>
-                                    <FormControl>
-                                      <Input type="number" step="0.01" {...field} />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Annual subscription price.
-                                    </FormDescription>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <Button type="submit">Save Prices</Button>
-                            </form>
-                          </Form>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                    
-                    {/* Avatars */}
-                    <TabsContent value="avatars">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Avatars</CardTitle>
-                          <CardDescription>Manage user avatars</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-8">
-                            <div className="space-y-4">
-                              <h3 className="text-lg font-medium">VIP Avatars</h3>
-                              
-                              <div className="space-y-4">
-                                <h4 className="font-medium">Male</h4>
-                                <div className="p-4 border rounded-lg">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="flex items-center justify-center p-4 border rounded-lg border-dashed">
-                                      <div className="text-center">
-                                        <Button variant="outline" className="mb-2">
-                                          <Plus className="mr-2 h-4 w-4" />
-                                          Upload Avatar
-                                        </Button>
-                                        <p className="text-sm text-gray-500">
-                                          Upload new male VIP avatars
-                                        </p>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="flex items-center space-x-2 p-4 border rounded-lg">
-                                      <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">👨</div>
-                                      <div className="h-12 w-12 rounded-full bg-gray-300 flex items-center justify-center">👨🏼</div>
-                                      <div className="h-12 w-12 rounded-full bg-gray-400 flex items-center justify-center">👨🏾</div>
-                                      <Button variant="outline" size="sm" className="ml-2">
-                                        Manage
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                <h4 className="font-medium">Female</h4>
-                                <div className="p-4 border rounded-lg">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="flex items-center justify-center p-4 border rounded-lg border-dashed">
-                                      <div className="text-center">
-                                        <Button variant="outline" className="mb-2">
-                                          <Plus className="mr-2 h-4 w-4" />
-                                          Upload Avatar
-                                        </Button>
-                                        <p className="text-sm text-gray-500">
-                                          Upload new female VIP avatars
-                                        </p>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="flex items-center space-x-2 p-4 border rounded-lg">
-                                      <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">👩</div>
-                                      <div className="h-12 w-12 rounded-full bg-gray-300 flex items-center justify-center">👩🏻</div>
-                                      <div className="h-12 w-12 rounded-full bg-gray-400 flex items-center justify-center">👩🏽</div>
-                                      <Button variant="outline" size="sm" className="ml-2">
-                                        Manage
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-4">
-                              <h3 className="text-lg font-medium">Standard Avatars</h3>
-                              
-                              <div className="space-y-4">
-                                <h4 className="font-medium">Male</h4>
-                                <div className="p-4 border rounded-lg">
-                                  <div className="flex items-center">
-                                    <div className="mr-4">
-                                      <div className="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center text-2xl">
-                                        👨
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <p className="mb-2">Default male avatar</p>
-                                      <Button variant="outline" size="sm">
-                                        Change Default
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                <h4 className="font-medium">Female</h4>
-                                <div className="p-4 border rounded-lg">
-                                  <div className="flex items-center">
-                                    <div className="mr-4">
-                                      <div className="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center text-2xl">
-                                        👩
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <p className="mb-2">Default female avatar</p>
-                                      <Button variant="outline" size="sm">
-                                        Change Default
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <Button>Save Avatar Settings</Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              )}
-              
-              {/* Report & Feedback Content */}
-              {activeTab === "report-feedback" && (
-                <div>
-                  <div className="mb-6">
-                    <h2 className="text-3xl font-bold">Report & Feedback</h2>
-                  </div>
-                  
-                  <Tabs value={reportTab} onValueChange={setReportTab} className="w-full">
-                    <TabsList className="mb-4">
-                      <TabsTrigger value="reports">Reports</TabsTrigger>
-                      <TabsTrigger value="feedback">Feedback</TabsTrigger>
-                    </TabsList>
-                    
-                    {/* Reports */}
-                    <TabsContent value="reports">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>User Reports</CardTitle>
-                          <CardDescription>Review reports submitted by users</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          {reports.length === 0 ? (
-                            <p className="text-center py-4">No reports available at this time</p>
-                          ) : (
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>User ID</TableHead>
-                                  <TableHead>Report Content</TableHead>
-                                  <TableHead>Submitted</TableHead>
-                                  <TableHead>Expires In</TableHead>
-                                  <TableHead>Status</TableHead>
-                                  <TableHead>Actions</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {reports.map((report) => (
-                                  <TableRow key={report.id}>
-                                    <TableCell>{report.userId}</TableCell>
-                                    <TableCell className="max-w-xs truncate">{report.content}</TableCell>
-                                    <TableCell>{new Date(report.timestamp).toLocaleString()}</TableCell>
-                                    <TableCell>
-                                      <div className="flex items-center">
-                                        <Clock className="h-4 w-4 mr-1 text-yellow-500" />
-                                        {formatExpiryDate(report.expiresAt)}
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>
-                                      {report.resolved ? (
-                                        <span className="flex items-center text-green-500">
-                                          <CheckCircle2 className="h-4 w-4 mr-1" />
-                                          Resolved
-                                        </span>
-                                      ) : (
-                                        <span className="flex items-center text-yellow-500">
-                                          <Clock className="h-4 w-4 mr-1" />
-                                          Pending
-                                        </span>
-                                      )}
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className="flex space-x-2">
-                                        {!report.resolved && (
-                                          <Button 
-                                            variant="outline" 
-                                            size="sm"
-                                            onClick={() => handleResolveReportFeedback(report.id, "report")}
-                                            disabled={isProcessing}
-                                          >
-                                            <CheckCircle2 className="h-4 w-4 mr-1" />
-                                            Resolve
-                                          </Button>
-                                        )}
-                                        <Button 
-                                          variant="outline" 
-                                          size="sm" 
-                                          onClick={() => handleDeleteReportFeedback(report.id, "report")}
-                                          disabled={isProcessing}
-                                        >
-                                          <XCircle className="h-4 w-4 mr-1" />
-                                          Delete
-                                        </Button>
-                                      </div>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                    
-                    {/* Feedback */}
-                    <TabsContent value="feedback">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>User Feedback</CardTitle>
-                          <CardDescription>Review feedback submitted by users</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          {feedback.length === 0 ? (
-                            <p className="text-center py-4">No feedback available at this time</p>
-                          ) : (
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>User ID</TableHead>
-                                  <TableHead>Feedback Content</TableHead>
-                                  <TableHead>Submitted</TableHead>
-                                  <TableHead>Expires In</TableHead>
-                                  <TableHead>Status</TableHead>
-                                  <TableHead>Actions</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {feedback.map((item) => (
-                                  <TableRow key={item.id}>
-                                    <TableCell>{item.userId}</TableCell>
-                                    <TableCell className="max-w-xs truncate">{item.content}</TableCell>
-                                    <TableCell>{new Date(item.timestamp).toLocaleString()}</TableCell>
-                                    <TableCell>
-                                      <div className="flex items-center">
-                                        <Clock className="h-4 w-4 mr-1 text-yellow-500" />
-                                        {formatExpiryDate(item.expiresAt)}
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>
-                                      {item.resolved ? (
-                                        <span className="flex items-center text-green-500">
-                                          <CheckCircle2 className="h-4 w-4 mr-1" />
-                                          Resolved
-                                        </span>
-                                      ) : (
-                                        <span className="flex items-center text-yellow-500">
-                                          <Clock className="h-4 w-4 mr-1" />
-                                          Pending
-                                        </span>
-                                      )}
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className="flex space-x-2">
-                                        {!item.resolved && (
-                                          <Button 
-                                            variant="outline" 
-                                            size="sm"
-                                            onClick={() => handleResolveReportFeedback(item.id, "feedback")}
-                                            disabled={isProcessing}
-                                          >
-                                            <CheckCircle2 className="h-4 w-4 mr-1" />
-                                            Resolve
-                                          </Button>
-                                        )}
-                                        <Button 
-                                          variant="outline" 
-                                          size="sm" 
-                                          onClick={() => handleDeleteReportFeedback(item.id, "feedback")}
-                                          disabled={isProcessing}
-                                        >
-                                          <XCircle className="h-4 w-4 mr-1" />
-                                          Delete
-                                        </Button>
-                                      </div>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              )}
-              
-              {/* Admin Settings Content */}
-              {activeTab === "admin-settings" && (
-                <div>
-                  <div className="mb-6">
-                    <h2 className="text-3xl font-bold">Admin Settings</h2>
-                  </div>
-                  
-                  <Tabs value={adminTab} onValueChange={setAdminTab} className="w-full">
-                    <TabsList className="mb-4">
-                      <TabsTrigger value="avatar">Admin Avatar</TabsTrigger>
-                      <TabsTrigger value="password">Change Password</TabsTrigger>
-                      <TabsTrigger value="display-name">Display Name</TabsTrigger>
-                    </TabsList>
-                    
-                    {/* Admin Avatar */}
-                    <TabsContent value="avatar">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Admin Avatar</CardTitle>
-                          <CardDescription>Update your profile avatar</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex items-center space-x-4">
-                            <div className="h-24 w-24 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-2xl">
-                              👨‍💼
-                            </div>
-                            <div className="space-y-2">
-                              <h4 className="font-medium">Current Avatar</h4>
-                              <Button variant="outline">
-                                <Plus className="mr-2 h-4 w-4" />
-                                Upload New Avatar
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                    
-                    {/* Change Password */}
-                    <TabsContent value="password">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Change Password</CardTitle>
-                          <CardDescription>Update your admin account password</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <Form {...adminSettingsForm}>
-                            <form onSubmit={adminSettingsForm.handleSubmit(handleSaveAdminSettings)} className="space-y-4">
-                              <FormField
-                                control={adminSettingsForm.control}
-                                name="currentPassword"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Current Password</FormLabel>
-                                    <FormControl>
-                                      <Input type="password" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <FormField
-                                control={adminSettingsForm.control}
-                                name="newPassword"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>New Password</FormLabel>
-                                    <FormControl>
-                                      <Input type="password" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <FormField
-                                control={adminSettingsForm.control}
-                                name="confirmPassword"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Confirm New Password</FormLabel>
-                                    <FormControl>
-                                      <Input type="password" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <Button type="submit">Update Password</Button>
-                            </form>
-                          </Form>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                    
-                    {/* Display Name */}
-                    <TabsContent value="display-name">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Display Name</CardTitle>
-                          <CardDescription>Update your display name for the chat interface</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <Form {...adminSettingsForm}>
-                            <form onSubmit={adminSettingsForm.handleSubmit(handleSaveAdminSettings)} className="space-y-4">
-                              <FormField
-                                control={adminSettingsForm.control}
-                                name="displayName"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Display Name</FormLabel>
-                                    <FormControl>
-                                      <Input {...field} />
-                                    </FormControl>
-                                    <FormDescription>
-                                      This name will be displayed in the chat when you send messages.
-                                    </FormDescription>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <Button type="submit">Update Display Name</Button>
-                            </form>
-                          </Form>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-      
-      {/* Alert Dialog */}
-      <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{alertConfig.title}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {alertConfig.description}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => {
-                alertConfig.action();
-                setAlertOpen(false);
-              }}
-              disabled={isProcessing}
-            >
-              Confirm
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      {/* Ban User Dialog */}
-      <AlertDialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Ban User</AlertDialogTitle>
-            <AlertDialogDescription>
-              {selectedUser && `Enter ban details for ${selectedUser.name}`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          
-          <Form {...banForm}>
-            <form onSubmit={banForm.handleSubmit(submitBanUser)} className="space-y-4 py-4">
-              <FormField
-                control={banForm.control}
-                name="reason"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Reason</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Why are you banning this user?" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={banForm.control}
-                name="duration"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Duration</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select ban duration" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="1 Day">1 Day</SelectItem>
-                        <SelectItem value="3 Days">3 Days</SelectItem>
-                        <SelectItem value="7 Days">7 Days</SelectItem>
-                        <SelectItem value="30 Days">30 Days</SelectItem>
-                        <SelectItem value="Permanent">Permanent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="flex justify-end space-x-2 pt-4">
-                <AlertDialogCancel
-                  onClick={() => {
-                    banForm.reset();
-                    setSelectedUser(null);
-                  }}
-                  disabled={isProcessing}
-                >
-                  Cancel
-                </AlertDialogCancel>
-                <Button type="submit" variant="destructive" disabled={isProcessing}>
-                  Ban User
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      {/* Upgrade to VIP Dialog */}
-      <AlertDialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Upgrade to VIP</AlertDialogTitle>
-            <AlertDialogDescription>
-              {selectedUser && `Select VIP subscription duration for ${selectedUser.name}`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          
-          <Form {...upgradeForm}>
-            <form onSubmit={upgradeForm.handleSubmit(submitUpgradeToVIP)} className="space-y-4 py-4">
-              <FormField
-                control={upgradeForm.control}
-                name="duration"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Subscription Duration</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select subscription duration" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="1 Day">1 Day</SelectItem>
-                        <SelectItem value="1 Week">1 Week</SelectItem>
-                        <SelectItem value="1 Month">1 Month</SelectItem>
-                        <SelectItem value="1 Year">1 Year</SelectItem>
-                        <SelectItem value="Lifetime">Lifetime</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="flex justify-end space-x-2 pt-4">
-                <AlertDialogCancel
-                  onClick={() => {
-                    upgradeForm.reset();
-                    setSelectedUser(null);
-                  }}
-                  disabled={isProcessing}
-                >
-                  Cancel
-                </AlertDialogCancel>
-                <Button type="submit" variant="default" disabled={isProcessing}>
-                  Upgrade User
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-};
-
-export default AdminDashboard;
+                                          <Input
