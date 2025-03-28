@@ -1,10 +1,10 @@
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useUser } from '@/context/UserContext';
 import * as adminService from '@/services/admin/adminService';
 import { Bot } from '@/types/chat';
 import { BanRecord, AdminAction, ReportFeedback, VipDuration } from '@/types/admin';
 import { useToast } from '@/hooks/use-toast';
+import { debouncedAdminAction } from '@/utils/adminUtils';
 
 export const useAdmin = () => {
   const { user, isVip } = useUser();
@@ -19,11 +19,9 @@ export const useAdmin = () => {
   // Computed properties
   const isAdmin = user?.isAdmin === true;
   
-  // VIP users who are online (we'll simulate this with vip=true in bot profiles)
-  const vipUsers = bots.filter(bot => bot.vip);
-  
-  // Standard users who are online (vip=false in bot profiles)
-  const standardUsers = bots.filter(bot => !bot.vip);
+  // Memoized derived data to prevent unnecessary recalculations
+  const vipUsers = useMemo(() => bots.filter(bot => bot.vip), [bots]);
+  const standardUsers = useMemo(() => bots.filter(bot => !bot.vip), [bots]);
   
   // Load data
   useEffect(() => {
@@ -32,20 +30,37 @@ export const useAdmin = () => {
     const loadAdminData = async () => {
       try {
         setLoading(true);
+        console.time('adminDataLoad');
+        
         // Initialize the admin service
         adminService.initializeAdminService();
         
-        // Get data
-        const loadedBots = adminService.getAllBots();
-        const loadedBanned = adminService.getBannedUsers();
-        const loadedActions = adminService.getAdminActions();
-        const loadedReportsFeedback = adminService.getReportsAndFeedback();
+        // Load data in pieces to avoid long-running operations
+        const loadDataSequentially = async () => {
+          // Get data
+          const loadedBots = adminService.getAllBots();
+          setBots(loadedBots);
+          
+          // Use setTimeout to give the UI thread a chance to breathe
+          setTimeout(() => {
+            const loadedBanned = adminService.getBannedUsers();
+            setBannedUsers(loadedBanned);
+            
+            setTimeout(() => {
+              const loadedActions = adminService.getAdminActions();
+              setAdminActions(loadedActions);
+              
+              setTimeout(() => {
+                const loadedReportsFeedback = adminService.getReportsAndFeedback();
+                setReportsFeedback(loadedReportsFeedback);
+                setLoading(false);
+                console.timeEnd('adminDataLoad');
+              }, 0);
+            }, 0);
+          }, 0);
+        };
         
-        // Update state
-        setBots(loadedBots);
-        setBannedUsers(loadedBanned);
-        setAdminActions(loadedActions);
-        setReportsFeedback(loadedReportsFeedback);
+        loadDataSequentially();
       } catch (error) {
         console.error('Error loading admin data:', error);
         toast({
@@ -53,7 +68,6 @@ export const useAdmin = () => {
           description: 'Failed to load admin data',
           variant: 'destructive',
         });
-      } finally {
         setLoading(false);
       }
     };
@@ -80,13 +94,20 @@ export const useAdmin = () => {
     try {
       setIsProcessing(true);
       
-      const newBot = adminService.createBot(bot);
-      setBots(prev => [...prev, newBot]);
-      
-      toast({
-        title: 'Success',
-        description: `Bot ${newBot.name} created successfully`,
+      // Execute the potentially blocking operation in a debounced manner
+      let newBot: Bot | null = null;
+      await debouncedAdminAction(async () => {
+        newBot = adminService.createBot(bot);
       });
+      
+      if (newBot) {
+        setBots(prev => [...prev, newBot!]);
+        
+        toast({
+          title: 'Success',
+          description: `Bot ${newBot.name} created successfully`,
+        });
+      }
       
       return newBot;
     } catch (error) {
@@ -108,12 +129,25 @@ export const useAdmin = () => {
     try {
       setIsProcessing(true);
       
-      const updatedBot = adminService.updateBot(id, updates);
-      if (!updatedBot) return false;
-      
+      // Optimistic update
       setBots(prev => prev.map(bot => 
         bot.id === id ? { ...bot, ...updates } : bot
       ));
+      
+      // Execute the potentially blocking operation in a debounced manner
+      let updatedBot: Bot | null = null;
+      await debouncedAdminAction(async () => {
+        updatedBot = adminService.updateBot(id, updates);
+      });
+      
+      if (!updatedBot) {
+        // Revert on failure
+        setBots(prev => {
+          const original = adminService.getAllBots().find(b => b.id === id);
+          return prev.map(bot => bot.id === id && original ? original : bot);
+        });
+        return false;
+      }
       
       toast({
         title: 'Success',
@@ -128,6 +162,13 @@ export const useAdmin = () => {
         description: 'Failed to update bot',
         variant: 'destructive',
       });
+      
+      // Revert on error
+      setBots(prev => {
+        const original = adminService.getAllBots().find(b => b.id === id);
+        return prev.map(bot => bot.id === id && original ? original : bot);
+      });
+      
       return false;
     } finally {
       setIsProcessing(false);
@@ -140,13 +181,31 @@ export const useAdmin = () => {
     try {
       setIsProcessing(true);
       
-      const success = adminService.deleteBot(id);
+      // Optimistic update - store the bot for potential rollback
+      const botToDelete = bots.find(bot => bot.id === id);
+      setBots(prev => prev.filter(bot => bot.id !== id));
+      
+      // Execute the potentially blocking operation in a debounced manner
+      let success = false;
+      await debouncedAdminAction(async () => {
+        success = adminService.deleteBot(id);
+      });
+      
       if (success) {
-        setBots(prev => prev.filter(bot => bot.id !== id));
-        
         toast({
           title: 'Success',
           description: 'Bot deleted successfully',
+        });
+      } else {
+        // Rollback if the operation failed
+        if (botToDelete) {
+          setBots(prev => [...prev, botToDelete]);
+        }
+        
+        toast({
+          title: 'Warning',
+          description: 'Could not delete bot',
+          variant: 'destructive',
         });
       }
       
@@ -162,7 +221,7 @@ export const useAdmin = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [isAdmin, user, toast]);
+  }, [isAdmin, user, toast, bots]);
   
   // User actions
   const kickUser = useCallback(async (userId: string) => {
@@ -172,17 +231,39 @@ export const useAdmin = () => {
     try {
       setIsProcessing(true);
       
-      adminService.kickUser(userId, user.id);
+      // Optimistic update
+      const tempAction: AdminAction = {
+        id: `temp-${Date.now()}`,
+        actionType: 'kick',
+        targetId: userId,
+        targetType: 'user',
+        timestamp: new Date(),
+        adminId: user.id
+      };
       
-      // Refresh actions
-      setAdminActions(adminService.getAdminActions());
+      setAdminActions(prev => [...prev, tempAction]);
       
-      toast({
-        title: 'Success',
-        description: 'User kicked successfully',
+      // Execute the potentially blocking operation in a debounced manner
+      let action: AdminAction | null = null;
+      await debouncedAdminAction(async () => {
+        action = adminService.kickUser(userId, user.id);
       });
       
-      return true;
+      if (action) {
+        // Replace temporary action with the real one
+        setAdminActions(prev => prev.filter(a => a.id !== tempAction.id).concat(action!));
+        
+        toast({
+          title: 'Success',
+          description: 'User kicked successfully',
+        });
+        
+        return true;
+      } else {
+        // Remove temporary action if failed
+        setAdminActions(prev => prev.filter(a => a.id !== tempAction.id));
+        return false;
+      }
     } catch (error) {
       console.error('Error kicking user:', error);
       toast({
@@ -208,24 +289,48 @@ export const useAdmin = () => {
     try {
       setIsProcessing(true);
       
-      const banRecord = adminService.banUser({
+      // Optimistic update for UI
+      const tempBanId = `temp-${Date.now()}`;
+      const tempBan: BanRecord = {
+        id: tempBanId,
         identifier,
         identifierType,
         reason,
         duration,
+        timestamp: new Date(),
         adminId: user.id
+      };
+      
+      setBannedUsers(prev => [...prev, tempBan]);
+      
+      // Execute the potentially blocking operation in a debounced manner
+      let banRecord: BanRecord | null = null;
+      await debouncedAdminAction(async () => {
+        banRecord = adminService.banUser({
+          identifier,
+          identifierType,
+          reason,
+          duration,
+          adminId: user.id
+        });
       });
       
-      // Update state
-      setBannedUsers(prev => [...prev, banRecord]);
-      setAdminActions(adminService.getAdminActions());
-      
-      toast({
-        title: 'Success',
-        description: `User ${identifier} banned successfully`,
-      });
-      
-      return banRecord;
+      if (banRecord) {
+        // Replace temporary ban with the real one
+        setBannedUsers(prev => prev.filter(b => b.id !== tempBanId).concat(banRecord!));
+        setAdminActions(adminService.getAdminActions());
+        
+        toast({
+          title: 'Success',
+          description: `User ${identifier} banned successfully`,
+        });
+        
+        return banRecord;
+      } else {
+        // Remove temporary ban if failed
+        setBannedUsers(prev => prev.filter(b => b.id !== tempBanId));
+        return null;
+      }
     } catch (error) {
       console.error('Error banning user:', error);
       toast({
@@ -246,15 +351,33 @@ export const useAdmin = () => {
     try {
       setIsProcessing(true);
       
-      const success = adminService.unbanUser(id, user.id);
+      // Keep a copy for rollback
+      const banToRemove = bannedUsers.find(ban => ban.id === id);
+      
+      // Optimistic update
+      setBannedUsers(prev => prev.filter(ban => ban.id !== id));
+      
+      // Execute the potentially blocking operation in a debounced manner
+      let success = false;
+      await debouncedAdminAction(async () => {
+        success = adminService.unbanUser(id, user.id);
+      });
+      
       if (success) {
-        // Update state
-        setBannedUsers(prev => prev.filter(ban => ban.id !== id));
         setAdminActions(adminService.getAdminActions());
         
         toast({
           title: 'Success',
           description: 'User unbanned successfully',
+        });
+      } else if (banToRemove) {
+        // Rollback if failed
+        setBannedUsers(prev => [...prev, banToRemove]);
+        
+        toast({
+          title: 'Warning',
+          description: 'Could not unban user',
+          variant: 'destructive',
         });
       }
       
@@ -270,7 +393,7 @@ export const useAdmin = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [isAdmin, user, toast, isProcessing]);
+  }, [isAdmin, user, toast, isProcessing, bannedUsers]);
   
   const upgradeToVIP = useCallback(async (userId: string, duration: VipDuration) => {
     if (!isAdmin || !user) return false;
@@ -279,21 +402,49 @@ export const useAdmin = () => {
     try {
       setIsProcessing(true);
       
-      adminService.upgradeToVIP(userId, user.id, duration);
+      // Optimistic update for UI
+      const tempAction: AdminAction = {
+        id: `temp-${Date.now()}`,
+        actionType: 'upgrade',
+        targetId: userId,
+        targetType: 'user',
+        duration,
+        timestamp: new Date(),
+        adminId: user.id
+      };
       
-      // This is a demo, so we'll update a bot's VIP status if it matches
+      setAdminActions(prev => [...prev, tempAction]);
+      
+      // Update bot's VIP status immediately for better UX
       setBots(prev => prev.map(bot => 
         bot.id === userId ? { ...bot, vip: true } : bot
       ));
       
-      setAdminActions(adminService.getAdminActions());
-      
-      toast({
-        title: 'Success',
-        description: `User upgraded to VIP successfully for ${duration}`,
+      // Execute the potentially blocking operation in a debounced manner
+      let action: AdminAction | null = null;
+      await debouncedAdminAction(async () => {
+        action = adminService.upgradeToVIP(userId, user.id, duration);
       });
       
-      return true;
+      if (action) {
+        // Replace temporary action with the real one
+        setAdminActions(prev => prev.filter(a => a.id !== tempAction.id).concat(action));
+        
+        toast({
+          title: 'Success',
+          description: `User upgraded to VIP successfully for ${duration}`,
+        });
+        
+        return true;
+      } else {
+        // Rollback if failed
+        setAdminActions(prev => prev.filter(a => a.id !== tempAction.id));
+        setBots(prev => prev.map(bot => 
+          bot.id === userId ? { ...bot, vip: false } : bot
+        ));
+        
+        return false;
+      }
     } catch (error) {
       console.error('Error upgrading user:', error);
       toast({
@@ -314,21 +465,48 @@ export const useAdmin = () => {
     try {
       setIsProcessing(true);
       
-      adminService.downgradeToStandard(userId, user.id);
+      // Optimistic update for UI
+      const tempAction: AdminAction = {
+        id: `temp-${Date.now()}`,
+        actionType: 'downgrade',
+        targetId: userId,
+        targetType: 'user',
+        timestamp: new Date(),
+        adminId: user.id
+      };
       
-      // This is a demo, so we'll update a bot's VIP status if it matches
+      setAdminActions(prev => [...prev, tempAction]);
+      
+      // Update bot's VIP status immediately for better UX
       setBots(prev => prev.map(bot => 
         bot.id === userId ? { ...bot, vip: false } : bot
       ));
       
-      setAdminActions(adminService.getAdminActions());
-      
-      toast({
-        title: 'Success',
-        description: 'User downgraded to standard successfully',
+      // Execute the potentially blocking operation in a debounced manner
+      let action: AdminAction | null = null;
+      await debouncedAdminAction(async () => {
+        action = adminService.downgradeToStandard(userId, user.id);
       });
       
-      return true;
+      if (action) {
+        // Replace temporary action with the real one
+        setAdminActions(prev => prev.filter(a => a.id !== tempAction.id).concat(action));
+        
+        toast({
+          title: 'Success',
+          description: 'User downgraded to standard successfully',
+        });
+        
+        return true;
+      } else {
+        // Rollback if failed
+        setAdminActions(prev => prev.filter(a => a.id !== tempAction.id));
+        setBots(prev => prev.map(bot => 
+          bot.id === userId ? { ...bot, vip: true } : bot
+        ));
+        
+        return false;
+      }
     } catch (error) {
       console.error('Error downgrading user:', error);
       toast({
@@ -347,13 +525,37 @@ export const useAdmin = () => {
     if (!user) return null;
     
     try {
-      const report = adminService.addReportOrFeedback('report', userId, content);
-      setReportsFeedback(prev => [...prev, report]);
+      // Optimistic update
+      const tempReport: ReportFeedback = {
+        id: `temp-${Date.now()}`,
+        type: 'report',
+        userId,
+        content,
+        timestamp: new Date(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        resolved: false
+      };
       
-      toast({
-        title: 'Report Submitted',
-        description: 'Your report has been submitted to our admins',
+      setReportsFeedback(prev => [...prev, tempReport]);
+      
+      // Execute the potentially blocking operation in a debounced manner
+      let report: ReportFeedback | null = null;
+      await debouncedAdminAction(async () => {
+        report = adminService.addReportOrFeedback('report', userId, content);
       });
+      
+      if (report) {
+        // Replace temporary report with the real one
+        setReportsFeedback(prev => prev.filter(r => r.id !== tempReport.id).concat(report!));
+        
+        toast({
+          title: 'Report Submitted',
+          description: 'Your report has been submitted to our admins',
+        });
+      } else {
+        // Remove temporary report if failed
+        setReportsFeedback(prev => prev.filter(r => r.id !== tempReport.id));
+      }
       
       return report;
     } catch (error) {
@@ -371,13 +573,37 @@ export const useAdmin = () => {
     if (!user) return null;
     
     try {
-      const feedback = adminService.addReportOrFeedback('feedback', user.id, content);
-      setReportsFeedback(prev => [...prev, feedback]);
+      // Optimistic update
+      const tempFeedback: ReportFeedback = {
+        id: `temp-${Date.now()}`,
+        type: 'feedback',
+        userId: user.id,
+        content,
+        timestamp: new Date(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        resolved: false
+      };
       
-      toast({
-        title: 'Feedback Submitted',
-        description: 'Thank you for your feedback',
+      setReportsFeedback(prev => [...prev, tempFeedback]);
+      
+      // Execute the potentially blocking operation in a debounced manner
+      let feedback: ReportFeedback | null = null;
+      await debouncedAdminAction(async () => {
+        feedback = adminService.addReportOrFeedback('feedback', user.id, content);
       });
+      
+      if (feedback) {
+        // Replace temporary feedback with the real one
+        setReportsFeedback(prev => prev.filter(f => f.id !== tempFeedback.id).concat(feedback!));
+        
+        toast({
+          title: 'Feedback Submitted',
+          description: 'Thank you for your feedback',
+        });
+      } else {
+        // Remove temporary feedback if failed
+        setReportsFeedback(prev => prev.filter(f => f.id !== tempFeedback.id));
+      }
       
       return feedback;
     } catch (error) {
@@ -395,16 +621,27 @@ export const useAdmin = () => {
     if (!isAdmin) return false;
     
     try {
-      const success = adminService.resolveReportOrFeedback(id);
+      // Optimistic update
+      setReportsFeedback(prev => 
+        prev.map(item => item.id === id ? { ...item, resolved: true } : item)
+      );
+      
+      // Execute the potentially blocking operation in a debounced manner
+      let success = false;
+      await debouncedAdminAction(async () => {
+        success = adminService.resolveReportOrFeedback(id);
+      });
+      
       if (success) {
-        setReportsFeedback(prev => 
-          prev.map(item => item.id === id ? { ...item, resolved: true } : item)
-        );
-        
         toast({
           title: 'Success',
           description: 'Item marked as resolved',
         });
+      } else {
+        // Rollback if failed
+        setReportsFeedback(prev => 
+          prev.map(item => item.id === id ? { ...item, resolved: false } : item)
+        );
       }
       
       return success;
@@ -423,13 +660,31 @@ export const useAdmin = () => {
     if (!isAdmin) return false;
     
     try {
-      const success = adminService.deleteReportOrFeedback(id);
+      // Keep a copy for rollback
+      const itemToDelete = reportsFeedback.find(item => item.id === id);
+      
+      // Optimistic update
+      setReportsFeedback(prev => prev.filter(item => item.id !== id));
+      
+      // Execute the potentially blocking operation in a debounced manner
+      let success = false;
+      await debouncedAdminAction(async () => {
+        success = adminService.deleteReportOrFeedback(id);
+      });
+      
       if (success) {
-        setReportsFeedback(prev => prev.filter(item => item.id !== id));
-        
         toast({
           title: 'Success',
           description: 'Item deleted successfully',
+        });
+      } else if (itemToDelete) {
+        // Rollback if failed
+        setReportsFeedback(prev => [...prev, itemToDelete]);
+        
+        toast({
+          title: 'Warning',
+          description: 'Could not delete item',
+          variant: 'destructive',
         });
       }
       
@@ -443,7 +698,7 @@ export const useAdmin = () => {
       });
       return false;
     }
-  }, [isAdmin, toast]);
+  }, [isAdmin, toast, reportsFeedback]);
   
   // Admin logout
   const adminLogout = useCallback(() => {

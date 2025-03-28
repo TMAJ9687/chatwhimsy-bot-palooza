@@ -3,6 +3,7 @@ import { Bot } from '@/types/chat';
 import { botProfiles } from '@/data/botProfiles';
 import { AdminAction, BanRecord, ReportFeedback, VipDuration } from '@/types/admin';
 import { v4 as uuidv4 } from 'uuid';
+import { createStorageBatcher } from '@/utils/adminUtils';
 
 // Local storage keys
 const ADMIN_KEY = 'adminData';
@@ -18,41 +19,58 @@ let actionsCache: AdminAction[] = [];
 let reportFeedbackCache: ReportFeedback[] = [];
 let initialized = false;
 
+// Initialize the storage batcher
+const storageBatcher = createStorageBatcher();
+
 // Initialize by loading data from localStorage or using defaults
 export const initializeAdminService = () => {
   if (initialized) return;
   
+  console.time('adminServiceInit');
+  
   // Try to load bots from localStorage, if not present use botProfiles
-  const storedBots = localStorage.getItem(BOTS_KEY);
-  botsCache = storedBots ? JSON.parse(storedBots) : [...botProfiles];
+  try {
+    const storedBots = localStorage.getItem(BOTS_KEY);
+    botsCache = storedBots ? JSON.parse(storedBots) : [...botProfiles];
   
-  // Load banned users
-  const storedBanned = localStorage.getItem(BANNED_USERS_KEY);
-  bannedCache = storedBanned ? JSON.parse(storedBanned) : [];
+    // Load banned users
+    const storedBanned = localStorage.getItem(BANNED_USERS_KEY);
+    bannedCache = storedBanned ? JSON.parse(storedBanned) : [];
   
-  // Load admin actions
-  const storedActions = localStorage.getItem(ADMIN_ACTIONS_KEY);
-  actionsCache = storedActions ? JSON.parse(storedActions) : [];
+    // Load admin actions
+    const storedActions = localStorage.getItem(ADMIN_ACTIONS_KEY);
+    actionsCache = storedActions ? JSON.parse(storedActions) : [];
   
-  // Load reports and feedback
-  const storedReportFeedback = localStorage.getItem(REPORT_FEEDBACK_KEY);
-  reportFeedbackCache = storedReportFeedback ? JSON.parse(storedReportFeedback) : [];
+    // Load reports and feedback
+    const storedReportFeedback = localStorage.getItem(REPORT_FEEDBACK_KEY);
+    reportFeedbackCache = storedReportFeedback ? JSON.parse(storedReportFeedback) : [];
+  } catch (error) {
+    console.error('Error loading admin data:', error);
+    // Use defaults if parsing fails
+    botsCache = [...botProfiles];
+    bannedCache = [];
+    actionsCache = [];
+    reportFeedbackCache = [];
+  }
   
   // Clean up expired reports and feedback
   cleanupExpiredReportsFeedback();
   
   initialized = true;
-  
-  // Save initialized data back to localStorage
-  saveToLocalStorage();
+  console.timeEnd('adminServiceInit');
 };
 
-// Save all data to localStorage
+// Save data to localStorage using the batcher
 const saveToLocalStorage = () => {
-  localStorage.setItem(BOTS_KEY, JSON.stringify(botsCache));
-  localStorage.setItem(BANNED_USERS_KEY, JSON.stringify(bannedCache));
-  localStorage.setItem(ADMIN_ACTIONS_KEY, JSON.stringify(actionsCache));
-  localStorage.setItem(REPORT_FEEDBACK_KEY, JSON.stringify(reportFeedbackCache));
+  storageBatcher.queueItem(BOTS_KEY, botsCache);
+  storageBatcher.queueItem(BANNED_USERS_KEY, bannedCache);
+  storageBatcher.queueItem(ADMIN_ACTIONS_KEY, actionsCache);
+  storageBatcher.queueItem(REPORT_FEEDBACK_KEY, reportFeedbackCache);
+};
+
+// Force immediate save (for critical operations)
+const forceSave = () => {
+  storageBatcher.flush();
 };
 
 // Bot Management
@@ -123,7 +141,7 @@ export const banUser = (banRecord: Omit<BanRecord, 'id' | 'timestamp'>): BanReco
   bannedCache.push(newBan);
   
   // Log admin action
-  logAdminAction({
+  const action = logAdminAction({
     id: uuidv4(),
     actionType: 'ban',
     targetId: banRecord.identifier,
@@ -182,10 +200,11 @@ export const getAdminActions = (): AdminAction[] => {
   return [...actionsCache];
 };
 
-export const logAdminAction = (action: AdminAction): void => {
+export const logAdminAction = (action: AdminAction): AdminAction => {
   initializeAdminService();
   actionsCache.push(action);
   saveToLocalStorage();
+  return action;
 };
 
 // Helper functions
@@ -289,6 +308,10 @@ export const verifyAdminCredentials = (email: string, password: string): boolean
 
 export const setAdminLoggedIn = (isLoggedIn: boolean): void => {
   localStorage.setItem(ADMIN_KEY, JSON.stringify({ authenticated: isLoggedIn }));
+  if (isLoggedIn) {
+    // Force immediate save for login state
+    forceSave();
+  }
 };
 
 export const isAdminLoggedIn = (): boolean => {
@@ -306,15 +329,17 @@ export const isAdminLoggedIn = (): boolean => {
 export const adminLogout = (): void => {
   // Clear admin session
   localStorage.removeItem(ADMIN_KEY);
+  // Force immediate save
+  forceSave();
 };
 
 // User Management (for Standard/VIP users)
-export const kickUser = (userId: string, adminId: string): void => {
+export const kickUser = (userId: string, adminId: string): AdminAction => {
   // In a real application, this would interact with a backend service
   // to force disconnect a user from the chat
   
   // Log the action
-  logAdminAction({
+  const action = logAdminAction({
     id: uuidv4(),
     actionType: 'kick',
     targetId: userId,
@@ -323,18 +348,18 @@ export const kickUser = (userId: string, adminId: string): void => {
     adminId: adminId
   });
   
-  saveToLocalStorage();
+  return action;
 };
 
 export const upgradeToVIP = (
   userId: string, 
   adminId: string, 
   duration: VipDuration = 'Lifetime'
-): void => {
+): AdminAction => {
   // In a real application, this would update the user's status in a database
   
   // Log the action
-  logAdminAction({
+  const action = logAdminAction({
     id: uuidv4(),
     actionType: 'upgrade',
     targetId: userId,
@@ -344,14 +369,14 @@ export const upgradeToVIP = (
     adminId: adminId
   });
   
-  saveToLocalStorage();
+  return action;
 };
 
-export const downgradeToStandard = (userId: string, adminId: string): void => {
+export const downgradeToStandard = (userId: string, adminId: string): AdminAction => {
   // In a real application, this would update the user's status in a database
   
   // Log the action
-  logAdminAction({
+  const action = logAdminAction({
     id: uuidv4(),
     actionType: 'downgrade',
     targetId: userId,
@@ -360,5 +385,5 @@ export const downgradeToStandard = (userId: string, adminId: string): void => {
     adminId: adminId
   });
   
-  saveToLocalStorage();
+  return action;
 };
