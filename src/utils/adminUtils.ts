@@ -1,6 +1,7 @@
 
 import { VipDuration } from '@/types/admin';
 import { debounce } from './performanceMonitor';
+import { storageWorker } from './storageWorkerManager';
 
 /**
  * Available VIP duration options
@@ -80,67 +81,25 @@ export const formatDate = (date: Date | string | undefined): string => {
 };
 
 /**
- * Batch local storage operations for better performance
+ * Worker-powered storage batcher for better performance
+ * Uses a Web Worker or falls back to optimized main thread operations
  */
 export const createStorageBatcher = () => {
-  let batchQueue: Record<string, any> = {};
-  let isWriteScheduled = false;
-  
-  // Process queue and write to localStorage
-  const processQueue = debounce(() => {
-    if (Object.keys(batchQueue).length === 0) {
-      isWriteScheduled = false;
-      return;
-    }
-    
-    try {
-      // Write each key individually to avoid hitting localStorage size limits
-      for (const [key, value] of Object.entries(batchQueue)) {
-        localStorage.setItem(key, JSON.stringify(value));
-      }
-      console.log('Batch localStorage write completed');
-    } catch (error) {
-      console.error('Failed to write to localStorage:', error);
-    }
-    
-    // Clear the queue
-    batchQueue = {};
-    isWriteScheduled = false;
-  }, 300);
+  // Use the storageWorker singleton for all batched operations
   
   return {
     /**
-     * Schedule an item to be written to localStorage
+     * Schedule an item to be written to localStorage via worker
      */
     queueItem: (key: string, value: any) => {
-      batchQueue[key] = value;
-      
-      if (!isWriteScheduled) {
-        isWriteScheduled = true;
-        processQueue();
-      }
+      storageWorker.queueForBatch(key, value);
     },
     
     /**
      * Force immediate processing of the queue
      */
     flush: () => {
-      // Call the processQueue function immediately instead of trying to use flush
-      if (Object.keys(batchQueue).length > 0) {
-        // Execute the queue processing logic without debouncing
-        try {
-          for (const [key, value] of Object.entries(batchQueue)) {
-            localStorage.setItem(key, JSON.stringify(value));
-          }
-          console.log('Flush: Batch localStorage write completed');
-          
-          // Clear the queue
-          batchQueue = {};
-          isWriteScheduled = false;
-        } catch (error) {
-          console.error('Flush: Failed to write to localStorage:', error);
-        }
-      }
+      return storageWorker.flushBatchQueue();
     }
   };
 };
