@@ -1,22 +1,24 @@
 
-import React, { memo, useEffect, lazy, Suspense } from 'react';
+import React, { memo, useEffect, Suspense } from 'react';
 import { useDialog } from '@/context/DialogContext';
 import { trackEvent } from '@/utils/performanceMonitor';
 
-// Using lazy loading for all dialogs to reduce initial load time
-const ReportDialog = lazy(() => import('./ReportDialog'));
-const BlockUserDialog = lazy(() => import('./BlockUserDialog'));
-const SiteRulesDialog = lazy(() => import('./SiteRulesDialog'));
-const LogoutConfirmationDialog = lazy(() => import('./LogoutConfirmationDialog'));
-const VipLoginDialog = lazy(() => import('./VipLoginDialog'));
-const VipSignupDialog = lazy(() => import('./VipSignupDialog'));
-const VipSubscriptionDialog = lazy(() => import('./VipSubscriptionDialog'));
-const VipPaymentDialog = lazy(() => import('./VipPaymentDialog'));
-const VipConfirmationDialog = lazy(() => import('./VipConfirmationDialog'));
-const AccountDeletionDialog = lazy(() => import('./AccountDeletionDialog'));
-const VipSelectDialog = lazy(() => import('./VipSelectDialog'));
-const ConfirmDialog = lazy(() => import('./ConfirmDialog'));
-const AlertDialogComponent = lazy(() => import('./AlertDialog'));
+// Import SiteRulesDialog normally instead of lazy loading it
+import SiteRulesDialog from './SiteRulesDialog';
+
+// Using lazy loading for all other dialogs to reduce initial load time
+const ReportDialog = React.lazy(() => import('./ReportDialog'));
+const BlockUserDialog = React.lazy(() => import('./BlockUserDialog'));
+const LogoutConfirmationDialog = React.lazy(() => import('./LogoutConfirmationDialog'));
+const VipLoginDialog = React.lazy(() => import('./VipLoginDialog'));
+const VipSignupDialog = React.lazy(() => import('./VipSignupDialog'));
+const VipSubscriptionDialog = React.lazy(() => import('./VipSubscriptionDialog'));
+const VipPaymentDialog = React.lazy(() => import('./VipPaymentDialog'));
+const VipConfirmationDialog = React.lazy(() => import('./VipConfirmationDialog'));
+const AccountDeletionDialog = React.lazy(() => import('./AccountDeletionDialog'));
+const VipSelectDialog = React.lazy(() => import('./VipSelectDialog'));
+const ConfirmDialog = React.lazy(() => import('./ConfirmDialog'));
+const AlertDialogComponent = React.lazy(() => import('./AlertDialog'));
 
 // Loading fallback component - lightweight and minimal
 const DialogFallback = () => (
@@ -31,7 +33,8 @@ const DialogFallback = () => (
 
 /**
  * This component renders the appropriate dialog based on the current dialog state
- * Each dialog component is lazily rendered only when needed
+ * Each dialog component is lazily rendered only when needed, except for SiteRulesDialog
+ * which is imported normally to avoid dynamic import issues
  */
 const DialogContainer = () => {
   const { state } = useDialog();
@@ -47,6 +50,11 @@ const DialogContainer = () => {
     return null;
   }
 
+  // Special case for SiteRulesDialog - render directly without Suspense
+  if (state.type === 'siteRules') {
+    return <SiteRulesDialog />;
+  }
+
   return (
     <Suspense fallback={<DialogFallback />}>
       {(() => {
@@ -56,8 +64,6 @@ const DialogContainer = () => {
             return <ReportDialog />;
           case 'block':
             return <BlockUserDialog />;
-          case 'siteRules':
-            return <SiteRulesDialog />;
           case 'logout':
             return <LogoutConfirmationDialog />;
           case 'vipLogin':

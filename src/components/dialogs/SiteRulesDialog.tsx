@@ -21,45 +21,6 @@ import {
 } from '../ui/alert-dialog';
 import { useDialog } from '@/context/DialogContext';
 import { useUser } from '@/context/UserContext';
-import { useVipFeatures } from '@/hooks/useVipFeatures';
-
-// Memoized content component
-const SiteRulesContent = memo(({ 
-  onAccept, 
-  onDecline 
-}: { 
-  onAccept: () => void; 
-  onDecline: () => void; 
-}) => (
-  <DialogContent className="sm:max-w-md">
-    <DialogHeader>
-      <DialogTitle className="text-center">Site Rules</DialogTitle>
-    </DialogHeader>
-    <div className="space-y-4 mt-2">
-      <div className="text-red-500 font-medium text-center border-b pb-2">
-        Age Restriction: User must be above 18.
-      </div>
-      <ul className="space-y-2 text-sm list-disc pl-5">
-        <li>Be respectful to other users at all times.</li>
-        <li>Do not share personal information.</li>
-        <li>No harassment, hate speech, or bullying.</li>
-        <li>No spamming or flooding the chat with messages.</li>
-        <li>No explicit or adult content.</li>
-        <li>No solicitation or advertising.</li>
-      </ul>
-    </div>
-    <DialogFooter className="sm:justify-center gap-3 mt-4">
-      <Button variant="outline" onClick={onDecline}>
-        Decline
-      </Button>
-      <Button onClick={onAccept}>
-        Accept
-      </Button>
-    </DialogFooter>
-  </DialogContent>
-));
-
-SiteRulesContent.displayName = 'SiteRulesContent';
 
 // Memoized warning dialog content
 const WarningContent = memo(({ 
@@ -132,10 +93,32 @@ const SiteRulesDialog = () => {
   return (
     <>
       <Dialog open={isRulesOpen} onOpenChange={() => {}}>
-        <SiteRulesContent 
-          onAccept={handleAccept} 
-          onDecline={handleDecline} 
-        />
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">Site Rules</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="text-red-500 font-medium text-center border-b pb-2">
+              Age Restriction: User must be above 18.
+            </div>
+            <ul className="space-y-2 text-sm list-disc pl-5">
+              <li>Be respectful to other users at all times.</li>
+              <li>Do not share personal information.</li>
+              <li>No harassment, hate speech, or bullying.</li>
+              <li>No spamming or flooding the chat with messages.</li>
+              <li>No explicit or adult content.</li>
+              <li>No solicitation or advertising.</li>
+            </ul>
+          </div>
+          <DialogFooter className="sm:justify-center gap-3 mt-4">
+            <Button variant="outline" onClick={handleDecline}>
+              Decline
+            </Button>
+            <Button onClick={handleAccept}>
+              Accept
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       <AlertDialog open={showWarning} onOpenChange={setShowWarning}>

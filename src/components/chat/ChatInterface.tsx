@@ -185,14 +185,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   React.useEffect(() => {
     // Only show the dialog if rules haven't been accepted yet and user is not VIP
     if (!rulesAccepted && !isVip) {
+      // Use a longer delay to ensure all components are properly loaded
       const timer = setTimeout(() => {
+        // Make sure component is still mounted before showing dialog
         openDialog('siteRules', { 
           onAccept: () => {
             // Mark rules as accepted when user clicks Accept
             setRulesAccepted(true);
           } 
         });
-      }, 3000);
+      }, 5000); // Increased from 3000 to 5000 to allow more loading time
       
       return () => clearTimeout(timer);
     }
