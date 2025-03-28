@@ -17,19 +17,8 @@ export const useLogout = () => {
     try {
       console.log('Starting logout process...');
       
-      // Add logout flag to prevent automatic relogin
-      localStorage.setItem('logoutInProgress', 'true');
-      
-      // Store user type in localStorage for redirect after logout
-      if (user) {
-        try {
-          localStorage.setItem('chatUser', JSON.stringify({
-            isVip: isVip
-          }));
-        } catch (e) {
-          console.error('Error storing user type:', e);
-        }
-      }
+      // Set logout event to trigger listeners and prevent automatic relogin
+      localStorage.setItem('logoutEvent', Date.now().toString());
       
       // First clear all DOM state and fix any potential issues
       document.body.style.overflow = 'auto';
@@ -49,6 +38,10 @@ export const useLogout = () => {
       } catch (e) {
         // Ignore any DOM errors during cleanup
       }
+      
+      // Clear storage systematically
+      localStorage.removeItem('chatUser');
+      localStorage.removeItem('vipProfileComplete');
       
       // If user is admin, perform admin logout
       if (isAdmin) {
@@ -74,8 +67,9 @@ export const useLogout = () => {
           }
         }
         
-        // For standard users, we let the calling code handle navigation
-        // This ensures the logout dialog can properly close first
+        // Force a hard redirect based on user type
+        const destination = isVip ? '/' : '/feedback';
+        window.location.href = destination;
         console.log(`Standard user logout complete. isVip=${isVip}`);
       }
     } catch (error) {

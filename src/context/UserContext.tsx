@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect, useRef } from 'react';
 import { UserProfile, UserContextType, SubscriptionTier } from '@/types/user';
 import { useVipSubscription } from '@/hooks/useVipSubscription';
@@ -13,9 +12,12 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Enhanced profile loading from localStorage
   useEffect(() => {
-    // Check if logout is in progress and return if it is
-    if(localStorage.getItem('logoutInProgress')) {
-      localStorage.removeItem('logoutInProgress');
+    // Check if logout event is present and handle accordingly
+    if(localStorage.getItem('logoutEvent')) {
+      console.log('Logout event detected, skipping user loading');
+      localStorage.removeItem('logoutEvent');
+      localStorage.removeItem('chatUser');
+      localStorage.removeItem('vipProfileComplete');
       return;
     }
     
@@ -62,6 +64,21 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     };
   }, [user]);
+
+  // Add a global storage event listener for logout coordination
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === 'logoutEvent') {
+        console.log('Logout event received from another tab/window');
+        clearUser();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
 
   // Memoized profile completion check
   const isProfileComplete = useMemo(() => 
@@ -144,9 +161,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Reset profile completion status
     profileSyncedRef.current = false;
     
-    // Only remove specific localStorage items to avoid conflicts with logout flow
-    // We don't want to clear 'chatUser' here as it's used for redirection after logout
+    // Clear all user-related local storage
     localStorage.removeItem('vipProfileComplete');
+    sessionStorage.clear();
   }, []);
 
   const { subscribeToVip, cancelVipSubscription } = useVipSubscription(updateUserProfile);

@@ -55,38 +55,23 @@ const LogoutConfirmationDialog = () => {
     if (isNavigatingRef.current || !isMountedRef.current) return;
     isNavigatingRef.current = true;
     
-    // Close the dialog first with a slight delay
+    // Close the dialog immediately for visual feedback
     handleSafeClose();
     
-    // Add a small delay to allow dialog to start closing animation
-    setTimeout(async () => {
-      if (!isMountedRef.current) return;
+    try {
+      // Perform logout without delays
+      await performLogout();
       
-      try {
-        // Use our centralized logout function
-        await performLogout();
-        
-        // Add these 3 lines to clear user-specific data
-        localStorage.removeItem('chatUser');
-        localStorage.removeItem('vipProfileComplete');
-        sessionStorage.clear();
-        
-        console.log('Redirecting after logout');
-        
-        // Force a full page reload to clear any lingering state
-        // This happens last, after all cleanup is done
-        const destination = isVip ? '/' : '/feedback';
-        window.location.href = destination;
-      } catch (error) {
-        console.error('Failed during logout confirmation:', error);
-        
-        // If all else fails, try a direct reload
-        if (isMountedRef.current) {
-          window.location.reload();
-        }
+      // No need for further actions as performLogout now handles all cleanup and redirection
+    } catch (error) {
+      console.error('Failed during logout confirmation:', error);
+      
+      // If all else fails, try a direct reload
+      if (isMountedRef.current) {
+        window.location.reload();
       }
-    }, 150); // Slight delay to allow dialog to start closing
-  }, [handleSafeClose, performLogout, isVip]);
+    }
+  }, [handleSafeClose, performLogout]);
 
   const getFeedbackMessage = () => {
     if (isAdmin) {

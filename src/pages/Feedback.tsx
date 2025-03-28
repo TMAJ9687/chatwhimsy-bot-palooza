@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -16,15 +15,19 @@ const Feedback = () => {
   const [feedback, setFeedback] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Add this useEffect at the top of the Feedback component
+  // Enhanced cleanup on component mount
   useEffect(() => {
-    // Clear any residual user data
-    if(localStorage.getItem('chatUser')) {
-      localStorage.removeItem('chatUser');
-      localStorage.removeItem('vipProfileComplete');
-      window.location.reload();
+    // Ensure final cleanup of all auth-related storage
+    localStorage.removeItem('logoutEvent');
+    localStorage.removeItem('chatUser');
+    localStorage.removeItem('vipProfileComplete');
+    sessionStorage.clear();
+    
+    // If we somehow still have a user in context, log it
+    if (user) {
+      console.log('User data still present in Feedback page, cleaning up');
     }
-  }, []);
+  }, [user]);
   
   const handleRatingChange = (newRating: number) => {
     setRating(newRating);

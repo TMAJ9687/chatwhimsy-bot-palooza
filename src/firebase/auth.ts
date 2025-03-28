@@ -1,4 +1,3 @@
-
 import { 
   signInWithEmailAndPassword, 
   signOut, 
@@ -36,6 +35,9 @@ export const signOutUser = async (): Promise<void> => {
   try {
     console.log('Firebase signOut started');
     
+    // Set logout event to enable cross-tab coordination
+    localStorage.setItem('logoutEvent', Date.now().toString());
+    
     // Clean up any UI elements that might cause issues during navigation
     try {
       if (document.body) {
@@ -70,8 +72,10 @@ export const signOutUser = async (): Promise<void> => {
       // Ignore any DOM errors during cleanup
     }
     
-    // Set logout flag before Firebase signout
-    localStorage.setItem('logoutInProgress', 'true');
+    // Systematic data cleanup before Firebase signout
+    localStorage.removeItem('chatUser');
+    localStorage.removeItem('vipProfileComplete');
+    sessionStorage.clear();
     
     // Now perform the actual signOut operation
     await signOut(auth);
