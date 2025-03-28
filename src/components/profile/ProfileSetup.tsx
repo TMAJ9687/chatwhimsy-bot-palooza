@@ -1,8 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
-import { Check, ArrowRight, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
+import { ArrowRight, ArrowLeft } from 'lucide-react';
 import Button from '../shared/Button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { useNavigate } from 'react-router-dom';
+import GenderSelector from './GenderSelector';
+import AgeSelector from './AgeSelector';
+import InterestsSelector from './InterestsSelector';
+import AdPlaceholder from './AdPlaceholder';
 
 interface ProfileSetupProps {
   nickname: string;
@@ -23,12 +27,6 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
   const [interests, setInterests] = useState<string[]>([]);
   const [ageOptions, setAgeOptions] = useState<number[]>([]);
   const [isInterestsOpen, setIsInterestsOpen] = useState<boolean>(false);
-
-  const popularInterests = [
-    'Music', 'Movies', 'Travel', 'Sports', 'Gaming',
-    'Photography', 'Cooking', 'Art', 'Reading', 'Technology',
-    'Fashion', 'Fitness', 'Nature', 'Science', 'Animals'
-  ];
 
   useEffect(() => {
     const options = [];
@@ -65,16 +63,6 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
     detectCountry();
   }, []);
 
-  const handleInterestClick = (interest: string) => {
-    if (interests.includes(interest)) {
-      setInterests(interests.filter(i => i !== interest));
-    } else {
-      if (interests.length < 2) {
-        setInterests([...interests, interest]);
-      }
-    }
-  };
-
   const handleSubmit = () => {
     if (gender && age && country) {
       onComplete({
@@ -109,50 +97,8 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
       </div>
 
       <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-2">Gender</label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setGender('male')}
-              className={`
-                p-3 rounded-lg text-center transition-all duration-300
-                ${gender === 'male' 
-                  ? 'bg-blue-500 text-white shadow-sm' 
-                  : 'bg-card border border-border hover:border-blue-500/50'}
-              `}
-            >
-              Male
-            </button>
-            <button
-              type="button"
-              onClick={() => setGender('female')}
-              className={`
-                p-3 rounded-lg text-center transition-all duration-300
-                ${gender === 'female' 
-                  ? 'bg-pink-500 text-white shadow-sm' 
-                  : 'bg-card border border-border hover:border-pink-500/50'}
-              `}
-            >
-              Female
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">Age</label>
-          <select
-            value={age}
-            onChange={(e) => setAge(parseInt(e.target.value))}
-            className="w-full bg-card border border-border rounded-lg p-3 text-foreground"
-          >
-            {ageOptions.map((option) => (
-              <option key={option} value={option}>
-                {option} years
-              </option>
-            ))}
-          </select>
-        </div>
+        <GenderSelector gender={gender} setGender={setGender} />
+        <AgeSelector age={age} setAge={setAge} ageOptions={ageOptions} />
 
         <Button
           variant="primary"
@@ -166,47 +112,14 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
           Start Chatting
         </Button>
 
-        <Collapsible
-          open={isInterestsOpen}
-          onOpenChange={setIsInterestsOpen}
-          className="border border-border rounded-lg p-3 mt-3"
-        >
-          <CollapsibleTrigger className="flex w-full items-center justify-between text-sm font-medium">
-            <span>Interests (optional)</span>
-            {isInterestsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-3">
-            <div className="flex flex-wrap gap-2 mb-3">
-              {popularInterests.map((interest) => (
-                <button
-                  key={interest}
-                  onClick={() => handleInterestClick(interest)}
-                  className={`
-                    text-sm px-3 py-1.5 rounded-full transition-all duration-300
-                    ${interests.includes(interest)
-                      ? 'bg-primary/90 text-white'
-                      : 'bg-card border border-border hover:border-primary/50'}
-                    ${interests.length >= 2 && !interests.includes(interest) ? 'opacity-50 cursor-not-allowed' : ''}
-                  `}
-                  disabled={interests.length >= 2 && !interests.includes(interest)}
-                >
-                  {interest}
-                </button>
-              ))}
-            </div>
-            {interests.length === 2 && (
-              <p className="text-xs text-muted-foreground">
-                Standard users can select up to 2 interests. Upgrade to VIP for more!
-              </p>
-            )}
-          </CollapsibleContent>
-        </Collapsible>
+        <InterestsSelector 
+          interests={interests}
+          setInterests={setInterests}
+          isOpen={isInterestsOpen}
+          setIsOpen={setIsInterestsOpen}
+        />
 
-        <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="h-16 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
-            Google AdSense Placeholder
-          </div>
-        </div>
+        <AdPlaceholder />
       </div>
     </div>
   );
