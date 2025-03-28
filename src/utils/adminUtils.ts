@@ -1,4 +1,3 @@
-
 import { VipDuration } from '@/types/admin';
 import { debounce } from './performanceMonitor';
 
@@ -87,7 +86,7 @@ export const createStorageBatcher = () => {
   let isWriteScheduled = false;
   
   // Process queue and write to localStorage
-  const processQueue = debounce(() => {
+  const processQueueFn = () => {
     if (Object.keys(batchQueue).length === 0) {
       isWriteScheduled = false;
       return;
@@ -106,7 +105,10 @@ export const createStorageBatcher = () => {
     // Clear the queue
     batchQueue = {};
     isWriteScheduled = false;
-  }, 300);
+  };
+  
+  // Create a debounced version of the processQueue function
+  const processQueue = debounce(processQueueFn, 300);
   
   return {
     /**
@@ -125,7 +127,8 @@ export const createStorageBatcher = () => {
      * Force immediate processing of the queue
      */
     flush: () => {
-      processQueue.flush();
+      // Call the original function directly to bypass debounce
+      processQueueFn();
     }
   };
 };
