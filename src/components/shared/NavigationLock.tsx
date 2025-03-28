@@ -21,8 +21,8 @@ const NavigationLock: React.FC = () => {
     // Set navigation in progress
     navigationInProgressRef.current = true;
     
-    // Throttle cleanup to avoid race conditions
-    queueMicrotask(() => {
+    // Use requestAnimationFrame for smoother cleanup timing
+    requestAnimationFrame(() => {
       // First cleanup round
       cleanupUI();
       
@@ -68,7 +68,7 @@ const NavigationLock: React.FC = () => {
     
     return () => {
       // Final cleanup when unmounting
-      queueMicrotask(() => {
+      requestAnimationFrame(() => {
         cleanupUI();
       });
     };

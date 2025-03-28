@@ -1,5 +1,5 @@
 
-import React, { useRef, memo } from 'react';
+import React, { useRef, memo, useLayoutEffect } from 'react';
 import { Message } from '@/types/chat';
 import { useUser } from '@/context/UserContext';
 import MessageList from './MessageList';
@@ -25,6 +25,33 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   // Only show status and typing indicators for VIP users
   const shouldShowStatus = isVip && showStatus;
   const shouldShowTyping = isVip && showTyping;
+
+  // Use useLayoutEffect to ensure DOM operations are performed synchronously
+  // before the browser paints, helping prevent race conditions
+  useLayoutEffect(() => {
+    // Make sure the container exists
+    if (!containerRef.current) return;
+    
+    // Find any potential problematic elements
+    const problematicElements = containerRef.current.querySelectorAll(
+      '.fixed.inset-0, [data-radix-dialog-overlay], [data-radix-alert-dialog-overlay]'
+    );
+    
+    // Safely remove them if found
+    if (problematicElements.length > 0) {
+      console.log(`[ChatMessages] Found ${problematicElements.length} problematic elements, removing...`);
+      
+      problematicElements.forEach(element => {
+        try {
+          if (element.parentNode) {
+            element.parentNode.removeChild(element);
+          }
+        } catch (error) {
+          console.warn('[ChatMessages] Error removing problematic element:', error);
+        }
+      });
+    }
+  }, [messages]); // Re-run when messages change
 
   return (
     <div 

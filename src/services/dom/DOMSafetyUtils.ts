@@ -10,21 +10,29 @@ export class DOMSafetyUtils {
     if (!element) return false;
     
     try {
-      // Remove from registry
+      // Remove from registry first
       elementsRegistry.delete(element);
       
       // Only attempt removal if the element has a parent
       if (element.parentNode) {
+        // Check if element is still in the DOM
+        if (!document.contains(element)) {
+          console.log('[DOMSafetyUtils] Element is no longer in the DOM');
+          return false;
+        }
+        
         // Double-check that the element is actually a child of its parent
         const parentChildNodes = Array.from(element.parentNode.childNodes);
         const isRealChild = parentChildNodes.includes(element);
         
         if (isRealChild) {
-          // Cast element to ChildNode to satisfy TypeScript
+          // Remove the element
           element.parentNode.removeChild(element as ChildNode);
           return true;
         } else {
-          console.warn('[DOMSafetyUtils] Element is not a real child of its parent node');
+          // If the element is not a real child, don't try to remove it
+          console.warn('[DOMSafetyUtils] Element is not a child of its parent node');
+          return false;
         }
       }
     } catch (e) {
