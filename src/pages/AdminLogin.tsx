@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Lock, Mail, ShieldAlert } from "lucide-react";
 import PasswordResetDialog from '@/components/dialogs/PasswordResetDialog';
 import { useUser } from '@/context/UserContext';
-import { isAdminLoggedIn } from '@/services/admin/adminService';
 import { trackAsyncOperation } from '@/utils/performanceMonitor';
 import { signInWithEmail, isUserAdmin, getCurrentUser } from '@/firebase/auth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -28,29 +28,19 @@ const AdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [loginError, setLoginError] = useState('');
-  const [adminCheckComplete, setAdminCheckComplete] = useState(false);
+  const [showLoginForm, setShowLoginForm] = useState(true);
   const redirectInProgressRef = React.useRef(false);
   
-  // Check if already logged in as admin but prevent immediate redirect
+  // Initialize and clear any stale admin data
   useEffect(() => {
-    console.log('Checking admin login state in AdminLogin component...');
-    console.log('Current path:', location.pathname);
+    console.log('Cleaning up admin session data on Admin Login page');
+    // Always clear admin data when viewing the login page to prevent auto-login
+    localStorage.removeItem('adminData');
+    localStorage.removeItem('adminEmail');
     
-    if (redirectInProgressRef.current) {
-      console.log('Redirect already in progress, skipping check');
-      return;
-    }
-    
-    // Remove any stale admin data to ensure we start fresh
-    if (location.pathname === '/secretadminportal') {
-      localStorage.removeItem('adminData');
-      localStorage.removeItem('adminEmail');
-    }
-    
-    // Always set adminCheckComplete to true to show the login form
-    setAdminCheckComplete(true);
-    
-  }, [location.pathname]);
+    // Show the login form
+    setShowLoginForm(true);
+  }, []);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,8 +121,10 @@ const AdminLogin = () => {
           description: "Welcome to the admin dashboard",
         });
         
+        // Mark that redirect is in progress to prevent double-redirects
+        redirectInProgressRef.current = true;
+        
         // Explicitly navigate to admin dashboard after a short delay
-        // to ensure state updates have been processed
         setTimeout(() => {
           navigate('/admin-dashboard');
         }, 100);
@@ -157,20 +149,7 @@ const AdminLogin = () => {
     }
   };
 
-  // Only render the form if admin check is complete and we're still on this page
-  if (!adminCheckComplete) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-900 p-4">
-        <Card className="w-full max-w-md shadow-lg p-8 text-center">
-          <div className="animate-pulse flex flex-col items-center">
-            <ShieldAlert className="h-10 w-10 text-amber-500 mb-4" />
-            <p>Checking authentication...</p>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
+  // Always show the login form now
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-900 p-4">
       <Card className="w-full max-w-md shadow-lg">

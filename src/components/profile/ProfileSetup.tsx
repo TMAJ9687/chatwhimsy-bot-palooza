@@ -65,7 +65,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
 
   const handleSubmit = () => {
     if (gender && age && country) {
-      console.log('Saving profile data and navigating to chat');
+      console.log('Saving profile data');
       // Save profile data
       onComplete({
         gender,
@@ -74,11 +74,8 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
         interests
       });
       
-      // Force navigation to chat with a delay to ensure states are updated
-      setTimeout(() => {
-        console.log('Navigation to /chat triggered');
-        navigate('/chat', { replace: true });
-      }, 50);
+      // FIXED: Removed the navigation from here since onComplete already handles navigation
+      // This was causing double navigation that led to issues
     } else {
       console.log('Profile data invalid, not navigating');
     }

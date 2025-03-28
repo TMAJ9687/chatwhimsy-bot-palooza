@@ -1,3 +1,4 @@
+
 import { Bot } from '@/types/chat';
 import { AdminAction, BanRecord, ReportFeedback, VipDuration } from '@/types/admin';
 import * as firebaseAuth from '@/firebase/auth';
@@ -141,6 +142,12 @@ export const setAdminLoggedIn = (isLoggedIn: boolean): void => {
 
 export const isAdminLoggedIn = (): boolean => {
   console.log('Checking if admin is logged in');
+  
+  // Don't check logged in state on login page to prevent redirect loops
+  if (window.location.pathname === '/secretadminportal') {
+    console.log('On admin login page, returning false to prevent redirect loop');
+    return false;
+  }
   
   // Check Firebase auth state first
   const user = firebaseAuth.getCurrentUser();

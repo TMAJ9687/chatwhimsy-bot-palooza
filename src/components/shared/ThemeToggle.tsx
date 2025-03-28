@@ -49,6 +49,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
           : 'text-gray-700 hover:bg-gray-100'
       } ${className}`}
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      style={{ zIndex: 9999 }} // Ensure it's above other elements
     >
       {isDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
     </button>

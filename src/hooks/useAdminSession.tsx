@@ -24,22 +24,35 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
   const checkAdminAuth = useCallback(() => {
     console.log('Checking admin authentication status...');
     console.log('Current path:', location.pathname);
-    const adminLoggedIn = isAdminLoggedIn();
+    
+    // IMPORTANT: Don't check admin logged in status if on the login page
+    // to prevent immediate redirects
+    const adminLoggedIn = location.pathname === '/secretadminportal' 
+      ? false 
+      : isAdminLoggedIn();
+      
     console.log('Admin logged in (service):', adminLoggedIn);
     console.log('Admin logged in (context):', Boolean(user?.isAdmin));
     
     setIsAuthenticated(adminLoggedIn || Boolean(user?.isAdmin));
     
-    // Don't redirect if we're on the login page
+    // If on admin login page, don't redirect regardless of auth state
     if (location.pathname === '/secretadminportal') {
       console.log('On admin login page, not redirecting');
       setIsLoading(false);
       return;
     }
     
-    // If logged in and on admin login page, redirect to dashboard
+    // If logged in and on an admin page (but not login), stay there
+    if ((adminLoggedIn || user?.isAdmin) && location.pathname.includes('/admin')) {
+      console.log('Admin is authenticated on admin page, not redirecting');
+      setIsLoading(false);
+      return;
+    }
+    
+    // If logged in as admin and on admin login page, redirect to dashboard
     if ((adminLoggedIn || user?.isAdmin) && location.pathname === '/secretadminportal') {
-      console.log('Admin is authenticated, redirecting to dashboard');
+      console.log('Admin is authenticated on login page, redirecting to dashboard');
       setIsLoading(false);
       navigate('/admin-dashboard');
       return;
@@ -127,6 +140,7 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
           }
           
           // If on admin login page, redirect to dashboard
+          // BUT ONLY if we're already on the login page
           if (location.pathname === '/secretadminportal') {
             console.log('Admin authenticated, redirecting to dashboard');
             navigate('/admin-dashboard');

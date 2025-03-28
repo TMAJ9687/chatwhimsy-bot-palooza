@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Crown, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -11,7 +10,7 @@ import { useDialog } from '@/context/DialogContext';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { updateUserProfile } = useUser();
+  const { updateUserProfile, user } = useUser();
   const { openDialog } = useDialog();
   const [step, setStep] = useState<'nickname' | 'profile'>('nickname');
   const [nickname, setNickname] = useState('');
@@ -69,6 +68,7 @@ const LandingPage: React.FC = () => {
     country: string;
     interests: string[];
   }) => {
+    console.log('Profile setup complete, saving data');
     updateUserProfile({
       gender: profile.gender as any,
       age: profile.age,
@@ -76,7 +76,11 @@ const LandingPage: React.FC = () => {
       interests: profile.interests,
     });
     
-    navigate('/chat');
+    console.log('Navigating to chat from LandingPage');
+    // Use setTimeout to ensure state is updated before navigation
+    setTimeout(() => {
+      navigate('/chat');
+    }, 50);
   };
   
   const generateRandomNickname = () => {
@@ -122,7 +126,6 @@ const LandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-background dark:from-background dark:to-background">
-      {/* Header */}
       <header className="py-6 px-8 flex justify-between items-center">
         <Logo variant="image" />
         <div className="flex items-center gap-4">
@@ -139,9 +142,7 @@ const LandingPage: React.FC = () => {
         </div>
       </header>
 
-      {/* Main content */}
       <main className="flex-1 flex flex-col md:flex-row items-center justify-center px-8 py-6">
-        {/* Left column with animated circles */}
         <div className="w-full md:w-1/2 flex flex-col items-center justify-center text-center md:text-left mb-6 md:mb-0">
           <div className="max-w-lg">
             <div className="flex justify-center md:justify-start space-x-8">
@@ -152,7 +153,6 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right column: Chat card */}
         <div className="w-full md:w-1/2 flex flex-col items-center">
           <div className="bg-card text-card-foreground rounded-3xl shadow-lg p-8 max-w-md w-full mb-6">
             {step === 'nickname' ? (
@@ -217,7 +217,6 @@ const LandingPage: React.FC = () => {
             )}
           </div>
           
-          {/* AdSense Placeholder */}
           <div className="w-full max-w-md p-4 mb-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
             <div className="h-20 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded">
               Google AdSense Placeholder
@@ -226,7 +225,6 @@ const LandingPage: React.FC = () => {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="py-6 px-8 text-center text-sm text-muted-foreground border-t border-border">
         <p>&copy; {new Date().getFullYear()} chatwii. All rights reserved.</p>
       </footer>
