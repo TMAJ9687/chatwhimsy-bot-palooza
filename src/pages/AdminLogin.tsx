@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Lock, Mail } from "lucide-react";
+import { Lock, Mail, ShieldAlert } from "lucide-react";
 import PasswordResetDialog from '@/components/dialogs/PasswordResetDialog';
 import { useUser } from '@/context/UserContext';
 import { isAdminLoggedIn } from '@/services/admin/adminService';
@@ -15,7 +15,7 @@ import { signInWithEmail, isUserAdmin, getCurrentUser } from '@/firebase/auth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 /**
- * Admin Login Page
+ * Admin Login Page accessible through secret path
  * Handles authentication for admin users
  */
 const AdminLogin = () => {
@@ -30,14 +30,18 @@ const AdminLogin = () => {
   
   // Check if already logged in as admin
   useEffect(() => {
+    console.log('Checking admin login state...');
     const checkAdminLogin = async () => {
       // Check both user context and Firebase auth
       const isLoggedIn = (user?.isAdmin === true) || isAdminLoggedIn();
       const firebaseUser = getCurrentUser();
+      console.log('Admin login check:', { contextAdmin: user?.isAdmin, serviceAdmin: isAdminLoggedIn(), firebaseUser: !!firebaseUser });
       
       if (isLoggedIn || (firebaseUser && isUserAdmin(firebaseUser))) {
+        console.log('Admin is already logged in, redirecting to dashboard');
         // If user object doesn't exist but we're logged in through Firebase
         if (!user?.isAdmin && firebaseUser && isUserAdmin(firebaseUser)) {
+          console.log('Creating admin user from Firebase credentials');
           setUser({
             id: firebaseUser.uid || 'admin-user',
             nickname: 'Admin',
@@ -56,6 +60,10 @@ const AdminLogin = () => {
         
         // Navigate to dashboard
         navigate('/admin-dashboard');
+      } else {
+        console.log('No admin session detected, showing login form');
+        // Clear any stale admin data
+        localStorage.removeItem('adminEmail');
       }
     };
     
@@ -66,17 +74,20 @@ const AdminLogin = () => {
     e.preventDefault();
     setIsLoading(true);
     setLoginError('');
+    console.log('Attempting admin login...');
     
     try {
       // Use trackAsyncOperation for better performance insight
       const result = await trackAsyncOperation('admin-login', async () => {
         try {
           // Try to log in with Firebase Auth
+          console.log('Trying Firebase login with:', email);
           const user = await signInWithEmail(email, password);
           console.log('Firebase login successful:', user);
           
           // Check if the user is an admin
           const admin = isUserAdmin(user);
+          console.log('User admin status:', admin);
           
           if (!admin) {
             setLoginError('Account does not have admin privileges');
@@ -110,6 +121,7 @@ const AdminLogin = () => {
       });
       
       if (result) {
+        console.log('Admin login successful, setting up session');
         // Save admin email for session persistence
         localStorage.setItem('adminEmail', email);
         
@@ -136,6 +148,7 @@ const AdminLogin = () => {
         
         navigate('/admin-dashboard');
       } else {
+        console.log('Admin login failed');
         toast({
           title: "Login failed",
           description: "Invalid email or password",
@@ -159,7 +172,10 @@ const AdminLogin = () => {
     <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-900 p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Admin Access</CardTitle>
+          <div className="flex items-center justify-center mb-2">
+            <ShieldAlert className="h-10 w-10 text-amber-500 mr-2" />
+          </div>
+          <CardTitle className="text-2xl font-bold text-center">Secure Admin Access</CardTitle>
           <CardDescription className="text-center">
             Enter your credentials to access the admin dashboard
           </CardDescription>
@@ -215,7 +231,7 @@ const AdminLogin = () => {
             )}
             
             <div className="text-sm text-muted-foreground p-2 border border-amber-300 rounded bg-amber-50 dark:bg-amber-900/20">
-              <p>You can also use demo credentials:</p>
+              <p>You can use demo credentials:</p>
               <p><strong>Email:</strong> admin@example.com</p>
               <p><strong>Password:</strong> admin123</p>
             </div>

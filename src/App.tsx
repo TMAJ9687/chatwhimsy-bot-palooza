@@ -198,6 +198,19 @@ const App = () => {
     }
   }, [hasLoggedOut]);
 
+  // Listen for logout events from other tabs
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'logoutEvent') {
+        console.log('Detected logout from another tab');
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -219,9 +232,12 @@ const App = () => {
                   <Route path="/vip-payment" element={<VipPayment />} />
                   <Route path="/vip-confirmation" element={<VipConfirmation />} />
                   <Route path="/feedback" element={<Feedback />} />
-                  {/* Admin routes */}
-                  <Route path="/admin" element={<AdminLogin />} />
+                  {/* Admin routes - Add the secret path and remove the old ones */}
+                  <Route path="/secretadminportal" element={<AdminLogin />} />
                   <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                  {/* Redirect old admin route to 404 */}
+                  <Route path="/admin" element={<NotFound />} />
+                  <Route path="/admin-login" element={<NotFound />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
                 <DialogContainer />

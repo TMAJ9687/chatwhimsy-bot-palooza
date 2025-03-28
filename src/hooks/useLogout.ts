@@ -42,6 +42,7 @@ export const useLogout = () => {
       // Clear storage systematically
       localStorage.removeItem('chatUser');
       localStorage.removeItem('vipProfileComplete');
+      localStorage.removeItem('adminEmail'); // Also clear admin email
       
       // If user is admin, perform admin logout
       if (isAdmin) {
@@ -51,7 +52,7 @@ export const useLogout = () => {
         clearUser();
         
         // Use window.location for a full page reload to avoid DOM state issues
-        window.location.href = '/admin-login';
+        window.location.href = '/secretadminportal';
         console.log('Admin logged out successfully');
       } else {
         console.log('Standard user logout flow initiated');

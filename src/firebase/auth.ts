@@ -1,3 +1,4 @@
+
 import { 
   signInWithEmailAndPassword, 
   signOut, 
@@ -11,7 +12,9 @@ import { auth } from './config';
 // Sign in with email and password
 export const signInWithEmail = async (email: string, password: string): Promise<FirebaseUser> => {
   try {
+    console.log('Attempting Firebase sign in:', email);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    console.log('Firebase sign in successful');
     return userCredential.user;
   } catch (error: any) {
     console.error("Firebase signIn error:", error.code, error.message);
@@ -75,6 +78,7 @@ export const signOutUser = async (): Promise<void> => {
     // Systematic data cleanup before Firebase signout
     localStorage.removeItem('chatUser');
     localStorage.removeItem('vipProfileComplete');
+    localStorage.removeItem('adminEmail'); // Also clear admin email
     sessionStorage.clear();
     
     // Now perform the actual signOut operation
@@ -98,7 +102,9 @@ export const isUserAdmin = (user: FirebaseUser | null): boolean => {
   
   // For demo purposes, consider these emails as admin
   const adminEmails = ['admin@example.com', 'your-email@example.com', 'user@example.com'];
-  return adminEmails.includes(user.email || '');
+  const isAdmin = adminEmails.includes(user.email || '');
+  console.log('Admin check for', user.email, ':', isAdmin);
+  return isAdmin;
 };
 
 // Listen to auth state changes
@@ -109,6 +115,7 @@ export const onAuthStateChange = (callback: (user: FirebaseUser | null) => void)
 // For demo purposes - this simulates verifying admin credentials
 export const verifyAdminCredentials = async (email: string, password: string): Promise<boolean> => {
   try {
+    console.log('Verifying admin credentials');
     // This will throw if credentials are invalid
     await signInWithEmail(email, password);
     
@@ -121,6 +128,7 @@ export const verifyAdminCredentials = async (email: string, password: string): P
     
     // For demo - allow a hardcoded admin login
     if (email === 'admin@example.com' && password === 'admin123') {
+      console.log('Using hardcoded admin credentials');
       return true;
     }
     
