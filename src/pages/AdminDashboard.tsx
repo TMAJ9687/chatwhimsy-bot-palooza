@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -825,4 +826,1456 @@ const AdminDashboard = () => {
                                       <FormItem>
                                         <FormLabel>Name</FormLabel>
                                         <FormControl>
-                                          <Input
+                                          <Input placeholder="Bot name" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <FormField
+                                    control={botForm.control}
+                                    name="age"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Age</FormLabel>
+                                        <FormControl>
+                                          <Input 
+                                            type="number" 
+                                            placeholder="Age" 
+                                            min={18} 
+                                            max={70} 
+                                            {...field}
+                                            onChange={e => field.onChange(Number(e.target.value))}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <FormField
+                                    control={botForm.control}
+                                    name="gender"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Gender</FormLabel>
+                                        <Select 
+                                          value={field.value} 
+                                          onValueChange={field.onChange}
+                                        >
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Select gender" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            <SelectItem value="male">Male</SelectItem>
+                                            <SelectItem value="female">Female</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <FormField
+                                    control={botForm.control}
+                                    name="country"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Country</FormLabel>
+                                        <Select 
+                                          value={field.value} 
+                                          onValueChange={field.onChange}
+                                        >
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Select country" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            <SelectItem value="United States">United States</SelectItem>
+                                            <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                                            <SelectItem value="Canada">Canada</SelectItem>
+                                            <SelectItem value="Australia">Australia</SelectItem>
+                                            <SelectItem value="Germany">Germany</SelectItem>
+                                            <SelectItem value="France">France</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <FormField
+                                    control={botForm.control}
+                                    name="interests"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Interests</FormLabel>
+                                        <FormControl>
+                                          <Textarea
+                                            placeholder="Comma separated interests"
+                                            className="resize-none"
+                                            {...field}
+                                          />
+                                        </FormControl>
+                                        <FormDescription>
+                                          Enter comma-separated list of interests
+                                        </FormDescription>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <Button type="submit" disabled={isProcessing}>
+                                    <Plus className="mr-2 h-4 w-4" /> Create Bot
+                                  </Button>
+                                </form>
+                              </Form>
+                            </div>
+                            
+                            <div>
+                              <h3 className="text-lg font-medium mb-4">Existing Bots</h3>
+                              {bots.length === 0 ? (
+                                <p className="text-center py-4">No bots found</p>
+                              ) : (
+                                <div className="space-y-4">
+                                  {bots.map(bot => (
+                                    <Card key={bot.id} className="overflow-hidden">
+                                      <div className="flex justify-between items-start p-4">
+                                        <div>
+                                          <h4 className="font-medium">
+                                            {bot.name} {bot.vip && <span className="text-xs bg-purple-100 text-purple-700 py-0.5 px-2 rounded ml-2">VIP</span>}
+                                          </h4>
+                                          <p className="text-sm text-muted-foreground">
+                                            {bot.age}, {bot.gender}, {bot.country}
+                                          </p>
+                                          <p className="text-sm mt-1">
+                                            Interests: {bot.interests.join(', ')}
+                                          </p>
+                                        </div>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          onClick={() => handleDeleteBot(bot.id, bot.name)}
+                                          disabled={isProcessing}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </Card>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                    
+                    {/* Banned Users */}
+                    <TabsContent value="banned-users">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Banned Users & IPs</CardTitle>
+                          <CardDescription>Manage banned users and IP addresses</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {bannedUsers.length === 0 ? (
+                            <p className="text-center py-4">No banned users or IPs found</p>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Identifier</TableHead>
+                                  <TableHead>Type</TableHead>
+                                  <TableHead>Reason</TableHead>
+                                  <TableHead>Duration</TableHead>
+                                  <TableHead>Actions</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {bannedUsers.map((ban) => (
+                                  <TableRow key={ban.id}>
+                                    <TableCell>{ban.identifier}</TableCell>
+                                    <TableCell>
+                                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                        ban.identifierType === 'user' 
+                                          ? 'bg-blue-100 text-blue-700' 
+                                          : 'bg-red-100 text-red-700'
+                                      }`}>
+                                        {ban.identifierType === 'user' ? 'User' : 'IP Address'}
+                                      </span>
+                                    </TableCell>
+                                    <TableCell>{ban.reason}</TableCell>
+                                    <TableCell>{ban.duration}</TableCell>
+                                    <TableCell>
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={() => handleUnbanUser(ban.id, ban.identifier)}
+                                        disabled={isProcessing}
+                                      >
+                                        <ShieldOff className="mr-2 h-4 w-4" />
+                                        Unban
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              )}
+              
+              {/* Site Management Content */}
+              {activeTab === "site-management" && (
+                <div>
+                  <div className="mb-6">
+                    <h2 className="text-3xl font-bold">Site Management</h2>
+                  </div>
+                  
+                  <Tabs value={siteTab} onValueChange={setSiteTab} className="w-full">
+                    <TabsList className="mb-4">
+                      <TabsTrigger value="general">General</TabsTrigger>
+                      <TabsTrigger value="chat">Chat</TabsTrigger>
+                      <TabsTrigger value="profanity">Profanity Filter</TabsTrigger>
+                      <TabsTrigger value="vip-prices">VIP Prices</TabsTrigger>
+                    </TabsList>
+                    
+                    {/* General Settings */}
+                    <TabsContent value="general">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>General Settings</CardTitle>
+                          <CardDescription>Configure general site settings</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Form {...generalForm}>
+                            <form onSubmit={generalForm.handleSubmit(handleSaveGeneral)} className="space-y-4">
+                              <FormField
+                                control={generalForm.control}
+                                name="adUnit1"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Ad Unit 1</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Ad Unit 1 URL" {...field} />
+                                    </FormControl>
+                                    <FormDescription>
+                                      URL for the first ad unit
+                                    </FormDescription>
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={generalForm.control}
+                                name="adUnit2"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Ad Unit 2</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Ad Unit 2 URL" {...field} />
+                                    </FormControl>
+                                    <FormDescription>
+                                      URL for the second ad unit
+                                    </FormDescription>
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={generalForm.control}
+                                name="adUnit3"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Ad Unit 3</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Ad Unit 3 URL" {...field} />
+                                    </FormControl>
+                                    <FormDescription>
+                                      URL for the third ad unit
+                                    </FormDescription>
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={generalForm.control}
+                                name="maintenanceMode"
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                    <div className="space-y-0.5">
+                                      <FormLabel>Maintenance Mode</FormLabel>
+                                      <FormDescription>
+                                        Put the site in maintenance mode
+                                      </FormDescription>
+                                    </div>
+                                    <FormControl>
+                                      <Switch
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <Button type="submit" disabled={isProcessing}>
+                                Save General Settings
+                              </Button>
+                            </form>
+                          </Form>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                    
+                    {/* Chat Settings */}
+                    <TabsContent value="chat">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Chat Settings</CardTitle>
+                          <CardDescription>Configure chat settings</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Form {...chatSettingsForm}>
+                            <form onSubmit={chatSettingsForm.handleSubmit(handleSaveChatSettings)} className="space-y-4">
+                              <FormField
+                                control={chatSettingsForm.control}
+                                name="maxImageUpload"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Max Image Upload</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number" 
+                                        placeholder="Maximum images per user" 
+                                        {...field}
+                                        onChange={e => field.onChange(Number(e.target.value))}
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Maximum number of image uploads per standard user
+                                    </FormDescription>
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <Button type="submit" disabled={isProcessing}>
+                                Save Chat Settings
+                              </Button>
+                            </form>
+                          </Form>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                    
+                    {/* Profanity Filter */}
+                    <TabsContent value="profanity">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Profanity Filter</CardTitle>
+                          <CardDescription>Configure profanity filter</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Form {...profanityForm}>
+                            <form onSubmit={profanityForm.handleSubmit(handleSaveProfanity)} className="space-y-4">
+                              <FormField
+                                control={profanityForm.control}
+                                name="nicknameProfanity"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Nickname Profanity</FormLabel>
+                                    <FormControl>
+                                      <Textarea
+                                        placeholder="Comma separated profanity words for nicknames"
+                                        className="min-h-[100px]"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Comma-separated list of words to block in usernames
+                                    </FormDescription>
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={profanityForm.control}
+                                name="chatProfanity"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Chat Profanity</FormLabel>
+                                    <FormControl>
+                                      <Textarea
+                                        placeholder="Comma separated profanity words for chat"
+                                        className="min-h-[100px]"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Comma-separated list of words to block in chat messages
+                                    </FormDescription>
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <Button type="submit" disabled={isProcessing}>
+                                Save Profanity Filter
+                              </Button>
+                            </form>
+                          </Form>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                    
+                    {/* VIP Prices */}
+                    <TabsContent value="vip-prices">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>VIP Prices</CardTitle>
+                          <CardDescription>Configure VIP subscription prices</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Form {...vipPricesForm}>
+                            <form onSubmit={vipPricesForm.handleSubmit(handleSaveVIPPrices)} className="space-y-4">
+                              <FormField
+                                control={vipPricesForm.control}
+                                name="plan1Price"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Basic Plan Price ($)</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number" 
+                                        step="0.01" 
+                                        placeholder="Price in USD" 
+                                        {...field}
+                                        onChange={e => field.onChange(Number(e.target.value))}
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Monthly price for basic VIP plan
+                                    </FormDescription>
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={vipPricesForm.control}
+                                name="plan2Price"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Premium Plan Price ($)</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number" 
+                                        step="0.01" 
+                                        placeholder="Price in USD" 
+                                        {...field}
+                                        onChange={e => field.onChange(Number(e.target.value))}
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Monthly price for premium VIP plan
+                                    </FormDescription>
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={vipPricesForm.control}
+                                name="plan3Price"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Ultimate Plan Price ($)</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number" 
+                                        step="0.01" 
+                                        placeholder="Price in USD" 
+                                        {...field}
+                                        onChange={e => field.onChange(Number(e.target.value))}
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Monthly price for ultimate VIP plan
+                                    </FormDescription>
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <Button type="submit" disabled={isProcessing}>
+                                Save VIP Prices
+                              </Button>
+                            </form>
+                          </Form>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              )}
+              
+              {/* Report & Feedback Content */}
+              {activeTab === "report-feedback" && (
+                <div>
+                  <div className="mb-6">
+                    <h2 className="text-3xl font-bold">Reports & Feedback</h2>
+                  </div>
+                  
+                  <Tabs value={reportTab} onValueChange={setReportTab} className="w-full">
+                    <TabsList className="mb-4">
+                      <TabsTrigger value="reports">Reports</TabsTrigger>
+                      <TabsTrigger value="feedback">Feedback</TabsTrigger>
+                    </TabsList>
+                    
+                    {/* Reports */}
+                    <TabsContent value="reports">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>User Reports</CardTitle>
+                          <CardDescription>Manage user reports and complaints</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {reports.length === 0 ? (
+                            <p className="text-center py-4">No reports found</p>
+                          ) : (
+                            <div className="space-y-4">
+                              {reports.map(report => (
+                                <Card key={report.id} className="overflow-hidden">
+                                  <div className="p-4">
+                                    <div className="flex justify-between items-start">
+                                      <h4 className="font-medium">
+                                        Report ID: {report.id.substring(0, 8)}
+                                        {report.resolved && (
+                                          <span className="text-xs bg-green-100 text-green-700 py-0.5 px-2 rounded ml-2">
+                                            Resolved
+                                          </span>
+                                        )}
+                                      </h4>
+                                      <div className="flex items-center gap-2">
+                                        {!report.resolved && (
+                                          <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            onClick={() => handleResolveReportFeedback(report.id, 'report')}
+                                            disabled={isProcessing}
+                                          >
+                                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                                            Resolve
+                                          </Button>
+                                        )}
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          onClick={() => handleDeleteReportFeedback(report.id, 'report')}
+                                          disabled={isProcessing}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      User ID: {report.userId}
+                                    </p>
+                                    <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
+                                      <p className="text-sm">{report.content}</p>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                                      <span>Submitted: {new Date(report.timestamp).toLocaleString()}</span>
+                                      <span>Expires: {new Date(report.expiresAt).toLocaleString()}</span>
+                                    </div>
+                                  </div>
+                                </Card>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                    
+                    {/* Feedback */}
+                    <TabsContent value="feedback">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>User Feedback</CardTitle>
+                          <CardDescription>Manage user feedback and suggestions</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {feedback.length === 0 ? (
+                            <p className="text-center py-4">No feedback found</p>
+                          ) : (
+                            <div className="space-y-4">
+                              {feedback.map(item => (
+                                <Card key={item.id} className="overflow-hidden">
+                                  <div className="p-4">
+                                    <div className="flex justify-between items-start">
+                                      <h4 className="font-medium">
+                                        Feedback ID: {item.id.substring(0, 8)}
+                                        {item.resolved && (
+                                          <span className="text-xs bg-green-100 text-green-700 py-0.5 px-2 rounded ml-2">
+                                            Resolved
+                                          </span>
+                                        )}
+                                      </h4>
+                                      <div className="flex items-center gap-2">
+                                        {!item.resolved && (
+                                          <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            onClick={() => handleResolveReportFeedback(item.id, 'feedback')}
+                                            disabled={isProcessing}
+                                          >
+                                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                                            Resolve
+                                          </Button>
+                                        )}
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          onClick={() => handleDeleteReportFeedback(item.id, 'feedback')}
+                                          disabled={isProcessing}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      User ID: {item.userId}
+                                    </p>
+                                    <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
+                                      <p className="text-sm">{item.content}</p>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                                      <span>Submitted: {new Date(item.timestamp).toLocaleString()}</span>
+                                      <span>Expires: {new Date(item.expiresAt).toLocaleString()}</span>
+                                    </div>
+                                  </div>
+                                </Card>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              )}
+              
+              {/* Statistics Content */}
+              {activeTab === "statistics" && (
+                <div>
+                  <div className="mb-6">
+                    <h2 className="text-3xl font-bold">Statistics</h2>
+                  </div>
+                  
+                  <Tabs value={statsTab} onValueChange={setStatsTab} className="w-full">
+                    <TabsList className="mb-4">
+                      <TabsTrigger value="traffic">Traffic</TabsTrigger>
+                      <TabsTrigger value="users">Users</TabsTrigger>
+                      <TabsTrigger value="content">Content</TabsTrigger>
+                      <TabsTrigger value="system">System</TabsTrigger>
+                    </TabsList>
+                    
+                    {/* Traffic Statistics */}
+                    <TabsContent value="traffic">
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Total Visitors
+                            </CardTitle>
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{formatNumber(trafficStats.totalVisitors)}</div>
+                            <p className="text-xs text-muted-foreground">
+                              {getPercentChange()} from last week
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Page Views
+                            </CardTitle>
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{formatNumber(trafficStats.totalPageViews)}</div>
+                            <p className="text-xs text-muted-foreground">
+                              {getPercentChange()} from last week
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Avg. Session Duration
+                            </CardTitle>
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {Math.floor(trafficStats.averageSessionDuration / 60)}m {trafficStats.averageSessionDuration % 60}s
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {getPercentChange()} from last week
+                            </p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      
+                      <div className="grid gap-4 md:grid-cols-2 mt-4">
+                        <Card className="col-span-1">
+                          <CardHeader>
+                            <CardTitle>Daily Traffic</CardTitle>
+                          </CardHeader>
+                          <CardContent className="pt-2">
+                            <div className="h-[300px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={trafficStats.dailyTraffic}>
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="date" />
+                                  <YAxis />
+                                  <Tooltip />
+                                  <Legend />
+                                  <Bar dataKey="visitors" fill={CHART_COLORS[0]} name="Visitors" />
+                                  <Bar dataKey="pageViews" fill={CHART_COLORS[1]} name="Page Views" />
+                                  <Bar dataKey="uniqueVisitors" fill={CHART_COLORS[2]} name="Unique Visitors" />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        <div className="grid gap-4 grid-rows-2">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle>Traffic Sources</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="h-[140px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <PieChart>
+                                    <Pie
+                                      data={trafficStats.trafficSources}
+                                      cx="50%"
+                                      cy="50%"
+                                      innerRadius={30}
+                                      outerRadius={60}
+                                      fill="#8884d8"
+                                      paddingAngle={2}
+                                      dataKey="value"
+                                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                    >
+                                      {trafficStats.trafficSources.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                      ))}
+                                    </Pie>
+                                    <Tooltip />
+                                  </PieChart>
+                                </ResponsiveContainer>
+                              </div>
+                            </CardContent>
+                          </Card>
+                          
+                          <Card>
+                            <CardHeader>
+                              <CardTitle>Visitors by Country</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="h-[140px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <PieChart>
+                                    <Pie
+                                      data={trafficStats.visitorsByCountry}
+                                      cx="50%"
+                                      cy="50%"
+                                      innerRadius={30}
+                                      outerRadius={60}
+                                      fill="#8884d8"
+                                      paddingAngle={2}
+                                      dataKey="value"
+                                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                    >
+                                      {trafficStats.visitorsByCountry.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                      ))}
+                                    </Pie>
+                                    <Tooltip />
+                                  </PieChart>
+                                </ResponsiveContainer>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </div>
+                    </TabsContent>
+                    
+                    {/* User Statistics */}
+                    <TabsContent value="users">
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Standard Users
+                            </CardTitle>
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{formatNumber(userStats.totalStandardUsers)}</div>
+                            <p className="text-xs text-muted-foreground">
+                              {getPercentChange()} from last month
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              VIP Users
+                            </CardTitle>
+                            <Shield className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{formatNumber(userStats.totalVipUsers)}</div>
+                            <p className="text-xs text-muted-foreground">
+                              {getPercentChange()} from last month
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Conversion Rate
+                            </CardTitle>
+                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{userStats.conversionRate}</div>
+                            <p className="text-xs text-muted-foreground">
+                              Standard to VIP conversion
+                            </p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      
+                      <div className="grid gap-4 md:grid-cols-2 mt-4">
+                        <Card className="col-span-1">
+                          <CardHeader>
+                            <CardTitle>User Registrations</CardTitle>
+                          </CardHeader>
+                          <CardContent className="pt-2">
+                            <div className="h-[300px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={userStats.userRegistrations}>
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="date" />
+                                  <YAxis />
+                                  <Tooltip />
+                                  <Legend />
+                                  <Bar dataKey="standard" fill={CHART_COLORS[0]} name="Standard Users" />
+                                  <Bar dataKey="vip" fill={CHART_COLORS[1]} name="VIP Users" />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        <div className="grid gap-4 grid-rows-2">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle>Age Distribution</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="h-[140px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <PieChart>
+                                    <Pie
+                                      data={userStats.userDemographics.age}
+                                      cx="50%"
+                                      cy="50%"
+                                      innerRadius={30}
+                                      outerRadius={60}
+                                      fill="#8884d8"
+                                      paddingAngle={2}
+                                      dataKey="value"
+                                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                    >
+                                      {userStats.userDemographics.age.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                      ))}
+                                    </Pie>
+                                    <Tooltip />
+                                  </PieChart>
+                                </ResponsiveContainer>
+                              </div>
+                            </CardContent>
+                          </Card>
+                          
+                          <Card>
+                            <CardHeader>
+                              <CardTitle>Gender Distribution</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="h-[140px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <PieChart>
+                                    <Pie
+                                      data={userStats.userDemographics.gender}
+                                      cx="50%"
+                                      cy="50%"
+                                      innerRadius={30}
+                                      outerRadius={60}
+                                      fill="#8884d8"
+                                      paddingAngle={2}
+                                      dataKey="value"
+                                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                    >
+                                      {userStats.userDemographics.gender.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                      ))}
+                                    </Pie>
+                                    <Tooltip />
+                                  </PieChart>
+                                </ResponsiveContainer>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </div>
+                      
+                      <Card className="mt-4">
+                        <CardHeader>
+                          <CardTitle>Online Users (24h)</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={userStats.onlineUsers}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="hour" />
+                                <YAxis />
+                                <Tooltip />
+                                <Line type="monotone" dataKey="users" stroke={CHART_COLORS[0]} name="Online Users" />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                    
+                    {/* Content Statistics */}
+                    <TabsContent value="content">
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Total Messages
+                            </CardTitle>
+                            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{formatNumber(contentStats.totalMessages)}</div>
+                            <p className="text-xs text-muted-foreground">
+                              {getPercentChange()} from last week
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Total Uploads
+                            </CardTitle>
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{formatNumber(contentStats.totalUploads)}</div>
+                            <p className="text-xs text-muted-foreground">
+                              {getPercentChange()} from last week
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Avg. Messages Per User
+                            </CardTitle>
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{contentStats.averageMessagesPerUser}</div>
+                            <p className="text-xs text-muted-foreground">
+                              {getPercentChange()} from last week
+                            </p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      
+                      <div className="grid gap-4 md:grid-cols-2 mt-4">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Messages Per Day</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="h-[300px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={contentStats.messagesPerDay}>
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="date" />
+                                  <YAxis />
+                                  <Tooltip />
+                                  <Legend />
+                                  <Bar dataKey="standard" fill={CHART_COLORS[0]} name="Standard Users" />
+                                  <Bar dataKey="vip" fill={CHART_COLORS[1]} name="VIP Users" />
+                                  <Bar dataKey="bot" fill={CHART_COLORS[2]} name="Bots" />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Media Uploads</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="h-[300px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={contentStats.uploadsPerDay}>
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="date" />
+                                  <YAxis />
+                                  <Tooltip />
+                                  <Legend />
+                                  <Bar dataKey="images" fill={CHART_COLORS[3]} name="Images" />
+                                  <Bar dataKey="videos" fill={CHART_COLORS[4]} name="Videos" />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      
+                      <Card className="mt-4">
+                        <CardHeader>
+                          <CardTitle>Top Bot Interactions</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart 
+                                data={contentStats.botInteractions.slice(0, 5)} 
+                                layout="vertical"
+                              >
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis type="number" />
+                                <YAxis dataKey="botName" type="category" width={100} />
+                                <Tooltip />
+                                <Bar dataKey="interactions" fill={CHART_COLORS[0]} name="Interactions" />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                    
+                    {/* System Statistics */}
+                    <TabsContent value="system">
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Server Uptime
+                            </CardTitle>
+                            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{systemStats.uptime} days</div>
+                            <p className="text-xs text-muted-foreground">
+                              Last restart: {new Date(Date.now() - systemStats.uptime * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Total Requests
+                            </CardTitle>
+                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{formatNumber(systemStats.totalRequests)}</div>
+                            <p className="text-xs text-muted-foreground">
+                              {getPercentChange()} from last week
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Avg. Response Time
+                            </CardTitle>
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{systemStats.averageResponseTime.toFixed(0)} ms</div>
+                            <p className="text-xs text-muted-foreground">
+                              {getPercentChange()} from last week
+                            </p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      
+                      <div className="grid gap-4 md:grid-cols-2 mt-4">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Server Response Time (24h)</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="h-[300px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={systemStats.serverResponse}>
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="hour" />
+                                  <YAxis domain={[0, 'dataMax + 50']} />
+                                  <Tooltip />
+                                  <Line 
+                                    type="monotone" 
+                                    dataKey="responseTime" 
+                                    stroke={CHART_COLORS[0]} 
+                                    name="Response Time (ms)" 
+                                  />
+                                </LineChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Error Rates</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="h-[300px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={systemStats.errorRates}>
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="date" />
+                                  <YAxis 
+                                    yAxisId="left"
+                                    orientation="left"
+                                    stroke={CHART_COLORS[0]}
+                                  />
+                                  <YAxis 
+                                    yAxisId="right"
+                                    orientation="right"
+                                    stroke={CHART_COLORS[5]}
+                                  />
+                                  <Tooltip />
+                                  <Legend />
+                                  <Line 
+                                    yAxisId="left"
+                                    type="monotone" 
+                                    dataKey="errors" 
+                                    stroke={CHART_COLORS[0]} 
+                                    name="Errors" 
+                                  />
+                                  <Line 
+                                    yAxisId="right"
+                                    type="monotone" 
+                                    dataKey="requests" 
+                                    stroke={CHART_COLORS[5]} 
+                                    name="Requests" 
+                                  />
+                                </LineChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      
+                      <Card className="mt-4">
+                        <CardHeader>
+                          <CardTitle>System Resource Usage</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={systemStats.resourceUsage}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis domain={[0, 100]} />
+                                <Tooltip />
+                                <Bar dataKey="value" name="Usage %">
+                                  {systemStats.resourceUsage.map((entry, index) => (
+                                    <Cell 
+                                      key={`cell-${index}`} 
+                                      fill={entry.value > 80 ? CHART_COLORS[5] : entry.value > 60 ? CHART_COLORS[6] : CHART_COLORS[4]} 
+                                    />
+                                  ))}
+                                </Bar>
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              )}
+              
+              {/* Admin Settings Content */}
+              {activeTab === "admin-settings" && (
+                <div>
+                  <div className="mb-6">
+                    <h2 className="text-3xl font-bold">Admin Settings</h2>
+                  </div>
+                  
+                  <Tabs value={adminTab} onValueChange={setAdminTab} className="w-full">
+                    <TabsList className="mb-4">
+                      <TabsTrigger value="avatar">Account</TabsTrigger>
+                      <TabsTrigger value="password">Password</TabsTrigger>
+                    </TabsList>
+                    
+                    {/* Admin Account */}
+                    <TabsContent value="avatar">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Admin Account</CardTitle>
+                          <CardDescription>Update your admin profile</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Form {...adminSettingsForm}>
+                            <form onSubmit={adminSettingsForm.handleSubmit(handleSaveAdminSettings)} className="space-y-4">
+                              <FormField
+                                control={adminSettingsForm.control}
+                                name="displayName"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Display Name</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Admin display name" {...field} />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Your name displayed to users
+                                    </FormDescription>
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <Button type="submit" disabled={isProcessing}>
+                                Save Account Settings
+                              </Button>
+                            </form>
+                          </Form>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                    
+                    {/* Admin Password */}
+                    <TabsContent value="password">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Change Password</CardTitle>
+                          <CardDescription>Update your admin password</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Form {...adminSettingsForm}>
+                            <form onSubmit={adminSettingsForm.handleSubmit(handleSaveAdminSettings)} className="space-y-4">
+                              <FormField
+                                control={adminSettingsForm.control}
+                                name="currentPassword"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Current Password</FormLabel>
+                                    <FormControl>
+                                      <Input type="password" placeholder="Your current password" {...field} />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={adminSettingsForm.control}
+                                name="newPassword"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>New Password</FormLabel>
+                                    <FormControl>
+                                      <Input type="password" placeholder="Your new password" {...field} />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={adminSettingsForm.control}
+                                name="confirmPassword"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Confirm New Password</FormLabel>
+                                    <FormControl>
+                                      <Input type="password" placeholder="Confirm new password" {...field} />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <Button type="submit" disabled={isProcessing}>
+                                Update Password
+                              </Button>
+                            </form>
+                          </Form>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+      
+      {/* Alert Dialog */}
+      <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertConfig.title}</AlertDialogTitle>
+            <AlertDialogDescription>{alertConfig.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={alertConfig.action}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Ban User Dialog */}
+      <AlertDialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ban User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ban {selectedUser?.name} from the platform
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Form {...banForm}>
+            <form onSubmit={banForm.handleSubmit(submitBanUser)} className="space-y-4 py-4">
+              <FormField
+                control={banForm.control}
+                name="reason"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reason</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Reason for banning"
+                        className="resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={banForm.control}
+                name="duration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Duration</FormLabel>
+                    <Select 
+                      value={field.value} 
+                      onValueChange={field.onChange}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select duration" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="1 Day">1 Day</SelectItem>
+                        <SelectItem value="3 Days">3 Days</SelectItem>
+                        <SelectItem value="7 Days">7 Days</SelectItem>
+                        <SelectItem value="14 Days">14 Days</SelectItem>
+                        <SelectItem value="30 Days">30 Days</SelectItem>
+                        <SelectItem value="Permanent">Permanent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <Button type="submit" disabled={isProcessing}>Ban User</Button>
+              </AlertDialogFooter>
+            </form>
+          </Form>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Upgrade User Dialog */}
+      <AlertDialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Upgrade to VIP</AlertDialogTitle>
+            <AlertDialogDescription>
+              Upgrade {selectedUser?.name} to VIP status
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Form {...upgradeForm}>
+            <form onSubmit={upgradeForm.handleSubmit(submitUpgradeToVIP)} className="space-y-4 py-4">
+              <FormField
+                control={upgradeForm.control}
+                name="duration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Duration</FormLabel>
+                    <Select 
+                      value={field.value} 
+                      onValueChange={field.onChange}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select duration" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="1 Day">1 Day</SelectItem>
+                        <SelectItem value="1 Week">1 Week</SelectItem>
+                        <SelectItem value="1 Month">1 Month</SelectItem>
+                        <SelectItem value="1 Year">1 Year</SelectItem>
+                        <SelectItem value="Lifetime">Lifetime</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <Button type="submit" disabled={isProcessing}>Upgrade User</Button>
+              </AlertDialogFooter>
+            </form>
+          </Form>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default AdminDashboard;
