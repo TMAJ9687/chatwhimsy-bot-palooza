@@ -22,8 +22,13 @@ interface StorageResponse {
 // Get the context - either self (worker) or window (main thread fallback)
 const ctx: Worker | Window = typeof self !== 'undefined' ? self : window;
 
+// Check if we're in a worker context by checking for typical worker-only properties
+const isWorkerContext = typeof self !== 'undefined' && 
+                        typeof window === 'undefined' && 
+                        typeof importScripts === 'function';
+
 // Handle messages in worker context
-if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
+if (isWorkerContext) {
   self.onmessage = (e: MessageEvent<StorageMessage>) => {
     const { type, key, data, batch } = e.data;
     
