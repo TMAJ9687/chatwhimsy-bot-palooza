@@ -1,5 +1,6 @@
 
 import { VipDuration } from '@/types/admin';
+import { debounce } from './performanceMonitor';
 
 /**
  * Available VIP duration options
@@ -51,35 +52,6 @@ export const calculateExpiryDate = (duration: VipDuration): Date | null => {
   }
   
   return new Date(now.setDate(now.getDate() + 1)); // Default to 1 day if unknown
-};
-
-/**
- * Enhanced debounced admin action executor with queue
- * This version also includes a flush method
- */
-export const debounce = <F extends (...args: any[]) => any>(
-  func: F,
-  waitFor: number
-) => {
-  let timeout: ReturnType<typeof setTimeout> | null = null;
-
-  const debounced = (...args: Parameters<F>) => {
-    if (timeout !== null) {
-      clearTimeout(timeout);
-      timeout = null;
-    }
-    timeout = setTimeout(() => func(...args), waitFor);
-  };
-
-  // Add a flush method to execute immediately
-  debounced.flush = () => {
-    if (timeout) {
-      clearTimeout(timeout);
-      timeout = null;
-    }
-  };
-
-  return debounced;
 };
 
 /**
