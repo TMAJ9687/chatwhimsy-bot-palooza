@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,8 +68,10 @@ const AdminLogin = () => {
           });
         }
         
-        // Navigate to dashboard
-        navigate('/admin-dashboard');
+        // Navigate to dashboard after short delay to ensure user state is updated
+        setTimeout(() => {
+          navigate('/admin-dashboard');
+        }, 100);
       } else {
         console.log('No admin session detected, showing login form');
         // Clear any stale admin data
@@ -136,6 +139,9 @@ const AdminLogin = () => {
         // Save admin email for session persistence
         localStorage.setItem('adminEmail', email);
         
+        // Set adminData to indicate login status
+        localStorage.setItem('adminData', JSON.stringify({ authenticated: true }));
+        
         // Create admin user profile
         setUser({
           id: getCurrentUser()?.uid || 'admin-user',
@@ -157,7 +163,11 @@ const AdminLogin = () => {
           description: "Welcome to the admin dashboard",
         });
         
-        navigate('/admin-dashboard');
+        // Explicitly navigate to admin dashboard after a short delay
+        // to ensure state updates have been processed
+        setTimeout(() => {
+          navigate('/admin-dashboard');
+        }, 100);
       } else {
         console.log('Admin login failed');
         toast({

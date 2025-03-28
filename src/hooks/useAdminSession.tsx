@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
@@ -35,8 +36,16 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
       return;
     }
     
-    // If not logged in as admin and not on the login page, redirect
-    if (!adminLoggedIn && !user?.isAdmin) {
+    // If logged in and on admin login page, redirect to dashboard
+    if ((adminLoggedIn || user?.isAdmin) && location.pathname === '/secretadminportal') {
+      console.log('Admin is authenticated, redirecting to dashboard');
+      setIsLoading(false);
+      navigate('/admin-dashboard');
+      return;
+    }
+    
+    // If not logged in as admin and not on the login page, redirect to login
+    if (!adminLoggedIn && !user?.isAdmin && !location.pathname.includes('/secretadminportal')) {
       console.log('Not authenticated as admin, redirecting to:', redirectPath);
       setIsLoading(false);
       
@@ -105,6 +114,12 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
               voiceMessagesRemaining: Infinity
             });
           }
+          
+          // If on admin login page, redirect to dashboard
+          if (location.pathname === '/secretadminportal') {
+            console.log('Admin authenticated, redirecting to dashboard');
+            navigate('/admin-dashboard');
+          }
         } else {
           console.log('Firebase user is not an admin');
           setIsAuthenticated(false);
@@ -129,7 +144,7 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
       unsubscribe();
       clearInterval(intervalId);
     };
-  }, [checkAdminAuth, user, setUser]);
+  }, [checkAdminAuth, user, setUser, location.pathname, navigate]);
   
   return {
     isAuthenticated,

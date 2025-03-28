@@ -128,9 +128,12 @@ export const verifyAdminCredentials = async (email: string, password: string): P
 };
 
 export const setAdminLoggedIn = (isLoggedIn: boolean): void => {
-  // This is now handled by Firebase Auth directly
-  // Only keeping for backward compatibility
+  // Store admin authentication state
   localStorage.setItem('adminData', JSON.stringify({ authenticated: isLoggedIn }));
+  
+  if (!isLoggedIn) {
+    localStorage.removeItem('adminEmail');
+  }
 };
 
 export const isAdminLoggedIn = (): boolean => {
@@ -160,6 +163,8 @@ export const isAdminLoggedIn = (): boolean => {
   } else if (adminEmail) {
     // If we have an admin email but no adminData, they might be logged in
     console.log('Admin email found in localStorage:', adminEmail);
+    // Create adminData for consistency
+    localStorage.setItem('adminData', JSON.stringify({ authenticated: true }));
     return true;
   }
   
@@ -168,11 +173,12 @@ export const isAdminLoggedIn = (): boolean => {
 };
 
 export const adminLogout = async (): Promise<void> => {
+  // Clear admin session from localStorage first for immediate effect
+  localStorage.removeItem('adminData');
+  localStorage.removeItem('adminEmail');
+  
   // Sign out from Firebase
   await firebaseAuth.signOutUser();
-  
-  // Clear admin session from localStorage for backward compatibility
-  localStorage.removeItem('adminData');
 };
 
 // User Management (for Standard/VIP users)

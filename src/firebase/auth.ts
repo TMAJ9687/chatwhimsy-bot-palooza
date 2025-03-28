@@ -1,3 +1,4 @@
+
 import { 
   signInWithEmailAndPassword, 
   signOut, 
@@ -14,6 +15,14 @@ export const signInWithEmail = async (email: string, password: string): Promise<
     console.log('Attempting Firebase sign in:', email);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     console.log('Firebase sign in successful, user:', userCredential.user.email);
+    
+    // Store admin email for session persistence if user is admin
+    if (isUserAdmin(userCredential.user)) {
+      console.log('Admin user logged in, storing session data');
+      localStorage.setItem('adminEmail', email);
+      localStorage.setItem('adminData', JSON.stringify({ authenticated: true }));
+    }
+    
     return userCredential.user;
   } catch (error: any) {
     console.error("Firebase signIn error:", error.code, error.message);
@@ -43,6 +52,10 @@ export const signOutUser = async (): Promise<void> => {
     
     // Set logout event to enable cross-tab coordination
     localStorage.setItem('logoutEvent', Date.now().toString());
+    
+    // Clear admin-specific data first
+    localStorage.removeItem('adminData');
+    localStorage.removeItem('adminEmail');
     
     // Clean up any UI elements that might cause issues during navigation
     try {
@@ -81,7 +94,6 @@ export const signOutUser = async (): Promise<void> => {
     // Systematic data cleanup before Firebase signout
     localStorage.removeItem('chatUser');
     localStorage.removeItem('vipProfileComplete');
-    localStorage.removeItem('adminEmail'); // Also clear admin email
     sessionStorage.clear();
     
     // Now perform the actual signOut operation
@@ -120,6 +132,14 @@ export const onAuthStateChange = (callback: (user: FirebaseUser | null) => void)
   console.log('Setting up Firebase auth state listener');
   return onAuthStateChanged(auth, (user) => {
     console.log('Firebase auth state changed:', user ? user.email : 'logged out');
+    
+    if (user && isUserAdmin(user)) {
+      // Store admin status in localStorage if user is admin
+      console.log('Admin user detected in auth state change');
+      localStorage.setItem('adminEmail', user.email || 'admin@example.com');
+      localStorage.setItem('adminData', JSON.stringify({ authenticated: true }));
+    }
+    
     callback(user);
   });
 };
