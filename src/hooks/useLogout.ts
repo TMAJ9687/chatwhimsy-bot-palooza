@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { useUser } from '@/context/UserContext';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -15,6 +16,10 @@ export const useLogout = () => {
   const performLogout = useCallback(async (callback?: () => void) => {
     try {
       console.log('Starting logout process...');
+      
+      // Add logout flag to prevent automatic relogin
+      localStorage.setItem('logoutInProgress', 'true');
+      
       // Store user type in localStorage for redirect after logout
       if (user) {
         try {

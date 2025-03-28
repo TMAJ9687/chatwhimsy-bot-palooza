@@ -66,6 +66,11 @@ const LogoutConfirmationDialog = () => {
         // Use our centralized logout function
         await performLogout();
         
+        // Add these 3 lines to clear user-specific data
+        localStorage.removeItem('chatUser');
+        localStorage.removeItem('vipProfileComplete');
+        sessionStorage.clear();
+        
         console.log('Redirecting after logout');
         
         // Force a full page reload to clear any lingering state

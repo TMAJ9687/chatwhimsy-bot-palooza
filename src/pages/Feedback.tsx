@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,16 @@ const Feedback = () => {
   const [rating, setRating] = useState<number>(0);
   const [feedback, setFeedback] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Add this useEffect at the top of the Feedback component
+  useEffect(() => {
+    // Clear any residual user data
+    if(localStorage.getItem('chatUser')) {
+      localStorage.removeItem('chatUser');
+      localStorage.removeItem('vipProfileComplete');
+      window.location.reload();
+    }
+  }, []);
   
   const handleRatingChange = (newRating: number) => {
     setRating(newRating);

@@ -13,6 +13,12 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Enhanced profile loading from localStorage
   useEffect(() => {
+    // Check if logout is in progress and return if it is
+    if(localStorage.getItem('logoutInProgress')) {
+      localStorage.removeItem('logoutInProgress');
+      return;
+    }
+    
     // Try to load user from localStorage if not already loaded
     if (!user) {
       const storedUser = localStorage.getItem('chatUser');

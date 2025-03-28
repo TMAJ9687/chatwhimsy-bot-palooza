@@ -70,6 +70,9 @@ export const signOutUser = async (): Promise<void> => {
       // Ignore any DOM errors during cleanup
     }
     
+    // Set logout flag before Firebase signout
+    localStorage.setItem('logoutInProgress', 'true');
+    
     // Now perform the actual signOut operation
     await signOut(auth);
     console.log('Firebase signOut completed successfully');
