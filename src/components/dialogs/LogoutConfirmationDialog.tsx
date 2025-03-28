@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { useDialog } from '@/context/DialogContext';
 import {
   AlertDialog,
@@ -17,6 +17,7 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { useNavigate } from 'react-router-dom';
 import { trackEvent } from '@/utils/performanceMonitor';
 import { signOutUser } from '@/firebase/auth';
+import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
 
 const LogoutConfirmationDialog = () => {
   const { state, closeDialog } = useDialog();
@@ -25,53 +26,97 @@ const LogoutConfirmationDialog = () => {
   const { user, clearUser } = useUser();
   const { adminLogout, isAdmin } = useAdmin();
   const navigate = useNavigate();
+  const { cleanupOverlays } = useSafeDOMOperations();
+  
+  // Track if navigation is in progress to prevent race conditions
+  const isNavigatingRef = useRef(false);
   
   const isVip = user?.isVip || false;
 
+  // Ensure cleanup happens on unmount
+  useEffect(() => {
+    return () => {
+      cleanupOverlays();
+    };
+  }, [cleanupOverlays]);
+
   const handleSafeClose = useCallback(() => {
-    handleDialogClose(closeDialog);
-  }, [closeDialog, handleDialogClose]);
+    // First clean up any overlay elements
+    cleanupOverlays();
+    
+    // Short delay before closing the dialog
+    setTimeout(() => {
+      handleDialogClose(closeDialog);
+    }, 50);
+  }, [closeDialog, handleDialogClose, cleanupOverlays]);
 
   const handleConfirm = useCallback(async () => {
+    // Prevent multiple clicks
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    
+    // First close the dialog
+    handleSafeClose();
+    
     // Track logout event for performance monitoring
     try {
-      trackEvent('user-logout', async () => {
-        if (onConfirm && typeof onConfirm === 'function') {
-          // Store user type in localStorage for redirect after logout
-          if (user) {
-            try {
-              localStorage.setItem('chatUser', JSON.stringify({
-                isVip: isVip
-              }));
-            } catch (e) {
-              console.error('Error storing user type:', e);
+      // Use a timeout to ensure dialog is fully closed before proceeding
+      setTimeout(async () => {
+        try {
+          trackEvent('user-logout', async () => {
+            if (onConfirm && typeof onConfirm === 'function') {
+              // Store user type in localStorage for redirect after logout
+              if (user) {
+                try {
+                  localStorage.setItem('chatUser', JSON.stringify({
+                    isVip: isVip
+                  }));
+                } catch (e) {
+                  console.error('Error storing user type:', e);
+                }
+              }
+              
+              // If user is admin, perform admin logout
+              if (isAdmin) {
+                try {
+                  await signOutUser(); // Use the Firebase signOut directly
+                  await adminLogout(); // Also run adminLogout for any app-specific cleanup
+                  clearUser();
+                  
+                  // Cleanup before navigation
+                  cleanupOverlays();
+                  
+                  // Navigate to landing page after admin logout with a short delay
+                  setTimeout(() => {
+                    navigate('/admin-login');
+                    console.log('Admin logged out successfully');
+                  }, 100);
+                } catch (error) {
+                  console.error('Error during admin logout:', error);
+                  isNavigatingRef.current = false;
+                }
+              } else {
+                // Standard user logout - call onConfirm after cleanup
+                cleanupOverlays();
+                
+                // Use timeout to ensure cleanup completes
+                setTimeout(() => {
+                  onConfirm();
+                  isNavigatingRef.current = false;
+                }, 100);
+              }
             }
-          }
-          
-          // If user is admin, perform admin logout
-          if (isAdmin) {
-            try {
-              await signOutUser(); // Use the Firebase signOut directly
-              await adminLogout(); // Also run adminLogout for any app-specific cleanup
-              clearUser();
-              // Navigate to landing page after admin logout
-              navigate('/admin-login');
-              console.log('Admin logged out successfully');
-            } catch (error) {
-              console.error('Error during admin logout:', error);
-            }
-          } else {
-            // Standard user logout
-            onConfirm();
-          }
+          });
+        } catch (error) {
+          console.error('Error during logout:', error);
+          isNavigatingRef.current = false;
         }
-      });
+      }, 100);
     } catch (error) {
-      console.error('Error during logout:', error);
-    } finally {
-      handleSafeClose();
+      console.error('Error during logout process:', error);
+      isNavigatingRef.current = false;
     }
-  }, [onConfirm, handleSafeClose, user, isVip, isAdmin, adminLogout, navigate, clearUser]);
+  }, [onConfirm, handleSafeClose, user, isVip, isAdmin, adminLogout, navigate, clearUser, cleanupOverlays]);
 
   const getFeedbackMessage = () => {
     if (isAdmin) {

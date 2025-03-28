@@ -26,9 +26,15 @@ export class DOMSafetyUtils {
         const isRealChild = parentChildNodes.includes(element);
         
         if (isRealChild) {
-          // Remove the element
-          element.parentNode.removeChild(element as ChildNode);
-          return true;
+          // Use try-catch for the actual removal operation
+          try {
+            // Remove the element
+            element.parentNode.removeChild(element as ChildNode);
+            return true;
+          } catch (e) {
+            console.warn('[DOMSafetyUtils] Element removal failed:', e);
+            return false;
+          }
         } else {
           // If the element is not a real child, don't try to remove it
           console.warn('[DOMSafetyUtils] Element is not a child of its parent node');
@@ -48,7 +54,12 @@ export class DOMSafetyUtils {
   public resetBodyState(): void {
     if (typeof document === 'undefined' || !document.body) return;
     
-    document.body.style.overflow = 'auto';
-    document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+    // Use try-catch for safety
+    try {
+      document.body.style.overflow = 'auto';
+      document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+    } catch (e) {
+      console.warn('[DOMSafetyUtils] Error resetting body state:', e);
+    }
   }
 }

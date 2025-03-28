@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import MainLayout from "./components/layout/MainLayout";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -17,13 +17,14 @@ import VipConfirmation from "./pages/VipConfirmation";
 import Feedback from "./pages/Feedback";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { DialogProvider } from "./context/DialogContext";
 import DialogContainer from "./components/dialogs/DialogContainer";
 import { UserProvider } from "./context/UserContext";
 import { ChatProvider } from "./context/ChatContext";
 import { initPerformanceMonitoring } from "./utils/performanceMonitor";
 import NavigationLock from "./components/shared/NavigationLock";
+import { toast } from "@/hooks/use-toast";
 
 // Configure React Query for better performance
 const queryClient = new QueryClient({
@@ -43,6 +44,7 @@ const queryClient = new QueryClient({
 const App = () => {
   const [hasLoggedOut, setHasLoggedOut] = useState(false);
   const [userType, setUserType] = useState<'standard' | 'vip' | null>(null);
+  const logoutInProgressRef = useRef(false);
 
   // Initialize performance monitoring with more detailed options
   useEffect(() => {
@@ -63,13 +65,38 @@ const App = () => {
       performance.measure('App Load Time', 'app_load_start', 'app_load_end');
     });
     
+    // Error handler for removeChild errors that bubble up
+    const handleError = (event: ErrorEvent) => {
+      if (
+        event.message && 
+        event.message.includes('removeChild') && 
+        event.message.includes('not a child')
+      ) {
+        // Prevent default behavior
+        event.preventDefault();
+        console.warn('Caught removeChild error during navigation, suppressing');
+        
+        // If we're in the middle of logout, continue the process
+        if (logoutInProgressRef.current) {
+          document.body.style.overflow = 'auto';
+          document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+        }
+      }
+    };
+    
+    window.addEventListener('error', handleError);
+    
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('error', handleError);
     };
   }, []);
 
-  // Handle logout action with requestAnimationFrame for better performance
-  const handleLogout = () => {
+  // Handle logout action with a more careful approach
+  const handleLogout = useCallback(() => {
+    // Set logout in progress flag
+    logoutInProgressRef.current = true;
+    
     // Check if user exists in localStorage to determine the type
     const userData = localStorage.getItem('chatUser');
     let type: 'standard' | 'vip' | null = null;
@@ -86,16 +113,43 @@ const App = () => {
     
     setHasLoggedOut(true);
     
-    // Use requestAnimationFrame for smoother UI
-    requestAnimationFrame(() => {
+    // Clean up DOM state before navigation
+    if (document.body) {
+      document.body.style.overflow = 'auto';
+      document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+    }
+    
+    // Clean up overlay elements
+    try {
+      document.querySelectorAll('.fixed.inset-0, [data-radix-dialog-overlay], [data-radix-alert-dialog-overlay]')
+        .forEach(element => {
+          try {
+            if (element.parentNode) {
+              element.parentNode.removeChild(element);
+            }
+          } catch (e) {
+            // Ignore errors during emergency cleanup
+          }
+        });
+    } catch (e) {
+      console.warn('Error during emergency cleanup:', e);
+    }
+    
+    // Use a timeout to ensure DOM updates have time to complete
+    setTimeout(() => {
       // Redirect standard users to feedback, VIP users to home
       if (type === 'standard') {
         window.location.href = '/feedback';
       } else {
         window.location.href = '/';
       }
-    });
-  };
+      
+      // Reset the flag after navigation starts
+      setTimeout(() => {
+        logoutInProgressRef.current = false;
+      }, 500);
+    }, 100);
+  }, []);
 
   // Reset logout state when returning to the app
   useEffect(() => {
@@ -103,6 +157,7 @@ const App = () => {
       // Delay state update for better performance
       const timer = setTimeout(() => {
         setHasLoggedOut(false);
+        logoutInProgressRef.current = false;
       }, 100);
       return () => clearTimeout(timer);
     }

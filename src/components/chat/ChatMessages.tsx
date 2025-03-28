@@ -1,9 +1,10 @@
 
-import React, { useRef, memo, useLayoutEffect } from 'react';
+import React, { useRef, memo, useLayoutEffect, useEffect } from 'react';
 import { Message } from '@/types/chat';
 import { useUser } from '@/context/UserContext';
 import MessageList from './MessageList';
 import { useScrollToBottom } from '@/hooks/useScrollToBottom';
+import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -21,6 +22,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const { isVip } = useUser();
   const { endRef } = useScrollToBottom([messages, isTyping]);
+  const { safeRemoveElement } = useSafeDOMOperations();
   
   // Only show status and typing indicators for VIP users
   const shouldShowStatus = isVip && showStatus;
@@ -42,16 +44,34 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       console.log(`[ChatMessages] Found ${problematicElements.length} problematic elements, removing...`);
       
       problematicElements.forEach(element => {
-        try {
-          if (element.parentNode) {
-            element.parentNode.removeChild(element);
-          }
-        } catch (error) {
-          console.warn('[ChatMessages] Error removing problematic element:', error);
-        }
+        safeRemoveElement(element);
       });
     }
-  }, [messages]); // Re-run when messages change
+  }, [messages, safeRemoveElement]); // Re-run when messages change
+
+  // Additional cleanup on component unmount to prevent removeChild errors
+  useEffect(() => {
+    return () => {
+      // Important: when component unmounts, make sure we don't leave problematic elements
+      if (containerRef.current) {
+        const problematicElements = containerRef.current.querySelectorAll(
+          '.fixed.inset-0, [data-radix-dialog-overlay], [data-radix-alert-dialog-overlay]'
+        );
+        
+        if (problematicElements.length > 0) {
+          problematicElements.forEach(element => {
+            try {
+              if (element.parentNode) {
+                element.parentNode.removeChild(element);
+              }
+            } catch (error) {
+              console.warn('[ChatMessages] Error removing element on unmount:', error);
+            }
+          });
+        }
+      }
+    };
+  }, []);
 
   return (
     <div 
