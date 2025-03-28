@@ -14,6 +14,12 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateRandomLineData } from '@/utils/chartUtils';
+import { StatisticTimeRange } from '@/utils/adminUtils';
+
+// Define props interface
+interface SystemStatsProps {
+  timeRange: StatisticTimeRange;
+}
 
 // Sample data for system stats
 const timePoints = ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
@@ -35,7 +41,10 @@ const responseTimeData = generateRandomLineData(
   300
 );
 
-const SystemStats = () => {
+const SystemStats: React.FC<SystemStatsProps> = ({ timeRange }) => {
+  // You can use timeRange to filter or adjust data as needed
+  console.log(`SystemStats timeRange: ${timeRange}`);
+  
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

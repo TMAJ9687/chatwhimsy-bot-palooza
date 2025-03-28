@@ -15,6 +15,12 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatLargeNumber } from '@/utils/chartUtils';
+import { StatisticTimeRange } from '@/utils/adminUtils';
+
+// Define props interface
+interface ContentStatsProps {
+  timeRange: StatisticTimeRange;
+}
 
 // Sample data for content stats
 const messageActivityData = [
@@ -36,7 +42,10 @@ const contentTypeData = [
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
-const ContentStats = () => {
+const ContentStats: React.FC<ContentStatsProps> = ({ timeRange }) => {
+  // You can use timeRange to filter or adjust data as needed
+  console.log(`ContentStats timeRange: ${timeRange}`);
+  
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

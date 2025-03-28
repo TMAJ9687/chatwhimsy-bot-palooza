@@ -9,6 +9,11 @@ import SystemStats from './SystemStats';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatisticTimeRange, getSampleStatistics } from '@/utils/adminUtils';
 
+// Define prop types for the statistics components
+interface StatComponentProps {
+  timeRange: StatisticTimeRange;
+}
+
 const Statistics = () => {
   const [activeTab, setActiveTab] = useState('traffic');
   const [timeRange, setTimeRange] = useState<StatisticTimeRange>('month');

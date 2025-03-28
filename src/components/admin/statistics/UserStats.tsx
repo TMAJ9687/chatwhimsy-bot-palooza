@@ -15,6 +15,12 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateRandomLineData, formatLargeNumber } from '@/utils/chartUtils';
+import { StatisticTimeRange } from '@/utils/adminUtils';
+
+// Define props interface
+interface UserStatsProps {
+  timeRange: StatisticTimeRange;
+}
 
 // Sample data for user stats
 const timePoints = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -29,7 +35,10 @@ const userTypes = [
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
-const UserStats = () => {
+const UserStats: React.FC<UserStatsProps> = ({ timeRange }) => {
+  // You can use timeRange to filter or adjust data as needed
+  console.log(`UserStats timeRange: ${timeRange}`);
+  
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
