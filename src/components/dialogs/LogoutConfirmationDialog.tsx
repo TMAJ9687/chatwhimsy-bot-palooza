@@ -1,5 +1,6 @@
 
 import React, { useCallback, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDialog } from '@/context/DialogContext';
 import {
   AlertDialog,
@@ -14,12 +15,17 @@ import {
 import { useUser } from '@/context/UserContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { signOutUser } from '@/firebase/auth';
+import { useDialogCleanup } from '@/hooks/useDialogCleanup';
 
 const LogoutConfirmationDialog = () => {
   const { state, closeDialog } = useDialog();
   const { onConfirm } = state.data;
   const { user, clearUser } = useUser();
   const { adminLogout, isAdmin } = useAdmin();
+  const navigate = useNavigate();
+  
+  // Get dialog cleanup utilities
+  const { handleDialogClose, isClosingRef } = useDialogCleanup();
   
   // Track if component is mounted to prevent state updates after unmount
   const isMountedRef = useRef(true);
@@ -41,8 +47,8 @@ const LogoutConfirmationDialog = () => {
     // Skip if already unmounted
     if (!isMountedRef.current) return;
     
-    closeDialog();
-  }, [closeDialog]);
+    handleDialogClose(() => closeDialog());
+  }, [closeDialog, handleDialogClose]);
 
   const handleConfirm = useCallback(async () => {
     // Prevent multiple clicks and skip if unmounted
@@ -95,7 +101,20 @@ const LogoutConfirmationDialog = () => {
             }
           }
         } else {
-          // Standard user logout - call onConfirm callback
+          // For standard users, clear user data and navigate
+          clearUser();
+          
+          // Standard users go to feedback page, VIP users go to home
+          if (!isVip) {
+            console.log('Standard user logging out, redirecting to feedback');
+            // Direct navigation instead of using the callback
+            navigate('/feedback');
+          } else {
+            console.log('VIP user logging out, redirecting to home');
+            navigate('/');
+          }
+          
+          // Call the onConfirm callback if it exists
           if (isMountedRef.current && onConfirm && typeof onConfirm === 'function') {
             onConfirm();
           }
@@ -110,7 +129,7 @@ const LogoutConfirmationDialog = () => {
         }
       }
     }, 50);
-  }, [onConfirm, handleSafeClose, user, isVip, isAdmin, adminLogout, clearUser]);
+  }, [onConfirm, handleSafeClose, user, isVip, isAdmin, adminLogout, clearUser, navigate]);
 
   const getFeedbackMessage = () => {
     if (isAdmin) {

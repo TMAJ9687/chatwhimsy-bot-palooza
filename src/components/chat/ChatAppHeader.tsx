@@ -2,7 +2,6 @@
 import React, { memo } from 'react';
 import { LogOut, Clock, Bell } from 'lucide-react';
 import ThemeToggle from '../shared/ThemeToggle';
-import { Notification } from '@/types/chat';
 
 interface ChatAppHeaderProps {
   unreadCount: number;
@@ -41,6 +40,8 @@ const ChatAppHeader = ({
         <button
           className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
           onClick={onLogout}
+          aria-label="Logout"
+          title="Logout"
         >
           <LogOut className="h-5 w-5 text-red-500" />
         </button>
