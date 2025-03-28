@@ -21,16 +21,19 @@ export const validateImageFile = (file: File, isVip: boolean = false): { valid: 
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       return {
         valid: false,
-        message: "Please select a JPG, PNG, or WebP image."
+        message: "Please select a JPG, PNG, or WebP image. GIFs are only available for VIP users."
       };
     }
   }
   
-  // Check file size (5MB limit)
-  if (file.size > 5 * 1024 * 1024) {
+  // Check file size (5MB limit for standard, 10MB for VIP)
+  const maxSize = isVip ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+  if (file.size > maxSize) {
     return {
       valid: false,
-      message: "Image size should be less than 5MB."
+      message: isVip 
+        ? "Image size should be less than 10MB."
+        : "Image size should be less than 5MB. VIP users can upload larger images."
     };
   }
   

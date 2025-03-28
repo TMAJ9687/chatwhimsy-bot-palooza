@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Crown } from 'lucide-react';
+import { STANDARD_CHAR_LIMIT, VIP_CHAR_LIMIT } from '@/hooks/useVipFeatures';
 
 interface VipStatusBarProps {
   isVip: boolean;
@@ -13,13 +14,18 @@ const VipStatusBar: React.FC<VipStatusBarProps> = ({ isVip, imagesRemaining }) =
       {isVip ? (
         <div className="flex items-center justify-center">
           <Crown className="h-3 w-3 text-amber-500 mr-1" />
-          <span>VIP Member - 200 char messages, unlimited uploads, voice messages</span>
+          <span>VIP Member - {VIP_CHAR_LIMIT} char messages, unlimited uploads, voice messages</span>
         </div>
       ) : (
-        <>
-          {imagesRemaining < Infinity && `${imagesRemaining} image uploads remaining today - `}
-          Upgrade to VIP for longer messages and unlimited uploads
-        </>
+        <div className="flex flex-col items-center">
+          <span>
+            {imagesRemaining < Infinity ? `${imagesRemaining} image uploads remaining today - ` : ''}
+            Standard account: {STANDARD_CHAR_LIMIT} char limit
+          </span>
+          <span className="text-amber-500 hover:underline cursor-pointer">
+            Upgrade to VIP for longer messages and unlimited uploads
+          </span>
+        </div>
       )}
     </div>
   );

@@ -12,6 +12,7 @@ import VoiceMessageButton from './VoiceMessageButton';
 import { X } from 'lucide-react';
 import { uploadDataURLImage } from '@/firebase/storage';
 import { useUser } from '@/context/UserContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MessageInputBarProps {
   onSendMessage: (text: string) => void;
@@ -35,7 +36,9 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const { isVip, replyingToMessage, setReplyingToMessage } = useChat();
   const { user } = useUser();
+  const isMobile = useIsMobile();
   
+  // Use the proper VIP status - from props first, then context
   const isUserVip = userType === 'vip' || isVip;
   
   const handleSubmitMessage = () => {
@@ -80,6 +83,9 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   const handleVoiceMessageReady = (audioBlob: Blob, duration: number) => {
     if (disabled || !onSendVoice) return;
     
+    // Only VIP users can send voice messages
+    if (!isUserVip) return;
+    
     // Convert blob to data URL
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
@@ -99,7 +105,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
 
   return (
     <div className={`border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
-      {/* Reply preview */}
+      {/* Reply preview - only for VIP users */}
       {isUserVip && replyingToMessage && (
         <div className="px-3 py-2 bg-gray-100 dark:bg-gray-700 border-l-2 border-teal-500 flex justify-between items-center">
           <div className="flex flex-col">
@@ -137,6 +143,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
           disabled={disabled || !!imagePreview || isRecordingVoice}
         />
         
+        {/* Only render voice message button for VIP users */}
         {isUserVip && (
           <VoiceMessageButton 
             onVoiceMessageReady={handleVoiceMessageReady}
@@ -165,7 +172,10 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
         )}
       </div>
       
-      <VipStatusBar isVip={isUserVip} imagesRemaining={imagesRemaining} />
+      <VipStatusBar 
+        isVip={isUserVip} 
+        imagesRemaining={imagesRemaining} 
+      />
     </div>
   );
 });

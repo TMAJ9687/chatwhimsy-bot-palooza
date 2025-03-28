@@ -27,6 +27,7 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
   const handleClickUpload = () => {
     if (disabled) return;
     
+    // Standard users have upload limits
     if (imagesRemaining <= 0 && !isVip) {
       toast({
         title: "Upload limit reached",
@@ -44,6 +45,7 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
+    // Check upload limits for standard users
     if (imagesRemaining <= 0 && !isVip) {
       toast({
         title: "Upload limit reached",
@@ -52,7 +54,8 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
       return;
     }
     
-    const validation = validateImageFile(file);
+    // Pass isVip to validateImageFile to apply correct image type restrictions
+    const validation = validateImageFile(file, isVip);
     if (!validation.valid) {
       toast({
         title: "Invalid file",
@@ -72,7 +75,6 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
         onImageSelected(result);
         
         // In the background, upload to Firebase Storage
-        // This doesn't affect the current flow but prepares for future migration
         if (user?.id) {
           await uploadDataURLImage(result, isVip, user.id);
         }
@@ -95,7 +97,7 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
         type="file"
         ref={fileInputRef}
         className="hidden"
-        accept="image/*"
+        accept={isVip ? "image/*" : "image/jpeg,image/png,image/webp"}
         onChange={handleImageUpload}
         disabled={disabled}
       />

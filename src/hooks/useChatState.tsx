@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useState } from 'react';
 import { Bot, Message, Notification } from '@/types/chat';
 import { useChatInitialization } from './useChatInitialization';
@@ -15,6 +16,7 @@ interface Translation {
 }
 
 export const useChatState = (isVip: boolean) => {
+  // Only allow replying to messages for VIP users
   const [replyingToMessage, setReplyingToMessage] = useState<Message | null>(null);
   
   const {
@@ -47,13 +49,14 @@ export const useChatState = (isVip: boolean) => {
 
   const { toast } = useToast();
 
+  // Only allow VIP users to bypass rules
   const { shouldBypassRules } = useVipFeatures();
 
   useEffect(() => {
-    if (shouldBypassRules() && !rulesAccepted) {
+    if (isVip && shouldBypassRules() && !rulesAccepted) {
       setRulesAccepted(true);
     }
-  }, [shouldBypassRules, rulesAccepted, setRulesAccepted]);
+  }, [shouldBypassRules, rulesAccepted, setRulesAccepted, isVip]);
 
   const handleNewNotification = useCallback((botId: string, content: string, botName: string) => {
     const newNotification: Notification = {
@@ -141,14 +144,14 @@ export const useChatState = (isVip: boolean) => {
     }
   }, [currentBot.id, filteredUsers, selectUser]);
 
-  // Updated send text message with proper reply handling
+  // Updated send text message with proper reply handling - ensure only VIP can reply
   const handleSendTextMessageWrapper = useCallback((text: string) => {
     // Store the reference to the reply message before creating the new message
-    const tempReplyId = replyingToMessage?.id || null;
+    const tempReplyId = isVip && replyingToMessage?.id || null;
     
     const messageId = handleSendTextMessage(text, currentBot.id, currentBot.name);
     
-    // If we have a message to reply to, update the new message with the replyTo property
+    // If we have a message to reply to, update the new message with the replyTo property - VIP only
     if (tempReplyId && isVip) {
       setUserChats(prev => {
         const newChats = { ...prev };
@@ -194,14 +197,14 @@ export const useChatState = (isVip: boolean) => {
     return messageId;
   }, [currentBot.id, currentBot.name, handleSendTextMessage, addHistoryItem, simulateBotResponse, replyingToMessage, isVip, setUserChats, setReplyingToMessage]);
 
-  // Updated send image message with proper reply handling
+  // Updated send image message with proper reply handling - ensure only VIP can reply
   const handleSendImageMessageWrapper = useCallback(async (imageDataUrl: string) => {
     // Store the reference to the reply message before creating the new message
-    const tempReplyId = replyingToMessage?.id || null;
+    const tempReplyId = isVip && replyingToMessage?.id || null;
     
     const messageId = await handleSendImageMessage(imageDataUrl, currentBot.id);
     
-    // If we have a message to reply to, update the new message with the replyTo property
+    // If we have a message to reply to, update the new message with the replyTo property - VIP only
     if (tempReplyId && isVip) {
       setUserChats(prev => {
         const newChats = { ...prev };
@@ -247,10 +250,20 @@ export const useChatState = (isVip: boolean) => {
     return messageId;
   }, [currentBot.id, currentBot.name, handleSendImageMessage, addHistoryItem, simulateBotResponse, replyingToMessage, isVip, setUserChats, setReplyingToMessage]);
 
-  // Updated send voice message with proper reply handling
+  // Updated send voice message with proper reply handling - ensure only VIP can send voice messages and reply
   const handleSendVoiceMessageWrapper = useCallback((voiceDataUrl: string, duration: number) => {
-    // Store the reference to the reply message before creating the new message
-    const tempReplyId = replyingToMessage?.id || null;
+    // Only VIP users can send voice messages
+    if (!isVip) {
+      toast({
+        title: "VIP feature",
+        description: "Voice messages are only available for VIP users.",
+        duration: 3000
+      });
+      return "";
+    }
+    
+    // Store the reference to the reply message before creating the new message - VIP only
+    const tempReplyId = isVip && replyingToMessage?.id || null;
     
     const messageId = handleSendVoiceMessage(voiceDataUrl, duration, currentBot.id);
     
@@ -298,7 +311,7 @@ export const useChatState = (isVip: boolean) => {
     simulateBotResponse(messageId, currentBot.id);
     
     return messageId;
-  }, [currentBot.id, currentBot.name, handleSendVoiceMessage, addHistoryItem, simulateBotResponse, replyingToMessage, isVip, setUserChats, setReplyingToMessage]);
+  }, [currentBot.id, currentBot.name, handleSendVoiceMessage, addHistoryItem, simulateBotResponse, replyingToMessage, isVip, setUserChats, setReplyingToMessage, toast]);
 
   const selectUserWithChat = useCallback((user: Bot) => {
     if (user.id !== currentBot.id) {
@@ -326,7 +339,17 @@ export const useChatState = (isVip: boolean) => {
     }
   }, [userChats, currentBot.id, currentBot.name, initializeChat, toast, setUserChats]);
 
+  // Only allow translation for VIP users
   const handleTranslateMessage = useCallback((messageId: string, targetLanguage: string) => {
+    if (!isVip) {
+      toast({
+        title: "VIP feature",
+        description: "Message translation is only available for VIP users.",
+        duration: 3000
+      });
+      return;
+    }
+    
     const translateText = (text: string, language: string): string => {
       const mockTranslations: Record<string, Record<string, string>> = {
         en: {
@@ -390,7 +413,7 @@ export const useChatState = (isVip: boolean) => {
       description: `Message has been translated to ${targetLanguage.toUpperCase()}.`,
       duration: 3000
     });
-  }, [setUserChats, toast]);
+  }, [setUserChats, toast, isVip]);
 
   const getSharedMedia = useCallback((userId: string) => {
     const chatMessages = userChats[userId] || [];
@@ -401,9 +424,16 @@ export const useChatState = (isVip: boolean) => {
     return { images, voice };
   }, [userChats]);
 
-  // Updated reply to message handler
+  // Updated reply to message handler - VIP only
   const handleReplyToMessage = useCallback((messageId: string, content: string) => {
-    if (!isVip) return;
+    if (!isVip) {
+      toast({
+        title: "VIP feature",
+        description: "Replying to messages is only available for VIP users.",
+        duration: 3000
+      });
+      return;
+    }
     
     // Find the message to reply to across all chats
     let messageToReplyTo: Message | null = null;
@@ -424,11 +454,18 @@ export const useChatState = (isVip: boolean) => {
     if (content) {
       return handleSendTextMessageWrapper(content);
     }
-  }, [isVip, userChats, setReplyingToMessage, handleSendTextMessageWrapper]);
+  }, [isVip, userChats, setReplyingToMessage, handleSendTextMessageWrapper, toast]);
 
-  // Updated react to message handler
+  // Updated react to message handler - VIP only
   const handleReactToMessage = useCallback((messageId: string, emoji: string) => {
-    if (!isVip) return;
+    if (!isVip) {
+      toast({
+        title: "VIP feature",
+        description: "Reacting to messages is only available for VIP users.",
+        duration: 3000
+      });
+      return;
+    }
     
     setUserChats(prev => {
       const newChats = { ...prev };
@@ -483,9 +520,16 @@ export const useChatState = (isVip: boolean) => {
     });
   }, [isVip, setUserChats, toast]);
 
-  // Updated unsend message handler
+  // Updated unsend message handler - VIP only
   const handleUnsendMessage = useCallback((messageId: string) => {
-    if (!isVip) return;
+    if (!isVip) {
+      toast({
+        title: "VIP feature",
+        description: "Unsending messages is only available for VIP users.",
+        duration: 3000
+      });
+      return;
+    }
     
     setUserChats(prev => {
       const newChats = { ...prev };

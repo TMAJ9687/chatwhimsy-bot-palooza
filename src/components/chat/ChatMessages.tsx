@@ -15,16 +15,16 @@ interface ChatMessagesProps {
 const ChatMessages: React.FC<ChatMessagesProps> = ({ 
   messages, 
   isTyping,
-  showStatus = true,
-  showTyping = true
+  showStatus = false,
+  showTyping = false
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { isVip } = useUser();
   const { endRef } = useScrollToBottom([messages, isTyping]);
   
-  // Always show status for VIP users, overriding the passed prop
-  const shouldShowStatus = isVip || showStatus;
-  const shouldShowTyping = isVip || showTyping;
+  // Only show status and typing indicators for VIP users
+  const shouldShowStatus = isVip && showStatus;
+  const shouldShowTyping = isVip && showTyping;
 
   return (
     <div 

@@ -72,9 +72,14 @@ const MobileUserList = memo(({
         >
           <MessageSquare className="h-4 w-4" />
           <span>People</span>
+          {blockedCount > 0 && !showBlocked && (
+            <Badge variant="secondary" className="ml-1 text-xs h-5">
+              {blockedCount}
+            </Badge>
+          )}
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="p-0">
+      <SheetContent side="left" className="p-0 w-[85vw] max-w-[350px] sm:w-[350px]">
         <div className="flex flex-col h-full">
           <div className="p-4 border-b">
             <SearchInput 
@@ -95,7 +100,7 @@ const MobileUserList = memo(({
               {blockedCount > 0 && (
                 <button
                   className={`p-1 rounded-md ${
-                    showBlocked ? 'bg-gray-200' : 'hover:bg-gray-100'
+                    showBlocked ? 'bg-gray-200 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                   }`}
                   onClick={toggleBlockedVisibility}
                   title={showBlocked ? "Hide blocked users" : "Show blocked users"}
@@ -105,32 +110,47 @@ const MobileUserList = memo(({
               )}
               
               <button 
-                className="p-1 rounded-full hover:bg-gray-100"
+                className={`p-1 rounded-md ${
+                  showFilterMenu ? 'bg-gray-200 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
                 onClick={() => setShowFilterMenu(!showFilterMenu)}
               >
                 <Filter className="w-4 h-4" />
               </button>
-              
-              {showFilterMenu && (
-                <div className="absolute right-4 top-24 z-10 w-72">
-                  <FilterMenu 
-                    filters={filters}
-                    onChange={onFilterChange}
-                  />
-                </div>
-              )}
             </div>
           </div>
           
-          <div className="flex-1 overflow-y-auto">
-            {visibleUsers.map(user => (
-              <UserListItem
-                key={user.id}
-                user={user}
-                isActive={user.id === currentUserId}
-                onClick={() => onSelectUser(user)}
+          {showFilterMenu && (
+            <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+              <FilterMenu 
+                filters={filters}
+                onChange={onFilterChange}
               />
-            ))}
+            </div>
+          )}
+          
+          <div className="flex-1 overflow-y-auto">
+            {visibleUsers.length > 0 ? (
+              visibleUsers.map(user => (
+                <UserListItem
+                  key={user.id}
+                  user={user}
+                  isActive={user.id === currentUserId}
+                  onClick={() => {
+                    onSelectUser(user);
+                    // Close sheet on mobile after selection
+                    const closeButton = document.querySelector('[data-radix-collection-item]');
+                    if (closeButton && 'click' in closeButton) {
+                      (closeButton as HTMLElement).click();
+                    }
+                  }}
+                />
+              ))
+            ) : (
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                No users found matching your criteria
+              </div>
+            )}
           </div>
         </div>
       </SheetContent>
