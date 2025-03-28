@@ -9,9 +9,22 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
   // Track cleanup attempts to prevent loops
   const cleanupAttemptedRef = useRef(false);
   const lastCleanupTimeRef = useRef(0);
+  const isMountedRef = useRef(true);
+  
+  // Track component mounted state
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   
   // Create a memoized error handler
   const handleError = useCallback((error: ErrorEvent) => {
+    // Skip if component is unmounted
+    if (!isMountedRef.current) return;
+    
     const errorMessage = error.message || '';
     const now = Date.now();
     
@@ -36,6 +49,9 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
       
       // Use queueMicrotask for more reliable timing with DOM operations
       queueMicrotask(() => {
+        // Skip if component unmounted
+        if (!isMountedRef.current) return;
+        
         // For removeChild errors, we need special handling
         if (errorMessage.includes('removeChild') || errorMessage.includes('not a child')) {
           try {
@@ -47,16 +63,22 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
             
             // Do a more thorough cleanup with careful timing
             setTimeout(() => {
+              // Skip if component unmounted
+              if (!isMountedRef.current) return;
+              
               // Run the provided cleanup function
               cleanupFn();
               
               // Additional targeted cleanup for removeChild errors
               try {
+                // Skip if component unmounted
+                if (!isMountedRef.current) return;
+                
                 // Clean up any overlay elements still in the DOM
                 document.querySelectorAll('.fixed.inset-0, [data-radix-dialog-overlay], [data-radix-alert-dialog-overlay]')
                   .forEach(element => {
                     try {
-                      if (element.parentNode) {
+                      if (element.parentNode && document.contains(element)) {
                         // Double-check the element is actually a child
                         const isChild = Array.from(element.parentNode.childNodes).includes(element);
                         if (isChild) {
@@ -73,15 +95,19 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
               
               // Reset the cleanup flag after a delay
               setTimeout(() => {
-                cleanupAttemptedRef.current = false;
+                if (isMountedRef.current) {
+                  cleanupAttemptedRef.current = false;
+                }
               }, 2000);
             }, 0);
           } catch (e) {
             console.warn('Error during error cleanup:', e);
           }
         } else {
-          // For other DOM errors, just run the regular cleanup
-          cleanupFn();
+          // For other DOM errors, just run the regular cleanup if component is mounted
+          if (isMountedRef.current) {
+            cleanupFn();
+          }
         }
       });
     }
@@ -93,6 +119,9 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
     
     // Add unhandled rejection handler for promises
     const handleRejection = (event: PromiseRejectionEvent) => {
+      // Skip if component unmounted
+      if (!isMountedRef.current) return;
+      
       const errorMessage = event.reason?.message || String(event.reason);
       if (
         errorMessage.includes('removeChild') || 
@@ -108,6 +137,10 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
     window.addEventListener('unhandledrejection', handleRejection);
     
     return () => {
+      // Set mounted flag to false first
+      isMountedRef.current = false;
+      
+      // Then remove event listeners
       window.removeEventListener('error', handleError);
       window.removeEventListener('unhandledrejection', handleRejection);
     };

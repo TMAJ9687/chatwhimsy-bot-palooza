@@ -28,31 +28,50 @@ const LogoutConfirmationDialog = () => {
   const navigate = useNavigate();
   const { cleanupOverlays } = useSafeDOMOperations();
   
+  // Track if component is mounted to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+  
   // Track if navigation is in progress to prevent race conditions
   const isNavigatingRef = useRef(false);
   
   const isVip = user?.isVip || false;
 
+  // Track mounted state
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Ensure cleanup happens on unmount
   useEffect(() => {
     return () => {
-      cleanupOverlays();
+      if (isMountedRef.current) {
+        cleanupOverlays();
+      }
     };
   }, [cleanupOverlays]);
 
   const handleSafeClose = useCallback(() => {
+    // Skip if already unmounted
+    if (!isMountedRef.current) return;
+    
     // First clean up any overlay elements
     cleanupOverlays();
     
     // Short delay before closing the dialog
     setTimeout(() => {
-      handleDialogClose(closeDialog);
+      if (isMountedRef.current) {
+        handleDialogClose(closeDialog);
+      }
     }, 50);
   }, [closeDialog, handleDialogClose, cleanupOverlays]);
 
   const handleConfirm = useCallback(async () => {
-    // Prevent multiple clicks
-    if (isNavigatingRef.current) return;
+    // Prevent multiple clicks and skip if unmounted
+    if (isNavigatingRef.current || !isMountedRef.current) return;
     isNavigatingRef.current = true;
     
     // First close the dialog
@@ -62,8 +81,12 @@ const LogoutConfirmationDialog = () => {
     try {
       // Use a timeout to ensure dialog is fully closed before proceeding
       setTimeout(async () => {
+        if (!isMountedRef.current) return;
+        
         try {
           trackEvent('user-logout', async () => {
+            if (!isMountedRef.current) return;
+            
             if (onConfirm && typeof onConfirm === 'function') {
               // Store user type in localStorage for redirect after logout
               if (user) {
@@ -80,20 +103,31 @@ const LogoutConfirmationDialog = () => {
               if (isAdmin) {
                 try {
                   await signOutUser(); // Use the Firebase signOut directly
+                  
+                  // Only continue if still mounted
+                  if (!isMountedRef.current) return;
+                  
                   await adminLogout(); // Also run adminLogout for any app-specific cleanup
                   clearUser();
                   
                   // Cleanup before navigation
                   cleanupOverlays();
                   
-                  // Navigate to landing page after admin logout with a short delay
-                  setTimeout(() => {
-                    navigate('/admin-login');
-                    console.log('Admin logged out successfully');
-                  }, 100);
+                  // Only navigate if component is still mounted
+                  if (isMountedRef.current) {
+                    // Navigate to landing page after admin logout with a short delay
+                    setTimeout(() => {
+                      if (isMountedRef.current) {
+                        navigate('/admin-login');
+                        console.log('Admin logged out successfully');
+                      }
+                    }, 100);
+                  }
                 } catch (error) {
                   console.error('Error during admin logout:', error);
-                  isNavigatingRef.current = false;
+                  if (isMountedRef.current) {
+                    isNavigatingRef.current = false;
+                  }
                 }
               } else {
                 // Standard user logout - call onConfirm after cleanup
@@ -101,20 +135,26 @@ const LogoutConfirmationDialog = () => {
                 
                 // Use timeout to ensure cleanup completes
                 setTimeout(() => {
-                  onConfirm();
-                  isNavigatingRef.current = false;
+                  if (isMountedRef.current) {
+                    onConfirm();
+                    isNavigatingRef.current = false;
+                  }
                 }, 100);
               }
             }
           });
         } catch (error) {
           console.error('Error during logout:', error);
-          isNavigatingRef.current = false;
+          if (isMountedRef.current) {
+            isNavigatingRef.current = false;
+          }
         }
       }, 100);
     } catch (error) {
       console.error('Error during logout process:', error);
-      isNavigatingRef.current = false;
+      if (isMountedRef.current) {
+        isNavigatingRef.current = false;
+      }
     }
   }, [onConfirm, handleSafeClose, user, isVip, isAdmin, adminLogout, navigate, clearUser, cleanupOverlays]);
 

@@ -1,5 +1,5 @@
 
-import React, { useRef, memo, useLayoutEffect, useEffect } from 'react';
+import React, { useRef, memo, useLayoutEffect, useEffect, useState } from 'react';
 import { Message } from '@/types/chat';
 import { useUser } from '@/context/UserContext';
 import MessageList from './MessageList';
@@ -23,16 +23,27 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const { isVip } = useUser();
   const { endRef } = useScrollToBottom([messages, isTyping]);
   const { safeRemoveElement } = useSafeDOMOperations();
+  const isMountedRef = useRef(true);
   
   // Only show status and typing indicators for VIP users
   const shouldShowStatus = isVip && showStatus;
   const shouldShowTyping = isVip && showTyping;
 
+  // Track component mounted state
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    return () => {
+      // Mark as unmounted on cleanup
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Use useLayoutEffect to ensure DOM operations are performed synchronously
   // before the browser paints, helping prevent race conditions
   useLayoutEffect(() => {
-    // Make sure the container exists
-    if (!containerRef.current) return;
+    // Make sure the container exists and component is still mounted
+    if (!containerRef.current || !isMountedRef.current) return;
     
     // Find any potential problematic elements
     const problematicElements = containerRef.current.querySelectorAll(
@@ -44,7 +55,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       console.log(`[ChatMessages] Found ${problematicElements.length} problematic elements, removing...`);
       
       problematicElements.forEach(element => {
-        safeRemoveElement(element);
+        // Only attempt removal if still mounted
+        if (isMountedRef.current) {
+          safeRemoveElement(element);
+        }
       });
     }
   }, [messages, safeRemoveElement]); // Re-run when messages change
@@ -61,8 +75,13 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
         if (problematicElements.length > 0) {
           problematicElements.forEach(element => {
             try {
-              if (element.parentNode) {
-                element.parentNode.removeChild(element);
+              // Check parent exists before removal
+              if (element.parentNode && document.contains(element)) {
+                // Double-check element is a child of its parent
+                const parentChildNodes = Array.from(element.parentNode.childNodes);
+                if (parentChildNodes.includes(element)) {
+                  element.parentNode.removeChild(element);
+                }
               }
             } catch (error) {
               console.warn('[ChatMessages] Error removing element on unmount:', error);
