@@ -115,25 +115,15 @@ export const trackAsyncOperation = async <T>(
 export const debounce = <T extends (...args: any[]) => void>(
   func: T,
   wait: number
-): ((...args: Parameters<T>) => void) & { flush: () => void } => {
+): ((...args: Parameters<T>) => void) => {
   let timeout: number | null = null;
   
-  const debounced = (...args: Parameters<T>): void => {
+  return (...args: Parameters<T>): void => {
     if (timeout !== null) {
       window.clearTimeout(timeout);
     }
     timeout = window.setTimeout(() => func(...args), wait);
   };
-  
-  // Add flush method to immediately execute the function
-  debounced.flush = () => {
-    if (timeout !== null) {
-      window.clearTimeout(timeout);
-      timeout = null;
-    }
-  };
-  
-  return debounced;
 };
 
 // Memoize function for caching expensive calculations
