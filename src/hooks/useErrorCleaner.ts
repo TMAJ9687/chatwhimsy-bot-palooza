@@ -45,36 +45,64 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
       '.vaul-overlay',
       '.backdrop',
       '.modal-backdrop',
-      '.fixed.z-50'
+      '.fixed.z-50',
+      '[aria-modal="true"]',
+      '[role="dialog"]'
     ];
     
     // Process overlay elements with enhanced validation and incremental cleanup
     selectors.forEach(selector => {
       try {
-        safetyUtils.current.safeRemoveElementsBySelector(selector);
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+          try {
+            if (el.parentNode) {
+              // Check if it's actually a child
+              const isChild = Array.from(el.parentNode.childNodes).includes(el);
+              if (isChild) {
+                try {
+                  el.remove();
+                } catch (e) {
+                  if (el.parentNode && el.parentNode.contains(el)) {
+                    el.parentNode.removeChild(el);
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            // Ignore individual element errors
+          }
+        });
       } catch (e) {
         console.warn(`[useErrorCleaner] Error in emergency cleanup of ${selector}:`, e);
       }
     });
     
     // Also run the provided cleanup function
-    cleanupFn();
+    try {
+      cleanupFn();
+    } catch (e) {
+      console.warn('[useErrorCleaner] Error running cleanup function:', e);
+    }
     
     // If we've had multiple errors, take more drastic measures
     if (errorCountRef.current > 2) {
       try {
-        // More aggressive cleanup for persistent errors
-        // Remove all portal nodes as a last resort
-        const portals = document.querySelectorAll('[aria-modal="true"], [role="dialog"]');
-        portals.forEach(portal => {
-          try {
-            if (portal.parentNode && safetyUtils.current.isElementSafeToRemove(portal as Element)) {
-              portal.parentNode.removeChild(portal);
+        // Force React to refresh its internal state for DOM operations
+        // This is a last resort measure
+        if (document.body) {
+          const temporaryDiv = document.createElement('div');
+          document.body.appendChild(temporaryDiv);
+          requestAnimationFrame(() => {
+            try {
+              if (document.body.contains(temporaryDiv)) {
+                document.body.removeChild(temporaryDiv);
+              }
+            } catch (e) {
+              // Ignore temporary div cleanup errors
             }
-          } catch (e) {
-            // Ignore errors in last-resort cleanup
-          }
-        });
+          });
+        }
       } catch (e) {
         console.warn('[useErrorCleaner] Error in aggressive cleanup:', e);
       }
@@ -113,6 +141,7 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
       
       // Prevent default error behavior to avoid cascading errors
       error.preventDefault();
+      error.stopPropagation();
       
       // Use more reliable microtask scheduling
       queueMicrotask(() => {
@@ -126,6 +155,8 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
           }
         }, 2500);
       });
+      
+      return false;
     }
   }, [performEmergencyCleanup]);
   
@@ -147,7 +178,11 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
       ) {
         console.warn('Promise rejection with DOM error detected:', errorMessage);
         event.preventDefault();
-        handleError({ message: errorMessage, preventDefault: () => {} } as ErrorEvent);
+        handleError({ 
+          message: errorMessage, 
+          preventDefault: () => {}, 
+          stopPropagation: () => {} 
+        } as unknown as ErrorEvent);
       }
     };
     window.addEventListener('unhandledrejection', handleRejection, { capture: true });

@@ -39,12 +39,26 @@ const DialogFallback = () => (
 const DialogContainer = () => {
   const { state } = useDialog();
   const mountedRef = useRef(true);
+  const activeDialogTypeRef = useRef<string | null>(null);
   
   // Track when component unmounts to prevent setState after unmount
   useEffect(() => {
     mountedRef.current = true;
+    
+    // Enhanced cleanup on unmount
     return () => {
       mountedRef.current = false;
+      activeDialogTypeRef.current = null;
+      
+      // Cleanup any stuck dialog elements
+      if (typeof document !== 'undefined') {
+        try {
+          document.body.style.overflow = 'auto';
+          document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+        } catch (e) {
+          // Ignore any errors during emergency cleanup
+        }
+      }
     };
   }, []);
   
@@ -53,21 +67,37 @@ const DialogContainer = () => {
     if (!mountedRef.current) return;
     
     if (state.isOpen) {
+      // Track the currently active dialog type to help with cleanup
+      activeDialogTypeRef.current = state.type;
       trackEvent(`dialog-render-${state.type}`, () => {});
+    } else {
+      activeDialogTypeRef.current = null;
     }
   }, [state.isOpen, state.type]);
 
+  // Don't render anything if not open or component is unmounting
   if (!state.isOpen || !mountedRef.current) {
     return null;
   }
 
   // Special case for directly imported dialogs - render without Suspense
+  // and with enhanced error handling
   if (state.type === 'siteRules') {
-    return <SiteRulesDialog />;
+    try {
+      return <SiteRulesDialog key="siteRules" />;
+    } catch (error) {
+      console.error('Error rendering SiteRulesDialog:', error);
+      return null;
+    }
   }
   
   if (state.type === 'logout') {
-    return <LogoutConfirmationDialog />;
+    try {
+      return <LogoutConfirmationDialog key="logout" />;
+    } catch (error) {
+      console.error('Error rendering LogoutConfirmationDialog:', error);
+      return null;
+    }
   }
 
   return (
@@ -77,29 +107,30 @@ const DialogContainer = () => {
         if (!mountedRef.current) return null;
         
         // Render the appropriate dialog component based on the dialog type
+        // Adding keys to help React better track component identity
         switch (state.type) {
           case 'report':
-            return <ReportDialog />;
+            return <ReportDialog key="report" />;
           case 'block':
-            return <BlockUserDialog />;
+            return <BlockUserDialog key="block" />;
           case 'vipLogin':
-            return <VipLoginDialog />;
+            return <VipLoginDialog key="vipLogin" />;
           case 'vipSignup':
-            return <VipSignupDialog />;
+            return <VipSignupDialog key="vipSignup" />;
           case 'vipSubscription':
-            return <VipSubscriptionDialog />;
+            return <VipSubscriptionDialog key="vipSubscription" />;
           case 'vipPayment':
-            return <VipPaymentDialog />;
+            return <VipPaymentDialog key="vipPayment" />;
           case 'vipConfirmation':
-            return <VipConfirmationDialog />;
+            return <VipConfirmationDialog key="vipConfirmation" />;
           case 'accountDeletion':
-            return <AccountDeletionDialog />;
+            return <AccountDeletionDialog key="accountDeletion" />;
           case 'vipSelect':
-            return <VipSelectDialog />;
+            return <VipSelectDialog key="vipSelect" />;
           case 'confirm':
-            return <ConfirmDialog />;
+            return <ConfirmDialog key="confirm" />;
           case 'alert':
-            return <AlertDialogComponent />;
+            return <AlertDialogComponent key="alert" />;
           default:
             return null;
         }

@@ -44,6 +44,7 @@ const App = () => {
   const [hasLoggedOut, setHasLoggedOut] = useState(false);
   const [userType, setUserType] = useState<'standard' | 'vip' | null>(null);
   const logoutInProgressRef = useRef(false);
+  const errorHandlerSetRef = useRef(false);
 
   // Initialize performance monitoring with more detailed options
   useEffect(() => {
@@ -64,30 +65,60 @@ const App = () => {
       performance.measure('App Load Time', 'app_load_start', 'app_load_end');
     });
     
-    // Error handler for removeChild errors that bubble up
-    const handleError = (event: ErrorEvent) => {
-      if (
-        event.message && 
-        event.message.includes('removeChild') && 
-        event.message.includes('not a child')
-      ) {
-        // Prevent default behavior
-        event.preventDefault();
-        console.warn('Caught removeChild error during navigation, suppressing');
-        
-        // If we're in the middle of logout, continue the process
-        if (logoutInProgressRef.current) {
+    // Only add error handler once (prevents duplicate handlers)
+    if (!errorHandlerSetRef.current) {
+      errorHandlerSetRef.current = true;
+      
+      // Global error handler for removeChild errors
+      const handleError = (event: ErrorEvent) => {
+        if (
+          event.message && 
+          event.message.includes('removeChild') && 
+          event.message.includes('not a child')
+        ) {
+          // Prevent default behavior
+          event.preventDefault();
+          console.warn('Caught removeChild error during navigation, suppressing');
+          
+          // Clean up DOM state
           document.body.style.overflow = 'auto';
           document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+          
+          // If we're in the middle of logout, continue the process
+          if (logoutInProgressRef.current) {
+            document.body.style.overflow = 'auto';
+            document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+          }
+          
+          // Clean up problematic elements
+          try {
+            document.querySelectorAll('.fixed.inset-0, [data-radix-dialog-overlay], [data-radix-alert-dialog-overlay]')
+              .forEach(el => {
+                try {
+                  if (el.parentNode) {
+                    // Check if it's truly a child first
+                    const isChild = Array.from(el.parentNode.childNodes).includes(el);
+                    if (isChild) {
+                      el.remove();
+                    }
+                  }
+                } catch (e) {
+                  // Ignore removal errors
+                }
+              });
+          } catch (e) {
+            // Ignore cleanup errors
+          }
+          
+          return false;
         }
-      }
-    };
-    
-    window.addEventListener('error', handleError);
+      };
+      
+      window.addEventListener('error', handleError, { capture: true });
+    }
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('error', handleError);
     };
   }, []);
 
