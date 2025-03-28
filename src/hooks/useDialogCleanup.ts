@@ -1,38 +1,17 @@
 
-import { useCallback, useRef } from 'react';
-import { useSafeDOMOperations } from './useSafeDOMOperations';
+import { useCallback } from 'react';
 
 /**
- * Hook for safely closing dialogs and cleaning up related DOM elements
+ * A simplified hook for dialog cleanup that focuses on core functionality
  */
 export const useDialogCleanup = () => {
-  const isClosingRef = useRef(false);
-  const { cleanupOverlays } = useSafeDOMOperations();
-  
-  // Safer close method with proper timing
+  // Safe close method with proper timing
   const handleDialogClose = useCallback((onClose: () => void) => {
-    if (isClosingRef.current) return;
-    isClosingRef.current = true;
-    
-    // Use queueMicrotask for reliable timing
-    queueMicrotask(() => {
-      // Close the dialog first
-      onClose();
-      
-      // Then clean up overlays after a short delay
-      setTimeout(() => {
-        cleanupOverlays();
-        
-        // Reset closing state after everything is done
-        setTimeout(() => {
-          isClosingRef.current = false;
-        }, 100);
-      }, 50);
-    });
-  }, [cleanupOverlays]);
+    // Use a more direct approach to closing
+    onClose();
+  }, []);
 
   return {
-    handleDialogClose,
-    isClosingRef
+    handleDialogClose
   };
 };

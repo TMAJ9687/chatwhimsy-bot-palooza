@@ -3,13 +3,13 @@ import React, { memo, useEffect, Suspense, useRef } from 'react';
 import { useDialog } from '@/context/DialogContext';
 import { trackEvent } from '@/utils/performanceMonitor';
 
-// Import SiteRulesDialog normally instead of lazy loading it
+// Import dialogs normally instead of lazy loading for critical ones
 import SiteRulesDialog from './SiteRulesDialog';
+import LogoutConfirmationDialog from './LogoutConfirmationDialog';
 
 // Using lazy loading for all other dialogs to reduce initial load time
 const ReportDialog = React.lazy(() => import('./ReportDialog'));
 const BlockUserDialog = React.lazy(() => import('./BlockUserDialog'));
-const LogoutConfirmationDialog = React.lazy(() => import('./LogoutConfirmationDialog'));
 const VipLoginDialog = React.lazy(() => import('./VipLoginDialog'));
 const VipSignupDialog = React.lazy(() => import('./VipSignupDialog'));
 const VipSubscriptionDialog = React.lazy(() => import('./VipSubscriptionDialog'));
@@ -33,8 +33,8 @@ const DialogFallback = () => (
 
 /**
  * This component renders the appropriate dialog based on the current dialog state
- * Each dialog component is lazily rendered only when needed, except for SiteRulesDialog
- * which is imported normally to avoid dynamic import issues
+ * Critical dialogs (SiteRules and LogoutConfirmation) are imported directly
+ * to avoid dynamic import issues
  */
 const DialogContainer = () => {
   const { state } = useDialog();
@@ -61,9 +61,13 @@ const DialogContainer = () => {
     return null;
   }
 
-  // Special case for SiteRulesDialog - render directly without Suspense
+  // Special case for directly imported dialogs - render without Suspense
   if (state.type === 'siteRules') {
     return <SiteRulesDialog />;
+  }
+  
+  if (state.type === 'logout') {
+    return <LogoutConfirmationDialog />;
   }
 
   return (
@@ -78,8 +82,6 @@ const DialogContainer = () => {
             return <ReportDialog />;
           case 'block':
             return <BlockUserDialog />;
-          case 'logout':
-            return <LogoutConfirmationDialog />;
           case 'vipLogin':
             return <VipLoginDialog />;
           case 'vipSignup':
