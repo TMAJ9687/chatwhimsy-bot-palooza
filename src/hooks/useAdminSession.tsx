@@ -18,6 +18,7 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [redirectAttempted, setRedirectAttempted] = useState(false);
   
   // Check admin authentication on mount and when user changes
   const checkAdminAuth = useCallback(() => {
@@ -45,14 +46,19 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
     }
     
     // If not logged in as admin and not on the login page, redirect to login
-    if (!adminLoggedIn && !user?.isAdmin && !location.pathname.includes('/secretadminportal')) {
+    if (!adminLoggedIn && !user?.isAdmin && !location.pathname.includes('/secretadminportal') && 
+        location.pathname.includes('/admin') && !redirectAttempted) {
       console.log('Not authenticated as admin, redirecting to:', redirectPath);
       setIsLoading(false);
+      setRedirectAttempted(true);
       
       // Clear any stale admin data
       localStorage.removeItem('adminEmail');
       
-      navigate(redirectPath);
+      // Use a timeout to avoid infinite redirect loops
+      setTimeout(() => {
+        navigate(redirectPath);
+      }, 100);
       return;
     }
     
@@ -80,10 +86,15 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
     
     setIsLoading(false);
     console.log('Admin authentication check complete');
-  }, [navigate, redirectPath, user, setUser, location.pathname]);
+  }, [navigate, redirectPath, user, setUser, location.pathname, redirectAttempted]);
   
   useEffect(() => {
     console.log('useAdminSession hook initialized');
+    
+    // Reset redirect attempts when location changes
+    if (location.pathname !== '/secretadminportal' && redirectAttempted) {
+      setRedirectAttempted(false);
+    }
     
     // Set up Firebase auth state listener
     const unsubscribe = onAuthStateChange((firebaseUser) => {
@@ -144,7 +155,7 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
       unsubscribe();
       clearInterval(intervalId);
     };
-  }, [checkAdminAuth, user, setUser, location.pathname, navigate]);
+  }, [checkAdminAuth, user, setUser, location.pathname, navigate, redirectAttempted]);
   
   return {
     isAuthenticated,

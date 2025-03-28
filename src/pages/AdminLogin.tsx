@@ -30,11 +30,17 @@ const AdminLogin = () => {
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [adminCheckComplete, setAdminCheckComplete] = useState(false);
+  const redirectInProgressRef = React.useRef(false);
   
   // Check if already logged in as admin
   useEffect(() => {
     console.log('Checking admin login state in AdminLogin component...');
     console.log('Current path:', location.pathname);
+    
+    if (redirectInProgressRef.current) {
+      console.log('Redirect already in progress, skipping check');
+      return;
+    }
     
     const checkAdminLogin = async () => {
       // Check both user context and Firebase auth
@@ -49,6 +55,8 @@ const AdminLogin = () => {
       
       if (isLoggedIn || (firebaseUser && isUserAdmin(firebaseUser))) {
         console.log('Admin is already logged in, redirecting to dashboard');
+        redirectInProgressRef.current = true;
+        
         // If user object doesn't exist but we're logged in through Firebase
         if (!user?.isAdmin && firebaseUser && isUserAdmin(firebaseUser)) {
           console.log('Creating admin user from Firebase credentials');
@@ -68,17 +76,20 @@ const AdminLogin = () => {
           });
         }
         
-        // Navigate to dashboard after short delay to ensure user state is updated
+        // Navigate to dashboard with a delay to ensure state updates
         setTimeout(() => {
           navigate('/admin-dashboard');
-        }, 100);
+          // Reset the flag after redirection
+          setTimeout(() => {
+            redirectInProgressRef.current = false;
+          }, 500);
+        }, 300);
       } else {
         console.log('No admin session detected, showing login form');
         // Clear any stale admin data
         localStorage.removeItem('adminEmail');
+        setAdminCheckComplete(true);
       }
-      
-      setAdminCheckComplete(true);
     };
     
     checkAdminLogin();

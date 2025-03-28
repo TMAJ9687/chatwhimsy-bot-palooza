@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -42,12 +43,15 @@ const AuthListener = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const authListenerSetRef = useRef(false);
+  const adminRedirectInProgress = useRef(false);
   
   useEffect(() => {
     console.log('AuthListener initialized, current path:', location.pathname);
     
-    if (location.pathname === '/secretadminportal') {
-      console.log('On admin login page, skipping auth redirects');
+    // Don't interfere with admin login/dashboard paths
+    if (location.pathname === '/secretadminportal' || 
+        location.pathname === '/admin-dashboard') {
+      console.log('On admin page, skipping auth redirects');
       return;
     }
     
@@ -59,6 +63,13 @@ const AuthListener = () => {
         
         if (!user) {
           const currentPath = location.pathname;
+          
+          // Avoid redirecting if we're on public paths or during admin redirect
+          if (adminRedirectInProgress.current) {
+            console.log('Admin redirect in progress, skipping auth redirect');
+            return;
+          }
+          
           if (
             currentPath !== '/' && 
             currentPath !== '/vip-login' && 

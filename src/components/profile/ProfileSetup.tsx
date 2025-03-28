@@ -65,12 +65,16 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
 
   const handleSubmit = () => {
     if (gender && age && country) {
+      // Save profile data
       onComplete({
         gender,
         age,
         country,
         interests
       });
+      
+      // Navigate to chat route directly
+      navigate('/chat');
     }
   };
 
@@ -80,8 +84,8 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
     e.preventDefault();
     e.stopPropagation();
     
-    // Use window.location for a full page reload to avoid DOM state issues
-    window.location.href = '/';
+    // Navigate to home page using react-router for a smoother transition
+    navigate('/');
   };
 
   return (
