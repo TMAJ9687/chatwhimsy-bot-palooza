@@ -66,7 +66,15 @@ const LogoutConfirmationDialog = () => {
       }
       
       // Use our centralized logout function
-      performLogout();
+      performLogout(() => {
+        // Clear any additional session data
+        try {
+          localStorage.removeItem('sessionToken');
+          sessionStorage.clear();
+        } catch (e) {
+          console.error('Error clearing storage during logout:', e);
+        }
+      });
       
       // Ensure the page is redirected if the logout function doesn't handle it
       setTimeout(() => {

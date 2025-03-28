@@ -76,8 +76,12 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
 
   const isValid = gender && age >= 18 && country;
 
-  const handleBackToLanding = () => {
-    navigate('/');
+  const handleBackToLanding = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Use window.location for a full page reload to avoid DOM state issues
+    window.location.href = '/';
   };
 
   return (

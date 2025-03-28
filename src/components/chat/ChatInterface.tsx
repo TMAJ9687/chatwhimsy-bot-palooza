@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
@@ -13,6 +12,7 @@ import ChatAppHeader from './ChatAppHeader';
 import VipUpgradeSection from './VipUpgradeSection';
 import NotificationSidebar from './NotificationSidebar';
 import EmptyChatState from './EmptyChatState';
+import { useLogout } from '@/hooks/useLogout';
 
 interface ChatInterfaceProps {
   onLogout: () => void;
@@ -25,6 +25,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const [chatHidden, setChatHidden] = useState(true); // Set to true by default
   const [isInitializing, setIsInitializing] = useState(true);
   const [redirectAttempts, setRedirectAttempts] = useState(0);
+  const { performLogout } = useLogout(); // Add this hook for direct logout access
   
   // Enhanced navigation guards
   const navigationInProgressRef = useRef(false);
@@ -204,11 +205,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
   const handleLogout = useCallback(() => {
     openDialog('logout', { 
       onConfirm: () => {
-        onLogout();
-        navigate('/');
+        performLogout(); // Use the actual logout function from the hook
+        // The logout function will handle navigation
       }
     });
-  }, [onLogout, navigate, openDialog]);
+  }, [performLogout, openDialog]);
 
   const handleOpenInbox = useCallback(() => {
     setShowInbox(true);

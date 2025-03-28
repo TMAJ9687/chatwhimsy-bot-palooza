@@ -97,17 +97,16 @@ const SiteRulesDialog = () => {
   const handleWarningYes = useCallback(() => {
     if (!mountedRef.current) return;
     
-    // Close both dialogs
+    // Immediately clean up dialog contents
     setShowWarning(false);
     closeDialog();
     
-    // Use setTimeout to ensure state updates before navigation
-    setTimeout(() => {
-      if (mountedRef.current) {
-        navigate('/');
-      }
-    }, 0);
-  }, [navigate, closeDialog]);
+    // Force DOM cleanup before navigation
+    requestAnimationFrame(() => {
+      // Use full page reload to ensure complete state reset
+      window.location.href = '/';
+    });
+  }, [closeDialog]);
 
   const handleWarningNo = useCallback(() => {
     if (!mountedRef.current) return;
