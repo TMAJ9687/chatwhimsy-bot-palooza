@@ -125,7 +125,22 @@ export const createStorageBatcher = () => {
      * Force immediate processing of the queue
      */
     flush: () => {
-      processQueue.flush();
+      // Call the processQueue function immediately instead of trying to use flush
+      if (Object.keys(batchQueue).length > 0) {
+        // Execute the queue processing logic without debouncing
+        try {
+          for (const [key, value] of Object.entries(batchQueue)) {
+            localStorage.setItem(key, JSON.stringify(value));
+          }
+          console.log('Flush: Batch localStorage write completed');
+          
+          // Clear the queue
+          batchQueue = {};
+          isWriteScheduled = false;
+        } catch (error) {
+          console.error('Flush: Failed to write to localStorage:', error);
+        }
+      }
     }
   };
 };
