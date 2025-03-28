@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { 
   BarChart, 
@@ -21,7 +20,23 @@ import {
   ChartConfig
 } from '@/components/ui/chart';
 import { countries } from '@/data/countries';
-import { AreaChart, Area, BarChart as RechartsBarChart, Bar, LineChart as RechartsLineChart, Line, PieChart as RechartsPieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { 
+  AreaChart, 
+  Area, 
+  BarChart as RechartsBarChart, 
+  Bar, 
+  LineChart as RechartsLineChart, 
+  Line, 
+  PieChart as RechartsPieChart, 
+  Pie, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
+  Legend,
+  Cell
+} from 'recharts';
 
 // Mock traffic data by country for demonstration
 const mockTrafficData = countries.map(country => ({
