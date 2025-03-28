@@ -2,6 +2,8 @@
 import React, { useState, useRef } from 'react';
 import { Send, Image, Smile, X } from 'lucide-react';
 import Button from '../shared/Button';
+import { uploadDataURLImage } from '@/firebase/storage';
+import { useUser } from '@/context/UserContext';
 
 interface MessageInputProps {
   onSendMessage: (content: string, isImage?: boolean) => void;
@@ -32,6 +34,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [internalMessage, setInternalMessage] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useUser();
 
   const message = value !== undefined ? value : internalMessage;
   const handleChange = onChange || setInternalMessage;
@@ -39,10 +42,24 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const charCount = message.length;
   const isOverLimit = userType === 'standard' && charCount > MAX_CHARS;
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (imagePreview) {
-      onSendMessage(imagePreview, true);
-      setImagePreview(null);
+      try {
+        // First send the image in the chat interface
+        onSendMessage(imagePreview, true);
+        
+        // Then upload to Firebase in the background if user is logged in
+        if (user?.id) {
+          const isVip = userType === 'vip';
+          await uploadDataURLImage(imagePreview, isVip, user.id);
+        }
+        
+        setImagePreview(null);
+      } catch (error) {
+        console.error("Error sending image:", error);
+        // We still clear the preview since the message was sent in the UI
+        setImagePreview(null);
+      }
       return;
     }
 
@@ -81,6 +98,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   const triggerFileInput = () => {
+    if (userType === 'standard' && imagesRemaining <= 0) {
+      alert('You have reached your daily image upload limit. Upgrade to VIP for unlimited uploads.');
+      return;
+    }
+    
     fileInputRef.current?.click();
   };
 
@@ -173,7 +195,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           size="sm"
           className="h-[48px] w-[48px] rounded-full p-0 flex items-center justify-center"
           onClick={triggerFileInput}
-          disabled={disabled || imagesRemaining <= 0 || !!imagePreview}
+          disabled={disabled || (userType === 'standard' && imagesRemaining <= 0) || !!imagePreview}
           title={`${imagesRemaining} images remaining today`}
         >
           <Image className="h-5 w-5" />

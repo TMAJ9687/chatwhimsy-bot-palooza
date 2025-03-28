@@ -10,6 +10,8 @@ import SendButton from './SendButton';
 import VipStatusBar from './VipStatusBar';
 import VoiceMessageButton from './VoiceMessageButton';
 import { X } from 'lucide-react';
+import { uploadDataURLImage } from '@/firebase/storage';
+import { useUser } from '@/context/UserContext';
 
 interface MessageInputBarProps {
   onSendMessage: (text: string) => void;
@@ -32,6 +34,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const { isVip, replyingToMessage, setReplyingToMessage } = useChat();
+  const { user } = useUser();
   
   const isUserVip = userType === 'vip' || isVip;
   
@@ -44,11 +47,24 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     }
   };
   
-  const handleSendImage = () => {
+  const handleSendImage = async () => {
     if (disabled || !imagePreview) return;
     
-    onSendImage(imagePreview);
-    setImagePreview(null);
+    try {
+      // First send the image in the chat (for immediate feedback)
+      onSendImage(imagePreview);
+      
+      // Then upload to Firebase Storage in the background
+      if (user?.id) {
+        await uploadDataURLImage(imagePreview, isUserVip, user.id);
+      }
+      
+      setImagePreview(null);
+    } catch (error) {
+      console.error('Error sending image:', error);
+      // We still clear the preview since the message was already sent in the chat
+      setImagePreview(null);
+    }
   };
   
   const handleEmojiClick = (emoji: string) => {

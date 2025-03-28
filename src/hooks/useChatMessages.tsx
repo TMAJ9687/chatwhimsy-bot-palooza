@@ -3,12 +3,15 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Message, Bot } from '@/types/chat';
 import { getRandomBotResponse } from '@/utils/botUtils';
 import { trackImageUpload, getRemainingUploads, IMAGE_UPLOAD_LIMIT } from '@/utils/imageUploadLimiter';
+import { uploadDataURLImage } from '@/firebase/storage';
+import { useUser } from '@/context/UserContext';
 
 export const useChatMessages = (isVip: boolean, onNewNotification: (botId: string, content: string, botName: string) => void) => {
   const [userChats, setUserChats] = useState<Record<string, Message[]>>({});
   const [typingBots, setTypingBots] = useState<Record<string, boolean>>({});
   const [imagesRemaining, setImagesRemaining] = useState(IMAGE_UPLOAD_LIMIT);
   const currentBotIdRef = useRef<string>('');
+  const { user } = useUser();
 
   const setCurrentBotId = useCallback((botId: string) => {
     currentBotIdRef.current = botId;
@@ -140,12 +143,17 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
       // Only track image uploads for non-VIP users
       const remaining = await trackImageUpload(isVip);
       setImagesRemaining(remaining);
+      
+      // Upload the image to Firebase Storage
+      if (user?.id) {
+        await uploadDataURLImage(imageDataUrl, isVip, user.id);
+      }
     } catch (error) {
       console.error('Error tracking image upload:', error);
     }
     
     return newMessage.id;
-  }, [userChats, isVip]);
+  }, [userChats, isVip, user?.id]);
 
   const handleSendVoiceMessage = useCallback((voiceDataUrl: string, duration: number, currentBotId: string) => {
     const currentMessages = userChats[currentBotId] || [];

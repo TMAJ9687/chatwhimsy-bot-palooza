@@ -4,6 +4,8 @@ import { Image } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { validateImageFile } from '@/utils/messageUtils';
+import { uploadDataURLImage } from '@/firebase/storage';
+import { useUser } from '@/context/UserContext';
 
 interface ImageUploadButtonProps {
   onImageSelected: (imageDataUrl: string) => void;
@@ -20,6 +22,7 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user } = useUser();
 
   const handleClickUpload = () => {
     if (disabled) return;
@@ -35,7 +38,7 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
     fileInputRef.current?.click();
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (disabled) return;
     
     const file = e.target.files?.[0];
@@ -60,9 +63,27 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
     
     const reader = new FileReader();
     
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      onImageSelected(result);
+    reader.onloadend = async () => {
+      try {
+        const result = reader.result as string;
+        
+        // For now, we'll still pass the data URL to onImageSelected
+        // This maintains compatibility with the existing code
+        onImageSelected(result);
+        
+        // In the background, upload to Firebase Storage
+        // This doesn't affect the current flow but prepares for future migration
+        if (user?.id) {
+          await uploadDataURLImage(result, isVip, user.id);
+        }
+      } catch (error) {
+        console.error('Error processing image:', error);
+        toast({
+          title: "Upload failed",
+          description: "There was a problem uploading your image. Please try again.",
+          variant: "destructive"
+        });
+      }
     };
     
     reader.readAsDataURL(file);

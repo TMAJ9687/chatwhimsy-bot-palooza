@@ -9,7 +9,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyDY2ahen-rFA985JMwNXa_k9tS5Y9DYhIg",
   authDomain: "chatwiilovable.firebaseapp.com",
   projectId: "chatwiilovable",
-  storageBucket: "chatwiilovable.appspot.com", // Fixed storage bucket URL
+  storageBucket: "chatwiilovable.firebasestorage.app", // Fixed storage bucket URL
   messagingSenderId: "760246107454",
   appId: "1:760246107454:web:a09ef90265dfa0c57f806f"
 };
