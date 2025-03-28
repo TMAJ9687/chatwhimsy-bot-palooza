@@ -22,7 +22,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const { isVip } = useUser();
   const { endRef } = useScrollToBottom([messages, isTyping]);
-  const { safeRemoveElement } = useSafeDOMOperations();
+  const { safeRemoveElement, createCleanupFn } = useSafeDOMOperations();
   const isMountedRef = useRef(true);
   
   // Only show status and typing indicators for VIP users
@@ -33,11 +33,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   useEffect(() => {
     isMountedRef.current = true;
     
+    // Create a cleanup function for overlay elements
+    const cleanup = createCleanupFn('.fixed.inset-0, [data-radix-dialog-overlay], [data-radix-alert-dialog-overlay]');
+    
     return () => {
-      // Mark as unmounted on cleanup
+      // Mark as unmounted before cleanup
       isMountedRef.current = false;
+      
+      // Run cleanup operation
+      cleanup();
     };
-  }, []);
+  }, [createCleanupFn]);
 
   // Use useLayoutEffect to ensure DOM operations are performed synchronously
   // before the browser paints, helping prevent race conditions

@@ -55,77 +55,20 @@ export class DOMCleanupService {
           '.modal-backdrop'
         ];
         
-        // Collect all overlays
-        const overlaysToRemove: Element[] = [];
-        
-        // First find all elements to remove, avoiding duplicates
+        // Use the new utility method for safer batch removal
         selectors.forEach(selector => {
           try {
-            document.querySelectorAll(selector).forEach(overlay => {
-              // Skip elements that are already being processed
-              if (!this.overlaysBeingRemoved.has(overlay) && 
-                  overlay.parentNode && 
-                  document.contains(overlay)) {
-                overlaysToRemove.push(overlay);
-                this.overlaysBeingRemoved.add(overlay);
-              }
-            });
+            const count = safetyUtils.safeRemoveElementsBySelector(selector);
+            if (count > 0) {
+              console.log(`[DOMCleanupService] Removed ${count} elements with selector ${selector}`);
+            }
           } catch (e) {
-            console.warn(`[DOMCleanupService] Error finding selector ${selector}:`, e);
+            console.warn(`[DOMCleanupService] Error removing elements with selector ${selector}:`, e);
           }
         });
         
-        // If there are no overlays to remove, exit early
-        if (overlaysToRemove.length === 0) {
-          this.cleanupInProgress = false;
-          return;
-        }
-        
-        // Then remove them sequentially with delays
-        let index = 0;
-        
-        const removeNext = () => {
-          // Check if service is still mounted
-          if (!this.isMounted) {
-            this.cleanupInProgress = false;
-            this.overlaysBeingRemoved.clear();
-            return;
-          }
-          
-          if (index < overlaysToRemove.length) {
-            const overlay = overlaysToRemove[index];
-            
-            // Double check the element is still valid before attempting removal
-            if (overlay && 
-                overlay.parentNode && 
-                document.contains(overlay)) {
-              // Use element.remove() instead of parentNode.removeChild
-              try {
-                overlay.remove();
-                console.log(`[DOMCleanupService] Successfully removed overlay ${index + 1}/${overlaysToRemove.length}`);
-              } catch (e) {
-                console.warn(`[DOMCleanupService] Error removing overlay:`, e);
-              }
-            }
-            
-            // Remove from set either way
-            this.overlaysBeingRemoved.delete(overlay);
-            
-            // Move to next overlay
-            index++;
-            
-            // Use setTimeout for better performance and to avoid blocking the main thread
-            if (this.isMounted) {
-              const timeoutId = window.setTimeout(removeNext, 16); // ~60fps
-            }
-          } else {
-            // All overlays processed
-            this.cleanupInProgress = false;
-          }
-        };
-        
-        // Start removing
-        removeNext();
+        // Clear the operation state
+        this.cleanupInProgress = false;
       } catch (error) {
         console.warn('[DOMCleanupService] Error during cleanup:', error);
         this.cleanupInProgress = false;
@@ -135,5 +78,55 @@ export class DOMCleanupService {
     
     // Queue the operation
     operationQueue.queueOperation(cleanupOperation);
+  }
+  
+  /**
+   * Perform an emergency cleanup of overlay elements
+   * This bypasses the queue and does immediate removal
+   */
+  public emergencyCleanup(safetyUtils: DOMSafetyUtils): void {
+    if (!document || !document.body) return;
+    
+    try {
+      console.log('[DOMCleanupService] Performing emergency cleanup');
+      
+      // Reset body state first
+      safetyUtils.resetBodyState();
+      
+      // Directly remove known overlay selectors
+      const selectors = [
+        '.fixed.inset-0',
+        '[data-radix-dialog-overlay]',
+        '[data-radix-alert-dialog-overlay]',
+        '.backdrop',
+        '.modal-backdrop'
+      ];
+      
+      // Use a more direct approach for emergency cleanup
+      selectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(element => {
+          try {
+            if (element.parentNode && document.contains(element)) {
+              // Safer removal check
+              if (Array.from(element.parentNode.childNodes).includes(element)) {
+                try {
+                  // First try the safer element.remove() method
+                  element.remove();
+                } catch (err) {
+                  // Fallback to removeChild with validation
+                  if (element.parentNode && element.parentNode.contains(element)) {
+                    element.parentNode.removeChild(element);
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.warn('[DOMCleanupService] Error during emergency cleanup:', error);
+          }
+        });
+      });
+    } catch (error) {
+      console.warn('[DOMCleanupService] Failed emergency cleanup:', error);
+    }
   }
 }

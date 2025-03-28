@@ -13,8 +13,9 @@ export class DOMSafetyUtils {
       // Remove from registry first
       elementsRegistry.delete(element);
       
-      // Check if still in DOM and has parent before attempting removal
+      // Enhanced validation before attempting removal
       if (!element.parentNode) {
+        console.log('[DOMSafetyUtils] Element has no parent node, skipping removal');
         return false;
       }
       
@@ -31,15 +32,20 @@ export class DOMSafetyUtils {
       if (isRealChild) {
         // Use try-catch for the actual removal operation
         try {
-          // Remove the element
-          element.remove(); // Use safer .remove() method instead of parentNode.removeChild
-          return true;
+          // Use more reliable parentNode.contains check before removal
+          if (element.parentNode.contains(element)) {
+            element.parentNode.removeChild(element);
+            return true;
+          } else {
+            console.log('[DOMSafetyUtils] Element is not contained in parent, using safer .remove()');
+            element.remove(); // Fallback to element.remove() which has additional checks
+            return true;
+          }
         } catch (e) {
           console.warn('[DOMSafetyUtils] Element removal failed:', e);
           return false;
         }
       } else {
-        // If the element is not a real child, don't try to remove it
         console.warn('[DOMSafetyUtils] Element is not a child of its parent node');
         return false;
       }
@@ -63,5 +69,74 @@ export class DOMSafetyUtils {
     } catch (e) {
       console.warn('[DOMSafetyUtils] Error resetting body state:', e);
     }
+  }
+
+  /**
+   * Safely remove an element by selector with enhanced validation
+   */
+  public safeRemoveElementsBySelector(selector: string): number {
+    if (typeof document === 'undefined') return 0;
+    
+    let removedCount = 0;
+    try {
+      const elements = document.querySelectorAll(selector);
+      
+      elements.forEach(el => {
+        try {
+          if (!el.parentNode) return;
+          
+          // Verify the element is still in the DOM and a child of its parent
+          if (document.contains(el) && Array.from(el.parentNode.childNodes).includes(el)) {
+            // First try the safer .remove() method
+            try {
+              el.remove();
+              removedCount++;
+            } catch (err) {
+              // Fallback to parent.removeChild with additional validation
+              if (el.parentNode && el.parentNode.contains(el)) {
+                el.parentNode.removeChild(el);
+                removedCount++;
+              }
+            }
+          }
+        } catch (err) {
+          console.warn(`[DOMSafetyUtils] Error removing element by selector ${selector}:`, err);
+        }
+      });
+    } catch (e) {
+      console.warn(`[DOMSafetyUtils] Error in safeRemoveElementsBySelector ${selector}:`, e);
+    }
+    
+    return removedCount;
+  }
+
+  /**
+   * Create a safe removal function that validates DOM state before removal
+   * This is useful for cleanup functions in useEffect
+   */
+  public createSafeRemovalFn(element: Element | null): () => void {
+    // Store a weak reference to avoid memory leaks
+    const elementRef = new WeakRef(element);
+    
+    return () => {
+      try {
+        const el = elementRef.deref();
+        if (!el || !el.parentNode) return;
+        
+        // Verify element is still valid
+        if (document.contains(el) && el.parentNode.contains(el)) {
+          try {
+            el.remove();
+          } catch (err) {
+            // Fallback with additional validation
+            if (el.parentNode && Array.from(el.parentNode.childNodes).includes(el)) {
+              el.parentNode.removeChild(el);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[DOMSafetyUtils] Error in safe removal function:', err);
+      }
+    };
   }
 }

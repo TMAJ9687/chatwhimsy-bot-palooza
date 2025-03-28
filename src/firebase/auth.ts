@@ -31,13 +31,49 @@ export const sendPasswordReset = async (email: string): Promise<void> => {
   await sendPasswordResetEmail(auth, email);
 };
 
-// Sign out
+// Enhanced sign out with better cleanup
 export const signOutUser = async (): Promise<void> => {
   try {
-    await signOut(auth);
-    // Also clear local storage items related to admin session
+    // First clear local storage to ensure state is reset
     localStorage.removeItem('adminData');
     localStorage.removeItem('adminEmail');
+    
+    // Clean up any UI elements that might cause issues during navigation
+    try {
+      if (document.body) {
+        document.body.style.overflow = 'auto';
+        document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+      }
+      
+      // Remove any overlay elements to avoid DOM errors
+      const overlaySelectors = [
+        '.fixed.inset-0',
+        '[data-radix-dialog-overlay]',
+        '[data-radix-alert-dialog-overlay]'
+      ];
+      
+      overlaySelectors.forEach(selector => {
+        try {
+          document.querySelectorAll(selector).forEach(el => {
+            try {
+              if (el.parentNode && document.contains(el) && 
+                  Array.from(el.parentNode.childNodes).includes(el)) {
+                el.remove();
+              }
+            } catch (err) {
+              // Ignore errors during emergency cleanup
+            }
+          });
+        } catch (err) {
+          // Ignore errors
+        }
+      });
+    } catch (err) {
+      // Ignore any DOM errors during cleanup
+    }
+    
+    // Now perform the actual signOut operation
+    await signOut(auth);
     console.log('User signed out successfully');
   } catch (error) {
     console.error('Error signing out:', error);

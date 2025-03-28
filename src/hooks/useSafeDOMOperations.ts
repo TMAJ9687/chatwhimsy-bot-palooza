@@ -8,6 +8,7 @@ import { domRegistry } from '@/services/dom';
  */
 export const useSafeDOMOperations = () => {
   const unmountedRef = useRef(false);
+  const pendingOperationsRef = useRef<Array<() => void>>([]);
   
   // Clean up on unmount
   useEffect(() => {
@@ -15,6 +16,16 @@ export const useSafeDOMOperations = () => {
     
     return () => {
       unmountedRef.current = true;
+      
+      // Execute any pending cleanup operations during unmount
+      pendingOperationsRef.current.forEach(operation => {
+        try {
+          operation();
+        } catch (err) {
+          console.warn('Error executing pending operation during unmount:', err);
+        }
+      });
+      pendingOperationsRef.current = [];
     };
   }, []);
 
@@ -35,14 +46,29 @@ export const useSafeDOMOperations = () => {
     if (unmountedRef.current || !element) return false;
     
     try {
-      // Use the safer .remove() method if available
-      if (element && typeof element.remove === 'function') {
-        element.remove();
-        return true;
+      // First check if the element is still in the DOM
+      if (!document.contains(element)) {
+        return false;
       }
       
-      // Fallback to domRegistry method
-      return domRegistry.safeRemoveElement(element);
+      // Check if it has a parent
+      if (!element.parentNode) {
+        return false;
+      }
+      
+      // Verify it's a child of its parent
+      if (!Array.from(element.parentNode.childNodes).includes(element)) {
+        return false;
+      }
+      
+      // Try the safest removal method first
+      try {
+        element.remove();
+        return true;
+      } catch (e) {
+        // Fallback to registry method with additional checks
+        return domRegistry.safeRemoveElement(element);
+      }
     } catch (e) {
       console.warn('Error in safeRemoveElement:', e);
       return false;
@@ -52,7 +78,25 @@ export const useSafeDOMOperations = () => {
   // Queue an operation to be executed when safe
   const queueOperation = useCallback((operation: () => void) => {
     if (unmountedRef.current) return;
-    domRegistry.queueOperation(operation);
+    
+    // Add to pending operations for cleanup if component unmounts
+    pendingOperationsRef.current.push(operation);
+    
+    // Execute via registry
+    domRegistry.queueOperation(() => {
+      // Check again if still mounted before executing
+      if (!unmountedRef.current) {
+        try {
+          operation();
+        } finally {
+          // Remove from pending operations
+          const index = pendingOperationsRef.current.indexOf(operation);
+          if (index !== -1) {
+            pendingOperationsRef.current.splice(index, 1);
+          }
+        }
+      }
+    });
   }, []);
   
   // Clean all overlay elements with improved safety checks
@@ -66,6 +110,21 @@ export const useSafeDOMOperations = () => {
     return domRegistry.isDOMReady();
   }, []);
   
+  // Create a DOM cleanup function that runs on component unmount
+  const createCleanupFn = useCallback((selector: string) => {
+    return () => {
+      if (unmountedRef.current) return;
+      
+      // Safely remove elements matching selector
+      if (typeof document !== 'undefined') {
+        const elementsToRemove = document.querySelectorAll(selector);
+        elementsToRemove.forEach(element => {
+          safeRemoveElement(element as Element);
+        });
+      }
+    };
+  }, [safeRemoveElement]);
+  
   return {
     safeRemoveElement,
     cleanupOverlays,
@@ -73,6 +132,7 @@ export const useSafeDOMOperations = () => {
     registerNode,
     isNodeValid,
     isDOMReady,
+    createCleanupFn,
     isMounted: !unmountedRef.current
   };
 };

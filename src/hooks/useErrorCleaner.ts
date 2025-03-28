@@ -1,6 +1,7 @@
 
 import { useEffect, useCallback, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
+import { DOMSafetyUtils } from "@/services/dom/DOMSafetyUtils";
 
 /**
  * Hook to listen for DOM errors and trigger cleanup
@@ -10,6 +11,7 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
   const cleanupAttemptedRef = useRef(false);
   const lastCleanupTimeRef = useRef(0);
   const isMountedRef = useRef(true);
+  const safetyUtils = useRef(new DOMSafetyUtils());
   
   // Track component mounted state
   useEffect(() => {
@@ -20,6 +22,39 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
     };
   }, []);
   
+  // Enhanced DOM emergency cleanup
+  const performEmergencyCleanup = useCallback(() => {
+    // Skip if component is unmounted
+    if (!isMountedRef.current) return;
+    
+    console.log('[useErrorCleaner] Performing emergency DOM cleanup');
+    
+    // Reset body state
+    if (document.body) {
+      document.body.style.overflow = 'auto';
+      document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+    }
+    
+    // Get all overlay elements
+    const selectors = [
+      '.fixed.inset-0', 
+      '[data-radix-dialog-overlay]', 
+      '[data-radix-alert-dialog-overlay]'
+    ];
+    
+    // Process overlay elements with enhanced validation
+    selectors.forEach(selector => {
+      try {
+        safetyUtils.current.safeRemoveElementsBySelector(selector);
+      } catch (e) {
+        console.warn(`[useErrorCleaner] Error in emergency cleanup of ${selector}:`, e);
+      }
+    });
+    
+    // Also run the provided cleanup function
+    cleanupFn();
+  }, [cleanupFn]);
+  
   // Create a memoized error handler
   const handleError = useCallback((error: ErrorEvent) => {
     // Skip if component is unmounted
@@ -28,18 +63,19 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
     const errorMessage = error.message || '';
     const now = Date.now();
     
-    // Only attempt cleanup if we haven't recently done so
-    if (cleanupAttemptedRef.current && (now - lastCleanupTimeRef.current < 1000)) {
+    // Only attempt cleanup if we haven't recently done so (with increased timeout)
+    if (cleanupAttemptedRef.current && (now - lastCleanupTimeRef.current < 2000)) {
       console.log('Skipping redundant cleanup, already attempted recently');
       return;
     }
     
-    // Check for DOM manipulation errors
+    // Enhanced check for removeChild errors
     if (
       errorMessage.includes('removeChild') || 
       errorMessage.includes('parentNode') || 
       errorMessage.includes('Cannot read properties of null') ||
-      errorMessage.includes('not a child of this node')
+      errorMessage.includes('not a child of this node') ||
+      errorMessage.includes('Failed to execute') && errorMessage.includes('on') && errorMessage.includes('Node')
     ) {
       console.warn('DOM error detected, running cleanup:', errorMessage);
       
@@ -47,75 +83,20 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
       cleanupAttemptedRef.current = true;
       lastCleanupTimeRef.current = now;
       
-      // Use queueMicrotask for more reliable timing with DOM operations
+      // Prevent default error behavior to avoid cascading errors
+      error.preventDefault();
+      
+      // Use more reliable microtask scheduling
       queueMicrotask(() => {
-        // Skip if component unmounted
         if (!isMountedRef.current) return;
-        
-        // For removeChild errors, we need special handling
-        if (errorMessage.includes('removeChild') || errorMessage.includes('not a child')) {
-          try {
-            // Ensure body is in a clean state first
-            if (document.body) {
-              document.body.style.overflow = 'auto';
-              document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-            }
-            
-            // Do a more thorough cleanup with careful timing
-            setTimeout(() => {
-              // Skip if component unmounted
-              if (!isMountedRef.current) return;
-              
-              // Run the provided cleanup function
-              cleanupFn();
-              
-              // Additional targeted cleanup for removeChild errors
-              try {
-                // Skip if component unmounted
-                if (!isMountedRef.current) return;
-                
-                // Clean up any overlay elements still in the DOM
-                document.querySelectorAll('.fixed.inset-0, [data-radix-dialog-overlay], [data-radix-alert-dialog-overlay]')
-                  .forEach(element => {
-                    try {
-                      if (element.parentNode && document.contains(element)) {
-                        // Double-check the element is actually a child
-                        const isChild = Array.from(element.parentNode.childNodes).includes(element);
-                        if (isChild) {
-                          element.parentNode.removeChild(element);
-                        }
-                      }
-                    } catch (e) {
-                      // Ignore errors during emergency cleanup
-                    }
-                  });
-              } catch (e) {
-                console.warn('Error during emergency cleanup:', e);
-              }
-              
-              // Reset the cleanup flag after a delay
-              setTimeout(() => {
-                if (isMountedRef.current) {
-                  cleanupAttemptedRef.current = false;
-                }
-              }, 2000);
-            }, 0);
-          } catch (e) {
-            console.warn('Error during error cleanup:', e);
-          }
-        } else {
-          // For other DOM errors, just run the regular cleanup if component is mounted
-          if (isMountedRef.current) {
-            cleanupFn();
-          }
-        }
+        performEmergencyCleanup();
       });
     }
-  }, [cleanupFn]);
+  }, [performEmergencyCleanup]);
   
   useEffect(() => {
-    // Add error handler
-    window.addEventListener('error', handleError);
+    // Add error handler with capture phase to catch errors early
+    window.addEventListener('error', handleError, { capture: true });
     
     // Add unhandled rejection handler for promises
     const handleRejection = (event: PromiseRejectionEvent) => {
@@ -129,20 +110,31 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
         errorMessage.includes('not a child')
       ) {
         console.warn('Promise rejection with DOM error detected:', errorMessage);
-        
-        // Use the same error handler logic
+        event.preventDefault();
         handleError({ message: errorMessage } as ErrorEvent);
       }
     };
-    window.addEventListener('unhandledrejection', handleRejection);
+    window.addEventListener('unhandledrejection', handleRejection, { capture: true });
+    
+    // Immediately clean up any existing problematic elements
+    queueMicrotask(() => {
+      if (isMountedRef.current) {
+        performEmergencyCleanup();
+      }
+    });
     
     return () => {
       // Set mounted flag to false first
       isMountedRef.current = false;
       
       // Then remove event listeners
-      window.removeEventListener('error', handleError);
-      window.removeEventListener('unhandledrejection', handleRejection);
+      window.removeEventListener('error', handleError, { capture: true });
+      window.removeEventListener('unhandledrejection', handleRejection, { capture: true });
     };
-  }, [handleError]);
+  }, [handleError, performEmergencyCleanup]);
+  
+  // Return the emergency cleanup function for manual triggering
+  return {
+    emergencyCleanup: performEmergencyCleanup
+  };
 };
