@@ -50,7 +50,7 @@ const LogoutConfirmationDialog = () => {
     handleDialogClose(() => closeDialog());
   }, [closeDialog, handleDialogClose]);
 
-  const handleConfirm = useCallback(async () => {
+  const handleConfirm = useCallback(() => {
     // Prevent multiple clicks and skip if unmounted
     if (isNavigatingRef.current || !isMountedRef.current) return;
     isNavigatingRef.current = true;
@@ -58,31 +58,25 @@ const LogoutConfirmationDialog = () => {
     // Close the dialog first
     handleSafeClose();
     
-    // Use a timeout to ensure dialog is fully closed before proceeding
+    // Clear any additional session data immediately
+    try {
+      localStorage.removeItem('sessionToken');
+      sessionStorage.clear();
+    } catch (e) {
+      console.error('Error clearing storage during logout:', e);
+    }
+    
+    // Use a short timeout to ensure dialog is closing before logout
     setTimeout(() => {
-      if (!isMountedRef.current) {
-        isNavigatingRef.current = false;
-        return;
-      }
+      if (!isMountedRef.current) return;
       
-      // Use our centralized logout function
-      performLogout(() => {
-        // Clear any additional session data
-        try {
-          localStorage.removeItem('sessionToken');
-          sessionStorage.clear();
-        } catch (e) {
-          console.error('Error clearing storage during logout:', e);
-        }
-      });
+      // Use our centralized logout function with a destination
+      const destination = isVip ? '/' : '/feedback';
+      performLogout();
       
-      // Ensure the page is redirected if the logout function doesn't handle it
-      setTimeout(() => {
-        if (isMountedRef.current && window.location.pathname !== '/' && window.location.pathname !== '/feedback') {
-          window.location.href = isVip ? '/' : '/feedback';
-        }
-      }, 300);
-    }, 50);
+      // Force a full page reload to clear any lingering state
+      window.location.href = destination;
+    }, 100);
   }, [handleSafeClose, performLogout, isVip]);
 
   const getFeedbackMessage = () => {

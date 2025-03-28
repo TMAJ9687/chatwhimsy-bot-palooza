@@ -15,6 +15,7 @@ export const useLogout = () => {
   
   const performLogout = useCallback(async (callback?: () => void) => {
     try {
+      console.log('Starting logout process...');
       // Store user type in localStorage for redirect after logout
       if (user) {
         try {
@@ -47,6 +48,7 @@ export const useLogout = () => {
       
       // If user is admin, perform admin logout
       if (isAdmin) {
+        console.log('Admin logout flow initiated');
         await signOutUser(); // Use the Firebase signOut directly
         await adminLogout(); // Also run adminLogout for any app-specific cleanup
         clearUser();
@@ -55,6 +57,7 @@ export const useLogout = () => {
         window.location.href = '/admin-login';
         console.log('Admin logged out successfully');
       } else {
+        console.log('Standard user logout flow initiated');
         // Clear user data first
         clearUser();
         
@@ -67,20 +70,17 @@ export const useLogout = () => {
           }
         }
         
-        // Standard users go to feedback page, VIP users go to home
-        if (!isVip) {
-          console.log('Standard user logging out, redirecting to feedback');
-          window.location.href = '/feedback';
-        } else {
-          console.log('VIP user logging out, redirecting to home');
-          window.location.href = '/';
-        }
+        // For standard users, we let the calling code handle navigation
+        // This ensures the logout dialog can properly close first
+        console.log(`Standard user logout complete. isVip=${isVip}`);
       }
     } catch (error) {
       console.error('Error during logout:', error);
       // Fallback logout approach if the main one fails
       try {
+        console.log('Attempting fallback logout approach');
         clearUser();
+        // In case of error, always redirect to home
         window.location.href = '/';
       } catch (e) {
         console.error('Fallback logout also failed', e);
