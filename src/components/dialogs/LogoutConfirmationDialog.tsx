@@ -13,13 +13,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useUser } from '@/context/UserContext';
 import { useAdmin } from '@/hooks/useAdmin';
-import { signOutUser } from '@/firebase/auth';
 import { useDialogCleanup } from '@/hooks/useDialogCleanup';
 import { useLogout } from '@/hooks/useLogout';
 
 const LogoutConfirmationDialog = () => {
   const { state, closeDialog } = useDialog();
-  const { onConfirm } = state.data || {}; // Handle potential undefined state.data
   const { user } = useUser();
   const { isAdmin } = useAdmin();
   
@@ -68,18 +66,9 @@ const LogoutConfirmationDialog = () => {
       }
       
       // Use our centralized logout function
-      performLogout(() => {
-        // This callback runs after user state is cleared but before navigation
-        if (onConfirm && typeof onConfirm === 'function') {
-          try {
-            onConfirm();
-          } catch (error) {
-            console.error('Error calling onConfirm callback', error);
-          }
-        }
-      });
+      performLogout();
     }, 50);
-  }, [onConfirm, handleSafeClose, performLogout]);
+  }, [handleSafeClose, performLogout]);
 
   const getFeedbackMessage = () => {
     if (isAdmin) {
