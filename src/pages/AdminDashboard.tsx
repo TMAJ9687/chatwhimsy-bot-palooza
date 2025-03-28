@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Settings, MessageSquare, LogOut, Ban, Edit, Trash2, Plus, Search, Bell, Mail, FileText, FileSearch, Shield, ShieldOff, CircleUser, CircleCheck, CircleX, ArrowRight, ArrowLeft, ChevronDown, CheckCircle2, XCircle, Clock, BarChart } from "lucide-react";
+import { Users, Settings, MessageSquare, LogOut, Ban, Edit, Trash2, Plus, Search, Bell, Mail, FileText, FileSearch, Shield, ShieldOff, CircleUser, CircleCheck, CircleX, ArrowRight, ArrowLeft, ChevronDown, CheckCircle2, XCircle, Clock, BarChart as BarChartIcon } from "lucide-react";
 import { useUser } from '@/context/UserContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { isAdminLoggedIn } from '@/services/admin/adminService';
@@ -595,7 +595,7 @@ const AdminDashboard = () => {
               className="w-full justify-start" 
               onClick={() => setActiveTab("statistics")}
             >
-              <BarChart className="mr-2 h-5 w-5" />
+              <BarChartIcon className="mr-2 h-5 w-5" />
               Statistics
             </Button>
             
@@ -842,11 +842,11 @@ const AdminDashboard = () => {
                                         <FormControl>
                                           <Input 
                                             type="number" 
-                                            placeholder="Age" 
                                             min={18} 
                                             max={70} 
+                                            placeholder="Age" 
                                             {...field}
-                                            onChange={e => field.onChange(Number(e.target.value))}
+                                            onChange={e => field.onChange(parseInt(e.target.value))}
                                           />
                                         </FormControl>
                                         <FormMessage />
@@ -861,8 +861,8 @@ const AdminDashboard = () => {
                                       <FormItem>
                                         <FormLabel>Gender</FormLabel>
                                         <Select 
-                                          value={field.value} 
-                                          onValueChange={field.onChange}
+                                          onValueChange={field.onChange} 
+                                          defaultValue={field.value}
                                         >
                                           <FormControl>
                                             <SelectTrigger>
@@ -870,8 +870,9 @@ const AdminDashboard = () => {
                                             </SelectTrigger>
                                           </FormControl>
                                           <SelectContent>
-                                            <SelectItem value="male">Male</SelectItem>
                                             <SelectItem value="female">Female</SelectItem>
+                                            <SelectItem value="male">Male</SelectItem>
+                                            <SelectItem value="other">Other</SelectItem>
                                           </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -886,8 +887,8 @@ const AdminDashboard = () => {
                                       <FormItem>
                                         <FormLabel>Country</FormLabel>
                                         <Select 
-                                          value={field.value} 
-                                          onValueChange={field.onChange}
+                                          onValueChange={field.onChange} 
+                                          defaultValue={field.value}
                                         >
                                           <FormControl>
                                             <SelectTrigger>
@@ -901,6 +902,10 @@ const AdminDashboard = () => {
                                             <SelectItem value="Australia">Australia</SelectItem>
                                             <SelectItem value="Germany">Germany</SelectItem>
                                             <SelectItem value="France">France</SelectItem>
+                                            <SelectItem value="Spain">Spain</SelectItem>
+                                            <SelectItem value="Italy">Italy</SelectItem>
+                                            <SelectItem value="Brazil">Brazil</SelectItem>
+                                            <SelectItem value="Japan">Japan</SelectItem>
                                           </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -915,56 +920,58 @@ const AdminDashboard = () => {
                                       <FormItem>
                                         <FormLabel>Interests</FormLabel>
                                         <FormControl>
-                                          <Textarea
-                                            placeholder="Comma separated interests"
-                                            className="resize-none"
-                                            {...field}
-                                          />
+                                          <Input placeholder="e.g. music, travel, cooking (comma separated)" {...field} />
                                         </FormControl>
                                         <FormDescription>
-                                          Enter comma-separated list of interests
+                                          Comma-separated list of interests
                                         </FormDescription>
                                         <FormMessage />
                                       </FormItem>
                                     )}
                                   />
                                   
-                                  <Button type="submit" disabled={isProcessing}>
-                                    <Plus className="mr-2 h-4 w-4" /> Create Bot
-                                  </Button>
+                                  <Button type="submit" disabled={isProcessing}>Create Bot</Button>
                                 </form>
                               </Form>
                             </div>
                             
                             <div>
                               <h3 className="text-lg font-medium mb-4">Existing Bots</h3>
+                              
                               {bots.length === 0 ? (
-                                <p className="text-center py-4">No bots found</p>
+                                <p className="text-center py-4">No bots created yet</p>
                               ) : (
                                 <div className="space-y-4">
-                                  {bots.map(bot => (
+                                  {bots.map((bot) => (
                                     <Card key={bot.id} className="overflow-hidden">
-                                      <div className="flex justify-between items-start p-4">
-                                        <div>
-                                          <h4 className="font-medium">
-                                            {bot.name} {bot.vip && <span className="text-xs bg-purple-100 text-purple-700 py-0.5 px-2 rounded ml-2">VIP</span>}
-                                          </h4>
-                                          <p className="text-sm text-muted-foreground">
-                                            {bot.age}, {bot.gender}, {bot.country}
-                                          </p>
-                                          <p className="text-sm mt-1">
-                                            Interests: {bot.interests.join(', ')}
-                                          </p>
+                                      <CardContent className="p-0">
+                                        <div className="p-4 flex justify-between items-center">
+                                          <div className="flex items-center space-x-4">
+                                            <div className="bg-slate-200 dark:bg-slate-700 rounded-full h-10 w-10 flex items-center justify-center text-lg">
+                                              {bot.avatar || (bot.gender === 'male' ? '👨' : '👩')}
+                                            </div>
+                                            <div>
+                                              <h4 className="font-medium">{bot.name}</h4>
+                                              <p className="text-sm text-slate-500 dark:text-slate-400">
+                                                {bot.age}, {bot.country} {bot.vip ? '(VIP)' : ''}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <div className="flex space-x-2">
+                                            <Button size="sm" variant="outline">
+                                              <Edit className="h-4 w-4 mr-1" /> Edit
+                                            </Button>
+                                            <Button 
+                                              size="sm" 
+                                              variant="destructive" 
+                                              onClick={() => handleDeleteBot(bot.id, bot.name)}
+                                              disabled={isProcessing}
+                                            >
+                                              <Trash2 className="h-4 w-4 mr-1" /> Delete
+                                            </Button>
+                                          </div>
                                         </div>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm" 
-                                          onClick={() => handleDeleteBot(bot.id, bot.name)}
-                                          disabled={isProcessing}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </div>
+                                      </CardContent>
                                     </Card>
                                   ))}
                                 </div>
@@ -984,15 +991,16 @@ const AdminDashboard = () => {
                         </CardHeader>
                         <CardContent>
                           {bannedUsers.length === 0 ? (
-                            <p className="text-center py-4">No banned users or IPs found</p>
+                            <p className="text-center py-4">No banned users or IPs</p>
                           ) : (
                             <Table>
                               <TableHeader>
                                 <TableRow>
-                                  <TableHead>Identifier</TableHead>
+                                  <TableHead>User/IP</TableHead>
                                   <TableHead>Type</TableHead>
                                   <TableHead>Reason</TableHead>
                                   <TableHead>Duration</TableHead>
+                                  <TableHead>Date</TableHead>
                                   <TableHead>Actions</TableHead>
                                 </TableRow>
                               </TableHeader>
@@ -1000,17 +1008,10 @@ const AdminDashboard = () => {
                                 {bannedUsers.map((ban) => (
                                   <TableRow key={ban.id}>
                                     <TableCell>{ban.identifier}</TableCell>
-                                    <TableCell>
-                                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                        ban.identifierType === 'user' 
-                                          ? 'bg-blue-100 text-blue-700' 
-                                          : 'bg-red-100 text-red-700'
-                                      }`}>
-                                        {ban.identifierType === 'user' ? 'User' : 'IP Address'}
-                                      </span>
-                                    </TableCell>
+                                    <TableCell>{ban.identifierType === 'ip' ? 'IP Address' : 'User'}</TableCell>
                                     <TableCell>{ban.reason}</TableCell>
                                     <TableCell>{ban.duration}</TableCell>
+                                    <TableCell>{new Date(ban.timestamp).toLocaleDateString()}</TableCell>
                                     <TableCell>
                                       <Button 
                                         variant="outline" 
@@ -1018,8 +1019,7 @@ const AdminDashboard = () => {
                                         onClick={() => handleUnbanUser(ban.id, ban.identifier)}
                                         disabled={isProcessing}
                                       >
-                                        <ShieldOff className="mr-2 h-4 w-4" />
-                                        Unban
+                                        <ShieldOff className="h-4 w-4 mr-1" /> Unban
                                       </Button>
                                     </TableCell>
                                   </TableRow>
@@ -1044,7 +1044,7 @@ const AdminDashboard = () => {
                   <Tabs value={siteTab} onValueChange={setSiteTab} className="w-full">
                     <TabsList className="mb-4">
                       <TabsTrigger value="general">General</TabsTrigger>
-                      <TabsTrigger value="chat">Chat</TabsTrigger>
+                      <TabsTrigger value="chat-settings">Chat Settings</TabsTrigger>
                       <TabsTrigger value="profanity">Profanity Filter</TabsTrigger>
                       <TabsTrigger value="vip-prices">VIP Prices</TabsTrigger>
                     </TabsList>
@@ -1054,125 +1054,83 @@ const AdminDashboard = () => {
                       <Card>
                         <CardHeader>
                           <CardTitle>General Settings</CardTitle>
-                          <CardDescription>Configure general site settings</CardDescription>
+                          <CardDescription>Manage general site settings and options</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <Form {...generalForm}>
-                            <form onSubmit={generalForm.handleSubmit(handleSaveGeneral)} className="space-y-4">
-                              <FormField
-                                control={generalForm.control}
-                                name="adUnit1"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Ad Unit 1</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="Ad Unit 1 URL" {...field} />
-                                    </FormControl>
-                                    <FormDescription>
-                                      URL for the first ad unit
-                                    </FormDescription>
-                                  </FormItem>
-                                )}
-                              />
+                          <form onSubmit={generalForm.handleSubmit(handleSaveGeneral)} className="space-y-4">
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="adUnit1">Ad Unit 1 URL</Label>
+                                <Input 
+                                  id="adUnit1" 
+                                  {...generalForm.register('adUnit1')} 
+                                  placeholder="https://adservice.google.com/adsense/unit1" 
+                                />
+                              </div>
                               
-                              <FormField
-                                control={generalForm.control}
-                                name="adUnit2"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Ad Unit 2</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="Ad Unit 2 URL" {...field} />
-                                    </FormControl>
-                                    <FormDescription>
-                                      URL for the second ad unit
-                                    </FormDescription>
-                                  </FormItem>
-                                )}
-                              />
+                              <div>
+                                <Label htmlFor="adUnit2">Ad Unit 2 URL</Label>
+                                <Input 
+                                  id="adUnit2" 
+                                  {...generalForm.register('adUnit2')} 
+                                  placeholder="https://adservice.google.com/adsense/unit2" 
+                                />
+                              </div>
                               
-                              <FormField
-                                control={generalForm.control}
-                                name="adUnit3"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Ad Unit 3</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="Ad Unit 3 URL" {...field} />
-                                    </FormControl>
-                                    <FormDescription>
-                                      URL for the third ad unit
-                                    </FormDescription>
-                                  </FormItem>
-                                )}
-                              />
+                              <div>
+                                <Label htmlFor="adUnit3">Ad Unit 3 URL</Label>
+                                <Input 
+                                  id="adUnit3" 
+                                  {...generalForm.register('adUnit3')} 
+                                  placeholder="https://adservice.google.com/adsense/unit3" 
+                                />
+                              </div>
                               
-                              <FormField
-                                control={generalForm.control}
-                                name="maintenanceMode"
-                                render={({ field }) => (
-                                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                    <div className="space-y-0.5">
-                                      <FormLabel>Maintenance Mode</FormLabel>
-                                      <FormDescription>
-                                        Put the site in maintenance mode
-                                      </FormDescription>
-                                    </div>
-                                    <FormControl>
-                                      <Switch
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                      />
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <Button type="submit" disabled={isProcessing}>
-                                Save General Settings
-                              </Button>
-                            </form>
-                          </Form>
+                              <div className="flex items-center space-x-2">
+                                <Switch 
+                                  id="maintenanceMode" 
+                                  checked={generalForm.watch('maintenanceMode')} 
+                                  onCheckedChange={(checked) => generalForm.setValue('maintenanceMode', checked)} 
+                                />
+                                <Label htmlFor="maintenanceMode" className="cursor-pointer">Maintenance Mode</Label>
+                              </div>
+                            </div>
+                            
+                            <Button type="submit">Save Changes</Button>
+                          </form>
                         </CardContent>
                       </Card>
                     </TabsContent>
                     
                     {/* Chat Settings */}
-                    <TabsContent value="chat">
+                    <TabsContent value="chat-settings">
                       <Card>
                         <CardHeader>
                           <CardTitle>Chat Settings</CardTitle>
-                          <CardDescription>Configure chat settings</CardDescription>
+                          <CardDescription>Manage chat-related settings and limits</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <Form {...chatSettingsForm}>
-                            <form onSubmit={chatSettingsForm.handleSubmit(handleSaveChatSettings)} className="space-y-4">
-                              <FormField
-                                control={chatSettingsForm.control}
-                                name="maxImageUpload"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Max Image Upload</FormLabel>
-                                    <FormControl>
-                                      <Input 
-                                        type="number" 
-                                        placeholder="Maximum images per user" 
-                                        {...field}
-                                        onChange={e => field.onChange(Number(e.target.value))}
-                                      />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Maximum number of image uploads per standard user
-                                    </FormDescription>
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <Button type="submit" disabled={isProcessing}>
-                                Save Chat Settings
-                              </Button>
-                            </form>
-                          </Form>
+                          <form onSubmit={chatSettingsForm.handleSubmit(handleSaveChatSettings)} className="space-y-4">
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="maxImageUpload">Maximum Images Per User</Label>
+                                <Input 
+                                  id="maxImageUpload" 
+                                  type="number" 
+                                  min={1} 
+                                  max={50} 
+                                  {...chatSettingsForm.register('maxImageUpload', { 
+                                    valueAsNumber: true 
+                                  })} 
+                                />
+                                <p className="text-sm text-slate-500 mt-1">
+                                  Maximum number of images a standard user can upload per day
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <Button type="submit">Save Changes</Button>
+                          </form>
                         </CardContent>
                       </Card>
                     </TabsContent>
@@ -1182,56 +1140,40 @@ const AdminDashboard = () => {
                       <Card>
                         <CardHeader>
                           <CardTitle>Profanity Filter</CardTitle>
-                          <CardDescription>Configure profanity filter</CardDescription>
+                          <CardDescription>Configure words to be filtered in chat and nicknames</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <Form {...profanityForm}>
-                            <form onSubmit={profanityForm.handleSubmit(handleSaveProfanity)} className="space-y-4">
-                              <FormField
-                                control={profanityForm.control}
-                                name="nicknameProfanity"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Nickname Profanity</FormLabel>
-                                    <FormControl>
-                                      <Textarea
-                                        placeholder="Comma separated profanity words for nicknames"
-                                        className="min-h-[100px]"
-                                        {...field}
-                                      />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Comma-separated list of words to block in usernames
-                                    </FormDescription>
-                                  </FormItem>
-                                )}
-                              />
+                          <form onSubmit={profanityForm.handleSubmit(handleSaveProfanity)} className="space-y-4">
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="nicknameProfanity">Nickname Profanity</Label>
+                                <Textarea 
+                                  id="nicknameProfanity" 
+                                  {...profanityForm.register('nicknameProfanity')} 
+                                  placeholder="bad1, bad2, bad3" 
+                                  rows={4}
+                                />
+                                <p className="text-sm text-slate-500 mt-1">
+                                  Comma-separated list of words to block in usernames
+                                </p>
+                              </div>
                               
-                              <FormField
-                                control={profanityForm.control}
-                                name="chatProfanity"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Chat Profanity</FormLabel>
-                                    <FormControl>
-                                      <Textarea
-                                        placeholder="Comma separated profanity words for chat"
-                                        className="min-h-[100px]"
-                                        {...field}
-                                      />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Comma-separated list of words to block in chat messages
-                                    </FormDescription>
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <Button type="submit" disabled={isProcessing}>
-                                Save Profanity Filter
-                              </Button>
-                            </form>
-                          </Form>
+                              <div>
+                                <Label htmlFor="chatProfanity">Chat Profanity</Label>
+                                <Textarea 
+                                  id="chatProfanity" 
+                                  {...profanityForm.register('chatProfanity')} 
+                                  placeholder="swear1, swear2, swear3" 
+                                  rows={6}
+                                />
+                                <p className="text-sm text-slate-500 mt-1">
+                                  Comma-separated list of words to filter in chat
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <Button type="submit">Save Changes</Button>
+                          </form>
                         </CardContent>
                       </Card>
                     </TabsContent>
@@ -1241,82 +1183,53 @@ const AdminDashboard = () => {
                       <Card>
                         <CardHeader>
                           <CardTitle>VIP Prices</CardTitle>
-                          <CardDescription>Configure VIP subscription prices</CardDescription>
+                          <CardDescription>Configure pricing for VIP subscription plans</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <Form {...vipPricesForm}>
-                            <form onSubmit={vipPricesForm.handleSubmit(handleSaveVIPPrices)} className="space-y-4">
-                              <FormField
-                                control={vipPricesForm.control}
-                                name="plan1Price"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Basic Plan Price ($)</FormLabel>
-                                    <FormControl>
-                                      <Input 
-                                        type="number" 
-                                        step="0.01" 
-                                        placeholder="Price in USD" 
-                                        {...field}
-                                        onChange={e => field.onChange(Number(e.target.value))}
-                                      />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Monthly price for basic VIP plan
-                                    </FormDescription>
-                                  </FormItem>
-                                )}
-                              />
+                          <form onSubmit={vipPricesForm.handleSubmit(handleSaveVIPPrices)} className="space-y-4">
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="plan1Price">Basic Plan ($)</Label>
+                                <Input 
+                                  id="plan1Price" 
+                                  type="number" 
+                                  step="0.01" 
+                                  min={0.99} 
+                                  {...vipPricesForm.register('plan1Price', { 
+                                    valueAsNumber: true 
+                                  })} 
+                                />
+                              </div>
                               
-                              <FormField
-                                control={vipPricesForm.control}
-                                name="plan2Price"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Premium Plan Price ($)</FormLabel>
-                                    <FormControl>
-                                      <Input 
-                                        type="number" 
-                                        step="0.01" 
-                                        placeholder="Price in USD" 
-                                        {...field}
-                                        onChange={e => field.onChange(Number(e.target.value))}
-                                      />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Monthly price for premium VIP plan
-                                    </FormDescription>
-                                  </FormItem>
-                                )}
-                              />
+                              <div>
+                                <Label htmlFor="plan2Price">Standard Plan ($)</Label>
+                                <Input 
+                                  id="plan2Price" 
+                                  type="number" 
+                                  step="0.01" 
+                                  min={0.99} 
+                                  {...vipPricesForm.register('plan2Price', { 
+                                    valueAsNumber: true 
+                                  })} 
+                                />
+                              </div>
                               
-                              <FormField
-                                control={vipPricesForm.control}
-                                name="plan3Price"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Ultimate Plan Price ($)</FormLabel>
-                                    <FormControl>
-                                      <Input 
-                                        type="number" 
-                                        step="0.01" 
-                                        placeholder="Price in USD" 
-                                        {...field}
-                                        onChange={e => field.onChange(Number(e.target.value))}
-                                      />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Monthly price for ultimate VIP plan
-                                    </FormDescription>
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <Button type="submit" disabled={isProcessing}>
-                                Save VIP Prices
-                              </Button>
-                            </form>
-                          </Form>
+                              <div>
+                                <Label htmlFor="plan3Price">Premium Plan ($)</Label>
+                                <Input 
+                                  id="plan3Price" 
+                                  type="number" 
+                                  step="0.01" 
+                                  min={0.99} 
+                                  {...vipPricesForm.register('plan3Price', { 
+                                    valueAsNumber: true 
+                                  })} 
+                                />
+                              </div>
+                            </div>
+                            
+                            <Button type="submit">Save Changes</Button>
+                          </form>
                         </CardContent>
                       </Card>
                     </TabsContent>
@@ -1342,58 +1255,72 @@ const AdminDashboard = () => {
                       <Card>
                         <CardHeader>
                           <CardTitle>User Reports</CardTitle>
-                          <CardDescription>Manage user reports and complaints</CardDescription>
+                          <CardDescription>Review and manage reports from users</CardDescription>
                         </CardHeader>
                         <CardContent>
                           {reports.length === 0 ? (
-                            <p className="text-center py-4">No reports found</p>
+                            <p className="text-center py-4">No active reports</p>
                           ) : (
                             <div className="space-y-4">
-                              {reports.map(report => (
+                              {reports.map((report) => (
                                 <Card key={report.id} className="overflow-hidden">
-                                  <div className="p-4">
-                                    <div className="flex justify-between items-start">
-                                      <h4 className="font-medium">
-                                        Report ID: {report.id.substring(0, 8)}
-                                        {report.resolved && (
-                                          <span className="text-xs bg-green-100 text-green-700 py-0.5 px-2 rounded ml-2">
-                                            Resolved
-                                          </span>
-                                        )}
-                                      </h4>
-                                      <div className="flex items-center gap-2">
-                                        {!report.resolved && (
+                                  <CardContent className="p-0">
+                                    <div className="p-4 space-y-2">
+                                      <div className="flex justify-between items-start">
+                                        <div>
+                                          <h4 className="font-medium">Report against User: {report.userId}</h4>
+                                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                                            {new Date(report.timestamp).toLocaleString()} 
+                                            {report.resolved && 
+                                              <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                                Resolved
+                                              </span>
+                                            }
+                                          </p>
+                                        </div>
+                                        <div className="flex space-x-2">
+                                          {!report.resolved && (
+                                            <Button 
+                                              size="sm" 
+                                              variant="outline"
+                                              onClick={() => handleResolveReportFeedback(report.id, 'report')}
+                                              disabled={isProcessing}
+                                            >
+                                              <CheckCircle2 className="h-4 w-4 mr-1" /> Mark Resolved
+                                            </Button>
+                                          )}
                                           <Button 
-                                            variant="outline" 
                                             size="sm" 
-                                            onClick={() => handleResolveReportFeedback(report.id, 'report')}
+                                            variant="destructive"
+                                            onClick={() => handleDeleteReportFeedback(report.id, 'report')}
                                             disabled={isProcessing}
                                           >
-                                            <CheckCircle2 className="mr-2 h-4 w-4" />
-                                            Resolve
+                                            <Trash2 className="h-4 w-4 mr-1" /> Delete
                                           </Button>
-                                        )}
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm" 
-                                          onClick={() => handleDeleteReportFeedback(report.id, 'report')}
-                                          disabled={isProcessing}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                        </div>
+                                      </div>
+                                      <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded">
+                                        <p>{report.content}</p>
+                                      </div>
+                                      <div className="flex justify-between items-center text-xs text-slate-500">
+                                        <span>
+                                          <Clock className="h-3 w-3 inline-block mr-1" /> 
+                                          Expires in: {formatExpiryDate(new Date(report.expiresAt))}
+                                        </span>
+                                        <div>
+                                          {!report.resolved && (
+                                            <Button 
+                                              size="sm" 
+                                              variant="link" 
+                                              className="text-xs h-auto p-0"
+                                            >
+                                              Ban user <Ban className="h-3 w-3 ml-1" />
+                                            </Button>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                      User ID: {report.userId}
-                                    </p>
-                                    <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
-                                      <p className="text-sm">{report.content}</p>
-                                    </div>
-                                    <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                                      <span>Submitted: {new Date(report.timestamp).toLocaleString()}</span>
-                                      <span>Expires: {new Date(report.expiresAt).toLocaleString()}</span>
-                                    </div>
-                                  </div>
+                                  </CardContent>
                                 </Card>
                               ))}
                             </div>
@@ -1407,58 +1334,61 @@ const AdminDashboard = () => {
                       <Card>
                         <CardHeader>
                           <CardTitle>User Feedback</CardTitle>
-                          <CardDescription>Manage user feedback and suggestions</CardDescription>
+                          <CardDescription>Review feedback provided by users</CardDescription>
                         </CardHeader>
                         <CardContent>
                           {feedback.length === 0 ? (
-                            <p className="text-center py-4">No feedback found</p>
+                            <p className="text-center py-4">No active feedback</p>
                           ) : (
                             <div className="space-y-4">
-                              {feedback.map(item => (
+                              {feedback.map((item) => (
                                 <Card key={item.id} className="overflow-hidden">
-                                  <div className="p-4">
-                                    <div className="flex justify-between items-start">
-                                      <h4 className="font-medium">
-                                        Feedback ID: {item.id.substring(0, 8)}
-                                        {item.resolved && (
-                                          <span className="text-xs bg-green-100 text-green-700 py-0.5 px-2 rounded ml-2">
-                                            Resolved
-                                          </span>
-                                        )}
-                                      </h4>
-                                      <div className="flex items-center gap-2">
-                                        {!item.resolved && (
+                                  <CardContent className="p-0">
+                                    <div className="p-4 space-y-2">
+                                      <div className="flex justify-between items-start">
+                                        <div>
+                                          <h4 className="font-medium">Feedback from User: {item.userId}</h4>
+                                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                                            {new Date(item.timestamp).toLocaleString()}
+                                            {item.resolved && 
+                                              <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                                Reviewed
+                                              </span>
+                                            }
+                                          </p>
+                                        </div>
+                                        <div className="flex space-x-2">
+                                          {!item.resolved && (
+                                            <Button 
+                                              size="sm" 
+                                              variant="outline"
+                                              onClick={() => handleResolveReportFeedback(item.id, 'feedback')}
+                                              disabled={isProcessing}
+                                            >
+                                              <CheckCircle2 className="h-4 w-4 mr-1" /> Mark Reviewed
+                                            </Button>
+                                          )}
                                           <Button 
-                                            variant="outline" 
                                             size="sm" 
-                                            onClick={() => handleResolveReportFeedback(item.id, 'feedback')}
+                                            variant="destructive"
+                                            onClick={() => handleDeleteReportFeedback(item.id, 'feedback')}
                                             disabled={isProcessing}
                                           >
-                                            <CheckCircle2 className="mr-2 h-4 w-4" />
-                                            Resolve
+                                            <Trash2 className="h-4 w-4 mr-1" /> Delete
                                           </Button>
-                                        )}
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm" 
-                                          onClick={() => handleDeleteReportFeedback(item.id, 'feedback')}
-                                          disabled={isProcessing}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                        </div>
+                                      </div>
+                                      <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded">
+                                        <p>{item.content}</p>
+                                      </div>
+                                      <div className="flex justify-between items-center text-xs text-slate-500">
+                                        <span>
+                                          <Clock className="h-3 w-3 inline-block mr-1" /> 
+                                          Expires in: {formatExpiryDate(new Date(item.expiresAt))}
+                                        </span>
                                       </div>
                                     </div>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                      User ID: {item.userId}
-                                    </p>
-                                    <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
-                                      <p className="text-sm">{item.content}</p>
-                                    </div>
-                                    <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                                      <span>Submitted: {new Date(item.timestamp).toLocaleString()}</span>
-                                      <span>Expires: {new Date(item.expiresAt).toLocaleString()}</span>
-                                    </div>
-                                  </div>
+                                  </CardContent>
                                 </Card>
                               ))}
                             </div>
@@ -1474,7 +1404,7 @@ const AdminDashboard = () => {
               {activeTab === "statistics" && (
                 <div>
                   <div className="mb-6">
-                    <h2 className="text-3xl font-bold">Statistics</h2>
+                    <h2 className="text-3xl font-bold">Statistics & Analytics</h2>
                   </div>
                   
                   <Tabs value={statsTab} onValueChange={setStatsTab} className="w-full">
@@ -1485,547 +1415,731 @@ const AdminDashboard = () => {
                       <TabsTrigger value="system">System</TabsTrigger>
                     </TabsList>
                     
-                    {/* Traffic Statistics */}
+                    {/* Traffic Stats */}
                     <TabsContent value="traffic">
-                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <Card>
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                              Total Visitors
-                            </CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Total Visitors</CardTitle>
                           </CardHeader>
                           <CardContent>
                             <div className="text-2xl font-bold">{formatNumber(trafficStats.totalVisitors)}</div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground mt-1">
                               {getPercentChange()} from last week
                             </p>
                           </CardContent>
                         </Card>
                         <Card>
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                              Page Views
-                            </CardTitle>
-                            <FileText className="h-4 w-4 text-muted-foreground" />
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Page Views</CardTitle>
                           </CardHeader>
                           <CardContent>
                             <div className="text-2xl font-bold">{formatNumber(trafficStats.totalPageViews)}</div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground mt-1">
                               {getPercentChange()} from last week
                             </p>
                           </CardContent>
                         </Card>
                         <Card>
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                              Avg. Session Duration
-                            </CardTitle>
-                            <Clock className="h-4 w-4 text-muted-foreground" />
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Avg. Session Duration</CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <div className="text-2xl font-bold">
-                              {Math.floor(trafficStats.averageSessionDuration / 60)}m {trafficStats.averageSessionDuration % 60}s
-                            </div>
-                            <p className="text-xs text-muted-foreground">
+                            <div className="text-2xl font-bold">{Math.floor(trafficStats.averageSessionDuration / 60)}m {trafficStats.averageSessionDuration % 60}s</div>
+                            <p className="text-xs text-muted-foreground mt-1">
                               {getPercentChange()} from last week
                             </p>
                           </CardContent>
                         </Card>
                       </div>
                       
-                      <div className="grid gap-4 md:grid-cols-2 mt-4">
-                        <Card className="col-span-1">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <Card>
                           <CardHeader>
-                            <CardTitle>Daily Traffic</CardTitle>
+                            <CardTitle>Visitors (Last 7 Days)</CardTitle>
                           </CardHeader>
-                          <CardContent className="pt-2">
-                            <div className="h-[300px]">
-                              <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={trafficStats.dailyTraffic}>
-                                  <CartesianGrid strokeDasharray="3 3" />
-                                  <XAxis dataKey="date" />
-                                  <YAxis />
-                                  <Tooltip />
-                                  <Legend />
-                                  <Bar dataKey="visitors" fill={CHART_COLORS[0]} name="Visitors" />
-                                  <Bar dataKey="pageViews" fill={CHART_COLORS[1]} name="Page Views" />
-                                  <Bar dataKey="uniqueVisitors" fill={CHART_COLORS[2]} name="Unique Visitors" />
-                                </BarChart>
-                              </ResponsiveContainer>
-                            </div>
+                          <CardContent className="h-80">
+                            <ChartContainer
+                              config={{
+                                visitors: { theme: { light: "#8B5CF6", dark: "#A78BFA" }},
+                                pageViews: { theme: { light: "#F97316", dark: "#FB923C" }},
+                                uniqueVisitors: { theme: { light: "#10B981", dark: "#34D399" }}
+                              }}
+                            >
+                              <BarChart data={trafficStats.dailyTraffic}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="date" />
+                                <YAxis />
+                                <Tooltip
+                                  content={
+                                    <ChartTooltipContent
+                                      labelClassName="font-medium text-sm"
+                                      indicator="line"
+                                    />
+                                  }
+                                />
+                                <Legend
+                                  content={
+                                    <ChartLegendContent
+                                      className="mt-3"
+                                    />
+                                  }
+                                />
+                                <Bar dataKey="visitors" name="Visitors" fill="var(--color-visitors)" />
+                                <Bar dataKey="pageViews" name="Page Views" fill="var(--color-pageViews)" />
+                                <Bar dataKey="uniqueVisitors" name="Unique Visitors" fill="var(--color-uniqueVisitors)" />
+                              </BarChart>
+                            </ChartContainer>
                           </CardContent>
                         </Card>
                         
-                        <div className="grid gap-4 grid-rows-2">
+                        <div className="grid grid-cols-1 gap-6">
                           <Card>
                             <CardHeader>
                               <CardTitle>Traffic Sources</CardTitle>
                             </CardHeader>
-                            <CardContent>
-                              <div className="h-[140px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <PieChart>
-                                    <Pie
-                                      data={trafficStats.trafficSources}
-                                      cx="50%"
-                                      cy="50%"
-                                      innerRadius={30}
-                                      outerRadius={60}
-                                      fill="#8884d8"
-                                      paddingAngle={2}
-                                      dataKey="value"
-                                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                    >
-                                      {trafficStats.trafficSources.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                                      ))}
-                                    </Pie>
-                                    <Tooltip />
-                                  </PieChart>
-                                </ResponsiveContainer>
-                              </div>
+                            <CardContent className="h-[200px]">
+                              <ChartContainer
+                                config={{
+                                  Direct: { theme: { light: "#8B5CF6", dark: "#A78BFA" }},
+                                  Search: { theme: { light: "#F97316", dark: "#FB923C" }},
+                                  Social: { theme: { light: "#10B981", dark: "#34D399" }},
+                                  Referral: { theme: { light: "#0EA5E9", dark: "#38BDF8" }},
+                                  Other: { theme: { light: "#6366F1", dark: "#818CF8" }}
+                                }}
+                              >
+                                <PieChart>
+                                  <Pie
+                                    data={trafficStats.trafficSources}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    cx="50%"
+                                    cy="50%"
+                                    outerRadius={80}
+                                    fill="#8884d8"
+                                    label
+                                  >
+                                    {trafficStats.trafficSources.map((entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={`var(--color-${entry.name})`} />
+                                    ))}
+                                  </Pie>
+                                  <Tooltip
+                                    content={
+                                      <ChartTooltipContent
+                                        nameKey="name"
+                                        labelKey="name"
+                                        formatLabel={(value) => `${value}%`}
+                                      />
+                                    }
+                                  />
+                                  <Legend 
+                                    content={
+                                      <ChartLegendContent
+                                        className="mt-2"
+                                      />
+                                    }
+                                  />
+                                </PieChart>
+                              </ChartContainer>
                             </CardContent>
                           </Card>
                           
                           <Card>
                             <CardHeader>
-                              <CardTitle>Visitors by Country</CardTitle>
+                              <CardTitle>Countries</CardTitle>
                             </CardHeader>
-                            <CardContent>
-                              <div className="h-[140px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <PieChart>
-                                    <Pie
-                                      data={trafficStats.visitorsByCountry}
-                                      cx="50%"
-                                      cy="50%"
-                                      innerRadius={30}
-                                      outerRadius={60}
-                                      fill="#8884d8"
-                                      paddingAngle={2}
-                                      dataKey="value"
-                                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                    >
-                                      {trafficStats.visitorsByCountry.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                                      ))}
-                                    </Pie>
-                                    <Tooltip />
-                                  </PieChart>
-                                </ResponsiveContainer>
-                              </div>
+                            <CardContent className="h-[200px]">
+                              <ChartContainer
+                                config={{
+                                  "United States": { theme: { light: "#8B5CF6", dark: "#A78BFA" }},
+                                  "United Kingdom": { theme: { light: "#F97316", dark: "#FB923C" }},
+                                  "Germany": { theme: { light: "#10B981", dark: "#34D399" }},
+                                  "France": { theme: { light: "#0EA5E9", dark: "#38BDF8" }},
+                                  "Canada": { theme: { light: "#6366F1", dark: "#818CF8" }},
+                                  "Other": { theme: { light: "#D946EF", dark: "#E879F9" }}
+                                }}
+                              >
+                                <PieChart>
+                                  <Pie
+                                    data={trafficStats.visitorsByCountry}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    cx="50%"
+                                    cy="50%"
+                                    outerRadius={80}
+                                    fill="#8884d8"
+                                    label
+                                  >
+                                    {trafficStats.visitorsByCountry.map((entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={`var(--color-${entry.name.replace(/\s+/g, "\\\ ")}`} />
+                                    ))}
+                                  </Pie>
+                                  <Tooltip
+                                    content={
+                                      <ChartTooltipContent
+                                        nameKey="name"
+                                        labelKey="name"
+                                        formatLabel={(value) => `${value}%`}
+                                      />
+                                    }
+                                  />
+                                  <Legend 
+                                    content={
+                                      <ChartLegendContent
+                                        className="mt-2"
+                                      />
+                                    }
+                                  />
+                                </PieChart>
+                              </ChartContainer>
                             </CardContent>
                           </Card>
                         </div>
                       </div>
                     </TabsContent>
                     
-                    {/* User Statistics */}
+                    {/* User Stats */}
                     <TabsContent value="users">
-                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                         <Card>
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                              Standard Users
-                            </CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Standard Users</CardTitle>
                           </CardHeader>
                           <CardContent>
                             <div className="text-2xl font-bold">{formatNumber(userStats.totalStandardUsers)}</div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground mt-1">
                               {getPercentChange()} from last month
                             </p>
                           </CardContent>
                         </Card>
                         <Card>
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                              VIP Users
-                            </CardTitle>
-                            <Shield className="h-4 w-4 text-muted-foreground" />
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">VIP Users</CardTitle>
                           </CardHeader>
                           <CardContent>
                             <div className="text-2xl font-bold">{formatNumber(userStats.totalVipUsers)}</div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground mt-1">
                               {getPercentChange()} from last month
                             </p>
                           </CardContent>
                         </Card>
                         <Card>
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                              Conversion Rate
-                            </CardTitle>
-                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Active Today</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{formatNumber(userStats.activeUsersToday)}</div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {getPercentChange()} from yesterday
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
                           </CardHeader>
                           <CardContent>
                             <div className="text-2xl font-bold">{userStats.conversionRate}</div>
-                            <p className="text-xs text-muted-foreground">
-                              Standard to VIP conversion
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {getPercentChange()} from last month
                             </p>
                           </CardContent>
                         </Card>
                       </div>
                       
-                      <div className="grid gap-4 md:grid-cols-2 mt-4">
-                        <Card className="col-span-1">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <Card>
                           <CardHeader>
-                            <CardTitle>User Registrations</CardTitle>
+                            <CardTitle>User Registrations (Last 7 Days)</CardTitle>
                           </CardHeader>
-                          <CardContent className="pt-2">
-                            <div className="h-[300px]">
-                              <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={userStats.userRegistrations}>
-                                  <CartesianGrid strokeDasharray="3 3" />
-                                  <XAxis dataKey="date" />
-                                  <YAxis />
-                                  <Tooltip />
-                                  <Legend />
-                                  <Bar dataKey="standard" fill={CHART_COLORS[0]} name="Standard Users" />
-                                  <Bar dataKey="vip" fill={CHART_COLORS[1]} name="VIP Users" />
-                                </BarChart>
-                              </ResponsiveContainer>
-                            </div>
+                          <CardContent className="h-80">
+                            <ChartContainer
+                              config={{
+                                standard: { theme: { light: "#8B5CF6", dark: "#A78BFA" }},
+                                vip: { theme: { light: "#F97316", dark: "#FB923C" }}
+                              }}
+                            >
+                              <BarChart data={userStats.userRegistrations}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="date" />
+                                <YAxis />
+                                <Tooltip
+                                  content={
+                                    <ChartTooltipContent
+                                      labelClassName="font-medium text-sm"
+                                    />
+                                  }
+                                />
+                                <Legend
+                                  content={
+                                    <ChartLegendContent
+                                      className="mt-3"
+                                    />
+                                  }
+                                />
+                                <Bar dataKey="standard" name="Standard Users" fill="var(--color-standard)" />
+                                <Bar dataKey="vip" name="VIP Users" fill="var(--color-vip)" />
+                              </BarChart>
+                            </ChartContainer>
                           </CardContent>
                         </Card>
                         
-                        <div className="grid gap-4 grid-rows-2">
-                          <Card>
-                            <CardHeader>
-                              <CardTitle>Age Distribution</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="h-[140px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <PieChart>
-                                    <Pie
-                                      data={userStats.userDemographics.age}
-                                      cx="50%"
-                                      cy="50%"
-                                      innerRadius={30}
-                                      outerRadius={60}
-                                      fill="#8884d8"
-                                      paddingAngle={2}
-                                      dataKey="value"
-                                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                    >
-                                      {userStats.userDemographics.age.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                                      ))}
-                                    </Pie>
-                                    <Tooltip />
-                                  </PieChart>
-                                </ResponsiveContainer>
-                              </div>
-                            </CardContent>
-                          </Card>
-                          
-                          <Card>
-                            <CardHeader>
-                              <CardTitle>Gender Distribution</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="h-[140px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <PieChart>
-                                    <Pie
-                                      data={userStats.userDemographics.gender}
-                                      cx="50%"
-                                      cy="50%"
-                                      innerRadius={30}
-                                      outerRadius={60}
-                                      fill="#8884d8"
-                                      paddingAngle={2}
-                                      dataKey="value"
-                                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                    >
-                                      {userStats.userDemographics.gender.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                                      ))}
-                                    </Pie>
-                                    <Tooltip />
-                                  </PieChart>
-                                </ResponsiveContainer>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      </div>
-                      
-                      <Card className="mt-4">
-                        <CardHeader>
-                          <CardTitle>Online Users (24h)</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Online Users (Last 24 Hours)</CardTitle>
+                          </CardHeader>
+                          <CardContent className="h-80">
+                            <ChartContainer
+                              config={{
+                                users: { theme: { light: "#10B981", dark: "#34D399" }}
+                              }}
+                            >
                               <LineChart data={userStats.onlineUsers}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="hour" />
                                 <YAxis />
-                                <Tooltip />
-                                <Line type="monotone" dataKey="users" stroke={CHART_COLORS[0]} name="Online Users" />
+                                <Tooltip
+                                  content={
+                                    <ChartTooltipContent
+                                      labelKey="hour"
+                                      indicator="dot"
+                                    />
+                                  }
+                                />
+                                <Legend
+                                  content={
+                                    <ChartLegendContent
+                                      className="mt-3"
+                                    />
+                                  }
+                                />
+                                <Line 
+                                  type="monotone" 
+                                  dataKey="users" 
+                                  name="Online Users" 
+                                  stroke="var(--color-users)" 
+                                  strokeWidth={2}
+                                  dot={{ r: 3 }}
+                                  activeDot={{ r: 5 }}
+                                />
                               </LineChart>
-                            </ResponsiveContainer>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                    
-                    {/* Content Statistics */}
-                    <TabsContent value="content">
-                      <div className="grid gap-4 md:grid-cols-3">
-                        <Card>
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                              Total Messages
-                            </CardTitle>
-                            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                          </CardHeader>
-                          <CardContent>
-                            <div className="text-2xl font-bold">{formatNumber(contentStats.totalMessages)}</div>
-                            <p className="text-xs text-muted-foreground">
-                              {getPercentChange()} from last week
-                            </p>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                              Total Uploads
-                            </CardTitle>
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                          </CardHeader>
-                          <CardContent>
-                            <div className="text-2xl font-bold">{formatNumber(contentStats.totalUploads)}</div>
-                            <p className="text-xs text-muted-foreground">
-                              {getPercentChange()} from last week
-                            </p>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                              Avg. Messages Per User
-                            </CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                          </CardHeader>
-                          <CardContent>
-                            <div className="text-2xl font-bold">{contentStats.averageMessagesPerUser}</div>
-                            <p className="text-xs text-muted-foreground">
-                              {getPercentChange()} from last week
-                            </p>
+                            </ChartContainer>
                           </CardContent>
                         </Card>
                       </div>
                       
-                      <div className="grid gap-4 md:grid-cols-2 mt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Card>
                           <CardHeader>
-                            <CardTitle>Messages Per Day</CardTitle>
+                            <CardTitle>User Age Demographics</CardTitle>
                           </CardHeader>
-                          <CardContent>
-                            <div className="h-[300px]">
-                              <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={contentStats.messagesPerDay}>
-                                  <CartesianGrid strokeDasharray="3 3" />
-                                  <XAxis dataKey="date" />
-                                  <YAxis />
-                                  <Tooltip />
-                                  <Legend />
-                                  <Bar dataKey="standard" fill={CHART_COLORS[0]} name="Standard Users" />
-                                  <Bar dataKey="vip" fill={CHART_COLORS[1]} name="VIP Users" />
-                                  <Bar dataKey="bot" fill={CHART_COLORS[2]} name="Bots" />
-                                </BarChart>
-                              </ResponsiveContainer>
-                            </div>
+                          <CardContent className="h-[300px]">
+                            <ChartContainer
+                              config={{
+                                "18-24": { theme: { light: "#8B5CF6", dark: "#A78BFA" }},
+                                "25-34": { theme: { light: "#F97316", dark: "#FB923C" }},
+                                "35-44": { theme: { light: "#10B981", dark: "#34D399" }},
+                                "45-54": { theme: { light: "#0EA5E9", dark: "#38BDF8" }},
+                                "55+": { theme: { light: "#6366F1", dark: "#818CF8" }}
+                              }}
+                            >
+                              <PieChart>
+                                <Pie
+                                  data={userStats.userDemographics.age}
+                                  dataKey="value"
+                                  nameKey="name"
+                                  cx="50%"
+                                  cy="50%"
+                                  outerRadius={100}
+                                  fill="#8884d8"
+                                  label
+                                >
+                                  {userStats.userDemographics.age.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={`var(--color-${entry.name})`} />
+                                  ))}
+                                </Pie>
+                                <Tooltip
+                                  content={
+                                    <ChartTooltipContent
+                                      nameKey="name"
+                                      labelKey="name"
+                                      formatLabel={(value) => `${value}%`}
+                                    />
+                                  }
+                                />
+                                <Legend 
+                                  content={
+                                    <ChartLegendContent
+                                      className="mt-2"
+                                    />
+                                  }
+                                />
+                              </PieChart>
+                            </ChartContainer>
                           </CardContent>
                         </Card>
                         
                         <Card>
                           <CardHeader>
-                            <CardTitle>Media Uploads</CardTitle>
+                            <CardTitle>User Gender Distribution</CardTitle>
+                          </CardHeader>
+                          <CardContent className="h-[300px]">
+                            <ChartContainer
+                              config={{
+                                "Male": { theme: { light: "#0EA5E9", dark: "#38BDF8" }},
+                                "Female": { theme: { light: "#D946EF", dark: "#E879F9" }},
+                                "Other": { theme: { light: "#10B981", dark: "#34D399" }}
+                              }}
+                            >
+                              <PieChart>
+                                <Pie
+                                  data={userStats.userDemographics.gender}
+                                  dataKey="value"
+                                  nameKey="name"
+                                  cx="50%"
+                                  cy="50%"
+                                  outerRadius={100}
+                                  fill="#8884d8"
+                                  label
+                                >
+                                  {userStats.userDemographics.gender.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={`var(--color-${entry.name})`} />
+                                  ))}
+                                </Pie>
+                                <Tooltip
+                                  content={
+                                    <ChartTooltipContent
+                                      nameKey="name"
+                                      labelKey="name"
+                                      formatLabel={(value) => `${value}%`}
+                                    />
+                                  }
+                                />
+                                <Legend 
+                                  content={
+                                    <ChartLegendContent
+                                      className="mt-2"
+                                    />
+                                  }
+                                />
+                              </PieChart>
+                            </ChartContainer>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </TabsContent>
+                    
+                    {/* Content Stats */}
+                    <TabsContent value="content">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Total Messages</CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <div className="h-[300px]">
-                              <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={contentStats.uploadsPerDay}>
-                                  <CartesianGrid strokeDasharray="3 3" />
-                                  <XAxis dataKey="date" />
-                                  <YAxis />
-                                  <Tooltip />
-                                  <Legend />
-                                  <Bar dataKey="images" fill={CHART_COLORS[3]} name="Images" />
-                                  <Bar dataKey="videos" fill={CHART_COLORS[4]} name="Videos" />
-                                </BarChart>
-                              </ResponsiveContainer>
-                            </div>
+                            <div className="text-2xl font-bold">{formatNumber(contentStats.totalMessages)}</div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {getPercentChange()} from last week
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Total Uploads</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{formatNumber(contentStats.totalUploads)}</div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {getPercentChange()} from last week
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Avg. Messages per User</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{contentStats.averageMessagesPerUser}</div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {getPercentChange()} from last week
+                            </p>
                           </CardContent>
                         </Card>
                       </div>
                       
-                      <Card className="mt-4">
-                        <CardHeader>
-                          <CardTitle>Top Bot Interactions</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <BarChart 
-                                data={contentStats.botInteractions.slice(0, 5)} 
-                                layout="vertical"
-                              >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Messages per Day (Last 7 Days)</CardTitle>
+                          </CardHeader>
+                          <CardContent className="h-80">
+                            <ChartContainer
+                              config={{
+                                standard: { theme: { light: "#8B5CF6", dark: "#A78BFA" }},
+                                vip: { theme: { light: "#F97316", dark: "#FB923C" }},
+                                bot: { theme: { light: "#10B981", dark: "#34D399" }}
+                              }}
+                            >
+                              <BarChart data={contentStats.messagesPerDay}>
                                 <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis type="number" />
-                                <YAxis dataKey="botName" type="category" width={100} />
-                                <Tooltip />
-                                <Bar dataKey="interactions" fill={CHART_COLORS[0]} name="Interactions" />
+                                <XAxis dataKey="date" />
+                                <YAxis />
+                                <Tooltip
+                                  content={
+                                    <ChartTooltipContent
+                                      labelClassName="font-medium text-sm"
+                                    />
+                                  }
+                                />
+                                <Legend
+                                  content={
+                                    <ChartLegendContent
+                                      className="mt-3"
+                                    />
+                                  }
+                                />
+                                <Bar dataKey="standard" name="Standard Users" fill="var(--color-standard)" />
+                                <Bar dataKey="vip" name="VIP Users" fill="var(--color-vip)" />
+                                <Bar dataKey="bot" name="Bot Messages" fill="var(--color-bot)" />
                               </BarChart>
-                            </ResponsiveContainer>
-                          </div>
+                            </ChartContainer>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Media Uploads (Last 7 Days)</CardTitle>
+                          </CardHeader>
+                          <CardContent className="h-80">
+                            <ChartContainer
+                              config={{
+                                images: { theme: { light: "#0EA5E9", dark: "#38BDF8" }},
+                                videos: { theme: { light: "#D946EF", dark: "#E879F9" }}
+                              }}
+                            >
+                              <BarChart data={contentStats.uploadsPerDay}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="date" />
+                                <YAxis />
+                                <Tooltip
+                                  content={
+                                    <ChartTooltipContent
+                                      labelClassName="font-medium text-sm"
+                                    />
+                                  }
+                                />
+                                <Legend
+                                  content={
+                                    <ChartLegendContent
+                                      className="mt-3"
+                                    />
+                                  }
+                                />
+                                <Bar dataKey="images" name="Image Uploads" fill="var(--color-images)" />
+                                <Bar dataKey="videos" name="Video Uploads" fill="var(--color-videos)" />
+                              </BarChart>
+                            </ChartContainer>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Bot Interactions (Top 10)</CardTitle>
+                        </CardHeader>
+                        <CardContent className="h-80">
+                          <ChartContainer
+                            config={{
+                              interactions: { theme: { light: "#8B5CF6", dark: "#A78BFA" }}
+                            }}
+                          >
+                            <BarChart 
+                              data={contentStats.botInteractions}
+                              layout="vertical"
+                              margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis type="number" />
+                              <YAxis type="category" dataKey="botName" />
+                              <Tooltip
+                                content={
+                                  <ChartTooltipContent
+                                    labelKey="botName"
+                                  />
+                                }
+                              />
+                              <Bar dataKey="interactions" name="Interactions" fill="var(--color-interactions)" />
+                            </BarChart>
+                          </ChartContainer>
                         </CardContent>
                       </Card>
                     </TabsContent>
                     
-                    {/* System Statistics */}
+                    {/* System Stats */}
                     <TabsContent value="system">
-                      <div className="grid gap-4 md:grid-cols-3">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <Card>
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                              Server Uptime
-                            </CardTitle>
-                            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">System Uptime</CardTitle>
                           </CardHeader>
                           <CardContent>
                             <div className="text-2xl font-bold">{systemStats.uptime} days</div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground mt-1">
                               Last restart: {new Date(Date.now() - systemStats.uptime * 24 * 60 * 60 * 1000).toLocaleDateString()}
                             </p>
                           </CardContent>
                         </Card>
                         <Card>
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                              Total Requests
-                            </CardTitle>
-                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
                           </CardHeader>
                           <CardContent>
                             <div className="text-2xl font-bold">{formatNumber(systemStats.totalRequests)}</div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground mt-1">
                               {getPercentChange()} from last week
                             </p>
                           </CardContent>
                         </Card>
                         <Card>
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                              Avg. Response Time
-                            </CardTitle>
-                            <Clock className="h-4 w-4 text-muted-foreground" />
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Avg. Response Time</CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <div className="text-2xl font-bold">{systemStats.averageResponseTime.toFixed(0)} ms</div>
-                            <p className="text-xs text-muted-foreground">
+                            <div className="text-2xl font-bold">{systemStats.averageResponseTime.toFixed(2)}ms</div>
+                            <p className="text-xs text-muted-foreground mt-1">
                               {getPercentChange()} from last week
                             </p>
                           </CardContent>
                         </Card>
                       </div>
                       
-                      <div className="grid gap-4 md:grid-cols-2 mt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <Card>
                           <CardHeader>
-                            <CardTitle>Server Response Time (24h)</CardTitle>
+                            <CardTitle>Server Response Time (Last 24 Hours)</CardTitle>
                           </CardHeader>
-                          <CardContent>
-                            <div className="h-[300px]">
-                              <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={systemStats.serverResponse}>
-                                  <CartesianGrid strokeDasharray="3 3" />
-                                  <XAxis dataKey="hour" />
-                                  <YAxis domain={[0, 'dataMax + 50']} />
-                                  <Tooltip />
-                                  <Line 
-                                    type="monotone" 
-                                    dataKey="responseTime" 
-                                    stroke={CHART_COLORS[0]} 
-                                    name="Response Time (ms)" 
-                                  />
-                                </LineChart>
-                              </ResponsiveContainer>
-                            </div>
+                          <CardContent className="h-80">
+                            <ChartContainer
+                              config={{
+                                responseTime: { theme: { light: "#10B981", dark: "#34D399" }}
+                              }}
+                            >
+                              <LineChart data={systemStats.serverResponse}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="hour" />
+                                <YAxis />
+                                <Tooltip
+                                  content={
+                                    <ChartTooltipContent
+                                      labelKey="hour"
+                                      indicator="dot"
+                                    />
+                                  }
+                                />
+                                <Legend
+                                  content={
+                                    <ChartLegendContent
+                                      className="mt-3"
+                                    />
+                                  }
+                                />
+                                <Line 
+                                  type="monotone" 
+                                  dataKey="responseTime" 
+                                  name="Response Time (ms)" 
+                                  stroke="var(--color-responseTime)" 
+                                  strokeWidth={2}
+                                  dot={{ r: 3 }}
+                                  activeDot={{ r: 5 }}
+                                />
+                              </LineChart>
+                            </ChartContainer>
                           </CardContent>
                         </Card>
                         
                         <Card>
                           <CardHeader>
-                            <CardTitle>Error Rates</CardTitle>
+                            <CardTitle>Error Rates (Last 7 Days)</CardTitle>
                           </CardHeader>
-                          <CardContent>
-                            <div className="h-[300px]">
-                              <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={systemStats.errorRates}>
-                                  <CartesianGrid strokeDasharray="3 3" />
-                                  <XAxis dataKey="date" />
-                                  <YAxis 
-                                    yAxisId="left"
-                                    orientation="left"
-                                    stroke={CHART_COLORS[0]}
-                                  />
-                                  <YAxis 
-                                    yAxisId="right"
-                                    orientation="right"
-                                    stroke={CHART_COLORS[5]}
-                                  />
-                                  <Tooltip />
-                                  <Legend />
-                                  <Line 
-                                    yAxisId="left"
-                                    type="monotone" 
-                                    dataKey="errors" 
-                                    stroke={CHART_COLORS[0]} 
-                                    name="Errors" 
-                                  />
-                                  <Line 
-                                    yAxisId="right"
-                                    type="monotone" 
-                                    dataKey="requests" 
-                                    stroke={CHART_COLORS[5]} 
-                                    name="Requests" 
-                                  />
-                                </LineChart>
-                              </ResponsiveContainer>
-                            </div>
+                          <CardContent className="h-80">
+                            <ChartContainer
+                              config={{
+                                errorRate: { theme: { light: "#EF4444", dark: "#F87171" }}
+                              }}
+                            >
+                              <LineChart data={systemStats.errorRates.map(item => ({
+                                ...item, 
+                                errorRate: (item.errors / item.requests * 100).toFixed(2)
+                              }))}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="date" />
+                                <YAxis />
+                                <Tooltip
+                                  content={
+                                    <ChartTooltipContent
+                                      labelKey="date"
+                                      indicator="dot"
+                                    />
+                                  }
+                                />
+                                <Legend
+                                  content={
+                                    <ChartLegendContent
+                                      className="mt-3"
+                                    />
+                                  }
+                                />
+                                <Line 
+                                  type="monotone" 
+                                  dataKey="errorRate" 
+                                  name="Error Rate (%)" 
+                                  stroke="var(--color-errorRate)" 
+                                  strokeWidth={2}
+                                  dot={{ r: 3 }}
+                                  activeDot={{ r: 5 }}
+                                />
+                              </LineChart>
+                            </ChartContainer>
                           </CardContent>
                         </Card>
                       </div>
                       
-                      <Card className="mt-4">
+                      <Card>
                         <CardHeader>
-                          <CardTitle>System Resource Usage</CardTitle>
+                          <CardTitle>Resource Usage</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                          <div className="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <BarChart data={systemStats.resourceUsage}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis domain={[0, 100]} />
-                                <Tooltip />
-                                <Bar dataKey="value" name="Usage %">
-                                  {systemStats.resourceUsage.map((entry, index) => (
-                                    <Cell 
-                                      key={`cell-${index}`} 
-                                      fill={entry.value > 80 ? CHART_COLORS[5] : entry.value > 60 ? CHART_COLORS[6] : CHART_COLORS[4]} 
-                                    />
-                                  ))}
-                                </Bar>
-                              </BarChart>
-                            </ResponsiveContainer>
-                          </div>
+                        <CardContent className="h-[300px]">
+                          <ChartContainer
+                            config={{
+                              "CPU": { theme: { light: "#8B5CF6", dark: "#A78BFA" }},
+                              "Memory": { theme: { light: "#F97316", dark: "#FB923C" }},
+                              "Disk": { theme: { light: "#10B981", dark: "#34D399" }},
+                              "Network": { theme: { light: "#0EA5E9", dark: "#38BDF8" }}
+                            }}
+                          >
+                            <BarChart 
+                              data={systemStats.resourceUsage}
+                              layout="vertical"
+                              margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis type="number" domain={[0, 100]} />
+                              <YAxis type="category" dataKey="name" />
+                              <Tooltip
+                                content={
+                                  <ChartTooltipContent
+                                    labelKey="name"
+                                    formatLabel={(value) => `${value}%`}
+                                  />
+                                }
+                              />
+                              <Bar dataKey="value" name="Usage (%)" radius={[0, 4, 4, 0]}>
+                                {systemStats.resourceUsage.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={`var(--color-${entry.name})`} />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ChartContainer>
                         </CardContent>
                       </Card>
                     </TabsContent>
@@ -2042,99 +2156,85 @@ const AdminDashboard = () => {
                   
                   <Tabs value={adminTab} onValueChange={setAdminTab} className="w-full">
                     <TabsList className="mb-4">
-                      <TabsTrigger value="avatar">Account</TabsTrigger>
-                      <TabsTrigger value="password">Password</TabsTrigger>
+                      <TabsTrigger value="account">Account</TabsTrigger>
+                      <TabsTrigger value="security">Security</TabsTrigger>
                     </TabsList>
                     
-                    {/* Admin Account */}
-                    <TabsContent value="avatar">
+                    {/* Account Settings */}
+                    <TabsContent value="account">
                       <Card>
                         <CardHeader>
-                          <CardTitle>Admin Account</CardTitle>
-                          <CardDescription>Update your admin profile</CardDescription>
+                          <CardTitle>Account Settings</CardTitle>
+                          <CardDescription>Update your admin account settings</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <Form {...adminSettingsForm}>
-                            <form onSubmit={adminSettingsForm.handleSubmit(handleSaveAdminSettings)} className="space-y-4">
-                              <FormField
-                                control={adminSettingsForm.control}
-                                name="displayName"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Display Name</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="Admin display name" {...field} />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Your name displayed to users
-                                    </FormDescription>
-                                  </FormItem>
-                                )}
-                              />
+                          <form onSubmit={adminSettingsForm.handleSubmit(handleSaveAdminSettings)} className="space-y-4">
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="displayName">Display Name</Label>
+                                <Input 
+                                  id="displayName" 
+                                  {...adminSettingsForm.register('displayName')} 
+                                  placeholder="Admin" 
+                                />
+                              </div>
                               
-                              <Button type="submit" disabled={isProcessing}>
-                                Save Account Settings
-                              </Button>
-                            </form>
-                          </Form>
+                              <div className="flex items-center space-x-2">
+                                <div className="bg-slate-800 rounded-full h-14 w-14 flex items-center justify-center text-xl">
+                                  <CircleUser className="h-8 w-8 text-white" />
+                                </div>
+                                <Button type="button" variant="outline">
+                                  Change Avatar
+                                </Button>
+                              </div>
+                            </div>
+                            
+                            <Button type="submit">Save Changes</Button>
+                          </form>
                         </CardContent>
                       </Card>
                     </TabsContent>
                     
-                    {/* Admin Password */}
-                    <TabsContent value="password">
+                    {/* Security Settings */}
+                    <TabsContent value="security">
                       <Card>
                         <CardHeader>
-                          <CardTitle>Change Password</CardTitle>
-                          <CardDescription>Update your admin password</CardDescription>
+                          <CardTitle>Security Settings</CardTitle>
+                          <CardDescription>Update your password and security preferences</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <Form {...adminSettingsForm}>
-                            <form onSubmit={adminSettingsForm.handleSubmit(handleSaveAdminSettings)} className="space-y-4">
-                              <FormField
-                                control={adminSettingsForm.control}
-                                name="currentPassword"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Current Password</FormLabel>
-                                    <FormControl>
-                                      <Input type="password" placeholder="Your current password" {...field} />
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
+                          <form onSubmit={adminSettingsForm.handleSubmit(handleSaveAdminSettings)} className="space-y-4">
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="currentPassword">Current Password</Label>
+                                <Input 
+                                  id="currentPassword" 
+                                  type="password" 
+                                  {...adminSettingsForm.register('currentPassword')} 
+                                />
+                              </div>
                               
-                              <FormField
-                                control={adminSettingsForm.control}
-                                name="newPassword"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>New Password</FormLabel>
-                                    <FormControl>
-                                      <Input type="password" placeholder="Your new password" {...field} />
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
+                              <div>
+                                <Label htmlFor="newPassword">New Password</Label>
+                                <Input 
+                                  id="newPassword" 
+                                  type="password" 
+                                  {...adminSettingsForm.register('newPassword')}
+                                />
+                              </div>
                               
-                              <FormField
-                                control={adminSettingsForm.control}
-                                name="confirmPassword"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Confirm New Password</FormLabel>
-                                    <FormControl>
-                                      <Input type="password" placeholder="Confirm new password" {...field} />
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <Button type="submit" disabled={isProcessing}>
-                                Update Password
-                              </Button>
-                            </form>
-                          </Form>
+                              <div>
+                                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                                <Input 
+                                  id="confirmPassword" 
+                                  type="password" 
+                                  {...adminSettingsForm.register('confirmPassword')}
+                                />
+                              </div>
+                            </div>
+                            
+                            <Button type="submit">Change Password</Button>
+                          </form>
                         </CardContent>
                       </Card>
                     </TabsContent>
@@ -2146,7 +2246,7 @@ const AdminDashboard = () => {
         </div>
       </div>
       
-      {/* Alert Dialog */}
+      {/* Modals and Dialogs */}
       <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -2155,7 +2255,12 @@ const AdminDashboard = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={alertConfig.action}>Continue</AlertDialogAction>
+            <AlertDialogAction onClick={() => {
+              alertConfig.action();
+              setAlertOpen(false);
+            }}>
+              Continue
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -2164,13 +2269,14 @@ const AdminDashboard = () => {
       <AlertDialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ban User</AlertDialogTitle>
+            <AlertDialogTitle>Ban User: {selectedUser?.name}</AlertDialogTitle>
             <AlertDialogDescription>
-              Ban {selectedUser?.name} from the platform
+              Set ban duration and reason. This will prevent the user from accessing the site.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          
           <Form {...banForm}>
-            <form onSubmit={banForm.handleSubmit(submitBanUser)} className="space-y-4 py-4">
+            <form onSubmit={banForm.handleSubmit(submitBanUser)} className="space-y-4 py-2">
               <FormField
                 control={banForm.control}
                 name="reason"
@@ -2179,9 +2285,9 @@ const AdminDashboard = () => {
                     <FormLabel>Reason</FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="Reason for banning"
-                        className="resize-none"
-                        {...field}
+                        placeholder="Reason for ban..." 
+                        className="resize-none" 
+                        {...field} 
                       />
                     </FormControl>
                     <FormMessage />
@@ -2196,8 +2302,8 @@ const AdminDashboard = () => {
                   <FormItem>
                     <FormLabel>Duration</FormLabel>
                     <Select 
-                      value={field.value} 
-                      onValueChange={field.onChange}
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -2205,10 +2311,10 @@ const AdminDashboard = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="1 Day">1 Day</SelectItem>
+                        <SelectItem value="1 Hour">1 Hour</SelectItem>
+                        <SelectItem value="24 Hours">24 Hours</SelectItem>
                         <SelectItem value="3 Days">3 Days</SelectItem>
                         <SelectItem value="7 Days">7 Days</SelectItem>
-                        <SelectItem value="14 Days">14 Days</SelectItem>
                         <SelectItem value="30 Days">30 Days</SelectItem>
                         <SelectItem value="Permanent">Permanent</SelectItem>
                       </SelectContent>
@@ -2218,10 +2324,22 @@ const AdminDashboard = () => {
                 )}
               />
               
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <Button type="submit" disabled={isProcessing}>Ban User</Button>
-              </AlertDialogFooter>
+              <div className="flex justify-between pt-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setBanDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  variant="destructive"
+                  disabled={isProcessing}
+                >
+                  Ban User
+                </Button>
+              </div>
             </form>
           </Form>
         </AlertDialogContent>
@@ -2231,22 +2349,23 @@ const AdminDashboard = () => {
       <AlertDialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Upgrade to VIP</AlertDialogTitle>
+            <AlertDialogTitle>Upgrade User to VIP: {selectedUser?.name}</AlertDialogTitle>
             <AlertDialogDescription>
-              Upgrade {selectedUser?.name} to VIP status
+              Select VIP duration for this user.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          
           <Form {...upgradeForm}>
-            <form onSubmit={upgradeForm.handleSubmit(submitUpgradeToVIP)} className="space-y-4 py-4">
+            <form onSubmit={upgradeForm.handleSubmit(submitUpgradeToVIP)} className="space-y-4 py-2">
               <FormField
                 control={upgradeForm.control}
                 name="duration"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Duration</FormLabel>
+                    <FormLabel>VIP Duration</FormLabel>
                     <Select 
-                      value={field.value} 
-                      onValueChange={field.onChange}
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -2266,10 +2385,21 @@ const AdminDashboard = () => {
                 )}
               />
               
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <Button type="submit" disabled={isProcessing}>Upgrade User</Button>
-              </AlertDialogFooter>
+              <div className="flex justify-between pt-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setUpgradeDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={isProcessing}
+                >
+                  Upgrade User
+                </Button>
+              </div>
             </form>
           </Form>
         </AlertDialogContent>
