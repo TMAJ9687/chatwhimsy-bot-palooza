@@ -41,7 +41,7 @@ export const useSafeDOMOperations = () => {
     return domRegistry.isNodeValid(node);
   }, []);
   
-  // Safe element removal with enhanced parent checks
+  // Safe element removal with enhanced parent checks and retry mechanism
   const safeRemoveElement = useCallback((element: Element | null) => {
     if (unmountedRef.current || !element) return false;
     
@@ -57,7 +57,8 @@ export const useSafeDOMOperations = () => {
       }
       
       // Verify it's a child of its parent
-      if (!Array.from(element.parentNode.childNodes).includes(element)) {
+      const parentChildNodes = Array.from(element.parentNode.childNodes);
+      if (!parentChildNodes.includes(element)) {
         return false;
       }
       
@@ -66,9 +67,26 @@ export const useSafeDOMOperations = () => {
         element.remove();
         return true;
       } catch (e) {
-        // Fallback to registry method with additional checks
-        return domRegistry.safeRemoveElement(element);
+        console.warn('element.remove() failed, falling back to safer method:', e);
+        
+        // Recheck element state after failure
+        if (!element.parentNode || !document.contains(element)) {
+          return false;
+        }
+        
+        // Verify again it's a child of its parent (could have changed)
+        const updatedParentChildNodes = Array.from(element.parentNode.childNodes);
+        if (!updatedParentChildNodes.includes(element)) {
+          return false;
+        }
+        
+        // Final attempt with removeChild after rechecking parent
+        if (element.parentNode.contains(element)) {
+          element.parentNode.removeChild(element);
+          return true;
+        }
       }
+      return false;
     } catch (e) {
       console.warn('Error in safeRemoveElement:', e);
       return false;
@@ -102,7 +120,15 @@ export const useSafeDOMOperations = () => {
   // Clean all overlay elements with improved safety checks
   const cleanupOverlays = useCallback(() => {
     if (unmountedRef.current) return;
-    domRegistry.cleanupOverlays();
+    
+    if (typeof document !== 'undefined' && document.body) {
+      // First reset body state
+      document.body.style.overflow = 'auto';
+      document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+      
+      // Then cleanup overlays
+      domRegistry.cleanupOverlays();
+    }
   }, []);
   
   // Check if document is in a usable state
@@ -117,10 +143,18 @@ export const useSafeDOMOperations = () => {
       
       // Safely remove elements matching selector
       if (typeof document !== 'undefined') {
-        const elementsToRemove = document.querySelectorAll(selector);
-        elementsToRemove.forEach(element => {
-          safeRemoveElement(element as Element);
-        });
+        try {
+          const elementsToRemove = document.querySelectorAll(selector);
+          
+          // Use the safer forEach approach with each element validated individually
+          elementsToRemove.forEach(element => {
+            if (!unmountedRef.current) {
+              safeRemoveElement(element as Element);
+            }
+          });
+        } catch (err) {
+          console.warn(`Error during cleanup with selector ${selector}:`, err);
+        }
       }
     };
   }, [safeRemoveElement]);

@@ -22,16 +22,24 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const { isVip } = useUser();
   const { endRef } = useScrollToBottom([messages, isTyping]);
-  const { safeRemoveElement, createCleanupFn } = useSafeDOMOperations();
+  const { safeRemoveElement, createCleanupFn, isDOMReady } = useSafeDOMOperations();
   const isMountedRef = useRef(true);
+  const [isFullyMounted, setIsFullyMounted] = useState(false);
   
   // Only show status and typing indicators for VIP users
   const shouldShowStatus = isVip && showStatus;
   const shouldShowTyping = isVip && showTyping;
 
-  // Track component mounted state
+  // Track component mounted state with improved lifecycle management
   useEffect(() => {
     isMountedRef.current = true;
+    
+    // Set fully mounted state in the next frame to ensure DOM is ready
+    requestAnimationFrame(() => {
+      if (isMountedRef.current) {
+        setIsFullyMounted(true);
+      }
+    });
     
     // Create a cleanup function for overlay elements
     const cleanup = createCleanupFn('.fixed.inset-0, [data-radix-dialog-overlay], [data-radix-alert-dialog-overlay]');
@@ -39,17 +47,20 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     return () => {
       // Mark as unmounted before cleanup
       isMountedRef.current = false;
+      setIsFullyMounted(false);
       
-      // Run cleanup operation
-      cleanup();
+      // Run cleanup operation on unmount
+      if (isDOMReady()) {
+        cleanup();
+      }
     };
-  }, [createCleanupFn]);
+  }, [createCleanupFn, isDOMReady]);
 
   // Use useLayoutEffect to ensure DOM operations are performed synchronously
   // before the browser paints, helping prevent race conditions
   useLayoutEffect(() => {
-    // Make sure the component is still mounted and container exists
-    if (!containerRef.current || !isMountedRef.current) return;
+    // Skip if component is not fully mounted yet or already unmounted
+    if (!isFullyMounted || !isMountedRef.current || !containerRef.current) return;
     
     // Find any potential problematic elements
     const problematicElements = containerRef.current.querySelectorAll(
@@ -60,13 +71,13 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     if (problematicElements.length > 0 && isMountedRef.current) {
       console.log(`[ChatMessages] Found ${problematicElements.length} problematic elements, removing...`);
       
-      problematicElements.forEach(element => {
+      Array.from(problematicElements).forEach(element => {
         if (isMountedRef.current) {
-          safeRemoveElement(element);
+          safeRemoveElement(element as Element);
         }
       });
     }
-  }, [messages, safeRemoveElement]); // Re-run when messages change
+  }, [messages, safeRemoveElement, isFullyMounted]); // Re-run when messages or mount state changes
 
   return (
     <div 

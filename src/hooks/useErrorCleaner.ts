@@ -12,17 +12,19 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
   const lastCleanupTimeRef = useRef(0);
   const isMountedRef = useRef(true);
   const safetyUtils = useRef(new DOMSafetyUtils());
+  const errorCountRef = useRef(0);
   
   // Track component mounted state
   useEffect(() => {
     isMountedRef.current = true;
+    errorCountRef.current = 0;
     
     return () => {
       isMountedRef.current = false;
     };
   }, []);
   
-  // Enhanced DOM emergency cleanup
+  // Enhanced DOM emergency cleanup with progressive strategies
   const performEmergencyCleanup = useCallback(() => {
     // Skip if component is unmounted
     if (!isMountedRef.current) return;
@@ -35,14 +37,18 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
       document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
     }
     
-    // Get all overlay elements
+    // Get all overlay elements - expanded list of selectors
     const selectors = [
       '.fixed.inset-0', 
       '[data-radix-dialog-overlay]', 
-      '[data-radix-alert-dialog-overlay]'
+      '[data-radix-alert-dialog-overlay]',
+      '.vaul-overlay',
+      '.backdrop',
+      '.modal-backdrop',
+      '.fixed.z-50'
     ];
     
-    // Process overlay elements with enhanced validation
+    // Process overlay elements with enhanced validation and incremental cleanup
     selectors.forEach(selector => {
       try {
         safetyUtils.current.safeRemoveElementsBySelector(selector);
@@ -53,9 +59,29 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
     
     // Also run the provided cleanup function
     cleanupFn();
+    
+    // If we've had multiple errors, take more drastic measures
+    if (errorCountRef.current > 2) {
+      try {
+        // More aggressive cleanup for persistent errors
+        // Remove all portal nodes as a last resort
+        const portals = document.querySelectorAll('[aria-modal="true"], [role="dialog"]');
+        portals.forEach(portal => {
+          try {
+            if (portal.parentNode && safetyUtils.current.isElementSafeToRemove(portal as Element)) {
+              portal.parentNode.removeChild(portal);
+            }
+          } catch (e) {
+            // Ignore errors in last-resort cleanup
+          }
+        });
+      } catch (e) {
+        console.warn('[useErrorCleaner] Error in aggressive cleanup:', e);
+      }
+    }
   }, [cleanupFn]);
   
-  // Create a memoized error handler
+  // Create a memoized error handler with improved detection
   const handleError = useCallback((error: ErrorEvent) => {
     // Skip if component is unmounted
     if (!isMountedRef.current) return;
@@ -69,19 +95,21 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
       return;
     }
     
-    // Enhanced check for removeChild errors
+    // Enhanced check for DOM errors
     if (
       errorMessage.includes('removeChild') || 
       errorMessage.includes('parentNode') || 
       errorMessage.includes('Cannot read properties of null') ||
       errorMessage.includes('not a child of this node') ||
-      errorMessage.includes('Failed to execute') && errorMessage.includes('on') && errorMessage.includes('Node')
+      (errorMessage.includes('Failed to execute') && errorMessage.includes('on') && errorMessage.includes('Node')) ||
+      errorMessage.includes('The node to be removed is not a child of this node')
     ) {
       console.warn('DOM error detected, running cleanup:', errorMessage);
       
       // Mark that we've attempted cleanup
       cleanupAttemptedRef.current = true;
       lastCleanupTimeRef.current = now;
+      errorCountRef.current += 1;
       
       // Prevent default error behavior to avoid cascading errors
       error.preventDefault();
@@ -90,6 +118,13 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
       queueMicrotask(() => {
         if (!isMountedRef.current) return;
         performEmergencyCleanup();
+        
+        // Reset the cleanup attempt flag after a delay
+        setTimeout(() => {
+          if (isMountedRef.current) {
+            cleanupAttemptedRef.current = false;
+          }
+        }, 2500);
       });
     }
   }, [performEmergencyCleanup]);
@@ -107,11 +142,12 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
       if (
         errorMessage.includes('removeChild') || 
         errorMessage.includes('parentNode') || 
-        errorMessage.includes('not a child')
+        errorMessage.includes('not a child') ||
+        errorMessage.includes('The node to be removed')
       ) {
         console.warn('Promise rejection with DOM error detected:', errorMessage);
         event.preventDefault();
-        handleError({ message: errorMessage } as ErrorEvent);
+        handleError({ message: errorMessage, preventDefault: () => {} } as ErrorEvent);
       }
     };
     window.addEventListener('unhandledrejection', handleRejection, { capture: true });
@@ -135,6 +171,7 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
   
   // Return the emergency cleanup function for manual triggering
   return {
-    emergencyCleanup: performEmergencyCleanup
+    emergencyCleanup: performEmergencyCleanup,
+    errorCount: errorCountRef.current
   };
 };
