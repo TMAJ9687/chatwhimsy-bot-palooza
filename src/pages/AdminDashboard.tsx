@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -794,3 +795,391 @@ const AdminDashboard = () => {
                         </CardContent>
                       </Card>
                     </TabsContent>
+                    
+                    {/* System Stats - Added closing tag and content */}
+                    <TabsContent value="system">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">CPU Usage</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{systemStats.cpuUsage}%</div>
+                            <p className="text-xs text-muted-foreground">
+                              {getPercentChange()} from yesterday
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Memory Usage</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{systemStats.memoryUsage}%</div>
+                            <p className="text-xs text-muted-foreground">
+                              {getPercentChange()} from yesterday
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Disk Space</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{systemStats.diskSpace}%</div>
+                            <p className="text-xs text-muted-foreground">
+                              {getPercentChange()} from last week
+                            </p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Server Performance</CardTitle>
+                            <CardDescription>Resource usage over time</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="h-80">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={systemStats.serverPerformance}>
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="time" />
+                                  <YAxis />
+                                  <Tooltip />
+                                  <Legend />
+                                  <Line type="monotone" dataKey="cpu" stroke="#8884d8" name="CPU" activeDot={{ r: 8 }} />
+                                  <Line type="monotone" dataKey="memory" stroke="#82ca9d" name="Memory" />
+                                  <Line type="monotone" dataKey="disk" stroke="#ffc658" name="Disk I/O" />
+                                </LineChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>API Response Times</CardTitle>
+                            <CardDescription>Average response time per endpoint</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="h-80">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={systemStats.apiResponseTimes}>
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="endpoint" />
+                                  <YAxis />
+                                  <Tooltip />
+                                  <Legend />
+                                  <Bar dataKey="responseTime" fill="#8884d8" name="Response Time (ms)" />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Error Rates</CardTitle>
+                          <CardDescription>Server errors over time</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="h-80">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={systemStats.errorRates}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="date" />
+                                <YAxis />
+                                <Tooltip />
+                                <Legend />
+                                <Line type="monotone" dataKey="errors" stroke="#ff0000" name="Errors" activeDot={{ r: 8 }} />
+                                <Line type="monotone" dataKey="warnings" stroke="#ffaa00" name="Warnings" />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              )}
+              
+              {/* Settings Tab */}
+              {activeTab === "settings" && (
+                <div>
+                  <div className="mb-6">
+                    <h2 className="text-3xl font-bold">Settings</h2>
+                    <p className="text-slate-500 dark:text-slate-400">
+                      Manage your admin settings and preferences.
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Security Settings</CardTitle>
+                        <CardDescription>Update your admin security settings</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Form>
+                          <div className="space-y-4">
+                            <FormField
+                              name="current-password"
+                              render={() => (
+                                <FormItem>
+                                  <FormLabel>Current Password</FormLabel>
+                                  <FormControl>
+                                    <Input type="password" placeholder="Enter your current password" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              name="new-password"
+                              render={() => (
+                                <FormItem>
+                                  <FormLabel>New Password</FormLabel>
+                                  <FormControl>
+                                    <Input type="password" placeholder="Enter your new password" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              name="confirm-password"
+                              render={() => (
+                                <FormItem>
+                                  <FormLabel>Confirm New Password</FormLabel>
+                                  <FormControl>
+                                    <Input type="password" placeholder="Confirm your new password" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <Button type="submit">Update Password</Button>
+                          </div>
+                        </Form>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Notification Settings</CardTitle>
+                        <CardDescription>Configure how and when you receive notifications</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label htmlFor="email-notifications">Email Notifications</Label>
+                              <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Receive email notifications for important events
+                              </p>
+                            </div>
+                            <Switch id="email-notifications" />
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label htmlFor="user-reports">User Reports</Label>
+                              <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Get notified when a user submits a report
+                              </p>
+                            </div>
+                            <Switch id="user-reports" />
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label htmlFor="new-registrations">New Registrations</Label>
+                              <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Get notified about new user registrations
+                              </p>
+                            </div>
+                            <Switch id="new-registrations" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>System Settings</CardTitle>
+                        <CardDescription>Configure global system settings</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label htmlFor="maintenance-mode">Maintenance Mode</Label>
+                              <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Put the site in maintenance mode (only admins can access)
+                              </p>
+                            </div>
+                            <Switch id="maintenance-mode" />
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label htmlFor="user-registration">User Registration</Label>
+                              <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Allow new users to register on the site
+                              </p>
+                            </div>
+                            <Switch id="user-registration" defaultChecked />
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label htmlFor="auto-delete-reports">Auto-Delete Reports</Label>
+                              <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Automatically delete resolved reports after 30 days
+                              </p>
+                            </div>
+                            <Switch id="auto-delete-reports" defaultChecked />
+                          </div>
+                          
+                          <Button type="submit">Save Settings</Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+      
+      {/* Alert Dialog for confirmations */}
+      <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertConfig.title}</AlertDialogTitle>
+            <AlertDialogDescription>{alertConfig.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { alertConfig.action(); setAlertOpen(false); }}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Ban User Dialog */}
+      <AlertDialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ban User</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedUser && `You are about to ban ${selectedUser.name}.`}
+              Please provide a reason and duration.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Form {...banForm}>
+            <form onSubmit={banForm.handleSubmit(submitBanUser)} className="space-y-4">
+              <FormField
+                control={banForm.control}
+                name="reason"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reason for ban</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Enter reason..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={banForm.control}
+                name="duration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ban Duration</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select duration" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="1 Day">1 Day</SelectItem>
+                        <SelectItem value="3 Days">3 Days</SelectItem>
+                        <SelectItem value="7 Days">7 Days</SelectItem>
+                        <SelectItem value="30 Days">30 Days</SelectItem>
+                        <SelectItem value="Permanent">Permanent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction asChild>
+                  <Button type="submit">Ban User</Button>
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </form>
+          </Form>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Upgrade to VIP Dialog */}
+      <AlertDialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Upgrade to VIP</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedUser && `You are about to upgrade ${selectedUser.name} to VIP status.`}
+              Please select a duration for the VIP membership.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Form {...upgradeForm}>
+            <form onSubmit={upgradeForm.handleSubmit(submitUpgradeToVIP)} className="space-y-4">
+              <FormField
+                control={upgradeForm.control}
+                name="duration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>VIP Duration</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select duration" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="1 Day">1 Day</SelectItem>
+                        <SelectItem value="1 Week">1 Week</SelectItem>
+                        <SelectItem value="1 Month">1 Month</SelectItem>
+                        <SelectItem value="1 Year">1 Year</SelectItem>
+                        <SelectItem value="Lifetime">Lifetime</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction asChild>
+                  <Button type="submit">Upgrade User</Button>
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </form>
+          </Form>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default AdminDashboard;
