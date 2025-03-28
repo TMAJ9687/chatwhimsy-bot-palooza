@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Lock, Mail } from "lucide-react";
 import PasswordResetDialog from '@/components/dialogs/PasswordResetDialog';
 import { useUser } from '@/context/UserContext';
-import { isAdminLoggedIn, verifyAdminCredentials } from '@/services/admin/adminService';
+import { isAdminLoggedIn } from '@/services/admin/adminService';
 import { trackAsyncOperation } from '@/utils/performanceMonitor';
 import { signInWithEmail, isUserAdmin, getCurrentUser } from '@/firebase/auth';
 
@@ -24,6 +25,7 @@ const AdminLogin = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [loginError, setLoginError] = useState('');
   
   // Check if already logged in as admin
   useEffect(() => {
@@ -62,18 +64,27 @@ const AdminLogin = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setLoginError('');
     
     try {
       // Use trackAsyncOperation for better performance insight
       const result = await trackAsyncOperation('admin-login', async () => {
         try {
           // Try to log in with Firebase Auth
-          await signInWithEmail(email, password);
+          const user = await signInWithEmail(email, password);
+          console.log('Firebase login successful:', user);
           return true;
-        } catch (error) {
+        } catch (error: any) {
           console.error('Firebase login error:', error);
-          // Fall back to local authentication for demo
-          return verifyAdminCredentials(email, password);
+          setLoginError(error.message || 'Authentication failed');
+          
+          // For demo purposes, allow login with hardcoded credentials
+          if (email === 'admin@example.com' && password === 'admin123') {
+            console.log('Using fallback admin credentials');
+            return true;
+          }
+          
+          return false;
         }
       });
       
@@ -110,8 +121,9 @@ const AdminLogin = () => {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
+      setLoginError(error.message || 'An unexpected error occurred');
       toast({
         title: "Login error",
         description: "An unexpected error occurred",
@@ -171,6 +183,18 @@ const AdminLogin = () => {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
+            </div>
+            
+            {loginError && (
+              <div className="text-sm text-red-500 p-2 border border-red-300 rounded bg-red-50 dark:bg-red-900/20">
+                {loginError}
+              </div>
+            )}
+            
+            <div className="text-sm text-muted-foreground p-2 border border-amber-300 rounded bg-amber-50 dark:bg-amber-900/20">
+              <p>You can also use demo credentials:</p>
+              <p><strong>Email:</strong> admin@example.com</p>
+              <p><strong>Password:</strong> admin123</p>
             </div>
           </CardContent>
           <CardFooter>

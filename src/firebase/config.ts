@@ -5,12 +5,12 @@ import { getFirestore } from 'firebase/firestore';
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDjTkGdjNXAoHNBUCVXpQ3GGOZb7UCmhAo",
-  authDomain: "chat-admin-dashboard.firebaseapp.com",
-  projectId: "chat-admin-dashboard",
-  storageBucket: "chat-admin-dashboard.appspot.com",
-  messagingSenderId: "450021819153",
-  appId: "1:450021819153:web:b52dc61bd42e07e3f1b02c"
+  apiKey: "AIzaSyDY2ahen-rFA985JMwNXa_k9tS5Y9DYhIg",
+  authDomain: "chatwiilovable.firebaseapp.com",
+  projectId: "chatwiilovable",
+  storageBucket: "chatwiilovable.firebasestorage.app",
+  messagingSenderId: "760246107454",
+  appId: "1:760246107454:web:a09ef90265dfa0c57f806f"
 };
 
 // Initialize Firebase
