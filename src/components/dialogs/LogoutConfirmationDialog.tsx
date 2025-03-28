@@ -65,7 +65,7 @@ const LogoutConfirmationDialog = () => {
         return;
       }
       
-      // Use our centralized logout function
+      // Call the performLogout function directly
       performLogout();
     }, 50);
   }, [handleSafeClose, performLogout]);

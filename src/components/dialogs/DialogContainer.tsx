@@ -93,6 +93,8 @@ const DialogContainer = () => {
   
   if (state.type === 'logout') {
     try {
+      // Console log for debugging
+      console.log('Rendering LogoutConfirmationDialog with state:', state);
       return <LogoutConfirmationDialog key="logout" />;
     } catch (error) {
       console.error('Error rendering LogoutConfirmationDialog:', error);
