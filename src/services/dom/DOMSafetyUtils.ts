@@ -1,4 +1,3 @@
-
 /**
  * Utility class for safely performing DOM operations
  */

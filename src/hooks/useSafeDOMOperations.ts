@@ -83,7 +83,7 @@ export const useSafeDOMOperations = () => {
         // Final attempt with removeChild after rechecking parent
         if (element.parentNode.contains(element)) {
           const parent = element.parentNode;
-          // Properly cast to ChildNode to satisfy TypeScript
+          // Cast element to ChildNode to satisfy TypeScript
           parent.removeChild(element as unknown as ChildNode);
           return true;
         }
