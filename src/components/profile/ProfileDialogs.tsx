@@ -121,8 +121,6 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
           <AlertDialogContent 
             className="max-w-[350px]"
             onEscapeKeyDown={(e) => e.preventDefault()}
-            onInteractOutside={(e) => e.preventDefault()}
-            onPointerDownOutside={(e) => e.preventDefault()}
           >
             <AlertDialogHeader>
               <AlertDialogTitle>Saving Profile</AlertDialogTitle>
