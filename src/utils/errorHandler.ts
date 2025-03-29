@@ -1,3 +1,4 @@
+
 /**
  * Global error handler utilities to handle DOM-related errors
  */
@@ -79,7 +80,7 @@ export const performDOMCleanup = () => {
                   if (el.parentNode && document.contains(el.parentNode) && el.parentNode.contains(el)) {
                     // Make sure we only remove if all validation passes and use type guard to verify element is a ChildNode
                     if (isValidChildOfParent(el, el.parentNode)) {
-                      el.parentNode.removeChild(el as ChildNode);
+                      el.parentNode.removeChild(el);
                     }
                   }
                 }
@@ -188,8 +189,10 @@ export const safeRemoveElement = (element: Element): boolean => {
   try {
     if (!element || !element.parentNode) return false;
     
+    const parent = element.parentNode;
+    
     // First validate the parent-child relationship
-    if (!isValidChildOfParent(element, element.parentNode)) {
+    if (!isValidChildOfParent(element, parent)) {
       console.warn('[ErrorHandler] Invalid parent-child relationship, skipping removal');
       return false;
     }
@@ -201,10 +204,10 @@ export const safeRemoveElement = (element: Element): boolean => {
     } catch (err) {
       console.warn('[ErrorHandler] element.remove() failed, trying removeChild:', err);
       
-      // Fallback to removeChild with re-verification
+      // Revalidate parent relationship for extra safety
       if (element.parentNode && isValidChildOfParent(element, element.parentNode)) {
-        // TypeScript now knows element is ChildNode due to type guard
-        element.parentNode.removeChild(element as ChildNode);
+        // Now TypeScript knows element is ChildNode due to the proper type guard
+        element.parentNode.removeChild(element);
         return true;
       }
     }
