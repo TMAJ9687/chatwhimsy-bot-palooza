@@ -52,6 +52,11 @@ export const performDOMCleanup = () => {
                   return;
                 }
                 
+                // First check if document still contains both the parent and element
+                if (!document.contains(el) || !document.contains(el.parentNode)) {
+                  return;
+                }
+                
                 // Get all child nodes for comparison
                 const allChildren = Array.from(el.parentNode.childNodes);
                 
@@ -61,8 +66,8 @@ export const performDOMCleanup = () => {
                   return;
                 }
                 
-                // Check if element is in the document
-                if (!document.contains(el)) {
+                // Additional check to ensure parent actually contains the element
+                if (!el.parentNode.contains(el)) {
                   return;
                 }
                 
@@ -73,9 +78,7 @@ export const performDOMCleanup = () => {
                 } catch (err) {
                   // Fallback to parentNode.removeChild
                   if (el.parentNode && document.contains(el.parentNode) && el.parentNode.contains(el)) {
-                    // We need to ensure this is a valid ChildNode
-                    // The cast is safe because we've verified the parent-child relationship
-                    // and Element implements ChildNode
+                    // Make sure we only remove if all validation passes
                     if (el instanceof Element) {
                       // Fix: Properly cast Element to ChildNode
                       el.parentNode.removeChild(el as unknown as ChildNode);

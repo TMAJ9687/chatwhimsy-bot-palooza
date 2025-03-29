@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -28,27 +28,39 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
   setShowUnsavedDialog,
   setShowSavingDialog
 }) => {
-  // Clean up dialogs on unmount
+  // Define a safe state setter that checks if component is still mounted
+  const safeSetShowDialog = useCallback((setter: React.Dispatch<React.SetStateAction<boolean>>, value: boolean) => {
+    if (mountedRef.current) {
+      setter(value);
+    }
+  }, [mountedRef]);
+
+  // Enhanced cleanup on unmount
   useEffect(() => {
     return () => {
       if (!mountedRef.current) {
+        // Perform thorough cleanup of any stale dialog elements
         performDOMCleanup();
       }
     };
   }, [mountedRef]);
 
   // Prevent dialog from showing after component unmounts
-  const safeSetShowDialog = (setter: React.Dispatch<React.SetStateAction<boolean>>, value: boolean) => {
-    if (mountedRef.current) {
-      setter(value);
-    }
-  };
+  useEffect(() => {
+    return () => {
+      // Make sure dialogs are closed when component unmounts
+      if (!mountedRef.current) {
+        setShowUnsavedDialog(false);
+        setShowSavingDialog(false);
+      }
+    };
+  }, [mountedRef, setShowUnsavedDialog, setShowSavingDialog]);
 
-  const handleSaveClick = () => {
+  const handleSaveClick = useCallback(() => {
     if (!isSaving && !navigationLock && mountedRef.current) {
       onSaveAndNavigate();
     }
-  };
+  }, [isSaving, navigationLock, mountedRef, onSaveAndNavigate]);
 
   return (
     <>

@@ -22,32 +22,48 @@ export const useProfileSaving = (
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Improved save and navigate function with better error handling and state management
   const handleSaveAndNavigate = useCallback(async () => {
+    // Prevent multiple save attempts
     if (navigationAttemptRef.current || !mountedRef.current) {
       console.log('Save operation already in progress, ignoring request');
       return;
     }
     
+    // Lock navigation and set saving state
     setNavigationLock(true);
     navigationAttemptRef.current = true;
     setIsSaving(true);
-    setShowSavingDialog(true);
+    
+    // Show saving dialog
+    if (mountedRef.current) {
+      setShowSavingDialog(true);
+    }
     
     try {
       let saved = false;
       
+      // Try to save the form if the ref exists
       if (profileFormRef.current) {
         saved = await profileFormRef.current.saveForm();
       } else {
+        // No form to save, so consider it successful
         saved = true;
       }
       
       if (saved) {
+        // Mark profile as complete in localStorage
         localStorage.setItem('vipProfileComplete', 'true');
-        setHasUnsavedChanges(false);
         
+        // Update unsaved changes state
+        if (mountedRef.current) {
+          setHasUnsavedChanges(false);
+        }
+        
+        // Wait for UI to update and then proceed with navigation
         await new Promise<void>(resolve => {
           saveOperationTimeoutRef.current = setTimeout(() => {
+            // Skip further processing if component unmounted
             if (!mountedRef.current) {
               resolve();
               return;
@@ -57,27 +73,37 @@ export const useProfileSaving = (
             setShowSavingDialog(false);
             setShowUnsavedDialog(false);
             
-            // Add a small delay before navigation to let React clean up dialogs
+            // Add a delay before navigation to let React clean up dialogs
             setTimeout(() => {
+              // Skip if component unmounted during timeout
               if (!mountedRef.current) {
                 resolve();
                 return;
               }
               
+              // If we have a pending navigation destination
               if (pendingNavigation) {
                 const destination = pendingNavigation;
-                setPendingNavigation(null);
                 
-                // Do DOM cleanup right before navigation
+                // Clear pending navigation state
+                if (mountedRef.current) {
+                  setPendingNavigation(null);
+                }
+                
+                // Do thorough DOM cleanup right before navigation
                 performDOMCleanup();
                 cleanupDOM();
                 
-                // Use a promise-based approach for more reliable navigation
-                const safeNavigate = () => {
+                // Short delay before actual navigation to let cleanup take effect
+                setTimeout(() => {
                   try {
+                    // Log navigation for debugging
                     console.log(`Navigating to ${destination}`);
+                    
+                    // Navigate to the destination
                     navigate(destination);
                     
+                    // Reset states after navigation with a delay
                     setTimeout(() => {
                       if (!mountedRef.current) return;
                       setNavigationLock(false);
@@ -86,28 +112,47 @@ export const useProfileSaving = (
                     }, 300);
                   } catch (navError) {
                     console.error("Navigation error:", navError);
-                    // Force location change as fallback
+                    
+                    // Force location change as fallback if React Router navigation fails
                     window.location.href = destination;
                   } finally {
                     resolve();
                   }
-                };
-                
-                // Schedule navigation in next tick
-                setTimeout(safeNavigate, 50);
+                }, 50);
               } else {
-                setNavigationLock(false);
-                navigationAttemptRef.current = false;
-                setIsSaving(false);
+                // No navigation needed, just reset states
+                if (mountedRef.current) {
+                  setNavigationLock(false);
+                  navigationAttemptRef.current = false;
+                  setIsSaving(false);
+                }
                 resolve();
               }
             }, 100);
           }, 500);
         });
       } else {
+        // Form validation failed
+        if (mountedRef.current) {
+          toast({
+            title: "Error",
+            description: "Please fix the form errors before continuing.",
+            variant: "destructive",
+          });
+          setShowSavingDialog(false);
+          setNavigationLock(false);
+          navigationAttemptRef.current = false;
+          setIsSaving(false);
+        }
+      }
+    } catch (error) {
+      // Handle any unexpected errors
+      console.error("Error during save and navigate:", error);
+      
+      if (mountedRef.current) {
         toast({
           title: "Error",
-          description: "Please fix the form errors before continuing.",
+          description: "An unexpected error occurred. Please try again.",
           variant: "destructive",
         });
         setShowSavingDialog(false);
@@ -115,17 +160,6 @@ export const useProfileSaving = (
         navigationAttemptRef.current = false;
         setIsSaving(false);
       }
-    } catch (error) {
-      console.error("Error during save and navigate:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
-      setShowSavingDialog(false);
-      setNavigationLock(false);
-      navigationAttemptRef.current = false;
-      setIsSaving(false);
     }
   }, [
     cleanupDOM, 
@@ -144,26 +178,34 @@ export const useProfileSaving = (
     toast
   ]);
 
+  // Enhanced discard and navigate function with better state management
   const handleDiscardAndNavigate = useCallback(() => {
     if (!mountedRef.current) return;
     
+    // Update states
     setHasUnsavedChanges(false);
     setShowUnsavedDialog(false);
     
+    // Process navigation if we have a destination
     if (pendingNavigation) {
       const destination = pendingNavigation;
       setPendingNavigation(null);
       
+      // Lock navigation to prevent multiple attempts
       setNavigationLock(true);
       navigationAttemptRef.current = true;
       
+      // Clean up DOM before navigation
       cleanupDOM();
       
+      // Delay navigation slightly to allow UI updates
       setTimeout(() => {
         if (!mountedRef.current) return;
         
+        // Perform actual navigation
         navigate(destination);
         
+        // Reset navigation states after a delay
         setTimeout(() => {
           if (!mountedRef.current) return;
           
