@@ -24,6 +24,7 @@ export class DOMSafetyUtils {
       
       // Verify element is actually a child of the parent
       if (parent && parent.contains(element)) {
+        // Check if it's truly a child - extra validation
         const childNodes = Array.from(parent.childNodes);
         if (childNodes.includes(element as Node)) {
           // Type assertion needed for TypeScript compatibility
@@ -83,4 +84,28 @@ export class DOMSafetyUtils {
       return 0;
     }
   }
+  
+  /**
+   * Handle dynamic module import errors
+   * Checks if the error is related to a dynamic import and cleans up if needed
+   */
+  public handleDynamicImportError(error: any): boolean {
+    if (!error) return false;
+    
+    const errorMessage = error.message || String(error);
+    const isDynamicImportError = (
+      errorMessage.includes('Failed to fetch dynamically imported module') ||
+      errorMessage.includes('Unexpected token') && errorMessage.includes('imported') ||
+      errorMessage.includes('Error loading chunk')
+    );
+    
+    if (isDynamicImportError) {
+      console.warn('Dynamic import error detected, cleaning DOM state:', errorMessage);
+      this.resetBodyState();
+      return true;
+    }
+    
+    return false;
+  }
 }
+

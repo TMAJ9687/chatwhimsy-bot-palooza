@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useDialog } from '@/context/DialogContext';
 import {
@@ -14,7 +15,7 @@ import { useUser } from '@/context/UserContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useDialogCleanup } from '@/hooks/useDialogCleanup';
 import { useLogout } from '@/hooks/useLogout';
-import { performDOMCleanup } from '@/utils/errorHandler';
+import { performDOMCleanup, cleanupDynamicImportArtifacts } from '@/utils/errorHandler';
 
 const LogoutConfirmationDialog = () => {
   const { state, closeDialog } = useDialog();
@@ -53,6 +54,9 @@ const LogoutConfirmationDialog = () => {
     
     // Run DOM cleanup to avoid React errors
     performDOMCleanup();
+    
+    // Also clean up any dynamic import artifacts
+    cleanupDynamicImportArtifacts();
   }, [closeDialog]);
 
   const handleConfirm = useCallback(async () => {
@@ -123,3 +127,4 @@ const LogoutConfirmationDialog = () => {
 };
 
 export default LogoutConfirmationDialog;
+

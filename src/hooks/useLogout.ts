@@ -3,7 +3,7 @@ import { useCallback, useRef } from 'react';
 import { useUser } from '@/context/UserContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { signOutUser } from '@/firebase/auth';
-import { performDOMCleanup } from '@/utils/errorHandler';
+import { performDOMCleanup, cleanupDynamicImportArtifacts } from '@/utils/errorHandler';
 
 /**
  * Hook that provides logout functionality with proper redirection
@@ -32,6 +32,9 @@ export const useLogout = () => {
       
       // First clean up DOM state to prevent React errors
       performDOMCleanup();
+      
+      // Also clean up any dynamic import artifacts
+      cleanupDynamicImportArtifacts();
       
       // Clean up storage systematically
       localStorage.removeItem('chatUser');
@@ -100,3 +103,4 @@ export const useLogout = () => {
 
   return { performLogout };
 };
+
