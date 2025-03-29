@@ -88,6 +88,31 @@ export const handleGlobalError = (error: any): void => {
 };
 
 /**
+ * Create a global error handler function
+ */
+export const createGlobalErrorHandler = () => {
+  return (event: ErrorEvent) => {
+    handleGlobalError(event.error || event);
+    
+    // Check if this is a DOM-related error that should be suppressed
+    const errorMessage = event.message || String(event.error);
+    
+    if (
+      errorMessage.includes('removeChild') || 
+      errorMessage.includes('appendChild') || 
+      errorMessage.includes('not a child') ||
+      errorMessage.includes('parentNode') ||
+      (errorMessage.includes('Failed to execute') && errorMessage.includes('on') && errorMessage.includes('Node'))
+    ) {
+      // Prevent default behavior for DOM errors
+      event.preventDefault();
+      event.stopPropagation();
+      performDOMCleanup();
+    }
+  };
+};
+
+/**
  * Set up global error handling
  */
 export const setupErrorHandling = (): void => {

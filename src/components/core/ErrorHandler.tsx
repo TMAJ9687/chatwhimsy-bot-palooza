@@ -1,6 +1,6 @@
 
 import { useEffect, useRef } from 'react';
-import { createGlobalErrorHandler, performDOMCleanup, GlobalErrorHandler } from '@/utils/errorHandler';
+import { setupErrorHandling, performDOMCleanup, handleGlobalError } from '@/utils/errorHandler';
 
 interface ErrorHandlerProps {
   logoutInProgressRef: React.MutableRefObject<boolean>;
@@ -9,19 +9,56 @@ interface ErrorHandlerProps {
 const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
   const errorHandlerSetRef = useRef(false);
   const errorCountRef = useRef(0);
-  const handlerRef = useRef<GlobalErrorHandler | null>(null);
   
   useEffect(() => {
     if (!errorHandlerSetRef.current) {
       errorHandlerSetRef.current = true;
       
-      // Create handler instance
-      handlerRef.current = new GlobalErrorHandler();
-      
       // Set up error handlers
-      const handleError = createGlobalErrorHandler();
+      setupErrorHandling();
       
       // Use capture to catch errors before they propagate
+      const handleError = (event: ErrorEvent) => {
+        const errorMessage = event.message || String(event.error);
+        
+        // Enhanced check for DOM-related errors
+        if (
+          errorMessage.includes('removeChild') || 
+          errorMessage.includes('appendChild') || 
+          errorMessage.includes('not a child') ||
+          errorMessage.includes('parentNode') ||
+          errorMessage.includes('The node to be removed') ||
+          (errorMessage.includes('null') && errorMessage.includes('DOM')) ||
+          errorMessage.includes('Failed to fetch dynamically imported module')
+        ) {
+          event.preventDefault();
+          console.warn('[ErrorHandler] Caught error event:', errorMessage);
+          
+          // Track error count
+          errorCountRef.current += 1;
+          
+          // Run cleanup
+          performDOMCleanup();
+          
+          // If logout is in progress, ensure body classes are reset
+          if (logoutInProgressRef.current) {
+            document.body.style.overflow = 'auto';
+            document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+          }
+          
+          // If we've seen too many errors, do emergency cleanup
+          if (errorCountRef.current > 3) {
+            console.warn('[ErrorHandler] Too many errors, clearing all modals');
+            // Force a more aggressive cleanup
+            try {
+              handleGlobalError({ message: "Too many errors" });
+            } catch (e) {
+              // Ignore aggressive cleanup errors
+            }
+          }
+        }
+      };
+      
       window.addEventListener('error', handleError, { capture: true });
       
       // Also handle unhandled promise rejections with enhanced detection
@@ -58,9 +95,7 @@ const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
             console.warn('[ErrorHandler] Too many errors, clearing all modals');
             // Force a more aggressive cleanup
             try {
-              if (handlerRef.current) {
-                handlerRef.current.handleError({ message: "Too many errors" });
-              }
+              handleGlobalError({ message: "Too many errors" });
             } catch (e) {
               // Ignore aggressive cleanup errors
             }

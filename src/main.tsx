@@ -4,10 +4,10 @@ import { UserProvider } from './context/UserContext'
 import App from './App.tsx'
 import './index.css'
 import './styles/performance.css'
-import { setupGlobalErrorHandling } from './utils/errorHandler'
+import { setupErrorHandling } from './utils/errorHandler'
 
 // Set up global error handling before the app renders
-setupGlobalErrorHandling();
+setupErrorHandling();
 
 // Create a stable root for the app
 const rootElement = document.getElementById("root");
