@@ -31,6 +31,31 @@ export function useSafeDOMOperations() {
     }
   }, []);
   
+  // Check if DOM is ready for operations
+  const isDOMReady = React.useCallback(() => {
+    return typeof document !== 'undefined' && 
+           !!document?.body && 
+           !!document?.documentElement;
+  }, []);
+  
+  // Create a cleanup function for specified selectors
+  const createCleanupFn = React.useCallback((selectors: string) => {
+    return () => {
+      if (!isDOMReady()) return;
+      
+      try {
+        const elements = document.querySelectorAll(selectors);
+        elements.forEach(element => {
+          if (element instanceof HTMLElement) {
+            safeRemoveElement(element);
+          }
+        });
+      } catch (error) {
+        console.warn(`Error cleaning up elements matching ${selectors}:`, error);
+      }
+    };
+  }, [safeRemoveElement, isDOMReady]);
+  
   // Find and remove all overlay elements (typically those with high z-index)
   const cleanupOverlays = React.useCallback(() => {
     try {
@@ -51,7 +76,7 @@ export function useSafeDOMOperations() {
         // For modals
         const modalOverlays = document.querySelectorAll('[data-state="open"][aria-modal="true"]');
         modalOverlays.forEach(overlay => {
-          if (overlay.parentNode) {
+          if (overlay.parentNode && overlay instanceof HTMLElement) {
             try {
               overlay.parentNode.removeChild(overlay);
             } catch (err) {
@@ -63,7 +88,7 @@ export function useSafeDOMOperations() {
         // For drawer overlays
         const drawerOverlays = document.querySelectorAll('.vaul-drawer-overlay');
         drawerOverlays.forEach(overlay => {
-          if (overlay.parentNode) {
+          if (overlay.parentNode && overlay instanceof HTMLElement) {
             try {
               overlay.parentNode.removeChild(overlay);
             } catch (err) {
@@ -85,6 +110,8 @@ export function useSafeDOMOperations() {
   return {
     safeRemoveElement,
     cleanupOverlays,
-    registerNode
+    registerNode,
+    isDOMReady,
+    createCleanupFn
   };
 }

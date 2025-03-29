@@ -72,8 +72,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       console.log(`[ChatMessages] Found ${problematicElements.length} problematic elements, removing...`);
       
       Array.from(problematicElements).forEach(element => {
-        if (isMountedRef.current) {
-          safeRemoveElement(element as Element);
+        if (isMountedRef.current && element instanceof HTMLElement) {
+          safeRemoveElement(element);
         }
       });
     }
