@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useDialog } from '@/context/DialogContext';
 import {
@@ -49,8 +48,12 @@ const LogoutConfirmationDialog = () => {
     if (!isMountedRef.current) return;
     
     console.log('Safely closing logout dialog');
-    handleDialogClose(() => closeDialog());
-  }, [closeDialog, handleDialogClose]);
+    // Close dialog immediately - skip animated closing
+    closeDialog();
+    
+    // Run DOM cleanup to avoid React errors
+    performDOMCleanup();
+  }, [closeDialog]);
 
   const handleConfirm = useCallback(async () => {
     // Prevent multiple clicks and skip if unmounted
@@ -62,39 +65,25 @@ const LogoutConfirmationDialog = () => {
     console.log('Logout confirmed, beginning process');
     isNavigatingRef.current = true;
     
-    // First do a DOM cleanup to prevent any overlay issues
-    performDOMCleanup();
-    
-    // Close the dialog immediately for visual feedback
+    // Close the dialog immediately without animation
     handleSafeClose();
     
-    // Add a delay to ensure dialog has time to fully close
-    // before navigating, which helps prevent DOM race conditions
-    setTimeout(async () => {
-      if (!isMountedRef.current) {
-        console.log('Component unmounted during delay, skipping logout');
-        return;
-      }
+    // Force DOM cleanup before logout
+    performDOMCleanup();
+    
+    // Proceed with logout immediately
+    try {
+      console.log('Executing logout directly');
+      await performLogout();
+    } catch (error) {
+      console.error('Failed during logout confirmation:', error);
       
-      try {
-        console.log('Executing logout after dialog close delay');
-        // Perform logout with extended timeouts
-        await performLogout();
-        
-        // No need for further actions as performLogout now handles all cleanup and redirection
-      } catch (error) {
-        console.error('Failed during logout confirmation:', error);
-        
-        // If all else fails, try a direct reload
-        if (isMountedRef.current) {
-          console.log('Error during logout, forcing page reload');
-          window.location.href = '/';
-          setTimeout(() => {
-            window.location.reload();
-          }, 200);
-        }
+      // If all else fails, try a direct reload with replacement
+      if (isMountedRef.current) {
+        console.log('Error during logout, forcing page reload');
+        window.location.replace('/');
       }
-    }, 300); // Significantly increased delay to ensure DOM updates complete
+    }
   }, [handleSafeClose, performLogout]);
 
   const getFeedbackMessage = () => {

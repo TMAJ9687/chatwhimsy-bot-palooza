@@ -15,12 +15,11 @@ export const useLogoutSync = () => {
         // Clear all user-related local storage
         localStorage.removeItem('vipProfileComplete');
         localStorage.removeItem('chatUser');
+        localStorage.removeItem('adminEmail');
         sessionStorage.clear();
         
-        // Reload the page after a short delay to ensure the app resets
-        setTimeout(() => {
-          window.location.reload();
-        }, 200);
+        // Use location.replace instead of reload for cleaner experience
+        window.location.replace('/?sync=true');
       }
     };
     

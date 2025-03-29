@@ -1,4 +1,3 @@
-
 /**
  * Global error handler utilities to handle DOM-related errors
  */
@@ -16,69 +15,66 @@ export const performDOMCleanup = () => {
       document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
     }
     
-    // Remove any problematic overlay elements - expanded list
-    const selectors = [
-      '.fixed.inset-0',
-      '[data-radix-dialog-overlay]',
-      '[data-radix-alert-dialog-overlay]',
-      '.vaul-overlay',
-      '[aria-modal="true"]',
-      '[role="dialog"]',
-      '.fixed[role="presentation"]',
-      '.backdrop',
-      '.modal-backdrop',
-      '.fixed.z-50'
-    ];
-    
-    selectors.forEach(selector => {
+    // Process in a microtask to avoid React DOM mutation issues
+    queueMicrotask(() => {
       try {
-        document.querySelectorAll(selector).forEach(el => {
-          try {
-            if (el.parentNode) {
-              // First verify it's actually a child of its parent
-              const parent = el.parentNode;
-              const isRealChild = Array.from(parent.childNodes).includes(el);
-              
-              if (isRealChild) {
-                // Try safest removal method first
-                try {
-                  // Cast the element to Element type which has remove() method
-                  (el as Element).remove();
-                } catch (err) {
-                  // Fallback to parent.removeChild with verification
-                  if (parent.contains(el)) {
-                    parent.removeChild(el);
-                  }
-                }
-              }
-            }
-          } catch (err) {
-            // Ignore individual element errors
-          }
-        });
-      } catch (err) {
-        // Ignore selector errors
-      }
-    });
-    
-    // Additional cleanup for known issues with animation frames
-    requestAnimationFrame(() => {
-      try {
-        // One more sweep after a frame to catch any remaining issues
+        // Remove any problematic overlay elements - expanded list
+        const selectors = [
+          '.fixed.inset-0',
+          '[data-radix-dialog-overlay]',
+          '[data-radix-alert-dialog-overlay]',
+          '.vaul-overlay',
+          '[aria-modal="true"]',
+          '[role="dialog"]',
+          '.fixed[role="presentation"]',
+          '.backdrop',
+          '.modal-backdrop',
+          '.fixed.z-50'
+        ];
+        
+        // Process each selector in sequence
         selectors.forEach(selector => {
           try {
-            document.querySelectorAll(selector).forEach(el => {
+            // Use querySelectorAll to get all elements matching the selector
+            const elements = document.querySelectorAll(selector);
+            
+            // Check if we found any elements
+            if (elements.length > 0) {
+              console.log(`[DOMCleanup] Found ${elements.length} elements matching ${selector}`);
+            }
+            
+            // Safely remove each element
+            elements.forEach(el => {
               try {
-                if (el.parentNode && document.contains(el)) {
-                  // Make sure to cast to Element type here too
-                  (el as Element).remove();
+                if (!el.parentNode) {
+                  // Skip elements without parents
+                  return;
                 }
-              } catch (e) {
-                // Ignore errors
+                
+                // Get all child nodes for comparison
+                const allChildren = Array.from(el.parentNode.childNodes);
+                
+                // Check if element is still a child of its parent
+                if (!allChildren.includes(el)) {
+                  // Skip elements that aren't actually children
+                  return;
+                }
+                
+                // Try element.remove() first (modern browsers)
+                try {
+                  el.remove();
+                } catch (err) {
+                  // Fallback to parentNode.removeChild
+                  if (el.parentNode && document.contains(el.parentNode) && el.parentNode.contains(el)) {
+                    el.parentNode.removeChild(el);
+                  }
+                }
+              } catch (err) {
+                // Ignore individual element errors
               }
             });
-          } catch (e) {
-            // Ignore errors
+          } catch (err) {
+            // Ignore selector errors
           }
         });
         
@@ -88,7 +84,7 @@ export const performDOMCleanup = () => {
           document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
         }
       } catch (e) {
-        // Ignore errors in animation frame
+        console.warn('[DOMCleanup] Error in microtask cleanup:', e);
       }
     });
   } catch (error) {

@@ -36,23 +36,22 @@ export const useLogout = () => {
       // Clean up storage systematically
       localStorage.removeItem('chatUser');
       localStorage.removeItem('vipProfileComplete');
-      localStorage.removeItem('adminEmail'); // Also clear admin email
+      localStorage.removeItem('adminEmail');
       
-      // If user is admin, perform admin logout
+      // Force a hard reload immediately with clear navigation target
+      // This bypasses React's DOM manipulation issues
       if (isAdmin) {
         console.log('Admin logout flow initiated');
         try {
-          await signOutUser(); // Use the Firebase signOut directly
-          await adminLogout(); // Also run adminLogout for any app-specific cleanup
+          await signOutUser();
+          await adminLogout();
           clearUser();
           
-          // Use window.location for a full page reload to avoid DOM state issues
-          window.location.href = '/secretadminportal';
-          console.log('Admin logged out successfully');
+          // Use location.replace for cleaner navigation without history
+          window.location.replace('/secretadminportal');
         } catch (adminError) {
           console.error('Error in admin logout:', adminError);
-          // Force navigation even if there's an error
-          window.location.href = '/secretadminportal';
+          window.location.replace('/secretadminportal');
         }
       } else {
         console.log('Standard user logout flow initiated');
@@ -68,35 +67,31 @@ export const useLogout = () => {
           }
         }
         
-        // Force a hard redirect based on user type with a small delay
-        // to ensure React has completed unmounting operations
-        setTimeout(() => {
-          const destination = isVip ? '/' : '/feedback';
-          // Use href to ensure a full page navigation
-          window.location.href = destination;
-          console.log(`Standard user logout complete. isVip=${isVip}`);
-        }, 300); // Increased delay significantly to ensure cleanup completes
+        // Use force reload approach to completely reset app state
+        const destination = isVip ? '/' : '/feedback';
+        console.log(`Navigating to ${destination} with force reload`);
+        
+        // Use location.replace for cleaner navigation and append cache-busting parameter
+        window.location.replace(`${destination}?t=${Date.now()}`);
       }
     } catch (error) {
       console.error('Error during logout:', error);
-      // Fallback logout approach if the main one fails
+      
+      // Fallback logout - always navigate to home with forced reload
       try {
-        console.log('Attempting fallback logout approach');
         clearUser();
-        performDOMCleanup(); // Additional cleanup
+        performDOMCleanup();
         
-        // In case of error, always redirect to home with a forced reload
+        console.log('Using fallback logout approach with force reload');
+        window.location.href = '/?fallback=true';
+        
+        // Ensure page reloads if navigation doesn't happen immediately
         setTimeout(() => {
-          window.location.href = '/';
-          // Force a reload after a short delay
-          setTimeout(() => {
-            window.location.reload();
-          }, 100);
-        }, 200);
+          window.location.reload(true);
+        }, 100);
       } catch (e) {
         console.error('Fallback logout also failed', e);
-        // Last resort - force reload
-        window.location.reload();
+        window.location.reload(true);
       } finally {
         logoutInProgressRef.current = false;
       }
