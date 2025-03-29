@@ -1,3 +1,4 @@
+
 /**
  * Global error handler utilities to handle DOM-related errors
  */
@@ -57,6 +58,11 @@ export const performDOMCleanup = () => {
                 // Check if element is still a child of its parent
                 if (!allChildren.includes(el)) {
                   // Skip elements that aren't actually children
+                  return;
+                }
+                
+                // Check if element is in the document
+                if (!document.contains(el)) {
                   return;
                 }
                 

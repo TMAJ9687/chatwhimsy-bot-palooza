@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { VipProfileFormRef } from '@/components/profile/VipProfileForm';
+import { performDOMCleanup } from '@/utils/errorHandler';
 
 export const useProfileSaving = (
   profileFormRef: React.RefObject<VipProfileFormRef>,
@@ -52,41 +53,55 @@ export const useProfileSaving = (
               return;
             }
             
+            // Close dialogs first, then do DOM cleanup
             setShowSavingDialog(false);
             setShowUnsavedDialog(false);
             
-            if (pendingNavigation) {
-              const destination = pendingNavigation;
-              setPendingNavigation(null);
+            // Add a small delay before navigation to let React clean up dialogs
+            setTimeout(() => {
+              if (!mountedRef.current) {
+                resolve();
+                return;
+              }
               
-              cleanupDOM();
-              
-              setTimeout(() => {
-                if (!mountedRef.current) {
-                  resolve();
-                  return;
-                }
+              if (pendingNavigation) {
+                const destination = pendingNavigation;
+                setPendingNavigation(null);
                 
-                navigate(destination);
+                // Do DOM cleanup right before navigation
+                performDOMCleanup();
+                cleanupDOM();
                 
-                setTimeout(() => {
-                  if (!mountedRef.current) {
+                // Use a promise-based approach for more reliable navigation
+                const safeNavigate = () => {
+                  try {
+                    console.log(`Navigating to ${destination}`);
+                    navigate(destination);
+                    
+                    setTimeout(() => {
+                      if (!mountedRef.current) return;
+                      setNavigationLock(false);
+                      navigationAttemptRef.current = false;
+                      setIsSaving(false);
+                    }, 300);
+                  } catch (navError) {
+                    console.error("Navigation error:", navError);
+                    // Force location change as fallback
+                    window.location.href = destination;
+                  } finally {
                     resolve();
-                    return;
                   }
-                  
-                  setNavigationLock(false);
-                  navigationAttemptRef.current = false;
-                  setIsSaving(false);
-                  resolve();
-                }, 300);
-              }, 50);
-            } else {
-              setNavigationLock(false);
-              navigationAttemptRef.current = false;
-              setIsSaving(false);
-              resolve();
-            }
+                };
+                
+                // Schedule navigation in next tick
+                setTimeout(safeNavigate, 50);
+              } else {
+                setNavigationLock(false);
+                navigationAttemptRef.current = false;
+                setIsSaving(false);
+                resolve();
+              }
+            }, 100);
           }, 500);
         });
       } else {

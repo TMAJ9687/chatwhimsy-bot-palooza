@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { performDOMCleanup } from '@/utils/errorHandler';
 
 interface ProfileDialogsProps {
   showUnsavedDialog: boolean;
@@ -27,6 +28,28 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
   setShowUnsavedDialog,
   setShowSavingDialog
 }) => {
+  // Clean up dialogs on unmount
+  useEffect(() => {
+    return () => {
+      if (!mountedRef.current) {
+        performDOMCleanup();
+      }
+    };
+  }, [mountedRef]);
+
+  // Prevent dialog from showing after component unmounts
+  const safeSetShowDialog = (setter: React.Dispatch<React.SetStateAction<boolean>>, value: boolean) => {
+    if (mountedRef.current) {
+      setter(value);
+    }
+  };
+
+  const handleSaveClick = () => {
+    if (!isSaving && !navigationLock && mountedRef.current) {
+      onSaveAndNavigate();
+    }
+  };
+
   return (
     <>
       {showUnsavedDialog && (
@@ -36,7 +59,7 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
             if (!open && !isSaving && mountedRef.current) {
               setTimeout(() => {
                 if (mountedRef.current) {
-                  setShowUnsavedDialog(false);
+                  safeSetShowDialog(setShowUnsavedDialog, false);
                 }
               }, 100);
             }
@@ -45,6 +68,16 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
           <DialogContent
             onEscapeKeyDown={(e) => {
               if (isSaving || navigationLock || !mountedRef.current) {
+                e.preventDefault();
+              }
+            }}
+            onInteractOutside={(e) => {
+              if (isSaving || navigationLock) {
+                e.preventDefault();
+              }
+            }}
+            onPointerDownOutside={(e) => {
+              if (isSaving || navigationLock) {
                 e.preventDefault();
               }
             }}
@@ -62,7 +95,7 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
                 Discard Changes
               </Button>
               <Button 
-                onClick={onSaveAndNavigate}
+                onClick={handleSaveClick}
                 disabled={isSaving || navigationLock}
               >
                 {isSaving ? 'Saving...' : 'Save and Continue'}
@@ -79,7 +112,7 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
             if (!open && !isSaving && mountedRef.current) {
               setTimeout(() => {
                 if (mountedRef.current) {
-                  setShowSavingDialog(false);
+                  safeSetShowDialog(setShowSavingDialog, false);
                 }
               }, 100);
             }
@@ -88,6 +121,8 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
           <AlertDialogContent 
             className="max-w-[350px]"
             onEscapeKeyDown={(e) => e.preventDefault()}
+            onInteractOutside={(e) => e.preventDefault()}
+            onPointerDownOutside={(e) => e.preventDefault()}
           >
             <AlertDialogHeader>
               <AlertDialogTitle>Saving Profile</AlertDialogTitle>
