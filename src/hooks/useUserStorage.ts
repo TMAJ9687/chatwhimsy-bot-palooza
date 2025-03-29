@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { UserProfile } from '@/types/user';
 import { useLocalStorage } from './storage/useLocalStorage';
 import { useFirestoreSync } from './storage/useFirestoreSync';

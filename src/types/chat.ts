@@ -14,6 +14,11 @@ export interface Bot {
 
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read';
 
+export interface Translation {
+  language: string;
+  content: string;
+}
+
 export interface Message {
   id: string;
   content: string;
@@ -23,10 +28,7 @@ export interface Message {
   isImage?: boolean;
   isVoice?: boolean;
   duration?: number;
-  translations?: Array<{
-    language: string;
-    content: string;
-  }>;
+  translations?: Translation[];
   // New fields for VIP features
   replyTo?: string; // ID of message being replied to
   reactions?: Array<{
