@@ -3,6 +3,7 @@ import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { domRegistry } from '@/services/dom';
+import { useUser } from '@/context/UserContext';
 
 export const useProfileNavigation = (
   isVip: boolean,
@@ -11,6 +12,7 @@ export const useProfileNavigation = (
 ) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useUser(); // Get current user
   
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
@@ -37,6 +39,22 @@ export const useProfileNavigation = (
     if (navigationLock || navigationAttemptRef.current || !mountedRef.current) {
       console.log('Navigation already in progress, ignoring request');
       return;
+    }
+    
+    // Validate that the user has a complete profile before VIP navigation
+    if (path === '/chat' && isVip) {
+      // Check if user has all required fields
+      if (!user?.id || !user?.nickname || !user?.email) {
+        toast({
+          title: "Profile Incomplete",
+          description: "Please ensure your profile information is complete before continuing.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Explicitly mark the profile as complete in localStorage to avoid inconsistencies
+      localStorage.setItem('vipProfileComplete', 'true');
     }
     
     // We're always treating Go to Chat as a "save and navigate" operation
@@ -75,7 +93,7 @@ export const useProfileNavigation = (
         }, 300);
       }, 50);
     }
-  }, [hasUnsavedChanges, isProfileComplete, cleanupDOM, mountedRef, navigate, navigationLock]);
+  }, [hasUnsavedChanges, isProfileComplete, cleanupDOM, mountedRef, navigate, navigationLock, isVip, user, toast]);
 
   const handleGoToChat = useCallback(() => {
     handleNavigation('/chat');

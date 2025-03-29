@@ -6,10 +6,21 @@ import { UserProfile } from '@/types/user';
  * to prevent redirection issues and race conditions
  */
 export const validateUserProfile = (profile: Partial<UserProfile>): UserProfile => {
+  // Check for required fields
+  if (!profile.id) {
+    console.error('Missing required field: id');
+    throw new Error('Invalid profile data: missing id');
+  }
+  
+  if (!profile.nickname) {
+    console.error('Missing required field: nickname');
+    throw new Error('Invalid profile data: missing nickname');
+  }
+  
   // Create base profile with required fields
   const validatedProfile: UserProfile = {
-    id: profile.id || generateRandomId(),
-    nickname: profile.nickname || 'User',
+    id: profile.id,
+    nickname: profile.nickname,
     email: profile.email || '',
     gender: profile.gender || 'male',
     age: profile.age || 25,
@@ -50,6 +61,15 @@ export const mergeUserProfile = (
     console.error('Error loading existing user data:', e);
   }
   
+  // Make sure critical fields are present
+  if (!existingUser.id && !userData.id) {
+    userData.id = generateRandomId();
+  }
+  
+  if (!existingUser.nickname && !userData.nickname) {
+    userData.nickname = 'User';
+  }
+  
   // Merge existing data with new data
   const mergedData = {
     ...existingUser,
@@ -64,6 +84,15 @@ export const mergeUserProfile = (
  * Saves the user profile to localStorage with validation
  */
 export const saveUserProfile = (profile: Partial<UserProfile>): UserProfile => {
+  // Ensure ID and nickname are present
+  if (!profile.id) {
+    profile.id = generateRandomId();
+  }
+  
+  if (!profile.nickname) {
+    profile.nickname = 'User';
+  }
+  
   const validatedProfile = validateUserProfile(profile);
   localStorage.setItem('chatUser', JSON.stringify(validatedProfile));
   
@@ -116,9 +145,20 @@ export const getVipUserProfile = async (userId: string): Promise<UserProfile | n
  * @returns The saved profile
  */
 export const saveVipUserProfile = async (profile: UserProfile): Promise<UserProfile> => {
-  if (!profile || !profile.id) {
-    console.error('Invalid profile data for saveVipUserProfile');
+  // Validate critical fields
+  if (!profile) {
+    console.error('No profile provided for saveVipUserProfile');
     throw new Error('Invalid profile data');
+  }
+  
+  if (!profile.id) {
+    console.error('Missing required field: id');
+    throw new Error('Invalid profile data: missing id');
+  }
+  
+  if (!profile.nickname) {
+    console.error('Missing required field: nickname');
+    throw new Error('Invalid profile data: missing nickname');
   }
   
   try {
