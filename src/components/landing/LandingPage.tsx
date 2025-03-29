@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Crown, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -69,13 +68,14 @@ const LandingPage: React.FC = () => {
     age: number;
     country: string;
     interests: string[];
+    isVip: boolean;
   }) => {
     if (navigationInProgress) {
       console.log('Navigation already in progress, ignoring duplicate request');
       return;
     }
 
-    console.log('Profile setup complete, saving data');
+    console.log('Profile setup complete, saving data with isVip:', profile.isVip);
     setNavigationInProgress(true);
     
     updateUserProfile({
@@ -83,10 +83,13 @@ const LandingPage: React.FC = () => {
       age: profile.age,
       country: profile.country,
       interests: profile.interests,
+      isVip: profile.isVip === true ? true : false,
     });
     
-    console.log('Navigating to chat from LandingPage');
-    navigate('/chat');
+    setTimeout(() => {
+      console.log('Navigating to chat from LandingPage');
+      navigate('/chat');
+    }, 50);
   };
   
   const generateRandomNickname = () => {

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { useNavigationCleanup } from '@/hooks/useNavigationCleanup';
@@ -71,7 +70,25 @@ const NavigationLock: React.FC = () => {
     } catch (e) {
       console.warn('Error during enhanced cleanup:', e);
     }
-  }, [cleanupUI]);
+    
+    // Add specific cleanup for chat navigation
+    if (location.pathname === '/chat') {
+      try {
+        // Ensure chatUser has isVip explicitly set
+        const savedUserData = localStorage.getItem('chatUser');
+        if (savedUserData) {
+          const userData = JSON.parse(savedUserData);
+          if (userData.isVip === undefined) {
+            userData.isVip = false;
+            localStorage.setItem('chatUser', JSON.stringify(userData));
+            console.log('Fixed chatUser in localStorage, explicitly set isVip=false');
+          }
+        }
+      } catch (e) {
+        console.warn('Error checking/fixing user data:', e);
+      }
+    }
+  }, [cleanupUI, location.pathname]);
   
   // Register enhanced error handler
   useErrorCleaner(enhancedCleanup);

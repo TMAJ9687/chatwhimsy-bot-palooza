@@ -7,6 +7,7 @@ export * from './adminActionCollection';
 export * from './reportCollection';
 export * from './userManagement';
 export * from './dbUtils';
+export * from './userProfiles'; // Add the new module
 
 // Initialize function to ensure all firestore data is properly loaded
 export const initializeFirestoreData = async (): Promise<void> => {

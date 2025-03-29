@@ -15,6 +15,7 @@ interface ProfileSetupProps {
     age: number;
     country: string;
     interests: string[];
+    isVip: boolean; // Make isVip explicit
   }) => void;
 }
 
@@ -66,15 +67,16 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
 
   const handleSubmit = () => {
     if (gender && age && country && !profileSubmitted) {
-      console.log('Saving profile data');
+      console.log('Saving profile data for standard user');
       setProfileSubmitted(true);
       
-      // Save profile data
+      // Save profile data with explicit isVip=false for standard users
       onComplete({
         gender,
         age,
         country,
-        interests
+        interests,
+        isVip: false // Explicitly mark as non-VIP
       });
       
       // For standard users, navigation is now handled ONLY in the onComplete callback
