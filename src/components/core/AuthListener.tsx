@@ -2,10 +2,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { onAuthStateChange } from '@/firebase/auth';
+import { getVipUserProfile } from '@/firebase/firestore/userProfiles';
+import { useUser } from '@/context/UserContext';
 
 const AuthListener = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { updateUserProfile } = useUser();
   const authListenerSetRef = useRef(false);
   const adminRedirectInProgress = useRef(false);
   const [firebaseUser, setFirebaseUser] = useState(null);
@@ -36,11 +39,23 @@ const AuthListener = () => {
       console.log('Setting up Firebase auth state listener');
       authListenerSetRef.current = true;
       
-      const unsubscribe = onAuthStateChange((user) => {
+      const unsubscribe = onAuthStateChange(async (user) => {
         console.log('Firebase auth state changed:', user ? `logged in as ${user.email}` : 'logged out');
         setFirebaseUser(user);
         
-        if (!user) {
+        if (user) {
+          // For authenticated users, try to load their VIP profile from Firestore
+          try {
+            const vipProfile = await getVipUserProfile(user.uid);
+            if (vipProfile) {
+              console.log('Found VIP profile for authenticated user:', vipProfile.nickname);
+              // Update the user context with the VIP profile
+              updateUserProfile(vipProfile);
+            }
+          } catch (error) {
+            console.error('Error loading VIP profile for authenticated user:', error);
+          }
+        } else {
           const currentPath = location.pathname;
           
           // Avoid redirecting if we're on public paths or during admin redirect
@@ -61,7 +76,7 @@ const AuthListener = () => {
         authListenerSetRef.current = false;
       };
     }
-  }, [location.pathname, navigate]);
+  }, [location.pathname, navigate, updateUserProfile]);
   
   // Extracted redirect logic for better organization
   const handleNonAuthenticatedRedirect = (currentPath: string) => {

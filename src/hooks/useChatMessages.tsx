@@ -5,6 +5,7 @@ import { getRandomBotResponse } from '@/utils/botUtils';
 import { trackImageUpload, getRemainingUploads, IMAGE_UPLOAD_LIMIT } from '@/utils/imageUploadLimiter';
 import { uploadDataURLImage } from '@/firebase/storage';
 import { useUser } from '@/context/UserContext';
+import { saveChatHistory, getChatHistory } from '@/firebase/firestore/chatHistory';
 
 export const useChatMessages = (isVip: boolean, onNewNotification: (botId: string, content: string, botName: string) => void) => {
   const [userChats, setUserChats] = useState<Record<string, Message[]>>({});
@@ -12,13 +13,64 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
   const [imagesRemaining, setImagesRemaining] = useState(IMAGE_UPLOAD_LIMIT);
   const currentBotIdRef = useRef<string>('');
   const { user } = useUser();
+  const chatHistoryLoadedRef = useRef<Set<string>>(new Set());
+  const saveTimeoutRef = useRef<Record<string, NodeJS.Timeout | null>>({});
 
   const setCurrentBotId = useCallback((botId: string) => {
     currentBotIdRef.current = botId;
   }, []);
 
-  const initializeChat = useCallback((botId: string, botName: string) => {
+  // Function to save chat history with debounce 
+  const saveChatHistoryDebounced = useCallback((botId: string) => {
+    // Only save chat history for VIP users
+    if (!isVip || !user?.id) return;
+    
+    // Clear any existing timeout for this bot
+    if (saveTimeoutRef.current[botId]) {
+      clearTimeout(saveTimeoutRef.current[botId]!);
+    }
+    
+    // Set a new timeout to save chat history
+    saveTimeoutRef.current[botId] = setTimeout(() => {
+      const messages = userChats[botId] || [];
+      saveChatHistory(user.id, botId, messages)
+        .catch(err => console.error('Error saving chat history:', err));
+      
+      // Clear the timeout reference
+      saveTimeoutRef.current[botId] = null;
+    }, 1000); // 1 second debounce
+  }, [isVip, user?.id, userChats]);
+
+  // Load chat history for a bot when chat is initialized
+  const loadChatHistory = useCallback(async (botId: string) => {
+    // Only load chat history for VIP users
+    if (!isVip || !user?.id || chatHistoryLoadedRef.current.has(botId)) return;
+    
+    try {
+      console.log(`Loading chat history for bot ${botId}...`);
+      
+      const messages = await getChatHistory(user.id, botId);
+      
+      if (messages.length > 0) {
+        console.log(`Loaded ${messages.length} messages for bot ${botId}`);
+        
+        setUserChats(prev => ({
+          ...prev,
+          [botId]: messages
+        }));
+      }
+      
+      // Mark as loaded to prevent multiple loads
+      chatHistoryLoadedRef.current.add(botId);
+    } catch (error) {
+      console.error(`Error loading chat history for bot ${botId}:`, error);
+    }
+  }, [isVip, user?.id]);
+
+  const initializeChat = useCallback(async (botId: string, botName: string) => {
+    // Check if chat already exists
     if (!userChats[botId]) {
+      // First create a basic chat
       setUserChats(prev => ({
         ...prev,
         [botId]: [{
@@ -28,8 +80,13 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
           timestamp: new Date(),
         }]
       }));
+      
+      // Then try to load history for VIP users
+      if (isVip && user?.id) {
+        await loadChatHistory(botId);
+      }
     }
-  }, [userChats]);
+  }, [userChats, loadChatHistory, isVip, user?.id]);
 
   const simulateBotResponse = useCallback((messageId: string, botId: string) => {
     setTypingBots(prev => ({
@@ -92,16 +149,23 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
           onNewNotification(botId, botResponse.content, botName);
         }
         
+        const updatedChatMessages = [
+          ...updatedMessages,
+          botResponse
+        ];
+        
+        // Save chat history for VIP users after bot response
+        if (isVip && user?.id) {
+          saveChatHistoryDebounced(botId);
+        }
+        
         return {
           ...prev,
-          [botId]: [
-            ...updatedMessages,
-            botResponse
-          ]
+          [botId]: updatedChatMessages
         };
       });
     }, 3000);
-  }, [isVip, onNewNotification]);
+  }, [isVip, onNewNotification, user?.id, saveChatHistoryDebounced]);
 
   const handleSendTextMessage = useCallback((text: string, currentBotId: string, botName: string) => {
     const currentMessages = userChats[currentBotId] || [];
@@ -118,9 +182,14 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
       ...prev,
       [currentBotId]: [...currentMessages, newMessage]
     }));
+    
+    // Save chat history for VIP users
+    if (isVip && user?.id) {
+      saveChatHistoryDebounced(currentBotId);
+    }
 
     return newMessage.id;
-  }, [userChats]);
+  }, [userChats, isVip, user?.id, saveChatHistoryDebounced]);
 
   const handleSendImageMessage = useCallback(async (imageDataUrl: string, currentBotId: string) => {
     const currentMessages = userChats[currentBotId] || [];
@@ -148,12 +217,17 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
       if (user?.id) {
         await uploadDataURLImage(imageDataUrl, isVip, user.id);
       }
+      
+      // Save chat history for VIP users
+      if (isVip && user?.id) {
+        saveChatHistoryDebounced(currentBotId);
+      }
     } catch (error) {
       console.error('Error tracking image upload:', error);
     }
     
     return newMessage.id;
-  }, [userChats, isVip, user?.id]);
+  }, [userChats, isVip, user?.id, saveChatHistoryDebounced]);
 
   const handleSendVoiceMessage = useCallback((voiceDataUrl: string, duration: number, currentBotId: string) => {
     const currentMessages = userChats[currentBotId] || [];
@@ -173,8 +247,13 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
       [currentBotId]: [...currentMessages, newMessage]
     }));
     
+    // Save chat history for VIP users
+    if (isVip && user?.id) {
+      saveChatHistoryDebounced(currentBotId);
+    }
+    
     return newMessage.id;
-  }, [userChats]);
+  }, [userChats, isVip, user?.id, saveChatHistoryDebounced]);
 
   const initializeImageRemaining = useCallback(async () => {
     try {
@@ -185,6 +264,16 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
       console.error('Error fetching remaining uploads:', error);
     }
   }, [isVip]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      // Clear all save timeouts
+      Object.values(saveTimeoutRef.current).forEach(timeout => {
+        if (timeout) clearTimeout(timeout);
+      });
+    };
+  }, []);
 
   return {
     userChats,

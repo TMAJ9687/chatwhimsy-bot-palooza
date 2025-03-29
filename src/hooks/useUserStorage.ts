@@ -1,6 +1,7 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { UserProfile } from '@/types/user';
+import { saveVipUserProfile, getVipUserProfile } from '@/firebase/firestore/userProfiles';
 
 export const useUserStorage = (
   user: UserProfile | null,
@@ -10,6 +11,7 @@ export const useUserStorage = (
   const profileUpdateInProgressRef = useRef(false);
   const profileUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const userLoadAttemptedRef = useRef(false);
+  const firestoreSyncRef = useRef(false);
 
   // Enhanced profile loading from localStorage with better logging
   useEffect(() => {
@@ -43,6 +45,39 @@ export const useUserStorage = (
           
           console.log('Loaded user from localStorage:', parsedUser.nickname, 'isVip:', parsedUser.isVip);
           setUser(parsedUser);
+          
+          // If user is VIP, attempt to load from Firestore as well
+          if (parsedUser.isVip && !firestoreSyncRef.current && parsedUser.id) {
+            firestoreSyncRef.current = true;
+            
+            // Async function to load VIP user from Firestore
+            const loadVipUser = async () => {
+              try {
+                const firestoreUser = await getVipUserProfile(parsedUser.id);
+                
+                if (firestoreUser) {
+                  console.log('Loaded VIP user from Firestore:', firestoreUser.nickname);
+                  
+                  // Update state with Firestore data (which is more authoritative)
+                  setUser(firestoreUser);
+                  
+                  // Update localStorage with Firestore data
+                  localStorage.setItem('chatUser', JSON.stringify(firestoreUser));
+                  
+                  // Set profile complete flag if applicable
+                  if (firestoreUser.gender && firestoreUser.age && firestoreUser.country) {
+                    localStorage.setItem('vipProfileComplete', 'true');
+                  }
+                } else {
+                  console.log('VIP user not found in Firestore, will save on next update');
+                }
+              } catch (error) {
+                console.error('Error loading VIP user from Firestore:', error);
+              }
+            };
+            
+            loadVipUser();
+          }
         } catch (error) {
           console.error('Error parsing user data from localStorage:', error);
         }
@@ -82,7 +117,7 @@ export const useUserStorage = (
   }, [user, setUser]);
 
   // Enhanced profile update function with safety mechanisms and proper cleanup
-  const updateUserProfile = useCallback((profile: Partial<UserProfile>) => {
+  const updateUserProfile = useCallback(async (profile: Partial<UserProfile>) => {
     // Prevent concurrent updates with a safer approach
     if (profileUpdateInProgressRef.current) {
       console.warn('Profile update already in progress, queuing update');
@@ -108,9 +143,15 @@ export const useUserStorage = (
           isVip: profile.isVip === true
         } as UserProfile;
         
-        // Save to localStorage
-        console.log('Creating new user profile in localStorage:', newUser.nickname, 'isVip:', newUser.isVip);
-        localStorage.setItem('chatUser', JSON.stringify(newUser));
+        // Save to Firestore if VIP
+        if (newUser.isVip) {
+          saveVipUserProfile(newUser).catch(err => {
+            console.error('Error saving new VIP user to Firestore:', err);
+          });
+        } else {
+          // Save to localStorage for non-VIP
+          localStorage.setItem('chatUser', JSON.stringify(newUser));
+        }
         
         return newUser;
       }
@@ -135,9 +176,18 @@ export const useUserStorage = (
         profileSyncedRef.current = true;
       }
       
-      // Save updated user to localStorage
-      console.log('Saving updated user to localStorage:', updatedUser.nickname, 'isVip:', updatedUser.isVip);
-      localStorage.setItem('chatUser', JSON.stringify(updatedUser));
+      // Save updated user to appropriate storage
+      if (updatedUser.isVip) {
+        // Save VIP user to Firestore
+        saveVipUserProfile(updatedUser).catch(err => {
+          console.error('Error saving updated VIP user to Firestore:', err);
+          // Fallback to localStorage
+          localStorage.setItem('chatUser', JSON.stringify(updatedUser));
+        });
+      } else {
+        // Save standard user to localStorage only
+        localStorage.setItem('chatUser', JSON.stringify(updatedUser));
+      }
       
       // Use setTimeout to allow state updates to complete before releasing lock
       // Store the timeout reference so we can clear it later if needed

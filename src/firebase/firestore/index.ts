@@ -7,7 +7,8 @@ export * from './adminActionCollection';
 export * from './reportCollection';
 export * from './userManagement';
 export * from './dbUtils';
-export * from './userProfiles'; // Add the new module
+export * from './userProfiles';
+export * from './chatHistory';
 
 // Initialize function to ensure all firestore data is properly loaded
 export const initializeFirestoreData = async (): Promise<void> => {
