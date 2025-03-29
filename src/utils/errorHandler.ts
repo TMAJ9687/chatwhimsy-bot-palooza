@@ -109,7 +109,8 @@ export const performDOMCleanup = () => {
             
             // Double-check parent relationship before removeChild
             if (parent && parent.contains(element)) {
-              parent.removeChild(element as Node);
+              // Fix: Cast to ChildNode instead of Node for removeChild
+              parent.removeChild(element as ChildNode);
             } else {
               console.log('Parent no longer contains element, skipping removeChild');
             }
