@@ -78,8 +78,10 @@ export const performDOMCleanup = () => {
                 } catch (err) {
                   // Fallback to parentNode.removeChild
                   if (el.parentNode && document.contains(el.parentNode) && el.parentNode.contains(el)) {
-                    // Make sure we only remove if all validation passes
-                    el.parentNode.removeChild(el);
+                    // Make sure we only remove if all validation passes and use type guard to verify element is a ChildNode
+                    if (isValidChildOfParent(el, el.parentNode)) {
+                      el.parentNode.removeChild(el);
+                    }
                   }
                 }
               } catch (err) {
