@@ -6,7 +6,11 @@ export * from './banCollection';
 export * from './adminActionCollection';
 export * from './reportCollection';
 export * from './userManagement';
+export * from './dbUtils';
 
-// Import and re-export the uploadFile function from the correct path
-import { uploadFile } from '../storage';
-export { uploadFile };
+// Initialize function to ensure all firestore data is properly loaded
+export const initializeFirestoreData = async (): Promise<void> => {
+  console.log('Initializing Firestore data');
+  // This function can be expanded to preload essential data or run migrations
+  return Promise.resolve();
+};

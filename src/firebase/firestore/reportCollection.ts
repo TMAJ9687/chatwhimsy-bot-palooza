@@ -5,7 +5,8 @@ import {
   setDoc, 
   getDocs,
   updateDoc,
-  Timestamp 
+  Timestamp,
+  getDoc
 } from 'firebase/firestore';
 import { db } from '../config';
 import { ReportFeedback } from '@/types/admin';
@@ -78,7 +79,7 @@ export const addReportOrFeedback = async (
 export const resolveReportOrFeedback = async (id: string): Promise<boolean> => {
   try {
     const docRef = doc(db, REPORTS_COLLECTION, id);
-    const docSnapshot = await db.getDoc(docRef);
+    const docSnapshot = await getDoc(docRef);
     
     if (!docSnapshot.exists()) return false;
     

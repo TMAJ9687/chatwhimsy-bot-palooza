@@ -5,7 +5,8 @@ import {
   setDoc, 
   where,
   Timestamp,
-  deleteDoc
+  deleteDoc,
+  getDoc
 } from 'firebase/firestore';
 import { db } from '../config';
 import { BanRecord } from '@/types/admin';
@@ -77,7 +78,7 @@ export const banUser = async (banRecord: Omit<BanRecord, 'id' | 'timestamp'>): P
 export const unbanUser = async (id: string, adminId: string): Promise<boolean> => {
   try {
     const docRef = doc(db, BANNED_USERS_COLLECTION, id);
-    const docSnapshot = await db.getDoc(docRef);
+    const docSnapshot = await getDoc(docRef);
     
     if (!docSnapshot.exists()) return false;
     

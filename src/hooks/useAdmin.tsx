@@ -12,6 +12,7 @@ import { useAdminUsers } from './admin/useAdminUsers';
 import { useAdminReports } from './admin/useAdminReports';
 import { useAdminSettings } from './admin/useAdminSettings';
 import { useAdminActions } from './admin/useAdminActions';
+import { trackAsyncOperation } from '@/utils/performanceMonitor';
 
 export const useAdmin = () => {
   const { toast } = useToast();
@@ -50,69 +51,99 @@ export const useAdmin = () => {
   const vipUsers = useMemo(() => bots.filter(bot => bot.vip), [bots]);
   const standardUsers = useMemo(() => bots.filter(bot => !bot.vip), [bots]);
   
-  // Load data
+  // Load data optimized with requestAnimationFrame and chunking
   useEffect(() => {
     if (!isAdmin) return;
     
+    let isMounted = true;
+    
     const loadAdminData = async () => {
+      if (!isMounted) return;
+      
       try {
         setLoading(true);
         console.log('Starting admin data load...');
         console.time('adminDataLoad');
         
-        // Initialize the admin service
-        await adminService.initializeAdminService();
+        // Initialize the admin service first
+        await trackAsyncOperation('initializeAdminService', async () => {
+          await adminService.initializeAdminService();
+        });
         
-        // Load data in batches with setTimeout to avoid blocking UI
-        const loadBotsData = async () => {
-          console.log('Loading bots data...');
-          const loadedBots = await loadBots();
-          setBots(loadedBots || []);
-          
-          setTimeout(loadBannedData, 10);
-        };
+        // Create a queue of loading tasks
+        const loadingTasks = [
+          {
+            name: 'bots',
+            loadFn: async () => {
+              console.log('Loading bots data...');
+              const loadedBots = await loadBots();
+              if (isMounted) {
+                setBots(loadedBots || []);
+              }
+            }
+          },
+          {
+            name: 'bannedUsers',
+            loadFn: async () => {
+              console.log('Loading banned users data...');
+              await loadBannedUsers();
+            }
+          },
+          {
+            name: 'adminActions',
+            loadFn: async () => {
+              console.log('Loading admin actions data...');
+              await loadAdminActions();
+            }
+          },
+          {
+            name: 'reportsFeedback',
+            loadFn: async () => {
+              console.log('Loading reports & feedback data...');
+              await loadReportsAndFeedback();
+            }
+          }
+        ];
         
-        const loadBannedData = async () => {
-          await loadBannedUsers();
-          setTimeout(loadActionsData, 10);
-        };
+        // Process loading tasks in parallel with limits
+        await Promise.all(
+          loadingTasks.map(task => 
+            trackAsyncOperation(`load_${task.name}`, task.loadFn)
+          )
+        );
         
-        const loadActionsData = async () => {
-          await loadAdminActions();
-          setTimeout(loadReportsData, 10);
-        };
-        
-        const loadReportsData = async () => {
-          await loadReportsAndFeedback();
-          
+        if (isMounted) {
           setLoading(false);
           console.timeEnd('adminDataLoad');
           console.log('Admin data loading complete!');
-        };
-        
-        // Start loading sequence
-        loadBotsData();
+        }
       } catch (error) {
         console.error('Error loading admin data:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load admin data',
-          variant: 'destructive',
-        });
-        setLoading(false);
+        if (isMounted) {
+          toast({
+            title: 'Error',
+            description: 'Failed to load admin data',
+            variant: 'destructive',
+          });
+          setLoading(false);
+        }
       }
     };
     
-    loadAdminData();
+    // Use requestAnimationFrame to avoid blocking the main thread
+    requestAnimationFrame(() => {
+      loadAdminData();
+    });
     
     // Set up interval to periodically clean up expired reports/feedback
     const cleanupInterval = setInterval(async () => {
-      if (isAdmin) {
+      if (isAdmin && isMounted) {
         await cleanupExpiredReports();
       }
     }, 60000); // Check every minute
     
     return () => {
+      isMounted = false;
       clearInterval(cleanupInterval);
     };
   }, [isAdmin, toast, loadBots, loadBannedUsers, loadAdminActions, loadReportsAndFeedback, cleanupExpiredReports]);
