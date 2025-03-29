@@ -24,6 +24,7 @@ interface NicknameGeneratorProps {
 const NicknameGenerator: React.FC<NicknameGeneratorProps> = ({ onNicknameSelected }) => {
   const [nickname, setNickname] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [hasSelected, setHasSelected] = useState(false);
 
   const generateRandomNickname = (): string => {
     const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
@@ -43,7 +44,8 @@ const NicknameGenerator: React.FC<NicknameGeneratorProps> = ({ onNicknameSelecte
   };
 
   const handleContinue = () => {
-    if (nickname) {
+    if (nickname && !hasSelected) {
+      setHasSelected(true);
       onNicknameSelected(nickname);
     }
   };
@@ -84,7 +86,7 @@ const NicknameGenerator: React.FC<NicknameGeneratorProps> = ({ onNicknameSelecte
         icon={<ArrowRight className="h-5 w-5" />}
         iconPosition="right"
         onClick={handleContinue}
-        disabled={!nickname || isGenerating}
+        disabled={!nickname || isGenerating || hasSelected}
         className="mt-2"
       >
         Continue

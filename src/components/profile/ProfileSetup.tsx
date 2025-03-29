@@ -27,6 +27,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
   const [interests, setInterests] = useState<string[]>([]);
   const [ageOptions, setAgeOptions] = useState<number[]>([]);
   const [isInterestsOpen, setIsInterestsOpen] = useState<boolean>(false);
+  const [profileSubmitted, setProfileSubmitted] = useState<boolean>(false);
 
   useEffect(() => {
     const options = [];
@@ -64,8 +65,10 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
   }, []);
 
   const handleSubmit = () => {
-    if (gender && age && country) {
+    if (gender && age && country && !profileSubmitted) {
       console.log('Saving profile data');
+      setProfileSubmitted(true);
+      
       // Save profile data
       onComplete({
         gender,
@@ -74,13 +77,10 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
         interests
       });
       
-      // Navigate to chat page directly here if for standard users
-      // Navigation will be handled by the parent component for VIP users
-      if (!localStorage.getItem('vipProfileComplete')) {
-        navigate('/chat');
-      }
+      // For standard users, navigation is now handled ONLY in the onComplete callback
+      // Don't navigate here to prevent double navigation
     } else {
-      console.log('Profile data invalid, not navigating');
+      console.log('Profile data invalid or already submitted, not navigating');
     }
   };
 
@@ -121,7 +121,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
           icon={<ArrowRight className="h-5 w-5" />}
           iconPosition="right"
           onClick={handleSubmit}
-          disabled={!isValid}
+          disabled={!isValid || profileSubmitted}
         >
           Start Chatting
         </Button>

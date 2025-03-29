@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Crown, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +16,7 @@ const LandingPage: React.FC = () => {
   const [step, setStep] = useState<'nickname' | 'profile'>('nickname');
   const [nickname, setNickname] = useState('');
   const [nicknameError, setNicknameError] = useState('');
+  const [navigationInProgress, setNavigationInProgress] = useState(false);
 
   // Function to validate nickname input
   const validateNickname = (value: string): boolean => {
@@ -68,7 +70,14 @@ const LandingPage: React.FC = () => {
     country: string;
     interests: string[];
   }) => {
+    if (navigationInProgress) {
+      console.log('Navigation already in progress, ignoring duplicate request');
+      return;
+    }
+
     console.log('Profile setup complete, saving data');
+    setNavigationInProgress(true);
+    
     updateUserProfile({
       gender: profile.gender as any,
       age: profile.age,
@@ -77,10 +86,7 @@ const LandingPage: React.FC = () => {
     });
     
     console.log('Navigating to chat from LandingPage');
-    // Use setTimeout to ensure state is updated before navigation
-    setTimeout(() => {
-      navigate('/chat');
-    }, 50);
+    navigate('/chat');
   };
   
   const generateRandomNickname = () => {
