@@ -17,7 +17,6 @@ import VipConfirmation from "./pages/VipConfirmation";
 import Feedback from "./pages/Feedback";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
-import DesignSystem from "./pages/DesignSystem";
 import { useState, useCallback } from "react";
 import { DialogProvider } from "./context/DialogContext";
 import DialogContainer from "./components/dialogs/DialogContainer";
@@ -79,7 +78,6 @@ const App = () => {
                     <Route path="/feedback" element={<Feedback />} />
                     <Route path="/secretadminportal" element={<AdminLogin />} />
                     <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                    <Route path="/design-system" element={<DesignSystem />} />
                     <Route path="/admin" element={<NotFound />} />
                     <Route path="/admin-login" element={<NotFound />} />
                     <Route path="*" element={<NotFound />} />
