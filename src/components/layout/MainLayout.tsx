@@ -10,20 +10,17 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const location = useLocation();
   const isAdminPage = location.pathname.includes('admin') || location.pathname.includes('secretadminportal');
-  const isHomePage = location.pathname === '/';
   
   return (
     <div className="min-h-screen bg-background dark:bg-gray-900 transition-colors duration-200">
-      {/* Theme toggle visible on all pages except homepage */}
-      {!isHomePage && (
-        <div className="fixed top-4 right-4 z-[9999]">
-          <ThemeToggle 
-            className={isAdminPage 
-              ? 'bg-background/10 hover:bg-background/20 rounded-full p-2 text-primary-foreground' 
-              : ''}
-          />
-        </div>
-      )}
+      {/* Theme toggle visible on all pages with proper z-index and visibility */}
+      <div className="fixed top-4 right-4 z-[9999]">
+        <ThemeToggle 
+          className={isAdminPage 
+            ? 'bg-background/10 hover:bg-background/20 rounded-full p-2 text-primary-foreground' 
+            : ''}
+        />
+      </div>
       
       <main>
         {children}
