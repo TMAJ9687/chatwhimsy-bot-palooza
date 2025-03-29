@@ -76,7 +76,7 @@ const LogoutConfirmationDialog = () => {
           window.location.reload();
         }
       }
-    }, 50); // Small delay to ensure DOM updates complete
+    }, 100); // Increased delay to ensure DOM updates complete
   }, [handleSafeClose, performLogout]);
 
   const getFeedbackMessage = () => {

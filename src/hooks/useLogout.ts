@@ -68,7 +68,7 @@ export const useLogout = () => {
           const destination = isVip ? '/' : '/feedback';
           window.location.href = destination;
           console.log(`Standard user logout complete. isVip=${isVip}`);
-        }, 50);
+        }, 100); // Increased delay to ensure cleanup completes
       }
     } catch (error) {
       console.error('Error during logout:', error);
