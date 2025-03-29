@@ -1,3 +1,4 @@
+
 /**
  * Global error handler utilities to handle DOM-related errors
  */
@@ -62,11 +63,14 @@ export const performDOMCleanup = () => {
                 
                 // Try element.remove() first (modern browsers)
                 try {
+                  // Using remove() method which is available on Element type
                   el.remove();
                 } catch (err) {
                   // Fallback to parentNode.removeChild
                   if (el.parentNode && document.contains(el.parentNode) && el.parentNode.contains(el)) {
-                    el.parentNode.removeChild(el);
+                    // The following cast is safe because we've validated above that el is indeed
+                    // a child of its parent node
+                    el.parentNode.removeChild(el as ChildNode);
                   }
                 }
               } catch (err) {

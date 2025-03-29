@@ -87,11 +87,11 @@ export const useLogout = () => {
         
         // Ensure page reloads if navigation doesn't happen immediately
         setTimeout(() => {
-          window.location.reload(true);
+          window.location.reload();
         }, 100);
       } catch (e) {
         console.error('Fallback logout also failed', e);
-        window.location.reload(true);
+        window.location.reload();
       } finally {
         logoutInProgressRef.current = false;
       }
