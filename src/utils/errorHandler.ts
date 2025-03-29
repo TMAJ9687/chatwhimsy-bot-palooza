@@ -70,9 +70,9 @@ export class GlobalErrorHandler {
                 // Standard DOM removal - should work in most cases
                 element.remove();
               } catch (err) {
-                // Fallback with proper casting to ChildNode
+                // Fallback with proper child node handling
                 if (parent && parent.contains(element)) {
-                  parent.removeChild(element as Node);
+                  parent.removeChild(element);
                 }
               }
             } catch (innerErr) {
@@ -145,7 +145,8 @@ export const setupGlobalErrorHandling = () => {
       errorMessage.includes('not a child') ||
       errorMessage.includes('parentNode') ||
       errorMessage.includes('The node to be removed') ||
-      errorMessage.includes('null') && errorMessage.includes('DOM')
+      (errorMessage.includes('null') && errorMessage.includes('DOM')) ||
+      errorMessage.includes('Failed to fetch dynamically imported module')
     ) {
       event.preventDefault();
       const handler = new GlobalErrorHandler();
@@ -166,4 +167,3 @@ export const performDOMCleanup = () => {
   const handler = new GlobalErrorHandler();
   handler.handleError({ message: "Triggered cleanup" });
 };
-

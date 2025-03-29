@@ -28,17 +28,18 @@ const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
       const handleRejection = (event: PromiseRejectionEvent) => {
         const errorMessage = event.reason?.message || String(event.reason);
         
-        // Enhanced check for DOM-related errors
+        // Enhanced check for DOM-related errors and dynamic import failures
         if (
           errorMessage.includes('removeChild') || 
           errorMessage.includes('appendChild') || 
           errorMessage.includes('not a child') ||
           errorMessage.includes('parentNode') ||
           errorMessage.includes('The node to be removed') ||
-          (errorMessage.includes('null') && errorMessage.includes('DOM'))
+          (errorMessage.includes('null') && errorMessage.includes('DOM')) ||
+          errorMessage.includes('Failed to fetch dynamically imported module')
         ) {
           event.preventDefault();
-          console.warn('[ErrorHandler] Caught unhandled promise rejection with DOM error:', errorMessage);
+          console.warn('[ErrorHandler] Caught unhandled promise rejection:', errorMessage);
           
           // Track error count
           errorCountRef.current += 1;
@@ -54,11 +55,11 @@ const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
           
           // If we've seen too many errors, do emergency cleanup
           if (errorCountRef.current > 3) {
-            console.warn('[ErrorHandler] Too many DOM errors, clearing all modals');
+            console.warn('[ErrorHandler] Too many errors, clearing all modals');
             // Force a more aggressive cleanup
             try {
               if (handlerRef.current) {
-                handlerRef.current.handleError({ message: "Too many DOM errors" });
+                handlerRef.current.handleError({ message: "Too many errors" });
               }
             } catch (e) {
               // Ignore aggressive cleanup errors

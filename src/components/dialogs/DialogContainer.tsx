@@ -6,6 +6,7 @@ import { trackEvent } from '@/utils/performanceMonitor';
 // Import dialogs normally instead of lazy loading for critical ones
 import SiteRulesDialog from './SiteRulesDialog';
 import LogoutConfirmationDialog from './LogoutConfirmationDialog';
+import VipSelectDialog from './VipSelectDialog'; // Import directly to avoid dynamic import issues
 
 // Using lazy loading for all other dialogs to reduce initial load time
 const ReportDialog = React.lazy(() => import('./ReportDialog'));
@@ -16,7 +17,6 @@ const VipSubscriptionDialog = React.lazy(() => import('./VipSubscriptionDialog')
 const VipPaymentDialog = React.lazy(() => import('./VipPaymentDialog'));
 const VipConfirmationDialog = React.lazy(() => import('./VipConfirmationDialog'));
 const AccountDeletionDialog = React.lazy(() => import('./AccountDeletionDialog'));
-const VipSelectDialog = React.lazy(() => import('./VipSelectDialog'));
 const ConfirmDialog = React.lazy(() => import('./ConfirmDialog'));
 const AlertDialogComponent = React.lazy(() => import('./AlertDialog'));
 
@@ -33,7 +33,7 @@ const DialogFallback = () => (
 
 /**
  * This component renders the appropriate dialog based on the current dialog state
- * Critical dialogs (SiteRules and LogoutConfirmation) are imported directly
+ * Critical dialogs (SiteRules, LogoutConfirmation, and VipSelect) are imported directly
  * to avoid dynamic import issues
  */
 const DialogContainer = () => {
@@ -99,6 +99,16 @@ const DialogContainer = () => {
       return null;
     }
   }
+  
+  // Add VipSelectDialog to direct imports
+  if (state.type === 'vipSelect') {
+    try {
+      return <VipSelectDialog key="vipSelect" />;
+    } catch (error) {
+      console.error('Error rendering VipSelectDialog:', error);
+      return null;
+    }
+  }
 
   return (
     <Suspense fallback={<DialogFallback />}>
@@ -125,8 +135,6 @@ const DialogContainer = () => {
             return <VipConfirmationDialog key="vipConfirmation" />;
           case 'accountDeletion':
             return <AccountDeletionDialog key="accountDeletion" />;
-          case 'vipSelect':
-            return <VipSelectDialog key="vipSelect" />;
           case 'confirm':
             return <ConfirmDialog key="confirm" />;
           case 'alert':
