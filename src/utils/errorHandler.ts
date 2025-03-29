@@ -1,3 +1,4 @@
+
 /**
  * Global error handler utilities to handle DOM-related errors
  */
@@ -200,8 +201,8 @@ export const safeRemoveElement = (element: Element): boolean => {
       
       // Fallback to removeChild with re-verification
       if (element.parentNode && isValidChildOfParent(element, element.parentNode)) {
-        // Correctly cast Element to ChildNode for TypeScript
-        element.parentNode.removeChild(element as ChildNode);
+        // Double-cast to satisfy TypeScript's type checking - Element is a valid ChildNode for removal
+        element.parentNode.removeChild(element as unknown as ChildNode);
         return true;
       }
     }
