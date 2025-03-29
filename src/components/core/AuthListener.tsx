@@ -48,6 +48,13 @@ const AuthListener = () => {
               const savedUserData = localStorage.getItem('chatUser');
               if (savedUserData) {
                 const userData = JSON.parse(savedUserData);
+                
+                // Allow standard users to stay on /chat
+                if (currentPath === '/chat' && !userData.isVip) {
+                  console.log('Allowing standard user access to /chat');
+                  return; // Do not redirect
+                }
+                
                 if (userData.isVip) {
                   navigate('/');
                 } else {
