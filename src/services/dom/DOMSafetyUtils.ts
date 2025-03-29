@@ -47,7 +47,7 @@ export class DOMSafetyUtils {
         
         // Double check parent relationship before removeChild
         if (element.parentNode && element.parentNode.contains(element)) {
-          element.parentNode.removeChild(element);
+          element.parentNode.removeChild(element as ChildNode);
           return true;
         } else {
           console.warn('[DOMSafetyUtils] Cannot safely remove element - parent/child relationship issue');
@@ -114,7 +114,7 @@ export class DOMSafetyUtils {
             
             // Final validation before removal
             if (el.parentNode && document.contains(el) && el.parentNode.contains(el)) {
-              el.parentNode.removeChild(el);
+              el.parentNode.removeChild(el as ChildNode);
               removedCount++;
             }
           }
@@ -167,7 +167,7 @@ export class DOMSafetyUtils {
           
           // Final validation before removal
           if (el.parentNode && el.parentNode.contains(el)) {
-            el.parentNode.removeChild(el);
+            el.parentNode.removeChild(el as ChildNode);
           }
         }
         

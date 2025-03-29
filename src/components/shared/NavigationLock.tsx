@@ -1,3 +1,4 @@
+
 import React, { useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { useNavigationCleanup } from '@/hooks/useNavigationCleanup';
@@ -54,7 +55,7 @@ const NavigationLock: React.FC = () => {
                   } catch (e) {
                     // Fallback to removeChild
                     if (parent.contains(el)) {
-                      parent.removeChild(el);
+                      parent.removeChild(el as ChildNode);
                     }
                   }
                 }

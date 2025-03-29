@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import { DOMSafetyUtils } from "@/services/dom/DOMSafetyUtils";
@@ -64,7 +63,7 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
                   el.remove();
                 } catch (e) {
                   if (el.parentNode && el.parentNode.contains(el)) {
-                    el.parentNode.removeChild(el);
+                    el.parentNode.removeChild(el as ChildNode);
                   }
                 }
               }
@@ -96,7 +95,7 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
           requestAnimationFrame(() => {
             try {
               if (document.body.contains(temporaryDiv)) {
-                document.body.removeChild(temporaryDiv);
+                document.body.removeChild(temporaryDiv as ChildNode);
               }
             } catch (e) {
               // Ignore temporary div cleanup errors
