@@ -30,6 +30,36 @@ export const createGlobalErrorHandler = () => {
 };
 
 /**
+ * Sets up global error handling for the application
+ */
+export const setupGlobalErrorHandling = () => {
+  const errorHandler = createGlobalErrorHandler();
+  
+  // Add event listeners for errors
+  window.addEventListener('error', errorHandler, { capture: true });
+  
+  // Also handle unhandled promise rejections
+  window.addEventListener('unhandledrejection', (event) => {
+    const errorMessage = event.reason?.message || String(event.reason);
+    
+    // Check if it's a DOM-related error
+    if (
+      errorMessage.includes('removeChild') ||
+      errorMessage.includes('appendChild') ||
+      errorMessage.includes('not a child')
+    ) {
+      event.preventDefault();
+      performDOMCleanup();
+    }
+    
+    console.error('[ErrorHandler] Unhandled promise rejection:', errorMessage);
+  });
+  
+  // Run an initial cleanup to remove any stale elements
+  performDOMCleanup();
+};
+
+/**
  * Performs a cleanup of any DOM elements that might cause issues with navigation
  */
 export const performDOMCleanup = () => {
@@ -63,7 +93,7 @@ export const performDOMCleanup = () => {
               }
             } else if (node.parentNode) {
               // For non-Element nodes, use removeChild
-              node.parentNode.removeChild(node);
+              node.parentNode.removeChild(node as Node);
             }
           }
         } catch (err) {
