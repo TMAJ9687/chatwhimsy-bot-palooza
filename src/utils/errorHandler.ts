@@ -109,8 +109,8 @@ export const performDOMCleanup = () => {
             
             // Double-check parent relationship before removeChild
             if (parent && parent.contains(element)) {
-              // Fix: Cast to ChildNode for removeChild
-              parent.removeChild(element as ChildNode);
+              // Fix: Use double assertion to properly cast to ChildNode
+              parent.removeChild(element as unknown as ChildNode);
             } else {
               console.log('Parent no longer contains element, skipping removeChild');
             }
