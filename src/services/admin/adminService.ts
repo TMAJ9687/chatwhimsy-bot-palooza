@@ -122,3 +122,4 @@ export const adminLogout = async (): Promise<void> => {
 export const verifyAdminCredentials = async (email: string, password: string): Promise<boolean> => {
   return await firebaseAuth.verifyAdminCredentials(email, password);
 };
+
