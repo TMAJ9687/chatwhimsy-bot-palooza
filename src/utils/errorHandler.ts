@@ -16,14 +16,18 @@ export const performDOMCleanup = () => {
       document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
     }
     
-    // Remove any problematic overlay elements
+    // Remove any problematic overlay elements - expanded list
     const selectors = [
       '.fixed.inset-0',
       '[data-radix-dialog-overlay]',
       '[data-radix-alert-dialog-overlay]',
       '.vaul-overlay',
       '[aria-modal="true"]',
-      '[role="dialog"]'
+      '[role="dialog"]',
+      '.fixed[role="presentation"]',
+      '.backdrop',
+      '.modal-backdrop',
+      '.fixed.z-50'
     ];
     
     selectors.forEach(selector => {
@@ -77,6 +81,12 @@ export const performDOMCleanup = () => {
             // Ignore errors
           }
         });
+        
+        // Final reset of body styles
+        if (document.body) {
+          document.body.style.overflow = 'auto';
+          document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+        }
       } catch (e) {
         // Ignore errors in animation frame
       }
@@ -95,8 +105,10 @@ export const createGlobalErrorHandler = () => {
     if (
       event.message &&
       (event.message.includes('removeChild') || 
-       event.message.includes('appendChild')) &&
-      event.message.includes('not a child')
+       event.message.includes('appendChild') ||
+       event.message.includes('not a child')) &&
+      (event.message.includes('not a child of this node') ||
+       event.message.includes('Cannot read properties of null'))
     ) {
       // Prevent default behavior
       event.preventDefault();

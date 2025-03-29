@@ -41,13 +41,19 @@ export const useLogout = () => {
       // If user is admin, perform admin logout
       if (isAdmin) {
         console.log('Admin logout flow initiated');
-        await signOutUser(); // Use the Firebase signOut directly
-        await adminLogout(); // Also run adminLogout for any app-specific cleanup
-        clearUser();
-        
-        // Use window.location for a full page reload to avoid DOM state issues
-        window.location.href = '/secretadminportal';
-        console.log('Admin logged out successfully');
+        try {
+          await signOutUser(); // Use the Firebase signOut directly
+          await adminLogout(); // Also run adminLogout for any app-specific cleanup
+          clearUser();
+          
+          // Use window.location for a full page reload to avoid DOM state issues
+          window.location.href = '/secretadminportal';
+          console.log('Admin logged out successfully');
+        } catch (adminError) {
+          console.error('Error in admin logout:', adminError);
+          // Force navigation even if there's an error
+          window.location.href = '/secretadminportal';
+        }
       } else {
         console.log('Standard user logout flow initiated');
         // Clear user data first
@@ -66,9 +72,10 @@ export const useLogout = () => {
         // to ensure React has completed unmounting operations
         setTimeout(() => {
           const destination = isVip ? '/' : '/feedback';
+          // Use href to ensure a full page navigation
           window.location.href = destination;
           console.log(`Standard user logout complete. isVip=${isVip}`);
-        }, 100); // Increased delay to ensure cleanup completes
+        }, 300); // Increased delay significantly to ensure cleanup completes
       }
     } catch (error) {
       console.error('Error during logout:', error);
@@ -77,10 +84,19 @@ export const useLogout = () => {
         console.log('Attempting fallback logout approach');
         clearUser();
         performDOMCleanup(); // Additional cleanup
-        // In case of error, always redirect to home
-        window.location.href = '/';
+        
+        // In case of error, always redirect to home with a forced reload
+        setTimeout(() => {
+          window.location.href = '/';
+          // Force a reload after a short delay
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
+        }, 200);
       } catch (e) {
         console.error('Fallback logout also failed', e);
+        // Last resort - force reload
+        window.location.reload();
       } finally {
         logoutInProgressRef.current = false;
       }
