@@ -1,6 +1,6 @@
 
 import { useEffect, useRef } from 'react';
-import { createGlobalErrorHandler, performDOMCleanup } from '@/utils/errorHandler';
+import { createGlobalErrorHandler, performDOMCleanup, GlobalErrorHandler } from '@/utils/errorHandler';
 
 interface ErrorHandlerProps {
   logoutInProgressRef: React.MutableRefObject<boolean>;
@@ -9,11 +9,16 @@ interface ErrorHandlerProps {
 const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
   const errorHandlerSetRef = useRef(false);
   const errorCountRef = useRef(0);
+  const handlerRef = useRef<GlobalErrorHandler | null>(null);
   
   useEffect(() => {
     if (!errorHandlerSetRef.current) {
       errorHandlerSetRef.current = true;
       
+      // Create handler instance
+      handlerRef.current = new GlobalErrorHandler();
+      
+      // Set up error handlers
       const handleError = createGlobalErrorHandler();
       
       // Use capture to catch errors before they propagate
@@ -48,15 +53,9 @@ const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
             console.warn('[ErrorHandler] Too many DOM errors, clearing all modals');
             // Force a more aggressive cleanup
             try {
-              document.querySelectorAll('.fixed, [role="dialog"], [aria-modal="true"]').forEach(el => {
-                try {
-                  if (document.body.contains(el)) {
-                    document.body.removeChild(el);
-                  }
-                } catch (e) {
-                  // Ignore cleanup errors
-                }
-              });
+              if (handlerRef.current) {
+                handlerRef.current.handleError({ message: "Too many DOM errors" });
+              }
             } catch (e) {
               // Ignore aggressive cleanup errors
             }

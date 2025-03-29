@@ -1,3 +1,4 @@
+
 /**
  * Utility service for safely performing DOM operations
  */
@@ -113,7 +114,7 @@ export class DOMSafetyUtils {
             
             // Final validation before removal
             if (el.parentNode && document.contains(el) && el.parentNode.contains(el)) {
-              el.parentNode.removeChild(el as ChildNode);
+              el.parentNode.removeChild(el as unknown as ChildNode);
               removedCount++;
             }
           }
