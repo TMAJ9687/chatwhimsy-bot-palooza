@@ -1,6 +1,5 @@
-
 import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../config';
+import { db, firestoreAvailable } from '../config';
 import { UserProfile } from '@/types/user';
 
 /**
@@ -111,13 +110,29 @@ export const saveUserProfile = (profile: Partial<UserProfile>): UserProfile => {
 };
 
 /**
- * Get a user profile from Firestore
- * @param userId The user ID to fetch the profile for
- * @returns The user profile or null if not found
+ * Get a user profile from Firestore with improved error handling
  */
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
   if (!userId) {
     console.error('No user ID provided for getUserProfile');
+    return null;
+  }
+  
+  // If Firestore isn't available, go straight to localStorage
+  if (!firestoreAvailable) {
+    console.log('Firestore not available, fetching from localStorage');
+    try {
+      const storedUser = localStorage.getItem('chatUser');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        if (userData.id === userId) {
+          console.log('Retrieved user from localStorage:', userData.nickname);
+          return userData;
+        }
+      }
+    } catch (localError) {
+      console.error('Error accessing localStorage:', localError);
+    }
     return null;
   }
   
@@ -174,13 +189,29 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
 };
 
 /**
- * Get a VIP user profile from Firestore
- * @param userId The user ID to fetch the profile for
- * @returns The VIP user profile or null if not found
+ * Get a VIP user profile from Firestore with improved error handling
  */
 export const getVipUserProfile = async (userId: string): Promise<UserProfile | null> => {
   if (!userId) {
     console.error('No user ID provided for getVipUserProfile');
+    return null;
+  }
+  
+  // If Firestore isn't available, go straight to localStorage
+  if (!firestoreAvailable) {
+    console.log('Firestore not available, fetching VIP user from localStorage');
+    try {
+      const storedUser = localStorage.getItem('chatUser');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        if (userData.id === userId && userData.isVip) {
+          console.log('Retrieved VIP user from localStorage:', userData.nickname);
+          return userData;
+        }
+      }
+    } catch (localError) {
+      console.error('Error accessing localStorage:', localError);
+    }
     return null;
   }
   
@@ -242,9 +273,7 @@ export const getVipUserProfile = async (userId: string): Promise<UserProfile | n
 };
 
 /**
- * Save a user profile to Firestore
- * @param profile The profile to save
- * @returns The saved profile
+ * Save a user profile to Firestore with better error handling 
  */
 export const saveUserProfileToFirestore = async (profile: UserProfile): Promise<UserProfile> => {
   // Validate critical fields
@@ -263,6 +292,20 @@ export const saveUserProfileToFirestore = async (profile: UserProfile): Promise<
     throw new Error('Invalid profile data: missing nickname');
   }
   
+  // Always save to localStorage first as reliable storage
+  localStorage.setItem('chatUser', JSON.stringify(profile));
+  
+  // Update profile completion status if applicable
+  if (profile.isVip && profile.gender && profile.age && profile.country) {
+    localStorage.setItem('vipProfileComplete', 'true');
+  }
+  
+  // Skip Firestore if we know it's not available
+  if (!firestoreAvailable) {
+    console.log('Firestore not available, using localStorage only');
+    return profile;
+  }
+  
   try {
     const userDocRef = doc(db, 'users', profile.id);
     const userSnapshot = await getDoc(userDocRef);
@@ -277,29 +320,17 @@ export const saveUserProfileToFirestore = async (profile: UserProfile): Promise<
       console.log('Created new user profile in Firestore:', profile.nickname);
     }
     
-    // Also save to localStorage as a fallback
-    localStorage.setItem('chatUser', JSON.stringify(profile));
-    
-    // Update profile completion status if applicable
-    if (profile.isVip && profile.gender && profile.age && profile.country) {
-      localStorage.setItem('vipProfileComplete', 'true');
-    }
-    
     return profile;
   } catch (error) {
     console.error('Error saving user profile to Firestore:', error);
     
-    // Fallback to localStorage
-    localStorage.setItem('chatUser', JSON.stringify(profile));
-    
-    throw error;
+    // Return profile anyway since we already saved to localStorage
+    return profile;
   }
 };
 
 /**
- * Save a VIP user profile to Firestore
- * @param profile The profile to save
- * @returns The saved profile
+ * Save a VIP user profile to Firestore with better error handling
  */
 export const saveVipUserProfile = async (profile: UserProfile): Promise<UserProfile> => {
   // Validate critical fields
@@ -321,24 +352,40 @@ export const saveVipUserProfile = async (profile: UserProfile): Promise<UserProf
   // Ensure the profile is marked as VIP
   profile.isVip = true;
   
+  // Always save to localStorage first as reliable storage
+  localStorage.setItem('chatUser', JSON.stringify(profile));
+  
+  // Update profile completion status
+  if (profile.gender && profile.age && profile.country) {
+    localStorage.setItem('vipProfileComplete', 'true');
+  }
+  
+  // Skip Firestore if we know it's not available
+  if (!firestoreAvailable) {
+    console.log('Firestore not available, using localStorage only for VIP profile');
+    return profile;
+  }
+  
   try {
     // Save to Firestore
     return await saveUserProfileToFirestore(profile);
   } catch (error) {
     console.error('Error saving VIP user profile to Firestore:', error);
     
-    // Fallback to localStorage
-    localStorage.setItem('chatUser', JSON.stringify(profile));
-    
-    throw error;
+    // Return profile anyway since we already saved to localStorage
+    return profile;
   }
 };
 
 /**
- * Get all user profiles from Firestore
- * This is primarily for admin purposes
+ * Get all user profiles from Firestore with error handling
  */
 export const getAllUserProfiles = async (): Promise<UserProfile[]> => {
+  if (!firestoreAvailable) {
+    console.log('Firestore not available, cannot get all profiles');
+    return [];
+  }
+  
   try {
     const usersRef = collection(db, 'users');
     const snapshot = await getDocs(usersRef);
@@ -356,9 +403,14 @@ export const getAllUserProfiles = async (): Promise<UserProfile[]> => {
 };
 
 /**
- * Check if profile exists in Firestore
+ * Check if profile exists in Firestore with error handling
  */
 export const checkProfileExists = async (userId: string): Promise<boolean> => {
+  if (!firestoreAvailable) {
+    console.log('Firestore not available, cannot check if profile exists');
+    return false;
+  }
+  
   try {
     const userDocRef = doc(db, 'users', userId);
     const userSnapshot = await getDoc(userDocRef);
@@ -370,9 +422,14 @@ export const checkProfileExists = async (userId: string): Promise<boolean> => {
 };
 
 /**
- * Migrate a user profile from localStorage to Firestore
+ * Migrate a user profile from localStorage to Firestore with error handling
  */
 export const migrateUserProfileToFirestore = async (userId: string): Promise<boolean> => {
+  if (!firestoreAvailable) {
+    console.log('Firestore not available, skipping migration');
+    return false;
+  }
+  
   try {
     // First check if already in Firestore
     const exists = await checkProfileExists(userId);

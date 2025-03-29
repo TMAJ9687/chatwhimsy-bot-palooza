@@ -1,4 +1,3 @@
-
 import React, { useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { useNavigationCleanup } from '@/hooks/useNavigationCleanup';
@@ -15,6 +14,7 @@ const NavigationLock: React.FC = () => {
   const { cleanupUI, cleanupTimeoutsRef, navigationInProgressRef } = useNavigationCleanup();
   const cleanupCountRef = useRef(0);
   const lastLocationRef = useRef(location.pathname);
+  const firestoreErrorShownRef = useRef(false);
 
   // Enhanced cleanup function that ensures all dialogs and overlays are removed
   const enhancedCleanup = useCallback(() => {
@@ -84,12 +84,26 @@ const NavigationLock: React.FC = () => {
             localStorage.setItem('chatUser', JSON.stringify(userData));
             console.log('Fixed chatUser in localStorage, explicitly set isVip=false');
           }
+          
+          // When Firestore has issues, make sure we let the user know
+          if (location.pathname === '/chat' && userData.isVip && !firestoreErrorShownRef.current) {
+            // Check if we've had Firestore errors
+            const firestoreErrors = sessionStorage.getItem('firestoreErrors');
+            if (firestoreErrors && parseInt(firestoreErrors) > 0) {
+              firestoreErrorShownRef.current = true;
+              toast({
+                title: "You're working offline",
+                description: "Profile changes will be saved locally",
+                variant: "default"
+              });
+            }
+          }
         }
       } catch (e) {
         console.warn('Error checking/fixing user data:', e);
       }
     }
-  }, [cleanupUI, location.pathname]);
+  }, [cleanupUI, location.pathname, toast]);
   
   // Register enhanced error handler
   useErrorCleaner(enhancedCleanup);
