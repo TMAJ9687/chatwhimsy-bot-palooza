@@ -38,7 +38,8 @@ export const performDOMCleanup = () => {
               if (isRealChild) {
                 // Try safest removal method first
                 try {
-                  el.remove();
+                  // Cast the element to Element type which has remove() method
+                  (el as Element).remove();
                 } catch (err) {
                   // Fallback to parent.removeChild with verification
                   if (parent.contains(el)) {
@@ -65,7 +66,7 @@ export const performDOMCleanup = () => {
             document.querySelectorAll(selector).forEach(el => {
               try {
                 if (el.parentNode && document.contains(el)) {
-                  el.remove();
+                  (el as Element).remove();
                 }
               } catch (e) {
                 // Ignore errors
