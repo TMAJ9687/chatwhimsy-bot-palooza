@@ -202,6 +202,7 @@ export const safeRemoveElement = (element: Element): boolean => {
       // Fallback to removeChild with re-verification
       if (element.parentNode && isValidChildOfParent(element, element.parentNode)) {
         // Double-cast to satisfy TypeScript's type checking - Element is a valid ChildNode for removal
+        // The element IS a ChildNode in reality, but TypeScript needs help with the type hierarchy
         element.parentNode.removeChild(element as unknown as ChildNode);
         return true;
       }
