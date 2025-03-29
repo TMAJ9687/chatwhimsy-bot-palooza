@@ -68,9 +68,12 @@ export const performDOMCleanup = () => {
                 } catch (err) {
                   // Fallback to parentNode.removeChild
                   if (el.parentNode && document.contains(el.parentNode) && el.parentNode.contains(el)) {
-                    // The following cast is safe because we've validated above that el is indeed
-                    // a child of its parent node
-                    el.parentNode.removeChild(el as ChildNode);
+                    // We need to ensure this is a valid ChildNode
+                    // The cast is safe because we've verified the parent-child relationship
+                    // and Element implements ChildNode
+                    if (el instanceof Element) {
+                      el.parentNode.removeChild(el);
+                    }
                   }
                 }
               } catch (err) {
@@ -192,6 +195,7 @@ export const safeRemoveElement = (element: Element): boolean => {
       
       // Fallback to removeChild with re-verification
       if (element.parentNode && isValidChildOfParent(element, element.parentNode)) {
+        // Element is a valid ChildNode
         element.parentNode.removeChild(element);
         return true;
       }
