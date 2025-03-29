@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 
 interface ThemeToggleProps {
@@ -7,25 +7,40 @@ interface ThemeToggleProps {
 }
 
 const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
-  const [isDark, setIsDark] = React.useState(false);
+  const [isDark, setIsDark] = useState(false);
 
   // Check for system preference or saved preference on mount
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    const isDarkMode = 
-      savedTheme === 'dark' || 
-      (savedTheme !== 'light' && 
-        document.documentElement.classList.contains('dark') ||
-        (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches));
+    const loadThemePreference = () => {
+      const savedTheme = localStorage.getItem('theme');
+      const isDarkMode = 
+        savedTheme === 'dark' || 
+        (savedTheme !== 'light' && 
+          document.documentElement.classList.contains('dark') ||
+          (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches));
+      
+      setIsDark(isDarkMode);
+      
+      // Set the initial class on the document element based on the detected theme
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
     
-    setIsDark(isDarkMode);
+    loadThemePreference();
     
-    // Set the initial class on the document element based on the detected theme
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      if (!localStorage.getItem('theme')) {
+        loadThemePreference();
+      }
+    };
+    
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
   const toggleTheme = () => {
@@ -49,7 +64,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
           : 'text-gray-700 hover:bg-gray-100'
       } ${className}`}
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      style={{ zIndex: 9999 }} // Ensure it's above other elements
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       {isDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
     </button>

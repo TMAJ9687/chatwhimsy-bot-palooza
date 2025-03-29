@@ -74,8 +74,11 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
         interests
       });
       
-      // FIXED: Removed the navigation from here since onComplete already handles navigation
-      // This was causing double navigation that led to issues
+      // Navigate to chat page directly here if for standard users
+      // Navigation will be handled by the parent component for VIP users
+      if (!localStorage.getItem('vipProfileComplete')) {
+        navigate('/chat');
+      }
     } else {
       console.log('Profile data invalid, not navigating');
     }
