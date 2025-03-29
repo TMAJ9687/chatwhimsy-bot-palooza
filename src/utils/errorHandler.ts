@@ -80,7 +80,7 @@ export const performDOMCleanup = () => {
                   if (el.parentNode && document.contains(el.parentNode) && el.parentNode.contains(el)) {
                     // Make sure we only remove if all validation passes
                     if (el instanceof Element) {
-                      // Fix: Properly cast Element to ChildNode
+                      // Fix: Properly cast Element as ChildNode for TypeScript
                       el.parentNode.removeChild(el as unknown as ChildNode);
                     }
                   }

@@ -50,11 +50,11 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
     return () => {
       // Make sure dialogs are closed when component unmounts
       if (!mountedRef.current) {
-        setShowUnsavedDialog(false);
-        setShowSavingDialog(false);
+        safeSetShowDialog(setShowUnsavedDialog, false);
+        safeSetShowDialog(setShowSavingDialog, false);
       }
     };
-  }, [mountedRef, setShowUnsavedDialog, setShowSavingDialog]);
+  }, [mountedRef, setShowUnsavedDialog, setShowSavingDialog, safeSetShowDialog]);
 
   const handleSaveClick = useCallback(() => {
     if (!isSaving && !navigationLock && mountedRef.current) {

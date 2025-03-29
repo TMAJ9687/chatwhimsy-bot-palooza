@@ -90,35 +90,47 @@ export const useProfileSaving = (
                   setPendingNavigation(null);
                 }
                 
+                // First, update the lock state and attempt state - before DOM operations
+                if (mountedRef.current) {
+                  navigationAttemptRef.current = true;
+                  setNavigationLock(true);
+                }
+                
                 // Do thorough DOM cleanup right before navigation
                 performDOMCleanup();
                 cleanupDOM();
                 
-                // Short delay before actual navigation to let cleanup take effect
-                setTimeout(() => {
-                  try {
-                    // Log navigation for debugging
-                    console.log(`Navigating to ${destination}`);
-                    
-                    // Navigate to the destination
-                    navigate(destination);
-                    
-                    // Reset states after navigation with a delay
-                    setTimeout(() => {
-                      if (!mountedRef.current) return;
-                      setNavigationLock(false);
-                      navigationAttemptRef.current = false;
-                      setIsSaving(false);
-                    }, 300);
-                  } catch (navError) {
-                    console.error("Navigation error:", navError);
-                    
-                    // Force location change as fallback if React Router navigation fails
-                    window.location.href = destination;
-                  } finally {
-                    resolve();
-                  }
-                }, 50);
+                // Wrap navigation in microtask to let React finish its work
+                queueMicrotask(() => {
+                  // Short delay before actual navigation to let cleanup take effect
+                  setTimeout(() => {
+                    try {
+                      // Log navigation for debugging
+                      console.log(`Navigating to ${destination}`);
+                      
+                      // Pre-mark complete in localStorage before navigation
+                      localStorage.setItem('vipProfileComplete', 'true');
+                      
+                      // Navigate to the destination
+                      navigate(destination);
+                      
+                      // Reset states after navigation with a delay
+                      setTimeout(() => {
+                        if (!mountedRef.current) return;
+                        setNavigationLock(false);
+                        navigationAttemptRef.current = false;
+                        setIsSaving(false);
+                      }, 300);
+                    } catch (navError) {
+                      console.error("Navigation error:", navError);
+                      
+                      // Force location change as fallback if React Router navigation fails
+                      window.location.href = destination;
+                    } finally {
+                      resolve();
+                    }
+                  }, 50);
+                });
               } else {
                 // No navigation needed, just reset states
                 if (mountedRef.current) {
@@ -196,23 +208,30 @@ export const useProfileSaving = (
       navigationAttemptRef.current = true;
       
       // Clean up DOM before navigation
+      performDOMCleanup();
       cleanupDOM();
       
-      // Delay navigation slightly to allow UI updates
-      setTimeout(() => {
-        if (!mountedRef.current) return;
-        
-        // Perform actual navigation
-        navigate(destination);
-        
-        // Reset navigation states after a delay
+      // Use queueMicrotask to ensure React has finished its work
+      queueMicrotask(() => {
+        // Delay navigation slightly to allow UI updates
         setTimeout(() => {
           if (!mountedRef.current) return;
           
-          setNavigationLock(false);
-          navigationAttemptRef.current = false;
-        }, 300);
-      }, 50);
+          // Pre-mark complete in localStorage before navigation
+          localStorage.setItem('vipProfileComplete', 'true');
+          
+          // Perform actual navigation
+          navigate(destination);
+          
+          // Reset navigation states after a delay
+          setTimeout(() => {
+            if (!mountedRef.current) return;
+            
+            setNavigationLock(false);
+            navigationAttemptRef.current = false;
+          }, 300);
+        }, 50);
+      });
     }
   }, [
     cleanupDOM, 
