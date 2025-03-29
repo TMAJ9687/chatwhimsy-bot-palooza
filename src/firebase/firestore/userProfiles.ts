@@ -134,4 +134,3 @@ export const saveVipUserProfile = async (profile: UserProfile): Promise<UserProf
     throw error;
   }
 };
-

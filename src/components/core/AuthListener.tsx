@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { onAuthStateChange } from '@/firebase/auth';
-import { getVipUserProfile } from '@/firebase/firestore/userProfiles';
+import { getVipUserProfile } from '@/firebase/firestore';
 import { useUser } from '@/context/UserContext';
 
 const AuthListener = () => {
