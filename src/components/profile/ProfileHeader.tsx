@@ -2,7 +2,6 @@
 import React from 'react';
 import { Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import ThemeToggle from '@/components/shared/ThemeToggle';
 
 interface ProfileHeaderProps {
   onGoToChat: () => void;
@@ -19,8 +18,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ onGoToChat, navigationLoc
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-white">VIP Profile Setup</h1>
         </div>
-        <div className="flex items-center space-x-3">
-          <ThemeToggle className="bg-white/10 text-white hover:bg-white/20" />
+        <div>
           <Button 
             onClick={onGoToChat} 
             variant="outline" 

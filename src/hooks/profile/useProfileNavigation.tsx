@@ -39,6 +39,16 @@ export const useProfileNavigation = (
       return;
     }
     
+    // We're always treating Go to Chat as a "save and navigate" operation
+    if (path === '/chat') {
+      // Set pending navigation to be used by the save operation
+      setPendingNavigation(path);
+      setShowSavingDialog(true);
+      setNavigationLock(true);
+      return;
+    }
+    
+    // For any other navigation
     if (hasUnsavedChanges) {
       setPendingNavigation(path);
       setShowUnsavedDialog(true);

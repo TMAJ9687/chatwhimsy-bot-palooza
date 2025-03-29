@@ -14,9 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { User, Calendar, MapPin, Heart, Save, Check, Image } from 'lucide-react';
+import { User, Calendar, MapPin, Heart, Save, Check } from 'lucide-react';
 import { countries } from '@/data/countries';
-import { uploadProfileImage } from '@/firebase/storage';
 
 const profileFormSchema = z.object({
   gender: z.enum(['male', 'female'], {
@@ -71,8 +70,6 @@ const VipProfileForm = forwardRef<VipProfileFormRef, VipProfileFormProps>(({ onC
   const { toast } = useToast();
   const [selectedAvatar, setSelectedAvatar] = useState('avatar1');
   const [isSaving, setIsSaving] = useState(false);
-  const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
   
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -120,11 +117,6 @@ const VipProfileForm = forwardRef<VipProfileFormRef, VipProfileFormProps>(({ onC
           avatarId: userData.avatarId || 'avatar1',
         });
         setSelectedAvatar(userData.avatarId || 'avatar1');
-        
-        // Load custom avatar if available
-        if (userData.customAvatarUrl) {
-          setCustomAvatarUrl(userData.customAvatarUrl);
-        }
       } else {
         const sessionData = sessionStorage.getItem('vipUserProfile');
         
@@ -139,75 +131,12 @@ const VipProfileForm = forwardRef<VipProfileFormRef, VipProfileFormProps>(({ onC
             avatarId: userData.avatarId || 'avatar1',
           });
           setSelectedAvatar(userData.avatarId || 'avatar1');
-          
-          // Load custom avatar if available
-          if (userData.customAvatarUrl) {
-            setCustomAvatarUrl(userData.customAvatarUrl);
-          }
         }
       }
     };
     
     loadUserData();
   }, [form]);
-
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid file",
-        description: "Please select an image file",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      // Show loading state
-      toast({
-        title: "Uploading...",
-        description: "Your profile image is being uploaded",
-      });
-      
-      // Upload to Firebase if user ID is available
-      if (user?.id) {
-        const downloadUrl = await uploadProfileImage(file, user.id);
-        setCustomAvatarUrl(downloadUrl);
-        setSelectedAvatar('custom');
-        form.setValue('avatarId', 'custom');
-        onChange();
-        
-        toast({
-          title: "Upload complete",
-          description: "Your profile image has been updated",
-        });
-      } else {
-        // Fallback to local preview if no user ID
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const result = reader.result as string;
-          setCustomAvatarUrl(result);
-          setSelectedAvatar('custom');
-          form.setValue('avatarId', 'custom');
-          onChange();
-        };
-        reader.readAsDataURL(file);
-      }
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      toast({
-        title: "Upload failed",
-        description: "There was a problem uploading your image. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
 
   const handleFormSubmit = async (data: ProfileFormValues): Promise<boolean> => {
     try {
@@ -223,7 +152,6 @@ const VipProfileForm = forwardRef<VipProfileFormRef, VipProfileFormProps>(({ onC
         ...data,
         age: parseInt(data.age),
         avatarId: selectedAvatar,
-        customAvatarUrl: customAvatarUrl,
         isVip: true,
       };
       
@@ -340,56 +268,7 @@ const VipProfileForm = forwardRef<VipProfileFormRef, VipProfileFormProps>(({ onC
             <div className="space-y-3">
               <FormLabel className="text-sm font-medium block">Choose Your Avatar</FormLabel>
               
-              {/* Custom avatar upload button */}
-              <div className="mb-4">
-                <input
-                  type="file" 
-                  className="hidden"
-                  ref={fileInputRef}
-                  accept="image/*"
-                  onChange={handleFileChange}
-                />
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={handleUploadClick}
-                  className="w-full border-dashed border-2 h-auto py-4 flex flex-col items-center gap-2"
-                >
-                  <Image className="h-5 w-5 text-amber-500" />
-                  <span>Upload custom avatar</span>
-                  <span className="text-xs text-gray-500">VIP exclusive feature</span>
-                </Button>
-              </div>
-              
-              {/* Custom avatar preview if uploaded */}
-              {customAvatarUrl && (
-                <div 
-                  className={`relative cursor-pointer rounded-lg p-1 mb-4 ${
-                    selectedAvatar === 'custom' 
-                      ? 'ring-2 ring-amber-500 bg-amber-50 dark:bg-amber-900/20' 
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
-                  onClick={() => {
-                    setSelectedAvatar('custom');
-                    form.setValue('avatarId', 'custom');
-                    onChange();
-                  }}
-                >
-                  <p className="text-xs text-center text-gray-500 mb-2">Your custom avatar</p>
-                  <Avatar className="w-24 h-24 mx-auto">
-                    <AvatarImage src={customAvatarUrl} alt="Custom avatar" />
-                    <AvatarFallback>VIP</AvatarFallback>
-                  </Avatar>
-                  {selectedAvatar === 'custom' && (
-                    <div className="absolute bottom-1 right-1 bg-amber-500 rounded-full p-0.5">
-                      <Check className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                </div>
-              )}
-              
               {/* Standard avatar options */}
-              <p className="text-xs text-gray-500 my-2">Or select from our collection:</p>
               <div className="grid grid-cols-4 gap-4">
                 {avatarOptions.map((avatar) => (
                   <div 
@@ -575,3 +454,4 @@ const VipProfileForm = forwardRef<VipProfileFormRef, VipProfileFormProps>(({ onC
 VipProfileForm.displayName = 'VipProfileForm';
 
 export default VipProfileForm;
+
