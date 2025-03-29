@@ -22,7 +22,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const { isVip } = useUser();
   const { endRef } = useScrollToBottom([messages, isTyping]);
-  const { safeRemoveElement, createCleanupFn, isDOMReady } = useSafeDOMOperations();
+  const { safeRemoveElement, cleanupOverlays, createCleanupFn, isDOMReady } = useSafeDOMOperations();
   const isMountedRef = useRef(true);
   const [isFullyMounted, setIsFullyMounted] = useState(false);
   
@@ -73,8 +73,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       
       Array.from(problematicElements).forEach(element => {
         if (isMountedRef.current) {
-          // Convert Element to HTMLElement for the safeRemoveElement function
-          safeRemoveElement(element as Element);
+          // Properly cast Element to make TypeScript happy
+          safeRemoveElement(element);
         }
       });
     }

@@ -149,7 +149,7 @@ export const useSafeDOMOperations = () => {
           // Use the safer forEach approach with each element validated individually
           elementsToRemove.forEach(element => {
             if (!unmountedRef.current) {
-              safeRemoveElement(element as Element);
+              safeRemoveElement(element);
             }
           });
         } catch (err) {
