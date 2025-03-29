@@ -1,5 +1,6 @@
+
 import React, { useEffect, useCallback, useRef } from 'react';
-import { useLocation, useNavigationType } from 'react-router-dom';
+import { useLocation, useNavigationType, useNavigate } from 'react-router-dom';
 import { useNavigationCleanup } from '@/hooks/useNavigationCleanup';
 import { useErrorCleaner } from '@/hooks/useErrorCleaner';
 import { toast } from '@/hooks/use-toast'; 
@@ -10,11 +11,14 @@ import { toast } from '@/hooks/use-toast';
  */
 const NavigationLock: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const navigationType = useNavigationType();
   const { cleanupUI, cleanupTimeoutsRef, navigationInProgressRef } = useNavigationCleanup();
   const cleanupCountRef = useRef(0);
   const lastLocationRef = useRef(location.pathname);
   const firestoreErrorShownRef = useRef(false);
+  const vipNavRetryCountRef = useRef(0);
+  const vipNavTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Enhanced cleanup function that ensures all dialogs and overlays are removed
   const enhancedCleanup = useCallback(() => {
@@ -89,11 +93,13 @@ const NavigationLock: React.FC = () => {
           if (location.pathname === '/chat' && userData.isVip && !firestoreErrorShownRef.current) {
             // Check if we've had Firestore errors
             const firestoreErrors = sessionStorage.getItem('firestoreErrors');
-            if (firestoreErrors && parseInt(firestoreErrors) > 0) {
+            const firestoreBlocked = sessionStorage.getItem('firestoreBlocked') === 'true';
+            
+            if ((firestoreErrors && parseInt(firestoreErrors) > 0) || firestoreBlocked) {
               firestoreErrorShownRef.current = true;
               toast({
                 title: "You're working offline",
-                description: "Profile changes will be saved locally",
+                description: "Profile changes will be saved locally. Check if ad blockers are enabled.",
                 variant: "default"
               });
             }
@@ -103,10 +109,62 @@ const NavigationLock: React.FC = () => {
         console.warn('Error checking/fixing user data:', e);
       }
     }
-  }, [cleanupUI, location.pathname, toast]);
+  }, [cleanupUI, location.pathname]);
   
   // Register enhanced error handler
   useErrorCleaner(enhancedCleanup);
+  
+  // Handle VIP profile navigation issues
+  useEffect(() => {
+    if (location.pathname === '/vip-profile') {
+      // Clear any stuck VIP navigation flags
+      localStorage.removeItem('vipNavigationInProgress');
+      
+      // Setup force navigation to chat if we get stuck
+      if (vipNavTimeoutRef.current) {
+        clearTimeout(vipNavTimeoutRef.current);
+      }
+      
+      vipNavTimeoutRef.current = setTimeout(() => {
+        // Check if we have a valid profile
+        try {
+          const savedUserData = localStorage.getItem('chatUser');
+          if (savedUserData) {
+            const userData = JSON.parse(savedUserData);
+            
+            // If user has all required fields, force completion
+            if (userData.gender && userData.age && userData.country && userData.isVip) {
+              console.log('VIP profile appears complete, marking as complete and enabling navigation');
+              localStorage.setItem('vipProfileComplete', 'true');
+              
+              // Only force navigate after multiple attempts
+              vipNavRetryCountRef.current++;
+              
+              if (vipNavRetryCountRef.current >= 2) {
+                toast({
+                  title: "Profile Ready",
+                  description: "You can now access the chat",
+                  variant: "default"
+                });
+                
+                // Force navigation to chat after cleanup
+                enhancedCleanup();
+                setTimeout(() => navigate('/chat'), 500);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Error checking VIP profile data:', e);
+        }
+      }, 5000);
+      
+      return () => {
+        if (vipNavTimeoutRef.current) {
+          clearTimeout(vipNavTimeoutRef.current);
+        }
+      };
+    }
+  }, [location.pathname, navigate, enhancedCleanup]);
   
   // Watch for route changes to clean up UI with improved timing
   useEffect(() => {

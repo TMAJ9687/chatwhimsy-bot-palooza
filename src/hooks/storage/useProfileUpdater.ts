@@ -2,7 +2,8 @@
 import { useRef, useCallback } from 'react';
 import { UserProfile } from '@/types/user';
 import { saveVipUserProfile, saveUserProfileToFirestore } from '@/firebase/firestore';
-import { firestoreAvailable } from '@/firebase/config';
+import { firestoreAvailable, firestoreBlocked } from '@/firebase/config';
+import { toast } from '@/hooks/use-toast';
 
 export const useProfileUpdater = (
   setUser: React.Dispatch<React.SetStateAction<UserProfile | null>>
@@ -11,6 +12,7 @@ export const useProfileUpdater = (
   const profileUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastUpdateTimeRef = useRef<number>(0);
   const firestoreErrorsRef = useRef(0);
+  const offlineToastShownRef = useRef(false);
   const MIN_UPDATE_INTERVAL = 1000; // Minimum time between Firestore updates
   const MAX_FIRESTORE_ERRORS = 3; // After this many errors, stop trying to use Firestore
 
@@ -95,9 +97,25 @@ export const useProfileUpdater = (
         localStorage.setItem('vipProfileComplete', 'true');
       }
       
-      // Skip Firestore if we've had too many errors or it's not available
-      if (firestoreErrorsRef.current >= MAX_FIRESTORE_ERRORS || !firestoreAvailable) {
-        console.log('Skipping Firestore (errors exceeded or not available), using localStorage only');
+      // Check if we should skip Firestore saving
+      const firestoreIsBlocked = firestoreBlocked || 
+                                !firestoreAvailable || 
+                                firestoreErrorsRef.current >= MAX_FIRESTORE_ERRORS ||
+                                sessionStorage.getItem('firestoreBlocked') === 'true';
+      
+      if (firestoreIsBlocked) {
+        console.log('Skipping Firestore (blocked or errors exceeded), using localStorage only');
+        
+        // Show offline toast if not already shown
+        if (!offlineToastShownRef.current && user.isVip) {
+          offlineToastShownRef.current = true;
+          
+          toast({
+            title: 'Offline Mode',
+            description: 'Your profile has been saved locally. Ad blockers may prevent online features.',
+            variant: 'default'
+          });
+        }
         return;
       }
       
@@ -126,8 +144,24 @@ export const useProfileUpdater = (
       // Increment the error count
       firestoreErrorsRef.current++;
       
+      // Also track errors in sessionStorage for other components
+      const currentErrors = parseInt(sessionStorage.getItem('firestoreErrors') || '0');
+      sessionStorage.setItem('firestoreErrors', String(currentErrors + 1));
+      
       if (firestoreErrorsRef.current >= MAX_FIRESTORE_ERRORS) {
         console.warn(`Firestore errors exceeded threshold (${MAX_FIRESTORE_ERRORS}), switching to localStorage only`);
+        sessionStorage.setItem('firestoreBlocked', 'true');
+        
+        // Show offline toast if not already shown
+        if (!offlineToastShownRef.current) {
+          offlineToastShownRef.current = true;
+          
+          toast({
+            title: 'Offline Mode',
+            description: 'Your profile has been saved locally. Some features may be limited.',
+            variant: 'default'
+          });
+        }
       }
     }
   };
