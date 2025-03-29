@@ -58,19 +58,25 @@ const LogoutConfirmationDialog = () => {
     // Close the dialog immediately for visual feedback
     handleSafeClose();
     
-    try {
-      // Perform logout without delays
-      await performLogout();
+    // Add a small delay to ensure dialog has time to fully close
+    // before navigating, which helps prevent DOM race conditions
+    setTimeout(async () => {
+      if (!isMountedRef.current) return; // Skip if unmounted
       
-      // No need for further actions as performLogout now handles all cleanup and redirection
-    } catch (error) {
-      console.error('Failed during logout confirmation:', error);
-      
-      // If all else fails, try a direct reload
-      if (isMountedRef.current) {
-        window.location.reload();
+      try {
+        // Perform logout without delays
+        await performLogout();
+        
+        // No need for further actions as performLogout now handles all cleanup and redirection
+      } catch (error) {
+        console.error('Failed during logout confirmation:', error);
+        
+        // If all else fails, try a direct reload
+        if (isMountedRef.current) {
+          window.location.reload();
+        }
       }
-    }
+    }, 50); // Small delay to ensure DOM updates complete
   }, [handleSafeClose, performLogout]);
 
   const getFeedbackMessage = () => {

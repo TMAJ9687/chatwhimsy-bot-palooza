@@ -1,8 +1,9 @@
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useUser } from '@/context/UserContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { signOutUser } from '@/firebase/auth';
+import { performDOMCleanup } from '@/utils/errorHandler';
 
 /**
  * Hook that provides logout functionality with proper redirection
@@ -12,34 +13,27 @@ export const useLogout = () => {
   const { user, clearUser } = useUser();
   const { adminLogout, isAdmin } = useAdmin();
   const isVip = user?.isVip || false;
+  const logoutInProgressRef = useRef(false);
   
   const performLogout = useCallback(async (callback?: () => void) => {
+    // Prevent multiple logout attempts
+    if (logoutInProgressRef.current) {
+      console.log('Logout already in progress, skipping');
+      return;
+    }
+    
+    logoutInProgressRef.current = true;
+    
     try {
       console.log('Starting logout process...');
       
       // Set logout event to trigger listeners and prevent automatic relogin
       localStorage.setItem('logoutEvent', Date.now().toString());
       
-      // First clear all DOM state and fix any potential issues
-      document.body.style.overflow = 'auto';
-      document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+      // First clean up DOM state to prevent React errors
+      performDOMCleanup();
       
-      // Clean up potential overlay elements
-      try {
-        document.querySelectorAll('.fixed.inset-0').forEach(el => {
-          try {
-            if (el.parentNode) {
-              el.parentNode.removeChild(el);
-            }
-          } catch (e) {
-            // Ignore errors during emergency cleanup
-          }
-        });
-      } catch (e) {
-        // Ignore any DOM errors during cleanup
-      }
-      
-      // Clear storage systematically
+      // Clean up storage systematically
       localStorage.removeItem('chatUser');
       localStorage.removeItem('vipProfileComplete');
       localStorage.removeItem('adminEmail'); // Also clear admin email
@@ -68,10 +62,13 @@ export const useLogout = () => {
           }
         }
         
-        // Force a hard redirect based on user type
-        const destination = isVip ? '/' : '/feedback';
-        window.location.href = destination;
-        console.log(`Standard user logout complete. isVip=${isVip}`);
+        // Force a hard redirect based on user type with a small delay
+        // to ensure React has completed unmounting operations
+        setTimeout(() => {
+          const destination = isVip ? '/' : '/feedback';
+          window.location.href = destination;
+          console.log(`Standard user logout complete. isVip=${isVip}`);
+        }, 50);
       }
     } catch (error) {
       console.error('Error during logout:', error);
@@ -79,10 +76,13 @@ export const useLogout = () => {
       try {
         console.log('Attempting fallback logout approach');
         clearUser();
+        performDOMCleanup(); // Additional cleanup
         // In case of error, always redirect to home
         window.location.href = '/';
       } catch (e) {
         console.error('Fallback logout also failed', e);
+      } finally {
+        logoutInProgressRef.current = false;
       }
     }
   }, [user, isVip, isAdmin, adminLogout, clearUser]);

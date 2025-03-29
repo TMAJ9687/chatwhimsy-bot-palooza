@@ -8,6 +8,7 @@ import {
   sendPasswordResetEmail
 } from 'firebase/auth';
 import { auth } from './config';
+import { performDOMCleanup } from '@/utils/errorHandler';
 
 // Sign in with email and password
 export const signInWithEmail = async (email: string, password: string): Promise<FirebaseUser> => {
@@ -53,43 +54,12 @@ export const signOutUser = async (): Promise<void> => {
     // Set logout event to enable cross-tab coordination
     localStorage.setItem('logoutEvent', Date.now().toString());
     
+    // Clean up any UI elements that might cause issues during navigation
+    performDOMCleanup();
+    
     // Clear admin-specific data first
     localStorage.removeItem('adminData');
     localStorage.removeItem('adminEmail');
-    
-    // Clean up any UI elements that might cause issues during navigation
-    try {
-      if (document.body) {
-        document.body.style.overflow = 'auto';
-        document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-      }
-      
-      // Remove any overlay elements to avoid DOM errors
-      const overlaySelectors = [
-        '.fixed.inset-0',
-        '[data-radix-dialog-overlay]',
-        '[data-radix-alert-dialog-overlay]'
-      ];
-      
-      overlaySelectors.forEach(selector => {
-        try {
-          document.querySelectorAll(selector).forEach(el => {
-            try {
-              if (el.parentNode && document.contains(el) && 
-                  Array.from(el.parentNode.childNodes).includes(el)) {
-                el.remove();
-              }
-            } catch (err) {
-              // Ignore errors during emergency cleanup
-            }
-          });
-        } catch (err) {
-          // Ignore errors
-        }
-      });
-    } catch (err) {
-      // Ignore any DOM errors during cleanup
-    }
     
     // Systematic data cleanup before Firebase signout
     localStorage.removeItem('chatUser');
@@ -101,7 +71,16 @@ export const signOutUser = async (): Promise<void> => {
     console.log('Firebase signOut completed successfully');
   } catch (error) {
     console.error('Firebase signOut error:', error);
-    throw error;
+    
+    // Try one more time with additional cleanup
+    try {
+      performDOMCleanup();
+      await signOut(auth);
+      console.log('Firebase signOut retry succeeded');
+    } catch (retryError) {
+      console.error('Firebase signOut retry also failed:', retryError);
+      throw error;
+    }
   }
 };
 

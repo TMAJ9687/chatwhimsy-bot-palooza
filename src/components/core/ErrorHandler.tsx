@@ -1,5 +1,6 @@
 
 import { useEffect, useRef } from 'react';
+import { createGlobalErrorHandler, performDOMCleanup } from '@/utils/errorHandler';
 
 interface ErrorHandlerProps {
   logoutInProgressRef: React.MutableRefObject<boolean>;
@@ -7,54 +8,70 @@ interface ErrorHandlerProps {
 
 const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
   const errorHandlerSetRef = useRef(false);
+  const errorCountRef = useRef(0);
   
   useEffect(() => {
     if (!errorHandlerSetRef.current) {
       errorHandlerSetRef.current = true;
       
-      const handleError = (event: ErrorEvent) => {
+      const handleError = createGlobalErrorHandler();
+      
+      // Use capture to catch errors before they propagate
+      window.addEventListener('error', handleError, { capture: true });
+      
+      // Also handle unhandled promise rejections
+      const handleRejection = (event: PromiseRejectionEvent) => {
+        const errorMessage = event.reason?.message || String(event.reason);
+        
         if (
-          event.message && 
-          event.message.includes('removeChild') && 
-          event.message.includes('not a child')
+          errorMessage.includes('removeChild') || 
+          errorMessage.includes('appendChild') || 
+          errorMessage.includes('not a child')
         ) {
           event.preventDefault();
-          console.warn('Caught removeChild error during navigation, suppressing');
+          console.warn('[ErrorHandler] Caught unhandled promise rejection with DOM error:', errorMessage);
           
-          document.body.style.overflow = 'auto';
-          document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+          // Track error count
+          errorCountRef.current += 1;
           
+          // Run cleanup
+          performDOMCleanup();
+          
+          // If logout is in progress, ensure body classes are reset
           if (logoutInProgressRef.current) {
             document.body.style.overflow = 'auto';
             document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
           }
           
-          try {
-            document.querySelectorAll('.fixed.inset-0, [data-radix-dialog-overlay], [data-radix-alert-dialog-overlay]')
-              .forEach(el => {
+          // If we've seen too many errors, do emergency cleanup
+          if (errorCountRef.current > 3) {
+            console.warn('[ErrorHandler] Too many DOM errors, clearing all modals');
+            // Force a more aggressive cleanup
+            try {
+              document.querySelectorAll('.fixed, [role="dialog"], [aria-modal="true"]').forEach(el => {
                 try {
-                  if (el.parentNode) {
-                    const isChild = Array.from(el.parentNode.childNodes).includes(el);
-                    if (isChild) {
-                      el.remove();
-                    }
+                  if (document.body.contains(el)) {
+                    document.body.removeChild(el);
                   }
                 } catch (e) {
-                  // Silent catch
+                  // Ignore cleanup errors
                 }
               });
-          } catch (e) {
-            // Silent catch
+            } catch (e) {
+              // Ignore aggressive cleanup errors
+            }
           }
-          
-          return false;
         }
       };
       
-      window.addEventListener('error', handleError, { capture: true });
+      window.addEventListener('unhandledrejection', handleRejection, { capture: true });
+      
+      // Run initial cleanup to clear any stale overlays
+      performDOMCleanup();
       
       return () => {
         window.removeEventListener('error', handleError, { capture: true });
+        window.removeEventListener('unhandledrejection', handleRejection, { capture: true });
         errorHandlerSetRef.current = false;
       };
     }

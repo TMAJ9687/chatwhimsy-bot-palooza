@@ -8,6 +8,8 @@
  */
 export const performDOMCleanup = () => {
   try {
+    console.log('[DOMCleanup] Running DOM cleanup before navigation');
+    
     // Reset body styles
     if (document.body) {
       document.body.style.overflow = 'auto';
@@ -53,8 +55,32 @@ export const performDOMCleanup = () => {
         // Ignore selector errors
       }
     });
+    
+    // Additional cleanup for known issues with animation frames
+    requestAnimationFrame(() => {
+      try {
+        // One more sweep after a frame to catch any remaining issues
+        selectors.forEach(selector => {
+          try {
+            document.querySelectorAll(selector).forEach(el => {
+              try {
+                if (el.parentNode && document.contains(el)) {
+                  el.remove();
+                }
+              } catch (e) {
+                // Ignore errors
+              }
+            });
+          } catch (e) {
+            // Ignore errors
+          }
+        });
+      } catch (e) {
+        // Ignore errors in animation frame
+      }
+    });
   } catch (error) {
-    console.warn('Error during DOM cleanup:', error);
+    console.warn('[DOMCleanup] Error during DOM cleanup:', error);
   }
 };
 
@@ -72,7 +98,7 @@ export const createGlobalErrorHandler = () => {
     ) {
       // Prevent default behavior
       event.preventDefault();
-      console.warn('Caught DOM manipulation error, cleaning up', event.message);
+      console.warn('[ErrorHandler] Caught DOM manipulation error, cleaning up', event.message);
       
       // Run cleanup
       performDOMCleanup();
@@ -101,7 +127,7 @@ export const setupGlobalErrorHandling = () => {
       errorMessage.includes('not a child')
     ) {
       event.preventDefault();
-      console.warn('Unhandled promise rejection with DOM error:', errorMessage);
+      console.warn('[ErrorHandler] Unhandled promise rejection with DOM error:', errorMessage);
       performDOMCleanup();
     }
   }, { capture: true });
@@ -110,4 +136,56 @@ export const setupGlobalErrorHandling = () => {
   return () => {
     window.removeEventListener('error', errorHandler, { capture: true });
   };
+};
+
+/**
+ * Checks the validity of a parent-child relationship before DOM operations
+ */
+export const isValidChildOfParent = (child: Node, parent: Node): boolean => {
+  try {
+    if (!child || !parent) return false;
+    
+    // Check direct containment
+    if (!parent.contains(child)) return false;
+    
+    // Double-check with childNodes (more reliable)
+    return Array.from(parent.childNodes).includes(child);
+  } catch (e) {
+    console.warn('[ErrorHandler] Error checking parent-child relationship:', e);
+    return false;
+  }
+};
+
+/**
+ * Safely remove a DOM element with parent-child validation
+ */
+export const safeRemoveElement = (element: Element): boolean => {
+  try {
+    if (!element || !element.parentNode) return false;
+    
+    // First validate the parent-child relationship
+    if (!isValidChildOfParent(element, element.parentNode)) {
+      console.warn('[ErrorHandler] Invalid parent-child relationship, skipping removal');
+      return false;
+    }
+    
+    // Try the safer remove() method first
+    try {
+      element.remove();
+      return true;
+    } catch (err) {
+      console.warn('[ErrorHandler] element.remove() failed, trying removeChild:', err);
+      
+      // Fallback to removeChild with re-verification
+      if (element.parentNode && isValidChildOfParent(element, element.parentNode)) {
+        element.parentNode.removeChild(element);
+        return true;
+      }
+    }
+    
+    return false;
+  } catch (err) {
+    console.warn('[ErrorHandler] Error in safeRemoveElement:', err);
+    return false;
+  }
 };
