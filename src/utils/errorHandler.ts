@@ -78,23 +78,40 @@ export const performDOMCleanup = () => {
     if (overlays.length > 0) {
       console.log(`Found ${overlays.length} overlay elements to clean up`);
       
-      overlays.forEach((node: Element) => {
+      overlays.forEach((element: Element) => {
         try {
-          if (node.parentNode) {
-            // Use proper type checking before removing
-            if (node instanceof Element) {
-              try {
-                node.remove();
-              } catch (err) {
-                // Fallback to removeChild with proper parent check
-                if (node.parentNode) {
-                  node.parentNode.removeChild(node);
-                }
-              }
-            } else if (node.parentNode) {
-              // For non-Element nodes, use removeChild
-              // Fix: Explicitly cast node to Node type
-              node.parentNode.removeChild(node as Node);
+          if (!element.parentNode) {
+            console.log('Element has no parent, skipping removal');
+            return;
+          }
+          
+          // Check if element is actually in the DOM
+          if (!document.contains(element)) {
+            console.log('Element is not in DOM, skipping removal');
+            return;
+          }
+          
+          // Double-check that it's actually a child of its parent node
+          const parent = element.parentNode;
+          const isChild = Array.from(parent.childNodes).includes(element as Node);
+          
+          if (!isChild) {
+            console.log('Element is not a child of its parent, skipping removal');
+            return;
+          }
+          
+          // Now safely remove using the appropriate method
+          try {
+            // First try the safer element.remove() method
+            element.remove();
+          } catch (err) {
+            console.log('Element.remove() failed, falling back to parentNode.removeChild');
+            
+            // Double-check parent relationship before removeChild
+            if (parent && parent.contains(element)) {
+              parent.removeChild(element as Node);
+            } else {
+              console.log('Parent no longer contains element, skipping removeChild');
             }
           }
         } catch (err) {
