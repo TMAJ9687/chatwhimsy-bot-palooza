@@ -163,8 +163,9 @@ export const setupGlobalErrorHandling = () => {
 
 /**
  * Checks the validity of a parent-child relationship before DOM operations
+ * Acts as a type guard to narrow Node to ChildNode
  */
-export const isValidChildOfParent = (child: Node, parent: Node): boolean => {
+export const isValidChildOfParent = (child: Node, parent: Node): child is ChildNode => {
   try {
     if (!child || !parent) return false;
     
@@ -201,9 +202,8 @@ export const safeRemoveElement = (element: Element): boolean => {
       
       // Fallback to removeChild with re-verification
       if (element.parentNode && isValidChildOfParent(element, element.parentNode)) {
-        // Double-cast to satisfy TypeScript's type checking - Element is a valid ChildNode for removal
-        // The element IS a ChildNode in reality, but TypeScript needs help with the type hierarchy
-        element.parentNode.removeChild(element as unknown as ChildNode);
+        // TypeScript now knows element is ChildNode due to type guard
+        element.parentNode.removeChild(element);
         return true;
       }
     }
