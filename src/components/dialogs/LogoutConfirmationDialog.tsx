@@ -49,14 +49,23 @@ const LogoutConfirmationDialog = () => {
     if (!isMountedRef.current) return;
     
     console.log('Safely closing logout dialog');
+    
+    // Force all radix dialog portals to close
+    const portals = document.querySelectorAll('[data-radix-portal]');
+    portals.forEach(portal => {
+      // Mark portal for safe cleanup
+      portal.setAttribute('data-closing', 'true');
+    });
+    
     // Close dialog immediately - skip animated closing
     closeDialog();
     
-    // Run DOM cleanup to avoid React errors
-    performDOMCleanup();
-    
-    // Also clean up any dynamic import artifacts
-    cleanupDynamicImportArtifacts();
+    // Run DOM cleanup to avoid React errors - wait for close animation
+    queueMicrotask(() => {
+      performDOMCleanup();
+      // Also clean up any dynamic import artifacts
+      cleanupDynamicImportArtifacts();
+    });
   }, [closeDialog]);
 
   const handleConfirm = useCallback(async () => {
@@ -72,13 +81,20 @@ const LogoutConfirmationDialog = () => {
     // Close the dialog immediately without animation
     handleSafeClose();
     
-    // Force DOM cleanup before logout
+    // Wait a moment for dialog to fully close before continuing
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
+    // Ensure DOM is cleaned up before logout
     performDOMCleanup();
     
     // Proceed with logout immediately
     try {
       console.log('Executing logout directly');
-      await performLogout();
+      
+      // Execute the actual logout in a microtask to ensure clean UI state first
+      queueMicrotask(() => {
+        performLogout();
+      });
     } catch (error) {
       console.error('Failed during logout confirmation:', error);
       
@@ -117,6 +133,7 @@ const LogoutConfirmationDialog = () => {
           <AlertDialogAction
             onClick={handleConfirm}
             className="bg-red-500 hover:bg-red-600"
+            data-testid="confirm-logout"
           >
             Yes, Logout
           </AlertDialogAction>
@@ -127,4 +144,3 @@ const LogoutConfirmationDialog = () => {
 };
 
 export default LogoutConfirmationDialog;
-

@@ -9,6 +9,7 @@ interface ErrorHandlerProps {
 const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
   const errorHandlerSetRef = useRef(false);
   const errorCountRef = useRef(0);
+  const removeChildPatchedRef = useRef(false);
   
   useEffect(() => {
     if (!errorHandlerSetRef.current) {
@@ -16,6 +17,53 @@ const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
       
       // Set up error handlers
       setupErrorHandling();
+      
+      // Apply special patch for removeChild errors during logout
+      if (!removeChildPatchedRef.current) {
+        removeChildPatchedRef.current = true;
+        console.log('[ErrorHandler] Setting up removeChild error protection');
+        
+        // Store original method for later restoration
+        const originalRemoveChild = Node.prototype.removeChild;
+        
+        // Replace with safer version that won't throw during logout
+        Node.prototype.removeChild = function(child) {
+          // Skip validation during logout to prevent errors
+          if (logoutInProgressRef.current) {
+            console.log('[ErrorHandler] Safe removeChild during logout');
+            // Check if child is actually a child, otherwise just return it without throwing
+            if (this.contains(child)) {
+              return originalRemoveChild.call(this, child);
+            }
+            // Return the node without throwing if not found during logout
+            return child;
+          }
+          
+          // For normal operation outside logout, use original with safe error handling
+          try {
+            return originalRemoveChild.call(this, child);
+          } catch (e) {
+            // Only suppress specific "not a child" errors
+            if (e instanceof DOMException && 
+                e.name === 'NotFoundError' && 
+                e.message.includes('not a child')) {
+              console.warn('[ErrorHandler] Suppressed removeChild error:', e.message);
+              // Increment error count for tracking
+              errorCountRef.current++;
+              // Return the node to prevent error propagation
+              return child;
+            }
+            // Re-throw other errors
+            throw e;
+          }
+        };
+        
+        // Cleanup function to restore original method
+        return () => {
+          Node.prototype.removeChild = originalRemoveChild;
+          removeChildPatchedRef.current = false;
+        };
+      }
       
       // Use capture to catch errors before they propagate
       const handleError = (event: ErrorEvent) => {

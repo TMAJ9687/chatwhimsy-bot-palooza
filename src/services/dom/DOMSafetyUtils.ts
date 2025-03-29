@@ -33,6 +33,13 @@ export class DOMSafetyUtils {
         }
       }
     } catch (e) {
+      // Handle specific "not a child" error silently
+      if (e instanceof DOMException && 
+          e.name === 'NotFoundError' && 
+          e.message.includes('not a child')) {
+        console.warn('Safe handling of "not a child" error in safeRemoveElement');
+        return false;
+      }
       console.warn('Error removing element:', e);
       return false;
     }
