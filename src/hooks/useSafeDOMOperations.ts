@@ -82,7 +82,7 @@ export const useSafeDOMOperations = () => {
         
         // Final attempt with removeChild after rechecking parent
         if (element.parentNode.contains(element)) {
-          element.parentNode.removeChild(element);
+          element.parentNode.removeChild(element as ChildNode);
           return true;
         }
       }
@@ -133,7 +133,7 @@ export const useSafeDOMOperations = () => {
   
   // Check if document is in a usable state
   const isDOMReady = useCallback(() => {
-    return domRegistry.isDOMReady();
+    return typeof document !== 'undefined' && document.readyState === 'complete';
   }, []);
   
   // Create a DOM cleanup function that runs on component unmount

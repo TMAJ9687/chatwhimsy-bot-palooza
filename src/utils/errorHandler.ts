@@ -1,4 +1,3 @@
-
 /**
  * Global error handler utilities to handle DOM-related errors
  */
@@ -80,7 +79,7 @@ export const performDOMCleanup = () => {
                   if (el.parentNode && document.contains(el.parentNode) && el.parentNode.contains(el)) {
                     // Make sure we only remove if all validation passes and use type guard to verify element is a ChildNode
                     if (isValidChildOfParent(el, el.parentNode)) {
-                      // Explicit cast to ChildNode to satisfy TypeScript
+                      // Using the explicit cast to ChildNode after validation through type guard
                       el.parentNode.removeChild(el as ChildNode);
                     }
                   }

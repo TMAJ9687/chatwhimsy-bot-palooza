@@ -73,6 +73,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       
       Array.from(problematicElements).forEach(element => {
         if (isMountedRef.current) {
+          // Convert Element to HTMLElement for the safeRemoveElement function
           safeRemoveElement(element as Element);
         }
       });
