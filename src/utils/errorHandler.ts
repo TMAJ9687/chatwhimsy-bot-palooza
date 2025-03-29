@@ -78,7 +78,7 @@ export const performDOMCleanup = () => {
     if (overlays.length > 0) {
       console.log(`Found ${overlays.length} overlay elements to clean up`);
       
-      overlays.forEach(node => {
+      overlays.forEach((node: Element) => {
         try {
           if (node.parentNode) {
             // Use proper type checking before removing
@@ -93,6 +93,7 @@ export const performDOMCleanup = () => {
               }
             } else if (node.parentNode) {
               // For non-Element nodes, use removeChild
+              // Fix: Explicitly cast node to Node type
               node.parentNode.removeChild(node as Node);
             }
           }
