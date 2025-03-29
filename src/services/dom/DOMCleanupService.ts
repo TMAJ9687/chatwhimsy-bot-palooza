@@ -129,7 +129,7 @@ export class DOMCleanupService {
                     // Double-check it's really a child
                     const updatedChildNodes = Array.from(element.parentNode.childNodes);
                     if (updatedChildNodes.includes(element as Node)) {
-                      // Use proper type assertion for TypeScript
+                      // Properly cast to ChildNode to satisfy TypeScript
                       element.parentNode.removeChild(element as unknown as ChildNode);
                     }
                   }

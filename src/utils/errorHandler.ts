@@ -49,6 +49,7 @@ export const performDOMCleanup = (): void => {
                 } catch (e) {
                   // If that fails, try removeChild with proper type assertion
                   if (element.parentNode && element.parentNode.contains(element)) {
+                    // Properly cast to ChildNode to satisfy TypeScript
                     element.parentNode.removeChild(element as unknown as ChildNode);
                   }
                 }
@@ -88,6 +89,7 @@ export const cleanupDynamicImportArtifacts = (): void => {
     errorOverlays.forEach(overlay => {
       try {
         if (overlay.parentNode) {
+          // Properly cast to ChildNode to satisfy TypeScript
           overlay.parentNode.removeChild(overlay as unknown as ChildNode);
         }
       } catch (e) {
@@ -234,4 +236,3 @@ export const setupErrorHandling = (): void => {
     }, true); // Capture phase
   }
 };
-

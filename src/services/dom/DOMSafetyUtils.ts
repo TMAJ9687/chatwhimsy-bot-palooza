@@ -27,7 +27,7 @@ export class DOMSafetyUtils {
         // Check if it's truly a child - extra validation
         const childNodes = Array.from(parent.childNodes);
         if (childNodes.includes(element as Node)) {
-          // Type assertion needed for TypeScript compatibility
+          // Properly cast to ChildNode to satisfy TypeScript
           parent.removeChild(element as unknown as ChildNode);
           return true;
         }
@@ -108,4 +108,3 @@ export class DOMSafetyUtils {
     return false;
   }
 }
-
