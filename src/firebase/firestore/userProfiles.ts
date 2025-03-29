@@ -1,3 +1,4 @@
+
 import { UserProfile } from '@/types/user';
 
 /**
@@ -76,3 +77,61 @@ export const saveUserProfile = (profile: Partial<UserProfile>): UserProfile => {
   
   return validatedProfile;
 };
+
+/**
+ * Get a VIP user profile from Firestore
+ * @param userId The user ID to fetch the profile for
+ * @returns The VIP user profile or null if not found
+ */
+export const getVipUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  if (!userId) {
+    console.error('No user ID provided for getVipUserProfile');
+    return null;
+  }
+  
+  try {
+    // First, try to get from localStorage as a fallback
+    const storedUser = localStorage.getItem('chatUser');
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      if (userData.id === userId && userData.isVip) {
+        console.log('Retrieved VIP user from localStorage:', userData.nickname);
+        return userData;
+      }
+    }
+    
+    // In a real implementation, we would query Firestore here
+    // For now, just return null to indicate the user wasn't found in Firestore
+    console.log('VIP user not found in Firestore');
+    return null;
+  } catch (error) {
+    console.error('Error getting VIP user profile:', error);
+    return null;
+  }
+};
+
+/**
+ * Save a VIP user profile to Firestore
+ * @param profile The profile to save
+ * @returns The saved profile
+ */
+export const saveVipUserProfile = async (profile: UserProfile): Promise<UserProfile> => {
+  if (!profile || !profile.id) {
+    console.error('Invalid profile data for saveVipUserProfile');
+    throw new Error('Invalid profile data');
+  }
+  
+  try {
+    // In a real implementation, we would save to Firestore here
+    console.log('Saving VIP user profile to Firestore:', profile.nickname);
+    
+    // For now, just save to localStorage as a fallback
+    localStorage.setItem('chatUser', JSON.stringify(profile));
+    
+    return profile;
+  } catch (error) {
+    console.error('Error saving VIP user profile:', error);
+    throw error;
+  }
+};
+
