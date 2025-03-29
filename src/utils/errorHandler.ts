@@ -66,6 +66,7 @@ export const performDOMCleanup = () => {
             document.querySelectorAll(selector).forEach(el => {
               try {
                 if (el.parentNode && document.contains(el)) {
+                  // Make sure to cast to Element type here too
                   (el as Element).remove();
                 }
               } catch (e) {
