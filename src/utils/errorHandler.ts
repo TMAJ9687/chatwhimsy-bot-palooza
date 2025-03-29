@@ -80,7 +80,8 @@ export const performDOMCleanup = () => {
                   if (el.parentNode && document.contains(el.parentNode) && el.parentNode.contains(el)) {
                     // Make sure we only remove if all validation passes and use type guard to verify element is a ChildNode
                     if (isValidChildOfParent(el, el.parentNode)) {
-                      el.parentNode.removeChild(el);
+                      // Explicit cast to ChildNode to satisfy TypeScript
+                      el.parentNode.removeChild(el as ChildNode);
                     }
                   }
                 }
@@ -206,8 +207,8 @@ export const safeRemoveElement = (element: Element): boolean => {
       
       // Revalidate parent relationship for extra safety
       if (element.parentNode && isValidChildOfParent(element, element.parentNode)) {
-        // Now TypeScript knows element is ChildNode due to the proper type guard
-        element.parentNode.removeChild(element);
+        // Add explicit ChildNode cast after validation
+        element.parentNode.removeChild(element as ChildNode);
         return true;
       }
     }
