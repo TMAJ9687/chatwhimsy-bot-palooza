@@ -24,14 +24,18 @@ const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
       // Use capture to catch errors before they propagate
       window.addEventListener('error', handleError, { capture: true });
       
-      // Also handle unhandled promise rejections
+      // Also handle unhandled promise rejections with enhanced detection
       const handleRejection = (event: PromiseRejectionEvent) => {
         const errorMessage = event.reason?.message || String(event.reason);
         
+        // Enhanced check for DOM-related errors
         if (
           errorMessage.includes('removeChild') || 
           errorMessage.includes('appendChild') || 
-          errorMessage.includes('not a child')
+          errorMessage.includes('not a child') ||
+          errorMessage.includes('parentNode') ||
+          errorMessage.includes('The node to be removed') ||
+          (errorMessage.includes('null') && errorMessage.includes('DOM'))
         ) {
           event.preventDefault();
           console.warn('[ErrorHandler] Caught unhandled promise rejection with DOM error:', errorMessage);

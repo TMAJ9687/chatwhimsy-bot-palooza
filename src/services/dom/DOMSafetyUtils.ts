@@ -1,4 +1,3 @@
-
 /**
  * Utility service for safely performing DOM operations
  */
@@ -28,9 +27,8 @@ export class DOMSafetyUtils {
       }
       
       // Double-check that the element is actually a child of its parent
-      // Use Array.prototype.includes for more reliable child node checking
-      const parentChildNodes = Array.from(element.parentNode.childNodes);
-      const isRealChild = parentChildNodes.includes(element);
+      // Use Array.from for more reliable child node checking
+      const isRealChild = Array.from(element.parentNode.childNodes).includes(element as Node);
       
       if (!isRealChild) {
         console.warn('[DOMSafetyUtils] Element is not a child of its parent node');
@@ -47,7 +45,7 @@ export class DOMSafetyUtils {
         
         // Double check parent relationship before removeChild
         if (element.parentNode && element.parentNode.contains(element)) {
-          element.parentNode.removeChild(element as unknown as ChildNode);
+          element.parentNode.removeChild(element as Node);
           return true;
         } else {
           console.warn('[DOMSafetyUtils] Cannot safely remove element - parent/child relationship issue');

@@ -53,26 +53,26 @@ export class GlobalErrorHandler {
           
           elements.forEach(element => {
             try {
+              // Skip elements with no parent
               if (!element.parentNode) return;
               
               // Check if element is actually in the DOM
               if (!document.contains(element)) return;
               
-              // Verify it's a child of its parent node
+              // Verify it's a child of its parent using Array.from for more reliable checking
               const parent = element.parentNode;
-              const parentChildNodes = Array.from(parent.childNodes);
-              const isChild = parentChildNodes.includes(element as Node);
+              const isChild = Array.from(parent.childNodes).includes(element as Node);
               
               if (!isChild) return;
               
               // Now safely remove using the appropriate method
               try {
-                // Use the standard DOM removal method
+                // Standard DOM removal - should work in most cases
                 element.remove();
               } catch (err) {
-                // Fallback with proper typing
+                // Fallback with proper casting to ChildNode
                 if (parent && parent.contains(element)) {
-                  parent.removeChild(element as unknown as ChildNode);
+                  parent.removeChild(element as Node);
                 }
               }
             } catch (innerErr) {
@@ -101,14 +101,17 @@ export const createGlobalErrorHandler = () => {
   return (event: ErrorEvent) => {
     const errorMessage = event.error?.message || event.message || 'Unknown error';
     
-    // Check if the error is a known React-related or DOM error
+    // Enhanced check for DOM-related errors
     if (
       errorMessage.includes('Minified React error') ||
       errorMessage.includes('ReactDOM') ||
       errorMessage.includes('React') ||
       errorMessage.includes('removeChild') ||
       errorMessage.includes('appendChild') ||
-      errorMessage.includes('not a child')
+      errorMessage.includes('not a child') ||
+      errorMessage.includes('The node to be removed') ||
+      errorMessage.includes('parentNode') ||
+      errorMessage.includes('Cannot read properties of null')
     ) {
       event.preventDefault(); // Prevent default error handling
       console.warn('[ErrorHandler] Caught a React-related error:', errorMessage);
@@ -131,15 +134,18 @@ export const setupGlobalErrorHandling = () => {
   // Add event listeners for errors
   window.addEventListener('error', errorHandler, { capture: true });
   
-  // Also handle unhandled promise rejections
+  // Also handle unhandled promise rejections with improved error detection
   window.addEventListener('unhandledrejection', (event) => {
     const errorMessage = event.reason?.message || String(event.reason);
     
-    // Check if it's a DOM-related error
+    // Enhanced check for DOM-related errors
     if (
       errorMessage.includes('removeChild') ||
       errorMessage.includes('appendChild') ||
-      errorMessage.includes('not a child')
+      errorMessage.includes('not a child') ||
+      errorMessage.includes('parentNode') ||
+      errorMessage.includes('The node to be removed') ||
+      errorMessage.includes('null') && errorMessage.includes('DOM')
     ) {
       event.preventDefault();
       const handler = new GlobalErrorHandler();
@@ -160,3 +166,4 @@ export const performDOMCleanup = () => {
   const handler = new GlobalErrorHandler();
   handler.handleError({ message: "Triggered cleanup" });
 };
+

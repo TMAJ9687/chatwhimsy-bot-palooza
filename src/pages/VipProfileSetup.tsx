@@ -11,6 +11,7 @@ import ProfileHeader from '@/components/profile/ProfileHeader';
 import ProfileDialogs from '@/components/profile/ProfileDialogs';
 import { useProfileNavigation } from '@/hooks/profile/useProfileNavigation';
 import { useProfileSaving } from '@/hooks/profile/useProfileSaving';
+import { performDOMCleanup } from '@/utils/errorHandler';
 
 const VipProfileSetup = () => {
   const { user, isVip, isProfileComplete, updateUserProfile } = useUser();
@@ -86,7 +87,29 @@ const VipProfileSetup = () => {
     
     return () => {
       mountedRef.current = false;
+      
+      // Enhanced cleanup on unmount
       cleanupDOM();
+      performDOMCleanup();
+      
+      // Ensure body is reset
+      if (document.body) {
+        document.body.style.overflow = 'auto';
+        document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+      }
+      
+      // Clean any residual overlays
+      document.querySelectorAll(
+        '[role="dialog"], [aria-modal="true"], .fixed.inset-0'
+      ).forEach(el => {
+        try {
+          if (el.parentNode) {
+            el.remove();
+          }
+        } catch (e) {
+          // Ignore removal errors
+        }
+      });
       
       if (saveOperationTimeoutRef.current) {
         clearTimeout(saveOperationTimeoutRef.current);
