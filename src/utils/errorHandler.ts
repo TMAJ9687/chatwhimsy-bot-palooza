@@ -71,7 +71,7 @@ export const performDOMCleanup = () => {
                     // The cast is safe because we've verified the parent-child relationship
                     // and Element implements ChildNode
                     if (el instanceof Element) {
-                      el.parentNode.removeChild(el);
+                      el.parentNode.removeChild(el as ChildNode);
                     }
                   }
                 }
@@ -195,11 +195,9 @@ export const safeRemoveElement = (element: Element): boolean => {
       // Fallback to removeChild with re-verification
       if (element.parentNode && isValidChildOfParent(element, element.parentNode)) {
         // Element is a valid ChildNode
-        // We need to add the instanceof check here to satisfy TypeScript
-        if (element instanceof Element) {
-          element.parentNode.removeChild(element);
-          return true;
-        }
+        // We need the type assertion here to satisfy TypeScript
+        element.parentNode.removeChild(element as ChildNode);
+        return true;
       }
     }
     
