@@ -1,9 +1,10 @@
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { performDOMCleanup } from '@/utils/errorHandler';
+import { unstable_batchedUpdates } from 'react-dom';
 
 interface ProfileDialogsProps {
   showUnsavedDialog: boolean;
@@ -28,10 +29,29 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
   setShowUnsavedDialog,
   setShowSavingDialog
 }) => {
+  // Local state to track internal dialog visibility
+  const [internalUnsavedOpen, setInternalUnsavedOpen] = useState(showUnsavedDialog);
+  const [internalSavingOpen, setInternalSavingOpen] = useState(showSavingDialog);
+  
+  // Sync internal state with props
+  useEffect(() => {
+    if (mountedRef.current) {
+      setInternalUnsavedOpen(showUnsavedDialog);
+    }
+  }, [showUnsavedDialog, mountedRef]);
+  
+  useEffect(() => {
+    if (mountedRef.current) {
+      setInternalSavingOpen(showSavingDialog);
+    }
+  }, [showSavingDialog, mountedRef]);
+
   // Define a safe state setter that checks if component is still mounted
   const safeSetShowDialog = useCallback((setter: React.Dispatch<React.SetStateAction<boolean>>, value: boolean) => {
     if (mountedRef.current) {
-      setter(value);
+      unstable_batchedUpdates(() => {
+        setter(value);
+      });
     }
   }, [mountedRef]);
 
@@ -39,22 +59,33 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
   useEffect(() => {
     return () => {
       if (!mountedRef.current) {
-        // Perform thorough cleanup of any stale dialog elements
-        performDOMCleanup();
+        // Batch all state updates together for unmounting
+        unstable_batchedUpdates(() => {
+          setInternalUnsavedOpen(false);
+          setInternalSavingOpen(false);
+        });
       }
     };
   }, [mountedRef]);
 
-  // Prevent dialog from showing after component unmounts
-  useEffect(() => {
-    return () => {
-      // Make sure dialogs are closed when component unmounts
-      if (!mountedRef.current) {
+  // Close dialog safely
+  const handleCloseUnsavedDialog = useCallback(() => {
+    if (mountedRef.current && !isSaving) {
+      unstable_batchedUpdates(() => {
+        setInternalUnsavedOpen(false);
         safeSetShowDialog(setShowUnsavedDialog, false);
+      });
+    }
+  }, [isSaving, mountedRef, safeSetShowDialog, setShowUnsavedDialog]);
+
+  const handleCloseSavingDialog = useCallback(() => {
+    if (mountedRef.current && !isSaving) {
+      unstable_batchedUpdates(() => {
+        setInternalSavingOpen(false);
         safeSetShowDialog(setShowSavingDialog, false);
-      }
-    };
-  }, [mountedRef, setShowUnsavedDialog, setShowSavingDialog, safeSetShowDialog]);
+      });
+    }
+  }, [isSaving, mountedRef, safeSetShowDialog, setShowSavingDialog]);
 
   const handleSaveClick = useCallback(() => {
     if (!isSaving && !navigationLock && mountedRef.current) {
@@ -64,16 +95,12 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
 
   return (
     <>
-      {showUnsavedDialog && (
+      {internalUnsavedOpen && (
         <Dialog 
-          open={showUnsavedDialog} 
+          open={internalUnsavedOpen} 
           onOpenChange={(open) => {
             if (!open && !isSaving && mountedRef.current) {
-              setTimeout(() => {
-                if (mountedRef.current) {
-                  safeSetShowDialog(setShowUnsavedDialog, false);
-                }
-              }, 100);
+              handleCloseUnsavedDialog();
             }
           }}
         >
@@ -117,16 +144,12 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
         </Dialog>
       )}
 
-      {showSavingDialog && (
+      {internalSavingOpen && (
         <AlertDialog 
-          open={showSavingDialog}
+          open={internalSavingOpen}
           onOpenChange={(open) => {
             if (!open && !isSaving && mountedRef.current) {
-              setTimeout(() => {
-                if (mountedRef.current) {
-                  safeSetShowDialog(setShowSavingDialog, false);
-                }
-              }, 100);
+              handleCloseSavingDialog();
             }
           }}
         >

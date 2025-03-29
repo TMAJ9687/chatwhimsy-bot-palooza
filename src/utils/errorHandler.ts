@@ -80,8 +80,8 @@ export const performDOMCleanup = () => {
                   if (el.parentNode && document.contains(el.parentNode) && el.parentNode.contains(el)) {
                     // Make sure we only remove if all validation passes
                     if (el instanceof Element) {
-                      // Fix: Properly cast Element as ChildNode for TypeScript
-                      el.parentNode.removeChild(el as unknown as ChildNode);
+                      // Fix: Properly typecast Element to ChildNode
+                      el.parentNode.removeChild(el as ChildNode);
                     }
                   }
                 }
@@ -204,9 +204,8 @@ export const safeRemoveElement = (element: Element): boolean => {
       
       // Fallback to removeChild with re-verification
       if (element.parentNode && isValidChildOfParent(element, element.parentNode)) {
-        // Element is a valid ChildNode
-        // Fix: Properly cast Element to ChildNode for TypeScript
-        element.parentNode.removeChild(element as unknown as ChildNode);
+        // Correctly cast Element to ChildNode for TypeScript
+        element.parentNode.removeChild(element as ChildNode);
         return true;
       }
     }
@@ -217,3 +216,4 @@ export const safeRemoveElement = (element: Element): boolean => {
     return false;
   }
 };
+
