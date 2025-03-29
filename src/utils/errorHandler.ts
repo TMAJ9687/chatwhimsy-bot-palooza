@@ -72,7 +72,10 @@ export class GlobalErrorHandler {
               } catch (err) {
                 // Fallback with proper child node handling
                 if (parent && parent.contains(element)) {
-                  parent.removeChild(element);
+                  // Use proper TypeScript casting - element must be a valid ChildNode to be removed
+                  if (element instanceof Element) {
+                    parent.removeChild(element);
+                  }
                 }
               }
             } catch (innerErr) {

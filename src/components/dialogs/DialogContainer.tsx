@@ -3,7 +3,7 @@ import React, { memo, useEffect, Suspense, useRef } from 'react';
 import { useDialog } from '@/context/DialogContext';
 import { trackEvent } from '@/utils/performanceMonitor';
 
-// Import dialogs normally instead of lazy loading for critical ones
+// Import dialogs normally instead of lazy loading for critical/problematic ones
 import SiteRulesDialog from './SiteRulesDialog';
 import LogoutConfirmationDialog from './LogoutConfirmationDialog';
 import VipSelectDialog from './VipSelectDialog'; // Import directly to avoid dynamic import issues
