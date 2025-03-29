@@ -1,5 +1,53 @@
 
 import * as firebaseAuth from '@/firebase/auth';
+import * as botManagement from './botManagement';
+import * as banManagement from './banManagement';
+import * as reportService from './reportService';
+import * as adminAction from './adminAction';
+import * as userManagement from './userManagement';
+import * as firestoreService from '@/firebase/firestore';
+
+// Re-export all admin service functions
+export const {
+  getAllBots,
+  getBot,
+  createBot,
+  updateBot,
+  deleteBot
+} = botManagement;
+
+export const {
+  getBannedUsers,
+  banUser,
+  unbanUser,
+  isUserBanned
+} = banManagement;
+
+export const {
+  getAdminActions,
+  logAdminAction
+} = adminAction;
+
+export const {
+  getReportsAndFeedback,
+  addReportOrFeedback,
+  resolveReportOrFeedback,
+  deleteReportOrFeedback,
+  cleanupExpiredReportsFeedback
+} = reportService;
+
+export const {
+  kickUser,
+  upgradeToVIP,
+  downgradeToStandard
+} = userManagement;
+
+/**
+ * Initialize admin service - ensures all required data is loaded
+ */
+export const initializeAdminService = async (): Promise<void> => {
+  await firestoreService.initializeFirestoreData();
+};
 
 /**
  * Set admin login status in local storage
