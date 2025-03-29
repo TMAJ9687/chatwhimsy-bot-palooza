@@ -26,7 +26,8 @@ export class DOMSafetyUtils {
       if (parent && parent.contains(element)) {
         const childNodes = Array.from(parent.childNodes);
         if (childNodes.includes(element as Node)) {
-          parent.removeChild(element);
+          // Type assertion needed for TypeScript compatibility
+          parent.removeChild(element as unknown as ChildNode);
           return true;
         }
       }

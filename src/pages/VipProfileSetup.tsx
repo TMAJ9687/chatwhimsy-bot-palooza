@@ -12,6 +12,7 @@ import ProfileDialogs from '@/components/profile/ProfileDialogs';
 import { useProfileNavigation } from '@/hooks/profile/useProfileNavigation';
 import { useProfileSaving } from '@/hooks/profile/useProfileSaving';
 import { performDOMCleanup } from '@/utils/errorHandler';
+import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
 
 const VipProfileSetup = () => {
   const { user, isVip, isProfileComplete, updateUserProfile } = useUser();
@@ -19,6 +20,7 @@ const VipProfileSetup = () => {
   const [isLoading, setIsLoading] = useState(true);
   const mountedRef = useRef(true);
   const profileFormRef = useRef<VipProfileFormRef>(null);
+  const { safeRemoveElement } = useSafeDOMOperations();
 
   // Custom hooks for profile management
   const {
@@ -58,7 +60,28 @@ const VipProfileSetup = () => {
     cleanupDOM
   );
 
+  // Safely remove potential overlays on component mount
   useEffect(() => {
+    // Immediately run cleanup on mount to ensure no stale overlays
+    if (document.body) {
+      document.body.style.overflow = 'auto';
+      document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+    }
+    
+    // Remove any existing overlays using safe methods
+    const overlaySelectors = [
+      '.fixed.inset-0',
+      '[data-radix-dialog-overlay]',
+      '[data-radix-alert-dialog-overlay]'
+    ];
+    
+    overlaySelectors.forEach(selector => {
+      document.querySelectorAll(selector).forEach(el => {
+        safeRemoveElement(el);
+      });
+    });
+    
+    // Normal component initialization
     mountedRef.current = true;
     
     if (!isVip && user !== null) {
@@ -103,11 +126,9 @@ const VipProfileSetup = () => {
         '[role="dialog"], [aria-modal="true"], .fixed.inset-0'
       ).forEach(el => {
         try {
-          if (el.parentNode) {
-            el.remove();
-          }
+          safeRemoveElement(el);
         } catch (e) {
-          // Ignore removal errors
+          // Silently ignore removal errors
         }
       });
       
@@ -116,7 +137,7 @@ const VipProfileSetup = () => {
         saveOperationTimeoutRef.current = null;
       }
     };
-  }, [isVip, toast, user, isProfileComplete, handleGoToChat, cleanupDOM]);
+  }, [isVip, toast, user, isProfileComplete, handleGoToChat, cleanupDOM, safeRemoveElement]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {

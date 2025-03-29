@@ -83,8 +83,8 @@ export const useSafeDOMOperations = () => {
         // Final attempt with removeChild after rechecking parent
         if (element.parentNode.contains(element)) {
           const parent = element.parentNode;
-          // Safer way to handle DOM element removal
-          parent.removeChild(element);
+          // Safer way to handle DOM element removal with proper type assertion
+          parent.removeChild(element as unknown as ChildNode);
           return true;
         }
       }

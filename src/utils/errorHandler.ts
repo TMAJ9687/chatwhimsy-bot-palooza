@@ -1,174 +1,105 @@
 
-/**
- * Global error handling utilities for the application
- */
-
+// Import DOM safety utilities
 import { domRegistry } from '@/services/dom';
 
 /**
- * Class for handling global errors with proper DOM cleanup
+ * Clean up DOM elements that might cause issues or block the UI
+ * This is particularly important for modal dialogs and overlays
  */
-export class GlobalErrorHandler {
-  /**
-   * Handle an error with proper DOM cleanup
-   */
-  public handleError(error: any) {
-    // Log the error
-    console.error('[GlobalErrorHandler] Caught error:', error?.message || error);
+export const performDOMCleanup = (): void => {
+  try {
+    console.log('Performing emergency DOM cleanup');
     
-    // Clean up DOM safely
-    this.cleanupDom();
-    
-    // Return false to prevent default handling
-    return false;
-  }
-
-  /**
-   * Clean up DOM safely using proper ChildNode handling
-   */
-  private cleanupDom() {
-    if (typeof document === 'undefined' || !document.body) return;
-    
-    try {
-      // First reset body state
+    // Reset body state first
+    if (document.body) {
       document.body.style.overflow = 'auto';
       document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-      
-      // Clean up any overlay elements
-      const overlaySelectors = [
-        '.fixed.inset-0',
-        '[role="dialog"]',
-        '[aria-modal="true"]',
-        '[data-radix-portal]',
-        '.model-open',
-        '.dialog-open',
-        '.backdrop',
-        '.modal-backdrop',
-        '.vaul-overlay'
-      ];
-      
-      overlaySelectors.forEach(selector => {
-        try {
-          const elements = document.querySelectorAll(selector);
-          
-          elements.forEach(element => {
-            try {
-              // Skip elements with no parent
-              if (!element.parentNode) return;
-              
-              // Check if element is actually in the DOM
-              if (!document.contains(element)) return;
-              
-              // Verify it's a child of its parent using Array.from for more reliable checking
-              const parent = element.parentNode;
-              const childNodes = Array.from(parent.childNodes);
-              const isChild = childNodes.includes(element as Node);
-              
-              if (!isChild) return;
-              
-              // Now safely remove using the appropriate method
-              try {
-                // Standard DOM removal - should work in most cases
-                element.remove();
-              } catch (err) {
-                // Fallback with proper child node handling
-                if (parent && parent.contains(element)) {
-                  // Double check it's really a child node before attempting removal
-                  const updatedChildNodes = Array.from(parent.childNodes);
-                  if (updatedChildNodes.includes(element as Node)) {
-                    parent.removeChild(element);
+    }
+    
+    // Use dom registry if available
+    if (domRegistry) {
+      domRegistry.cleanupOverlays();
+    }
+    
+    // Additional cleanup for persistent overlay elements
+    const overlaySelectors = [
+      '.fixed.inset-0',
+      '[data-radix-dialog-overlay]',
+      '[data-radix-alert-dialog-overlay]',
+      '[data-radix-portal]',
+      '[role="dialog"]',
+      '[aria-modal="true"]',
+      '.backdrop',
+      '.modal-backdrop'
+    ];
+    
+    // Process each selector
+    overlaySelectors.forEach(selector => {
+      try {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(element => {
+          try {
+            if (element.parentNode) {
+              // Verify element is a child before removing
+              const children = Array.from(element.parentNode.childNodes);
+              if (children.includes(element as Node)) {
+                try {
+                  // Try the standard remove method first
+                  element.remove();
+                } catch (e) {
+                  // If that fails, try removeChild with proper type assertion
+                  if (element.parentNode && element.parentNode.contains(element)) {
+                    element.parentNode.removeChild(element as unknown as ChildNode);
                   }
                 }
               }
-            } catch (innerErr) {
-              console.warn('[GlobalErrorHandler] Error removing element:', innerErr);
             }
-          });
-        } catch (err) {
-          console.warn('[GlobalErrorHandler] Error selecting elements:', err);
-        }
-      });
-      
-      // Also run the domRegistry cleanup as an additional safety measure
-      domRegistry.cleanupOverlays();
-    } catch (err) {
-      console.warn('[GlobalErrorHandler] Error during DOM cleanup:', err);
-    }
+          } catch (e) {
+            console.warn(`Error removing element with selector ${selector}:`, e);
+          }
+        });
+      } catch (e) {
+        console.warn(`Error processing selector ${selector}:`, e);
+      }
+    });
+  } catch (e) {
+    console.error('Error during DOM cleanup:', e);
   }
-}
-
-/**
- * Creates a global error handler to catch and log errors
- */
-export const createGlobalErrorHandler = () => {
-  const handler = new GlobalErrorHandler();
-  
-  return (event: ErrorEvent) => {
-    const errorMessage = event.error?.message || event.message || 'Unknown error';
-    
-    // Enhanced check for DOM-related errors
-    if (
-      errorMessage.includes('Minified React error') ||
-      errorMessage.includes('ReactDOM') ||
-      errorMessage.includes('React') ||
-      errorMessage.includes('removeChild') ||
-      errorMessage.includes('appendChild') ||
-      errorMessage.includes('not a child') ||
-      errorMessage.includes('The node to be removed') ||
-      errorMessage.includes('parentNode') ||
-      errorMessage.includes('Cannot read properties of null')
-    ) {
-      event.preventDefault(); // Prevent default error handling
-      console.warn('[ErrorHandler] Caught a React-related error:', errorMessage);
-      
-      // Perform DOM cleanup to try and recover
-      handler.handleError(event.error || errorMessage);
-    } else {
-      // Log other errors to the console
-      console.error('[ErrorHandler] Uncaught error:', errorMessage, event.error);
-    }
-  };
 };
 
 /**
- * Sets up global error handling for the application
+ * Global handler for runtime errors including DOM related errors
  */
-export const setupGlobalErrorHandling = () => {
-  const errorHandler = createGlobalErrorHandler();
+export const handleGlobalError = (error: any): void => {
+  console.error('Global error handler caught:', error);
   
-  // Add event listeners for errors
-  window.addEventListener('error', errorHandler, { capture: true });
-  
-  // Also handle unhandled promise rejections with improved error detection
-  window.addEventListener('unhandledrejection', (event) => {
-    const errorMessage = event.reason?.message || String(event.reason);
-    
-    // Enhanced check for DOM-related errors
-    if (
-      errorMessage.includes('removeChild') ||
-      errorMessage.includes('appendChild') ||
-      errorMessage.includes('not a child') ||
-      errorMessage.includes('parentNode') ||
-      errorMessage.includes('The node to be removed') ||
-      (errorMessage.includes('null') && errorMessage.includes('DOM')) ||
-      errorMessage.includes('Failed to fetch dynamically imported module')
-    ) {
-      event.preventDefault();
-      const handler = new GlobalErrorHandler();
-      handler.handleError(event.reason);
-    }
-    
-    console.error('[ErrorHandler] Unhandled promise rejection:', errorMessage);
-  });
-  
-  // Run an initial cleanup to remove any stale elements
-  performDOMCleanup();
+  // Check if this is a DOM-related error
+  if (
+    error && error.message && (
+      error.message.includes('removeChild') ||
+      error.message.includes('child of this node') ||
+      error.message.includes('Failed to execute') ||
+      error.message.includes('dynamically imported module')
+    )
+  ) {
+    console.warn('DOM-related error detected, performing cleanup');
+    performDOMCleanup();
+  }
 };
 
 /**
- * Performs a cleanup of any DOM elements that might cause issues with navigation
+ * Set up global error handling
  */
-export const performDOMCleanup = () => {
-  const handler = new GlobalErrorHandler();
-  handler.handleError({ message: "Triggered cleanup" });
+export const setupErrorHandling = (): void => {
+  if (typeof window !== 'undefined') {
+    // Set up global error handler
+    window.addEventListener('error', (event) => {
+      handleGlobalError(event.error || event);
+    });
+    
+    // Handle unhandled promise rejections
+    window.addEventListener('unhandledrejection', (event) => {
+      handleGlobalError(event.reason);
+    });
+  }
 };
