@@ -59,7 +59,7 @@ const NavigationLock: React.FC = () => {
                   } catch (e) {
                     // Fallback to removeChild
                     if (parent.contains(el)) {
-                      parent.removeChild(el as ChildNode);
+                      parent.removeChild(el as unknown as ChildNode);
                     }
                   }
                 }

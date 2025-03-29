@@ -115,7 +115,7 @@ export class DOMCleanupService {
                 } catch (err) {
                   // Fallback to removeChild with validation
                   if (element.parentNode && element.parentNode.contains(element)) {
-                    element.parentNode.removeChild(element as ChildNode);
+                    element.parentNode.removeChild(element as unknown as ChildNode);
                   }
                 }
               }
