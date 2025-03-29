@@ -1,7 +1,5 @@
 
-import { uploadFile } from '../storage';
-
-// Re-export all firestore functionality
+// Re-export all firestore functionality from the modular files
 export * from './utils';
 export * from './botCollection';
 export * from './banCollection';
@@ -9,5 +7,6 @@ export * from './adminActionCollection';
 export * from './reportCollection';
 export * from './userManagement';
 
-// Re-export storage functionality for convenience
+// Import and re-export the uploadFile function from the correct path
+import { uploadFile } from '../storage';
 export { uploadFile };
