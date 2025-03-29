@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { domRegistry } from '@/services/dom';
 import { useUser } from '@/context/UserContext';
+import { saveVipUserProfile } from '@/firebase/firestore';
 
 export const useProfileNavigation = (
   isVip: boolean,
@@ -23,6 +24,20 @@ export const useProfileNavigation = (
   
   const navigationAttemptRef = useRef(false);
   const saveOperationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const firestoreSaveAttemptedRef = useRef(false);
+  
+  // Ensure profile exists in Firestore before navigation
+  const ensureProfileInFirestore = useCallback(async () => {
+    if (user && user.isVip && !firestoreSaveAttemptedRef.current) {
+      firestoreSaveAttemptedRef.current = true;
+      try {
+        await saveVipUserProfile(user);
+        console.log('Successfully ensured VIP profile exists in Firestore');
+      } catch (error) {
+        console.error('Failed to ensure VIP profile in Firestore:', error);
+      }
+    }
+  }, [user]);
 
   const cleanupDOM = useCallback(() => {
     if (document.body) {
@@ -35,10 +50,15 @@ export const useProfileNavigation = (
     localStorage.removeItem('vipNavigationInProgress');
   }, []);
 
-  const handleNavigation = useCallback((path: string) => {
+  const handleNavigation = useCallback(async (path: string) => {
     if (navigationLock || navigationAttemptRef.current || !mountedRef.current) {
       console.log('Navigation already in progress, ignoring request');
       return;
+    }
+    
+    // Ensure VIP user is in Firestore before navigation
+    if (isVip) {
+      await ensureProfileInFirestore();
     }
     
     // Validate that the user has a complete profile before VIP navigation
@@ -93,7 +113,18 @@ export const useProfileNavigation = (
         }, 300);
       }, 50);
     }
-  }, [hasUnsavedChanges, isProfileComplete, cleanupDOM, mountedRef, navigate, navigationLock, isVip, user, toast]);
+  }, [
+    hasUnsavedChanges, 
+    isProfileComplete, 
+    cleanupDOM, 
+    mountedRef, 
+    navigate, 
+    navigationLock, 
+    isVip, 
+    user, 
+    toast, 
+    ensureProfileInFirestore
+  ]);
 
   const handleGoToChat = useCallback(() => {
     handleNavigation('/chat');

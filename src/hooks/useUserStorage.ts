@@ -4,16 +4,47 @@ import { UserProfile } from '@/types/user';
 import { useLocalStorage } from './storage/useLocalStorage';
 import { useFirestoreSync } from './storage/useFirestoreSync';
 import { useProfileUpdater } from './storage/useProfileUpdater';
+import { checkProfileExists, migrateUserProfileToFirestore } from '@/firebase/firestore';
 
 export const useUserStorage = (
   user: UserProfile | null,
   setUser: React.Dispatch<React.SetStateAction<UserProfile | null>>
 ) => {
   const profileSyncedRef = useRef(false);
+  const firestoreMigrationRef = useRef(false);
+  
   const { loadUserFromLocalStorage, saveUserToLocalStorage, userLoadAttemptedRef } = useLocalStorage();
   const { loadVipUserFromFirestore, saveVipUserToFirestore, firestoreSyncRef } = useFirestoreSync();
   const { updateProfile, profileUpdateInProgressRef, profileUpdateTimeoutRef } = useProfileUpdater(setUser);
 
+  // Check and migrate user data from localStorage to Firestore
+  useEffect(() => {
+    const migrateLocalStorageToFirestore = async () => {
+      if (user && user.id && !firestoreMigrationRef.current) {
+        firestoreMigrationRef.current = true;
+        
+        try {
+          // Check if user already exists in Firestore
+          const exists = await checkProfileExists(user.id);
+          
+          if (!exists) {
+            console.log('User not found in Firestore, attempting migration');
+            await migrateUserProfileToFirestore(user.id);
+          } else {
+            console.log('User already exists in Firestore');
+          }
+        } catch (error) {
+          console.error('Error checking or migrating user to Firestore:', error);
+        }
+      }
+    };
+    
+    if (user && user.id) {
+      migrateLocalStorageToFirestore();
+    }
+  }, [user]);
+
+  // Main user loading effect
   useEffect(() => {
     if (userLoadAttemptedRef.current) {
       return;
@@ -73,7 +104,15 @@ export const useUserStorage = (
         clearTimeout(profileUpdateTimeoutRef.current);
       }
     };
-  }, [user, setUser, loadUserFromLocalStorage, loadVipUserFromFirestore, saveUserToLocalStorage]);
+  }, [
+    user, 
+    setUser, 
+    loadUserFromLocalStorage, 
+    loadVipUserFromFirestore, 
+    saveUserToLocalStorage, 
+    firestoreSyncRef,
+    profileUpdateTimeoutRef
+  ]);
 
   const updateUserProfile = useCallback((profile: Partial<UserProfile>) => {
     updateProfile(profile, user);

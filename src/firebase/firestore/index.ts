@@ -13,6 +13,12 @@ export * from './chatHistory';
 // Initialize function to ensure all firestore data is properly loaded
 export const initializeFirestoreData = async (): Promise<void> => {
   console.log('Initializing Firestore data');
-  // This function can be expanded to preload essential data or run migrations
+  
+  // Import the utils to prevent circular dependencies
+  const { ensureCollectionsExist } = await import('./utils');
+  
+  // Ensure all required collections exist
+  await ensureCollectionsExist();
+  
   return Promise.resolve();
 };

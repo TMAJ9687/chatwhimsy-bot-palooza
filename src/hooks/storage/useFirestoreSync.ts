@@ -1,13 +1,25 @@
 
 import { useRef, useCallback } from 'react';
 import { UserProfile } from '@/types/user';
-import { saveVipUserProfile, getVipUserProfile } from '@/firebase/firestore';
+import { 
+  saveVipUserProfile, 
+  getVipUserProfile, 
+  migrateUserProfileToFirestore 
+} from '@/firebase/firestore';
 
 export const useFirestoreSync = () => {
   const firestoreSyncRef = useRef(false);
+  const migrationAttemptedRef = useRef(false);
   
   const loadVipUserFromFirestore = useCallback(async (userId: string): Promise<UserProfile | null> => {
     try {
+      // Try to migrate profile if not already attempted
+      if (!migrationAttemptedRef.current) {
+        migrationAttemptedRef.current = true;
+        await migrateUserProfileToFirestore(userId);
+      }
+      
+      // Now try to load from Firestore
       const firestoreUser = await getVipUserProfile(userId);
       
       if (firestoreUser) {
@@ -43,6 +55,7 @@ export const useFirestoreSync = () => {
   return {
     loadVipUserFromFirestore,
     saveVipUserToFirestore,
-    firestoreSyncRef
+    firestoreSyncRef,
+    migrationAttemptedRef
   };
 };
