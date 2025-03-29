@@ -1,5 +1,4 @@
-
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { VipProfileFormRef } from '@/components/profile/VipProfileForm';
@@ -411,6 +410,3 @@ export const useProfileSaving = (
     handleDiscardAndNavigate
   };
 };
-
-// Add React import for useRef
-import { useRef } from 'react';

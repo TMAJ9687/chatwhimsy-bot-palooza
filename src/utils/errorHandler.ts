@@ -1,3 +1,4 @@
+
 import { domRegistry } from '@/services/dom';
 
 /**
@@ -50,12 +51,18 @@ export const performDOMCleanup = () => {
       overlays.forEach(node => {
         try {
           if (node.parentNode) {
-            // Check if the node can be safely cast to ChildNode before removing
-            if ('remove' in node) {
-              // The node has a remove method, so it's a ChildNode
-              (node as ChildNode).remove();
+            // Use proper type checking before removing
+            if (node instanceof Element) {
+              try {
+                node.remove();
+              } catch (err) {
+                // Fallback to removeChild with proper parent check
+                if (node.parentNode) {
+                  node.parentNode.removeChild(node);
+                }
+              }
             } else if (node.parentNode) {
-              // Fallback to using removeChild with proper type checking
+              // For non-Element nodes, use removeChild
               node.parentNode.removeChild(node);
             }
           }
