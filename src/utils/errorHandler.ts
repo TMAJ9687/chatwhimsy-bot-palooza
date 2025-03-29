@@ -1,4 +1,3 @@
-
 /**
  * Global error handler utilities to handle DOM-related errors
  */
@@ -79,10 +78,7 @@ export const performDOMCleanup = () => {
                   // Fallback to parentNode.removeChild
                   if (el.parentNode && document.contains(el.parentNode) && el.parentNode.contains(el)) {
                     // Make sure we only remove if all validation passes
-                    if (el instanceof Element) {
-                      // Fix: Properly typecast Element to ChildNode
-                      el.parentNode.removeChild(el as ChildNode);
-                    }
+                    el.parentNode.removeChild(el);
                   }
                 }
               } catch (err) {
@@ -216,4 +212,3 @@ export const safeRemoveElement = (element: Element): boolean => {
     return false;
   }
 };
-

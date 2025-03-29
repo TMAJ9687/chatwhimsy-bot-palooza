@@ -1,9 +1,8 @@
 
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { performDOMCleanup } from '@/utils/errorHandler';
 import { unstable_batchedUpdates } from 'react-dom';
 
 interface ProfileDialogsProps {
@@ -30,27 +29,48 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
   setShowSavingDialog
 }) => {
   // Local state to track internal dialog visibility
-  const [internalUnsavedOpen, setInternalUnsavedOpen] = useState(showUnsavedDialog);
-  const [internalSavingOpen, setInternalSavingOpen] = useState(showSavingDialog);
+  const [internalUnsavedOpen, setInternalUnsavedOpen] = useState(false);
+  const [internalSavingOpen, setInternalSavingOpen] = useState(false);
+  const isMountedRef = useRef(true);
   
-  // Sync internal state with props
+  // Set up mount tracking
   useEffect(() => {
-    if (mountedRef.current) {
-      setInternalUnsavedOpen(showUnsavedDialog);
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+  
+  // Sync internal state with props - only after component is mounted
+  useEffect(() => {
+    if (mountedRef.current && isMountedRef.current) {
+      queueMicrotask(() => {
+        if (mountedRef.current && isMountedRef.current) {
+          setInternalUnsavedOpen(showUnsavedDialog);
+        }
+      });
     }
   }, [showUnsavedDialog, mountedRef]);
   
   useEffect(() => {
-    if (mountedRef.current) {
-      setInternalSavingOpen(showSavingDialog);
+    if (mountedRef.current && isMountedRef.current) {
+      queueMicrotask(() => {
+        if (mountedRef.current && isMountedRef.current) {
+          setInternalSavingOpen(showSavingDialog);
+        }
+      });
     }
   }, [showSavingDialog, mountedRef]);
 
   // Define a safe state setter that checks if component is still mounted
   const safeSetShowDialog = useCallback((setter: React.Dispatch<React.SetStateAction<boolean>>, value: boolean) => {
-    if (mountedRef.current) {
-      unstable_batchedUpdates(() => {
-        setter(value);
+    if (mountedRef.current && isMountedRef.current) {
+      queueMicrotask(() => {
+        if (mountedRef.current && isMountedRef.current) {
+          unstable_batchedUpdates(() => {
+            setter(value);
+          });
+        }
       });
     }
   }, [mountedRef]);
@@ -58,7 +78,8 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
   // Enhanced cleanup on unmount
   useEffect(() => {
     return () => {
-      if (!mountedRef.current) {
+      // Only run cleanup if the component is unmounting
+      if (!isMountedRef.current) {
         // Batch all state updates together for unmounting
         unstable_batchedUpdates(() => {
           setInternalUnsavedOpen(false);
@@ -66,32 +87,45 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
         });
       }
     };
-  }, [mountedRef]);
+  }, []);
 
   // Close dialog safely
   const handleCloseUnsavedDialog = useCallback(() => {
-    if (mountedRef.current && !isSaving) {
-      unstable_batchedUpdates(() => {
-        setInternalUnsavedOpen(false);
-        safeSetShowDialog(setShowUnsavedDialog, false);
+    if (mountedRef.current && isMountedRef.current && !isSaving) {
+      queueMicrotask(() => {
+        if (mountedRef.current && isMountedRef.current) {
+          unstable_batchedUpdates(() => {
+            setInternalUnsavedOpen(false);
+            safeSetShowDialog(setShowUnsavedDialog, false);
+          });
+        }
       });
     }
   }, [isSaving, mountedRef, safeSetShowDialog, setShowUnsavedDialog]);
 
   const handleCloseSavingDialog = useCallback(() => {
-    if (mountedRef.current && !isSaving) {
-      unstable_batchedUpdates(() => {
-        setInternalSavingOpen(false);
-        safeSetShowDialog(setShowSavingDialog, false);
+    if (mountedRef.current && isMountedRef.current && !isSaving) {
+      queueMicrotask(() => {
+        if (mountedRef.current && isMountedRef.current) {
+          unstable_batchedUpdates(() => {
+            setInternalSavingOpen(false);
+            safeSetShowDialog(setShowSavingDialog, false);
+          });
+        }
       });
     }
   }, [isSaving, mountedRef, safeSetShowDialog, setShowSavingDialog]);
 
   const handleSaveClick = useCallback(() => {
-    if (!isSaving && !navigationLock && mountedRef.current) {
+    if (!isSaving && !navigationLock && mountedRef.current && isMountedRef.current) {
       onSaveAndNavigate();
     }
   }, [isSaving, navigationLock, mountedRef, onSaveAndNavigate]);
+
+  // Additional safety check before rendering content
+  if (!mountedRef.current || !isMountedRef.current) {
+    return null;
+  }
 
   return (
     <>
@@ -99,14 +133,14 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
         <Dialog 
           open={internalUnsavedOpen} 
           onOpenChange={(open) => {
-            if (!open && !isSaving && mountedRef.current) {
+            if (!open && !isSaving && mountedRef.current && isMountedRef.current) {
               handleCloseUnsavedDialog();
             }
           }}
         >
           <DialogContent
             onEscapeKeyDown={(e) => {
-              if (isSaving || navigationLock || !mountedRef.current) {
+              if (isSaving || navigationLock || !mountedRef.current || !isMountedRef.current) {
                 e.preventDefault();
               }
             }}
@@ -148,7 +182,7 @@ const ProfileDialogs: React.FC<ProfileDialogsProps> = ({
         <AlertDialog 
           open={internalSavingOpen}
           onOpenChange={(open) => {
-            if (!open && !isSaving && mountedRef.current) {
+            if (!open && !isSaving && mountedRef.current && isMountedRef.current) {
               handleCloseSavingDialog();
             }
           }}

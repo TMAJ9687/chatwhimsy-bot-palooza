@@ -3,7 +3,6 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { VipProfileFormRef } from '@/components/profile/VipProfileForm';
-import { performDOMCleanup } from '@/utils/errorHandler';
 import { unstable_batchedUpdates } from 'react-dom';
 
 export const useProfileSaving = (
@@ -22,11 +21,15 @@ export const useProfileSaving = (
 ) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  // Safe state update helper function
+  
+  // Safe state update helper function using queueMicrotask for React 18 compatibility
   const safeUpdateState = useCallback((callback: () => void) => {
     if (mountedRef.current) {
-      unstable_batchedUpdates(callback);
+      queueMicrotask(() => {
+        if (mountedRef.current) {
+          unstable_batchedUpdates(callback);
+        }
+      });
     }
   }, [mountedRef]);
 
@@ -68,83 +71,95 @@ export const useProfileSaving = (
           });
         }
         
+        // Clear any existing timeout
+        if (saveOperationTimeoutRef.current) {
+          clearTimeout(saveOperationTimeoutRef.current);
+          saveOperationTimeoutRef.current = null;
+        }
+        
         // Wait for UI to update and then proceed with navigation
-        await new Promise<void>(resolve => {
-          saveOperationTimeoutRef.current = setTimeout(() => {
-            // Skip further processing if component unmounted
-            if (!mountedRef.current) {
-              resolve();
-              return;
-            }
+        saveOperationTimeoutRef.current = setTimeout(() => {
+          // Skip further processing if component unmounted
+          if (!mountedRef.current) return;
+          
+          // Close dialogs first using batched updates
+          safeUpdateState(() => {
+            setShowSavingDialog(false);
+            setShowUnsavedDialog(false);
+          });
+          
+          // Add a delay before navigation to let React clean up dialogs
+          setTimeout(() => {
+            // Skip if component unmounted during timeout
+            if (!mountedRef.current) return;
             
-            // Close dialogs first using batched updates
-            safeUpdateState(() => {
-              setShowSavingDialog(false);
-              setShowUnsavedDialog(false);
-            });
-            
-            // Add a delay before navigation to let React clean up dialogs
-            setTimeout(() => {
-              // Skip if component unmounted during timeout
-              if (!mountedRef.current) {
-                resolve();
-                return;
-              }
+            // If we have a pending navigation destination
+            if (pendingNavigation) {
+              const destination = pendingNavigation;
               
-              // If we have a pending navigation destination
-              if (pendingNavigation) {
-                const destination = pendingNavigation;
+              // Clear pending navigation state and update flags
+              safeUpdateState(() => {
+                setPendingNavigation(null);
+                navigationAttemptRef.current = true;
+                setNavigationLock(true);
+              });
+              
+              // Pre-mark complete in localStorage before navigation
+              localStorage.setItem('vipProfileComplete', 'true');
+              
+              // Clean up DOM before navigation
+              cleanupDOM();
+              
+              // Use queueMicrotask to ensure React has finished its rendering cycle
+              queueMicrotask(() => {
+                // Skip if unmounted after microtask
+                if (!mountedRef.current) return;
                 
-                // Clear pending navigation state and update flags
-                safeUpdateState(() => {
-                  setPendingNavigation(null);
-                  navigationAttemptRef.current = true;
-                  setNavigationLock(true);
-                });
-                
-                // Pre-mark complete in localStorage before navigation
-                localStorage.setItem('vipProfileComplete', 'true');
-                
-                // Use queueMicrotask to ensure React has finished its rendering cycle
-                queueMicrotask(() => {
-                  // Perform navigation with React Router
-                  try {
-                    console.log(`Navigating to ${destination}`);
+                // Perform navigation with React Router
+                try {
+                  console.log(`Navigating to ${destination}`);
+                  
+                  // Ensure all state updates are complete before navigation
+                  unstable_batchedUpdates(() => {
+                    // Final cleanup before navigation
+                    if (document.body) {
+                      document.body.style.overflow = 'auto';
+                      document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+                    }
+                    
+                    // Perform the navigation
                     navigate(destination);
-                    
-                    // Reset states after navigation with a delay
-                    setTimeout(() => {
-                      if (mountedRef.current) {
-                        safeUpdateState(() => {
-                          setNavigationLock(false);
-                          navigationAttemptRef.current = false;
-                          setIsSaving(false);
-                        });
-                      }
-                      resolve();
-                    }, 300);
-                  } catch (navError) {
-                    console.error("Navigation error:", navError);
-                    
-                    // Force location change as fallback
-                    window.location.href = destination;
-                    resolve();
-                  }
-                });
-              } else {
-                // No navigation needed, just reset states
-                if (mountedRef.current) {
-                  safeUpdateState(() => {
-                    setNavigationLock(false);
-                    navigationAttemptRef.current = false;
-                    setIsSaving(false);
                   });
+                  
+                  // Reset states after navigation with a delay
+                  setTimeout(() => {
+                    if (mountedRef.current) {
+                      safeUpdateState(() => {
+                        setNavigationLock(false);
+                        navigationAttemptRef.current = false;
+                        setIsSaving(false);
+                      });
+                    }
+                  }, 300);
+                } catch (navError) {
+                  console.error("Navigation error:", navError);
+                  
+                  // Force location change as fallback
+                  window.location.href = destination;
                 }
-                resolve();
+              });
+            } else {
+              // No navigation needed, just reset states
+              if (mountedRef.current) {
+                safeUpdateState(() => {
+                  setNavigationLock(false);
+                  navigationAttemptRef.current = false;
+                  setIsSaving(false);
+                });
               }
-            }, 100);
-          }, 500);
-        });
+            }
+          }, 100);
+        }, 500);
       } else {
         // Form validation failed
         if (mountedRef.current) {
@@ -222,11 +237,28 @@ export const useProfileSaving = (
       // Pre-mark complete in localStorage before navigation
       localStorage.setItem('vipProfileComplete', 'true');
       
+      // Cleanup DOM before navigation
+      cleanupDOM();
+      
       // Use queueMicrotask to ensure React has finished its rendering cycle
       queueMicrotask(() => {
+        // Skip if component unmounted after microtask
+        if (!mountedRef.current) return;
+        
         try {
           console.log(`Navigating to ${destination}`);
-          navigate(destination);
+          
+          // Ensure all state updates are complete before navigation
+          unstable_batchedUpdates(() => {
+            // Final cleanup before navigation
+            if (document.body) {
+              document.body.style.overflow = 'auto';
+              document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+            }
+            
+            // Perform the navigation
+            navigate(destination);
+          });
           
           // Reset navigation states after a delay
           setTimeout(() => {
@@ -252,7 +284,8 @@ export const useProfileSaving = (
     setHasUnsavedChanges, 
     setNavigationLock, 
     setPendingNavigation, 
-    setShowUnsavedDialog
+    setShowUnsavedDialog,
+    cleanupDOM
   ]);
 
   return {
