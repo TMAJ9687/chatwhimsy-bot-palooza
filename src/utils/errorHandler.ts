@@ -61,7 +61,8 @@ export class GlobalErrorHandler {
               
               // Verify it's a child of its parent using Array.from for more reliable checking
               const parent = element.parentNode;
-              const isChild = Array.from(parent.childNodes).includes(element as Node);
+              const childNodes = Array.from(parent.childNodes);
+              const isChild = childNodes.includes(element as Node);
               
               if (!isChild) return;
               
@@ -72,8 +73,9 @@ export class GlobalErrorHandler {
               } catch (err) {
                 // Fallback with proper child node handling
                 if (parent && parent.contains(element)) {
-                  // Use proper TypeScript casting - element must be a valid ChildNode to be removed
-                  if (element instanceof Element) {
+                  // Double check it's really a child node before attempting removal
+                  const updatedChildNodes = Array.from(parent.childNodes);
+                  if (updatedChildNodes.includes(element as Node)) {
                     parent.removeChild(element);
                   }
                 }

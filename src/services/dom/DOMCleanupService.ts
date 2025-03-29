@@ -55,12 +55,22 @@ export class DOMCleanupService {
           '.modal-backdrop'
         ];
         
-        // Use the new utility method for safer batch removal
+        // Manually process each selector for safer batch removal
         selectors.forEach(selector => {
           try {
-            const count = safetyUtils.safeRemoveElementsBySelector(selector);
-            if (count > 0) {
-              console.log(`[DOMCleanupService] Removed ${count} elements with selector ${selector}`);
+            if (typeof document !== 'undefined') {
+              const elements = document.querySelectorAll(selector);
+              let removedCount = 0;
+              
+              elements.forEach(element => {
+                if (safetyUtils.safeRemoveElement(element)) {
+                  removedCount++;
+                }
+              });
+              
+              if (removedCount > 0) {
+                console.log(`[DOMCleanupService] Removed ${removedCount} elements with selector ${selector}`);
+              }
             }
           } catch (e) {
             console.warn(`[DOMCleanupService] Error removing elements with selector ${selector}:`, e);
@@ -107,15 +117,20 @@ export class DOMCleanupService {
         document.querySelectorAll(selector).forEach(element => {
           try {
             if (element.parentNode && document.contains(element)) {
-              // Safer removal check
-              if (Array.from(element.parentNode.childNodes).includes(element)) {
+              // Safer removal check using Array.from for more reliable checking
+              const childNodes = Array.from(element.parentNode.childNodes);
+              if (childNodes.includes(element as Node)) {
                 try {
                   // First try the safer element.remove() method
                   element.remove();
                 } catch (err) {
                   // Fallback to removeChild with validation
                   if (element.parentNode && element.parentNode.contains(element)) {
-                    element.parentNode.removeChild(element as unknown as ChildNode);
+                    // Double-check it's really a child
+                    const updatedChildNodes = Array.from(element.parentNode.childNodes);
+                    if (updatedChildNodes.includes(element as Node)) {
+                      element.parentNode.removeChild(element);
+                    }
                   }
                 }
               }

@@ -1,3 +1,4 @@
+
 import { useEffect, useCallback, useRef } from 'react';
 import { domRegistry } from '@/services/dom';
 
@@ -57,7 +58,7 @@ export const useSafeDOMOperations = () => {
       
       // Verify it's a child of its parent
       const parentChildNodes = Array.from(element.parentNode.childNodes);
-      if (!parentChildNodes.includes(element)) {
+      if (!parentChildNodes.includes(element as Node)) {
         return false;
       }
       
@@ -75,13 +76,15 @@ export const useSafeDOMOperations = () => {
         
         // Verify again it's a child of its parent (could have changed)
         const updatedParentChildNodes = Array.from(element.parentNode.childNodes);
-        if (!updatedParentChildNodes.includes(element)) {
+        if (!updatedParentChildNodes.includes(element as Node)) {
           return false;
         }
         
         // Final attempt with removeChild after rechecking parent
         if (element.parentNode.contains(element)) {
-          element.parentNode.removeChild(element as ChildNode);
+          const parent = element.parentNode;
+          // Safer way to handle DOM element removal
+          parent.removeChild(element);
           return true;
         }
       }
