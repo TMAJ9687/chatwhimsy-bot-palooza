@@ -2,7 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 
-// Get Supabase URL and anon key from the hardcoded values
+// Get Supabase URL and anon key from environment variables
 const supabaseUrl = "https://lvawljaqsafbjpnrwkyd.supabase.co";
 const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXdsamFxc2FmYmpwbnJ3a3lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMzNjczMzgsImV4cCI6MjA1ODk0MzMzOH0.PoAP2KhiL2dUDI1Ti_SAoQiqsI8jhKIrLw_3Vra6Qls";
 

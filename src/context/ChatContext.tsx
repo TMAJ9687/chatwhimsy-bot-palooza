@@ -8,10 +8,10 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Get user info and VIP status from UserContext
-  const { isVip: userIsVip } = useUser();
+  const { isVip } = useUser();
   
   // Use our custom hook for all chat state
-  const chatState = useChatState(userIsVip || false);
+  const chatState = useChatState();
 
   return (
     <ChatContext.Provider value={chatState}>

@@ -1,12 +1,13 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { Bot, FilterState } from '@/types/chat';
+import { DEFAULT_AGE_RANGE } from '@/utils/constants';
 
 export const useBotFiltering = (bots: Bot[]) => {
   const [filters, setFilters] = useState<FilterState>({
     gender: [],
     country: [],
-    age: [18, 50],
+    age: DEFAULT_AGE_RANGE,
     vip: null
   });
 
