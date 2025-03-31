@@ -4,7 +4,7 @@
  */
 import { DOMOperationQueue } from './DOMOperationQueue';
 import { DOMSafetyUtils } from './DOMSafetyUtils';
-import { isChildNode } from '@/types/dom';
+import { safeRemoveElement } from '@/utils/domUtils';
 
 export class DOMCleanupService {
   private cleanupInProgress = false;
@@ -64,7 +64,7 @@ export class DOMCleanupService {
               let removedCount = 0;
               
               elements.forEach(element => {
-                if (safetyUtils.safeRemoveElement(element)) {
+                if (safeRemoveElement(element)) {
                   removedCount++;
                 }
               });
@@ -117,26 +117,7 @@ export class DOMCleanupService {
       selectors.forEach(selector => {
         document.querySelectorAll(selector).forEach(element => {
           try {
-            if (element.parentNode && document.contains(element)) {
-              // Safer removal check using Array.from for more reliable checking
-              const childNodes = Array.from(element.parentNode.childNodes);
-              if (childNodes.includes(element as Node)) {
-                try {
-                  // First try the safer element.remove() method
-                  element.remove();
-                } catch (err) {
-                  // Fallback to removeChild with validation
-                  if (element.parentNode && element.parentNode.contains(element)) {
-                    // Double-check it's really a child
-                    const updatedChildNodes = Array.from(element.parentNode.childNodes);
-                    if (updatedChildNodes.includes(element as Node) && isChildNode(element)) {
-                      // Use proper type guard for safer removal
-                      element.parentNode.removeChild(element);
-                    }
-                  }
-                }
-              }
-            }
+            safeRemoveElement(element);
           } catch (error) {
             console.warn('[DOMCleanupService] Error during emergency cleanup:', error);
           }

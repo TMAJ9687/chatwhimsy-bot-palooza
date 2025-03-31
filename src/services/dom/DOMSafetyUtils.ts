@@ -1,5 +1,6 @@
 
 import { isChildNode, isElement, isInDocument } from '@/types/dom';
+import { safeRemoveElement } from '@/utils/domUtils';
 
 /**
  * Utility class for safely performing DOM operations
@@ -9,46 +10,7 @@ export class DOMSafetyUtils {
    * Safely removes a DOM element
    */
   public safeRemoveElement(element: Element | null, elementsMap?: WeakMap<Node, any>): boolean {
-    if (!element || !element.parentNode) return false;
-    
-    try {
-      // First verify the element is actually in the DOM
-      if (!document.contains(element)) return false;
-      
-      // First try the standard remove method
-      if (typeof element.remove === 'function') {
-        element.remove();
-        return true;
-      }
-      
-      // Fallback to removeChild with extra safety checks
-      const parent = element.parentNode;
-      
-      // Verify element is actually a child of the parent
-      if (parent && parent.contains(element)) {
-        // Check if it's truly a child - extra validation
-        const childNodes = Array.from(parent.childNodes);
-        if (childNodes.includes(element as Node)) {
-          if (isChildNode(element)) {
-            // Properly handle ChildNode for removal
-            parent.removeChild(element);
-            return true;
-          }
-        }
-      }
-    } catch (e) {
-      // Handle specific "not a child" error silently
-      if (e instanceof DOMException && 
-          e.name === 'NotFoundError' && 
-          e.message.includes('not a child')) {
-        console.warn('Safe handling of "not a child" error in safeRemoveElement');
-        return false;
-      }
-      console.warn('Error removing element:', e);
-      return false;
-    }
-    
-    return false;
+    return safeRemoveElement(element);
   }
   
   /**
@@ -84,7 +46,7 @@ export class DOMSafetyUtils {
       let removedCount = 0;
       
       elements.forEach(element => {
-        if (this.safeRemoveElement(element)) {
+        if (safeRemoveElement(element)) {
           removedCount++;
         }
       });

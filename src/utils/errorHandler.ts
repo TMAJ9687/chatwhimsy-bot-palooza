@@ -1,5 +1,6 @@
 
 import { toast } from '@/hooks/use-toast';
+import { safeRemoveElement, resetBodyState } from '@/utils/domUtils';
 
 // Singleton instance for DOM operations registry
 let domCleanupRegistered = false;
@@ -65,8 +66,27 @@ export const performDOMCleanup = (): void => {
   
   try {
     // Reset body state
-    document.body.style.overflow = 'auto';
-    document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+    resetBodyState();
+    
+    // Clean up any overlay elements that might be stuck
+    const overlaySelectors = [
+      '.fixed.inset-0',
+      '[data-radix-dialog-overlay]',
+      '[data-radix-alert-dialog-overlay]',
+      '.modal-backdrop',
+      '[role="dialog"]'
+    ];
+    
+    // Process each selector
+    overlaySelectors.forEach(selector => {
+      try {
+        document.querySelectorAll(selector).forEach(element => {
+          safeRemoveElement(element);
+        });
+      } catch (e) {
+        console.warn(`Error cleaning up selector ${selector}:`, e);
+      }
+    });
   } catch (cleanupError) {
     console.error('Error during DOM cleanup:', cleanupError);
   }
