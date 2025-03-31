@@ -12,12 +12,7 @@ import { X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { countries } from '@/data/countries';
-
-export interface FilterState {
-  gender: 'any' | 'male' | 'female';
-  ageRange: [number, number];
-  countries: string[];
-}
+import { FilterState } from '@/types/chat';
 
 interface FilterMenuProps {
   filters: FilterState;
@@ -27,7 +22,15 @@ interface FilterMenuProps {
 const MAX_COUNTRIES = 2;
 
 const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
-  const [tempFilters, setTempFilters] = useState<FilterState>(filters);
+  const [tempFilters, setTempFilters] = useState<FilterState>({
+    gender: filters.gender || [],
+    country: filters.country || [],
+    age: filters.age || [18, 80],
+    vip: filters.vip || null,
+    // For backwards compatibility
+    countries: filters.country || [],
+    ageRange: filters.age || [18, 80]
+  });
   
   // Auto-apply filters whenever they change
   useEffect(() => {
@@ -37,47 +40,90 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
   // Count active filters (excluding default values)
   const activeFilterCount = React.useMemo(() => {
     let count = 0;
-    if (tempFilters.gender !== 'any') count++;
-    if (tempFilters.ageRange[0] > 18 || tempFilters.ageRange[1] < 80) count++;
-    if (tempFilters.countries.length > 0) count++;
+    if (tempFilters.gender.length > 0) count++;
+    if (tempFilters.age[0] > 18 || tempFilters.age[1] < 80) count++;
+    if (tempFilters.country.length > 0) count++;
     return count;
   }, [tempFilters]);
   
   const handleClearFilters = () => {
-    const defaultFilters = {
-      gender: 'any' as const,
-      ageRange: [18, 80] as [number, number],
-      countries: []
+    const defaultFilters: FilterState = {
+      gender: [],
+      country: [],
+      age: [18, 80] as [number, number],
+      vip: null,
+      countries: [],
+      ageRange: [18, 80] as [number, number]
     };
     setTempFilters(defaultFilters);
   };
   
   const handleCountrySelect = (country: string) => {
-    if (tempFilters.countries.includes(country)) {
-      setTempFilters(prev => ({
-        ...prev,
-        countries: prev.countries.filter(c => c !== country)
-      }));
+    if (tempFilters.country.includes(country)) {
+      setTempFilters(prev => {
+        const newCountry = prev.country.filter(c => c !== country);
+        return {
+          ...prev,
+          country: newCountry,
+          countries: newCountry // Keep in sync for backwards compatibility
+        };
+      });
     } else {
-      if (tempFilters.countries.length >= MAX_COUNTRIES) {
+      if (tempFilters.country.length >= MAX_COUNTRIES) {
         // If already at max, replace the oldest one
-        setTempFilters(prev => ({
-          ...prev,
-          countries: [...prev.countries.slice(1), country]
-        }));
+        setTempFilters(prev => {
+          const newCountry = [...prev.country.slice(1), country];
+          return {
+            ...prev,
+            country: newCountry,
+            countries: newCountry // Keep in sync for backwards compatibility
+          };
+        });
       } else {
-        setTempFilters(prev => ({
-          ...prev,
-          countries: [...prev.countries, country]
-        }));
+        setTempFilters(prev => {
+          const newCountry = [...prev.country, country];
+          return {
+            ...prev,
+            country: newCountry,
+            countries: newCountry // Keep in sync for backwards compatibility
+          };
+        });
       }
     }
   };
   
   const handleRemoveCountry = (country: string) => {
+    setTempFilters(prev => {
+      const newCountry = prev.country.filter(c => c !== country);
+      return {
+        ...prev,
+        country: newCountry,
+        countries: newCountry // Keep in sync for backwards compatibility
+      };
+    });
+  };
+  
+  const handleGenderSelect = (value: string) => {
+    setTempFilters(prev => {
+      // Toggle gender selection
+      let newGender;
+      if (prev.gender.includes(value)) {
+        newGender = prev.gender.filter(g => g !== value);
+      } else {
+        newGender = [...prev.gender, value];
+      }
+      return {
+        ...prev,
+        gender: newGender
+      };
+    });
+  };
+  
+  const handleAgeChange = (value: number[]) => {
     setTempFilters(prev => ({
       ...prev,
-      countries: prev.countries.filter(c => c !== country)
+      age: value as [number, number],
+      ageRange: value as [number, number] // Keep in sync for backwards compatibility
     }));
   };
   
@@ -87,19 +133,24 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
         {/* Gender filter */}
         <div>
           <label className="block text-sm font-medium mb-2 dark:text-gray-300">Gender</label>
-          <Select 
-            value={tempFilters.gender} 
-            onValueChange={(value: any) => setTempFilters(prev => ({ ...prev, gender: value }))}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Any gender" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="any">Any gender</SelectItem>
-              <SelectItem value="male">Male</SelectItem>
-              <SelectItem value="female">Female</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Button
+              variant={tempFilters.gender.includes('male') ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleGenderSelect('male')}
+              className="flex-1"
+            >
+              Male
+            </Button>
+            <Button
+              variant={tempFilters.gender.includes('female') ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleGenderSelect('female')}
+              className="flex-1"
+            >
+              Female
+            </Button>
+          </div>
         </div>
         
         {/* Age range filter */}
@@ -107,18 +158,16 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
           <div className="flex justify-between mb-2">
             <label className="text-sm font-medium dark:text-gray-300">Age range</label>
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              {tempFilters.ageRange[0]} - {tempFilters.ageRange[1]}
+              {tempFilters.age[0]} - {tempFilters.age[1]}
             </span>
           </div>
           <div className="px-1">
             <Slider 
-              value={tempFilters.ageRange}
+              value={tempFilters.age}
               min={18}
               max={80}
               step={1}
-              onValueChange={(value: number[]) => 
-                setTempFilters(prev => ({ ...prev, ageRange: value as [number, number] }))
-              }
+              onValueChange={handleAgeChange}
               className="[&>.relative_.absolute]:bg-amber-500 dark:[&>.relative_.absolute]:bg-amber-500 [&>.relative_.absolute]:opacity-100"
             />
           </div>
@@ -131,7 +180,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
           </label>
           <Select 
             onValueChange={handleCountrySelect} 
-            disabled={tempFilters.countries.length >= MAX_COUNTRIES}
+            disabled={tempFilters.country.length >= MAX_COUNTRIES}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select countries" />
@@ -153,9 +202,9 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
           </Select>
           
           {/* Selected countries */}
-          {tempFilters.countries.length > 0 && (
+          {tempFilters.country.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3">
-              {tempFilters.countries.map(country => {
+              {tempFilters.country.map(country => {
                 const countryData = countries.find(c => c.name === country);
                 return (
                   <Badge key={country} variant="outline" className="px-2 py-1 flex items-center gap-1.5">
@@ -176,6 +225,29 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
               })}
             </div>
           )}
+        </div>
+        
+        {/* VIP filter */}
+        <div>
+          <label className="block text-sm font-medium mb-2 dark:text-gray-300">User Type</label>
+          <div className="flex gap-2">
+            <Button
+              variant={tempFilters.vip === true ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTempFilters(prev => ({ ...prev, vip: prev.vip === true ? null : true }))}
+              className="flex-1"
+            >
+              VIP
+            </Button>
+            <Button
+              variant={tempFilters.vip === false ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTempFilters(prev => ({ ...prev, vip: prev.vip === false ? null : false }))}
+              className="flex-1"
+            >
+              Standard
+            </Button>
+          </div>
         </div>
         
         {/* Filter actions */}

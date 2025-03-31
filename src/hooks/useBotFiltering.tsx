@@ -8,7 +8,9 @@ export const useBotFiltering = (bots: Bot[]) => {
     gender: [],
     country: [],
     age: DEFAULT_AGE_RANGE,
-    vip: null
+    vip: null,
+    countries: [],
+    ageRange: DEFAULT_AGE_RANGE
   });
 
   const [searchTerm, setSearchTerm] = useState('');

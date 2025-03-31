@@ -7,7 +7,7 @@ const supabaseUrl = "https://lvawljaqsafbjpnrwkyd.supabase.co";
 const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXdsamFxc2FmYmpwbnJ3a3lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMzNjczMzgsImV4cCI6MjA1ODk0MzMzOH0.PoAP2KhiL2dUDI1Ti_SAoQiqsI8jhKIrLw_3Vra6Qls";
 
 // Create a Supabase admin client
-const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseAnonKey);
+export const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 // Re-export Supabase admin functions
 export const getAllBots = async () => {

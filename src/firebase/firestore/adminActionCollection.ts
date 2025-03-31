@@ -21,8 +21,12 @@ export const getAdminActions = async (): Promise<AdminAction[]> => {
       const data = doc.data();
       return {
         ...data,
-        timestamp: data.timestamp ? timestampToDate(data.timestamp as Timestamp) : new Date(),
-        id: doc.id
+        timestamp: data.timestamp ? timestampToDate(data.timestamp as Timestamp).toISOString() : new Date().toISOString(),
+        id: doc.id,
+        adminId: data.adminId || '',
+        adminName: data.adminName || '',
+        actionType: data.actionType || 'other',
+        details: data.details || ''
       } as AdminAction;
     });
   } catch (error) {
@@ -31,11 +35,19 @@ export const getAdminActions = async (): Promise<AdminAction[]> => {
   }
 };
 
-export const logAdminAction = async (action: AdminAction): Promise<AdminAction> => {
+export const logAdminAction = async (action: Partial<AdminAction>): Promise<AdminAction> => {
   try {
+    const timestamp = action.timestamp instanceof Date ? 
+      action.timestamp.toISOString() : 
+      new Date().toISOString();
+    
     const actionToStore = {
       ...action,
-      timestamp: dateToTimestamp(action.timestamp)
+      timestamp: dateToTimestamp(new Date(timestamp)),
+      adminId: action.adminId || '',
+      adminName: action.adminName || '',
+      actionType: action.actionType || 'other',
+      details: action.details || ''
     };
     
     const docRef = await addDoc(collection(db, ADMIN_ACTIONS_COLLECTION), actionToStore);
@@ -43,14 +55,24 @@ export const logAdminAction = async (action: AdminAction): Promise<AdminAction> 
     // Return the action with the generated id
     return {
       ...action,
-      id: docRef.id
-    };
+      id: docRef.id,
+      timestamp,
+      adminId: action.adminId || '',
+      adminName: action.adminName || '',
+      actionType: action.actionType || 'other',
+      details: action.details || ''
+    } as AdminAction;
   } catch (error) {
     console.error('Error logging admin action:', error);
     // Return the action with a temporary ID as fallback
     return {
       ...action,
-      id: `temp-${uuidv4()}`
-    };
+      id: `temp-${uuidv4()}`,
+      timestamp: new Date().toISOString(),
+      adminId: action.adminId || '',
+      adminName: action.adminName || '',
+      actionType: action.actionType || 'other',
+      details: action.details || ''
+    } as AdminAction;
   }
 };

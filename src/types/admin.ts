@@ -44,11 +44,8 @@ export interface SiteSettings {
   adminContact: string;
 }
 
-export interface VipDuration {
-  label: string;
-  value: string;
-  price: number;
-}
+// Change from interface to string union type
+export type VipDuration = '1 Day' | '1 Week' | '1 Month' | '1 Year' | 'Lifetime';
 
 export interface AdminStats {
   totalUsers: number;

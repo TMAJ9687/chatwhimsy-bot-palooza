@@ -66,6 +66,10 @@ export const useChatState = () => {
     // Additional logic when selecting a bot can be added here
   }, []);
 
+  const isUserBlocked = useCallback((userId: string): boolean => {
+    return blockedUsers.has(userId);
+  }, [blockedUsers]);
+
   // Return the chat state and functions
   return {
     userChats,
@@ -94,7 +98,7 @@ export const useChatState = () => {
     selectUser: selectBot,
     handleFilterChange,
     handleNotificationRead: () => {},
-    isUserBlocked: () => false,
+    isUserBlocked,
     handleDeleteConversation: () => {},
     handleTranslateMessage: () => {},
     getSharedMedia: () => ({ images: [], voice: [] }),

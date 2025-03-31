@@ -11,7 +11,9 @@ export const kickUser = async (userId: string, adminId: string): Promise<any> =>
     targetId: userId,
     targetType: 'user',
     timestamp: new Date(),
-    adminId: adminId
+    adminId: adminId,
+    adminName: '',
+    details: ''
   });
 };
 
@@ -27,7 +29,9 @@ export const upgradeToVIP = async (
     targetType: 'user',
     duration: duration,
     timestamp: new Date(),
-    adminId: adminId
+    adminId: adminId,
+    adminName: '',
+    details: ''
   });
 };
 
@@ -38,6 +42,8 @@ export const downgradeToStandard = async (userId: string, adminId: string): Prom
     targetId: userId,
     targetType: 'user',
     timestamp: new Date(),
-    adminId: adminId
+    adminId: adminId,
+    adminName: '',
+    details: ''
   });
 };
