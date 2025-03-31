@@ -1,150 +1,109 @@
 
-import { Bot } from '../types/chat';
+import { Bot } from '@/types/chat';
 
-// Define sample bot profiles - expanded with more diversity
 export const botProfiles: Bot[] = [
   {
-    id: 'bot1',
-    name: 'Sophie',
-    age: 24,
-    gender: 'female',
-    country: 'United States',
-    countryCode: 'US',
-    vip: true,
-    interests: ['Music', 'Travel', 'Photography'],
-    avatar: '👩🏼',
-    responses: [
-      "How's your day going? Mine just got better talking to you!",
-      "I'm curious to know more about you. What do you enjoy doing?",
-      "That's really interesting! Tell me more about yourself.",
-      "I love connecting with new people. What brought you here today?"
-    ],
-    personalityTraits: ['Friendly', 'Outgoing', 'Creative', 'Curious']
-  },
-  {
-    id: 'bot2',
-    name: 'Emma',
+    id: "1",
+    name: "Sophia",
     age: 27,
-    gender: 'female',
-    country: 'United Kingdom',
-    countryCode: 'GB',
-    vip: false,
-    interests: ['Books', 'Cooking', 'Yoga'],
-    avatar: '👩🏻',
-    responses: [
-      "I was just thinking about making some tea. Do you prefer coffee or tea?",
-      "I just finished a great book. Do you enjoy reading?",
-      "I'm trying to improve my cooking skills. Any favorite dishes?",
-      "It's so nice to chat with someone new. Tell me about your day!"
-    ],
-    personalityTraits: ['Calm', 'Intellectual', 'Thoughtful', 'Patient']
+    gender: "female",
+    country: "United States",
+    countryCode: "US",
+    vip: true,
+    interests: ["art", "photography", "travel"],
+    avatar: "/avatars/sophia.jpg",
+    responses: ["Hey there! How's your day going?", "That's interesting! Tell me more about it."],
+    personalityTraits: ["creative", "adventurous", "positive"]
   },
   {
-    id: 'bot3',
-    name: 'Jack',
+    id: "2",
+    name: "Alex",
     age: 30,
-    gender: 'male',
-    country: 'Australia',
-    countryCode: 'AU',
+    gender: "male",
+    country: "United Kingdom",
+    countryCode: "GB",
     vip: false,
-    interests: ['Surfing', 'Travel', 'Fitness'],
-    avatar: '👨🏼',
-    responses: [
-      "Just got back from the beach. Do you like the ocean?",
-      "I've been trying to stay fit lately. Any workout tips?",
-      "I'm planning my next trip. Any travel recommendations?",
-      "What's the best place you've ever visited?"
-    ],
-    personalityTraits: ['Adventurous', 'Athletic', 'Laid-back', 'Jovial']
+    interests: ["fitness", "cooking", "hiking"],
+    avatar: "/avatars/alex.jpg",
+    responses: ["Hello! Great to meet you.", "I'd love to hear more about your interests."],
+    personalityTraits: ["athletic", "outgoing", "friendly"]
   },
   {
-    id: 'bot4',
-    name: 'Maria',
-    age: 23,
-    gender: 'female',
-    country: 'Brazil',
-    countryCode: 'BR',
+    id: "3",
+    name: "Emma",
+    age: 24,
+    gender: "female",
+    country: "Canada",
+    countryCode: "CA",
+    vip: false,
+    interests: ["music", "books", "movies"],
+    avatar: "/avatars/emma.jpg",
+    responses: ["Hi there! What's up?", "That sounds awesome! I'm into that too."],
+    personalityTraits: ["artistic", "introverted", "thoughtful"]
+  },
+  {
+    id: "4",
+    name: "Noah",
+    age: 32,
+    gender: "male",
+    country: "Australia",
+    countryCode: "AU",
     vip: true,
-    interests: ['Dancing', 'Football', 'Festivals'],
-    avatar: '👩🏽',
-    responses: [
-      "In Brazil, we love to dance! Do you enjoy dancing too?",
-      "Have you ever been to Rio? It's beautiful during Carnival.",
-      "What kind of music do you like to listen to?",
-      "I'm learning English. How many languages do you speak?"
-    ],
-    personalityTraits: ['Passionate', 'Energetic', 'Fun-loving', 'Social']
+    interests: ["surfing", "beach", "barbecue"],
+    avatar: "/avatars/noah.jpg",
+    responses: ["G'day mate! How are you?", "That's brilliant! I'd love to chat more about it."],
+    personalityTraits: ["laid-back", "adventurous", "humorous"]
   },
   {
-    id: 'bot5',
-    name: 'Yuki',
+    id: "5",
+    name: "Mia",
     age: 25,
-    gender: 'female',
-    country: 'Japan',
-    countryCode: 'JP',
+    gender: "female",
+    country: "France",
+    countryCode: "FR",
     vip: false,
-    interests: ['Anime', 'Technology', 'Fashion'],
-    avatar: '👩🏻',
-    responses: [
-      "Konnichiwa! I'm from Tokyo. Have you ever visited Japan?",
-      "I love anime and manga. Do you have any favorites?",
-      "Japanese food is amazing. What's your favorite cuisine?",
-      "I work in tech. What do you do for a living?"
-    ],
-    personalityTraits: ['Polite', 'Tech-savvy', 'Trendy', 'Organized']
+    interests: ["fashion", "cuisine", "art"],
+    avatar: "/avatars/mia.jpg",
+    responses: ["Bonjour! Comment ça va?", "That's fascinating! I'd love to know more."],
+    personalityTraits: ["sophisticated", "cultured", "elegant"]
   },
   {
-    id: 'bot6',
-    name: 'Ahmed',
-    age: 29,
-    gender: 'male',
-    country: 'Egypt',
-    countryCode: 'EG',
+    id: "6",
+    name: "Liam",
+    age: 28,
+    gender: "male",
+    country: "Germany",
+    countryCode: "DE",
     vip: false,
-    interests: ['History', 'Architecture', 'Coffee'],
-    avatar: '👨🏽',
-    responses: [
-      "Egypt has such rich history. Are you interested in ancient civilizations?",
-      "I'm an architect. I love studying the pyramids and ancient structures.",
-      "Have you ever tried Egyptian coffee? It's quite strong but delicious!",
-      "What places would you like to visit someday?"
-    ],
-    personalityTraits: ['Knowledgeable', 'Analytical', 'Cultured', 'Hospitable']
+    interests: ["engineering", "beer", "hiking"],
+    avatar: "/avatars/liam.jpg",
+    responses: ["Hallo! Wie geht's?", "That's very interesting! Tell me more about yourself."],
+    personalityTraits: ["analytical", "precise", "reliable"]
   },
   {
-    id: 'bot7',
-    name: 'Carlos',
-    age: 31,
-    gender: 'male',
-    country: 'Mexico',
-    countryCode: 'MX',
+    id: "7",
+    name: "Olivia",
+    age: 23,
+    gender: "female",
+    country: "Italy",
+    countryCode: "IT",
     vip: true,
-    interests: ['Cooking', 'Art', 'Travel'],
-    avatar: '👨🏾',
-    responses: [
-      "¡Hola! I love cooking traditional Mexican food. What's your favorite meal?",
-      "I'm an artist in Mexico City. Do you enjoy art?",
-      "Mexico has so many beautiful places to visit. Have you ever been here?",
-      "What are your hobbies? I'd love to learn more about you."
-    ],
-    personalityTraits: ['Creative', 'Warm', 'Expressive', 'Detailed']
+    interests: ["food", "art", "opera"],
+    avatar: "/avatars/olivia.jpg",
+    responses: ["Ciao! Come stai?", "That sounds wonderful! I'd love to hear more."],
+    personalityTraits: ["passionate", "expressive", "warm"]
   },
   {
-    id: 'bot8',
-    name: 'Priya',
-    age: 26,
-    gender: 'female',
-    country: 'India',
-    countryCode: 'IN',
+    id: "8",
+    name: "James",
+    age: 31,
+    gender: "male",
+    country: "Japan",
+    countryCode: "JP",
     vip: false,
-    interests: ['Yoga', 'Bollywood', 'Technology'],
-    avatar: '👩🏾',
-    responses: [
-      "Namaste! I practice yoga every morning. Do you have any daily routines?",
-      "I work as a software engineer in Bangalore. What do you do?",
-      "I love Bollywood movies! What kind of films do you enjoy watching?",
-      "Have you ever tried Indian food? It's so flavorful!"
-    ],
-    personalityTraits: ['Spiritual', 'Tech-oriented', 'Disciplined', 'Thoughtful']
+    interests: ["technology", "anime", "photography"],
+    avatar: "/avatars/james.jpg",
+    responses: ["Konnichiwa! O genki desu ka?", "That's really cool! I'm interested in that too."],
+    personalityTraits: ["tech-savvy", "detail-oriented", "creative"]
   }
 ];

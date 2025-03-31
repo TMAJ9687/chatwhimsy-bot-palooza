@@ -13,9 +13,6 @@ export const useAdminReports = () => {
     try {
       console.log('Loading reports and feedback...');
       
-      // First clean up expired reports
-      await cleanupExpiredReports();
-      
       // Get reports from Supabase
       const { data, error } = await supabaseAdmin
         .from('reports')
@@ -40,38 +37,6 @@ export const useAdminReports = () => {
       setReports([]);
     } finally {
       setLoading(false);
-    }
-  }, []);
-
-  const cleanupExpiredReports = useCallback(async () => {
-    try {
-      // Get expiry days from settings
-      const { data: settingsData, error: settingsError } = await supabaseAdmin
-        .from('admin_settings')
-        .select('reportExpiryDays')
-        .single();
-      
-      if (settingsError) {
-        console.warn('Error getting report expiry days:', settingsError);
-        return;
-      }
-      
-      const expiryDays = settingsData?.reportExpiryDays || 30;
-      const expiryDate = new Date();
-      expiryDate.setDate(expiryDate.getDate() - expiryDays);
-      
-      // Delete old resolved reports
-      const { error } = await supabaseAdmin
-        .from('reports')
-        .delete()
-        .lt('timestamp', expiryDate.toISOString())
-        .in('status', ['resolved', 'dismissed']);
-      
-      if (error) {
-        console.error('Error cleaning up expired reports:', error);
-      }
-    } catch (error) {
-      console.error('Error cleaning up expired reports and feedback:', error);
     }
   }, []);
 

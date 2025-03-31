@@ -1,8 +1,13 @@
-
-import { supabase } from './supabaseClient';
+import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { ensureAdminTables, createRequiredTables } from '@/utils/migrationUtils';
 import type { Bot } from '@/types/chat';
+
+// Create a Supabase client with admin rights
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '';
+
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 // Initialize admin data in Supabase
 export const initializeSupabaseAdminData = async () => {
@@ -24,7 +29,7 @@ export const initializeSupabaseAdminData = async () => {
 // Get all bots
 export const getAllBots = async (): Promise<Bot[]> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('profiles')
       .select('*')
       .eq('is_bot', true);
@@ -57,7 +62,7 @@ export const getAllBots = async (): Promise<Bot[]> => {
 // Get a specific bot
 export const getBot = async (id: string): Promise<Bot | null> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('profiles')
       .select('*')
       .eq('id', id)
@@ -92,7 +97,7 @@ export const createBot = async (bot: Omit<Bot, 'id'>): Promise<string | null> =>
   try {
     const id = uuidv4();
     
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('profiles')
       .insert({
         id,
@@ -122,7 +127,7 @@ export const createBot = async (bot: Omit<Bot, 'id'>): Promise<string | null> =>
 // Update an existing bot
 export const updateBot = async (id: string, bot: Partial<Bot>): Promise<boolean> => {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('profiles')
       .update({
         name: bot.name,
@@ -152,7 +157,7 @@ export const updateBot = async (id: string, bot: Partial<Bot>): Promise<boolean>
 // Delete a bot
 export const deleteBot = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('profiles')
       .delete()
       .eq('id', id)
@@ -170,7 +175,7 @@ export const deleteBot = async (id: string): Promise<boolean> => {
 // Get all banned users
 export const getBannedUsers = async () => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('banned_users')
       .select('*');
     
@@ -195,7 +200,7 @@ export const banUser = async (userId: string, reason: string, duration: string) 
       expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
     }
     
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('banned_users')
       .insert({
         id,
@@ -220,7 +225,7 @@ export const banUser = async (userId: string, reason: string, duration: string) 
 // Unban a user
 export const unbanUser = async (id: string) => {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('banned_users')
       .delete()
       .eq('id', id);
@@ -237,7 +242,7 @@ export const unbanUser = async (id: string) => {
 // Check if a user is banned
 export const isUserBanned = async (userId: string) => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('banned_users')
       .select('*')
       .eq('identifier', userId)
@@ -265,7 +270,7 @@ export const isUserBanned = async (userId: string) => {
 // Get all admin actions
 export const getAdminActions = async () => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('admin_actions')
       .select('*')
       .order('timestamp', { ascending: false });
@@ -284,7 +289,7 @@ export const logAdminAction = async (actionType: string, targetId: string, targe
   try {
     const id = uuidv4();
     
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('admin_actions')
       .insert({
         id,
@@ -308,7 +313,7 @@ export const logAdminAction = async (actionType: string, targetId: string, targe
 // Get all reports and feedback
 export const getReportsAndFeedback = async () => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('reports_feedback')
       .select('*')
       .order('timestamp', { ascending: false });
@@ -329,7 +334,7 @@ export const addReportOrFeedback = async (type: string, userId: string, content:
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
     
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('reports_feedback')
       .insert({
         id,
@@ -353,7 +358,7 @@ export const addReportOrFeedback = async (type: string, userId: string, content:
 // Resolve a report or feedback
 export const resolveReportOrFeedback = async (id: string) => {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('reports_feedback')
       .update({ resolved: true })
       .eq('id', id);
@@ -370,7 +375,7 @@ export const resolveReportOrFeedback = async (id: string) => {
 // Delete a report or feedback
 export const deleteReportOrFeedback = async (id: string) => {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('reports_feedback')
       .delete()
       .eq('id', id);
@@ -389,7 +394,7 @@ export const cleanupExpiredReportsFeedback = async () => {
   try {
     const now = new Date();
     
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('reports_feedback')
       .delete()
       .lt('expires_at', now.toISOString());
@@ -411,7 +416,7 @@ export const kickUser = async (userId: string, reason: string) => {
 
 export const upgradeToVIP = async (userId: string) => {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('profiles')
       .update({ is_vip: true })
       .eq('id', userId);
@@ -429,7 +434,7 @@ export const upgradeToVIP = async (userId: string) => {
 
 export const downgradeToStandard = async (userId: string) => {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('profiles')
       .update({ is_vip: false })
       .eq('id', userId);

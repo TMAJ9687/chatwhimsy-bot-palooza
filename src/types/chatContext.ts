@@ -35,6 +35,7 @@ export interface Notification {
   botId?: string;
 }
 
+// Update FilterState to match the one in chat.ts
 export interface FilterState {
   gender: string[];
   country: string[];

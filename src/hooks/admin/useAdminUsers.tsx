@@ -80,7 +80,7 @@ export const useAdminUsers = () => {
         reason,
         adminId: 'current-admin', // This should be the actual admin ID
         timestamp: new Date().toISOString(),
-        duration,
+        duration: duration || undefined,
         expires: duration ? new Date(Date.now() + duration * 24 * 60 * 60 * 1000).toISOString() : undefined,
       };
       
@@ -98,10 +98,10 @@ export const useAdminUsers = () => {
         // Update local state
         setBannedUsers(prev => [...prev, data[0] as BanRecord]);
         
-        // Add admin action
+        // Log admin action
         const adminAction: Omit<AdminAction, 'id'> = {
-          adminId: 'current-admin', // This should be the actual admin ID
-          adminName: 'Admin User', // This should be the actual admin name
+          adminId: 'current-admin',
+          adminName: 'Admin User',
           actionType: 'ban',
           details: `Banned user ${userId} for reason: ${reason}`,
           timestamp: new Date().toISOString(),
@@ -145,10 +145,10 @@ export const useAdminUsers = () => {
       // Update local state
       setBannedUsers(prev => prev.filter(ban => ban.userId !== userId));
       
-      // Add admin action
+      // Log admin action
       const adminAction: Omit<AdminAction, 'id'> = {
-        adminId: 'current-admin', // This should be the actual admin ID
-        adminName: 'Admin User', // This should be the actual admin name
+        adminId: 'current-admin',
+        adminName: 'Admin User',
         actionType: 'unban',
         details: `Unbanned user ${userId}`,
         timestamp: new Date().toISOString(),
@@ -201,7 +201,7 @@ export const useAdminUsers = () => {
 
   const deleteUser = useCallback(async (userId: string) => {
     try {
-      // First, check if user exists
+      // Check if user exists
       const { data: userData, error: userError } = await supabaseAdmin
         .from('users')
         .select('*')
@@ -226,10 +226,10 @@ export const useAdminUsers = () => {
         throw error;
       }
       
-      // Add admin action
+      // Log admin action
       const adminAction: Omit<AdminAction, 'id'> = {
-        adminId: 'current-admin', // This should be the actual admin ID
-        adminName: 'Admin User', // This should be the actual admin name
+        adminId: 'current-admin',
+        adminName: 'Admin User',
         actionType: 'delete',
         details: `Deleted user ${userId}`,
         timestamp: new Date().toISOString(),

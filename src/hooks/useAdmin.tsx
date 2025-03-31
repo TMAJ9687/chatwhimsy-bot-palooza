@@ -21,31 +21,14 @@ export const useAdmin = () => {
   
   // Initialize all admin hooks
   const { isAdmin, adminLogout, changeAdminPassword } = useAdminAuth();
-  const { adminActions, setAdminActions, loadAdminActions } = useAdminActions(isAdmin);
-  const { loadBots, createBot, updateBot, deleteBot, isProcessing: isBotsProcessing } = useAdminBots(isAdmin);
-  const { 
-    bannedUsers, 
-    loadBannedUsers, 
-    kickUser, 
-    banUser, 
-    unbanUser, 
-    upgradeToVIP, 
-    downgradeToStandard, 
-    isProcessing: isUsersProcessing 
-  } = useAdminUsers(isAdmin, bots, setBots, setAdminActions);
-  const { 
-    reportsFeedback, 
-    loadReportsAndFeedback, 
-    cleanupExpiredReports,
-    addReport, 
-    addFeedback, 
-    resolveReportFeedback, 
-    deleteReportFeedback 
-  } = useAdminReports(isAdmin);
-  const { saveSiteSettings, getSiteSettings } = useAdminSettings(isAdmin);
+  const { adminActions, loadAdminActions } = useAdminActions();
+  const botsManager = useAdminBots();
+  const usersManager = useAdminUsers();
+  const reportsManager = useAdminReports();
+  const { saveSiteSettings, getSiteSettings } = useAdminSettings();
   
   // Combine processing states
-  const isProcessing = isBotsProcessing || isUsersProcessing;
+  const isProcessing = false; // Simplified as the hooks no longer expose this
   
   // Memoized derived data to prevent unnecessary recalculations
   const vipUsers = useMemo(() => bots.filter(bot => bot.vip), [bots]);
@@ -76,17 +59,14 @@ export const useAdmin = () => {
             name: 'bots',
             loadFn: async () => {
               console.log('Loading bots data...');
-              const loadedBots = await loadBots();
-              if (isMounted) {
-                setBots(loadedBots || []);
-              }
+              await botsManager.loadBots();
             }
           },
           {
             name: 'bannedUsers',
             loadFn: async () => {
               console.log('Loading banned users data...');
-              await loadBannedUsers();
+              await usersManager.loadBannedUsers();
             }
           },
           {
@@ -100,7 +80,7 @@ export const useAdmin = () => {
             name: 'reportsFeedback',
             loadFn: async () => {
               console.log('Loading reports & feedback data...');
-              await loadReportsAndFeedback();
+              await reportsManager.loadReports();
             }
           }
         ];
@@ -135,48 +115,36 @@ export const useAdmin = () => {
       loadAdminData();
     });
     
-    // Set up interval to periodically clean up expired reports/feedback
-    const cleanupInterval = setInterval(async () => {
-      if (isAdmin && isMounted) {
-        await cleanupExpiredReports();
-      }
-    }, 60000); // Check every minute
-    
     return () => {
       isMounted = false;
-      clearInterval(cleanupInterval);
     };
-  }, [isAdmin, toast, loadBots, loadBannedUsers, loadAdminActions, loadReportsAndFeedback, cleanupExpiredReports]);
+  }, [isAdmin, toast, botsManager, usersManager, loadAdminActions, reportsManager]);
   
   return {
     // State
     isAdmin,
     loading,
     isProcessing,
-    bots,
+    bots: botsManager.bots,
     vipUsers,
     standardUsers,
-    bannedUsers,
+    bannedUsers: usersManager.bannedUsers,
     adminActions,
-    reportsFeedback,
+    reports: reportsManager.reports,
     
     // Bot management
-    createBot,
-    updateBot,
-    deleteBot,
+    createBot: botsManager.createBot,
+    updateBot: botsManager.updateBot,
+    deleteBot: botsManager.deleteBot,
     
     // User actions
-    kickUser,
-    banUser,
-    unbanUser,
-    upgradeToVIP,
-    downgradeToStandard,
+    banUser: usersManager.banUser,
+    unbanUser: usersManager.unbanUser,
+    deleteUser: usersManager.deleteUser,
     
-    // Reports and Feedback
-    addReport,
-    addFeedback,
-    resolveReportFeedback,
-    deleteReportFeedback,
+    // Reports
+    updateReportStatus: reportsManager.updateReportStatus,
+    deleteReport: reportsManager.deleteReport,
     
     // Admin settings
     changeAdminPassword,
