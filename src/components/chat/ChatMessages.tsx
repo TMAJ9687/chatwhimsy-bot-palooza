@@ -1,10 +1,9 @@
 
-import React, { useRef, memo, useLayoutEffect, useEffect, useState } from 'react';
+import React, { useRef, memo, useEffect, useState } from 'react';
 import { Message } from '@/types/chat';
 import { useUser } from '@/context/UserContext';
 import MessageList from './MessageList';
-import { useScrollToBottom } from '@/hooks/useScrollToBottom';
-import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
+import { useAutoScroll } from '@/hooks/useAutoScroll';
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -20,65 +19,15 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   showTyping = false
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
   const { isVip } = useUser();
-  const { endRef } = useScrollToBottom([messages, isTyping]);
-  const { safeRemoveElement, cleanupOverlays, createCleanupFn, isDOMReady } = useSafeDOMOperations();
-  const isMountedRef = useRef(true);
-  const [isFullyMounted, setIsFullyMounted] = useState(false);
   
   // Only show status and typing indicators for VIP users
   const shouldShowStatus = isVip && showStatus;
   const shouldShowTyping = isVip && showTyping;
 
-  // Track component mounted state with improved lifecycle management
-  useEffect(() => {
-    isMountedRef.current = true;
-    
-    // Set fully mounted state in the next frame to ensure DOM is ready
-    requestAnimationFrame(() => {
-      if (isMountedRef.current) {
-        setIsFullyMounted(true);
-      }
-    });
-    
-    // Create a cleanup function for overlay elements
-    const cleanup = createCleanupFn('.fixed.inset-0, [data-radix-dialog-overlay], [data-radix-alert-dialog-overlay]');
-    
-    return () => {
-      // Mark as unmounted before cleanup
-      isMountedRef.current = false;
-      setIsFullyMounted(false);
-      
-      // Run cleanup operation on unmount
-      if (isDOMReady) {
-        cleanup();
-      }
-    };
-  }, [createCleanupFn, isDOMReady]);
-
-  // Use useLayoutEffect to ensure DOM operations are performed synchronously
-  // before the browser paints, helping prevent race conditions
-  useLayoutEffect(() => {
-    // Skip if component is not fully mounted yet or already unmounted
-    if (!isFullyMounted || !isMountedRef.current || !containerRef.current) return;
-    
-    // Find any potential problematic elements
-    const problematicElements = containerRef.current.querySelectorAll(
-      '.fixed.inset-0, [data-radix-dialog-overlay], [data-radix-alert-dialog-overlay]'
-    );
-    
-    // Safely remove them if found, but only if component is still mounted
-    if (problematicElements.length > 0 && isMountedRef.current) {
-      console.log(`[ChatMessages] Found ${problematicElements.length} problematic elements, removing...`);
-      
-      Array.from(problematicElements).forEach(element => {
-        if (isMountedRef.current) {
-          // Properly cast Element to make TypeScript happy
-          safeRemoveElement(element);
-        }
-      });
-    }
-  }, [messages, safeRemoveElement, isFullyMounted]); // Re-run when messages or mount state changes
+  // Auto-scroll when messages change
+  useAutoScroll(endRef, [messages, isTyping]);
 
   return (
     <div 

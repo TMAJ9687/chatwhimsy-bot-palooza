@@ -19,6 +19,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import { useState, useCallback } from "react";
 import { DialogProvider } from "./context/DialogContext";
+import { ModalProvider } from "./context/ModalContext";
 import DialogContainer from "./components/dialogs/DialogContainer";
 import { ChatProvider } from "./context/ChatContext";
 import NavigationLock from "./components/shared/NavigationLock";
@@ -55,39 +56,41 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <BrowserRouter>
-          <DialogProvider>
-            <ChatProvider>
-              <UserProvider>
-                <MainLayout>
-                  <Toaster />
-                  <Sonner />
-                  <NavigationLock />
-                  <AuthListener />
-                  <PerformanceMonitor />
-                  <ErrorHandler logoutInProgressRef={logoutInProgressRef} />
-                  
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
-                    <Route path="/vip-profile" element={<VipProfileSetup />} />
-                    <Route path="/vip-signup" element={<VipSignup />} />
-                    <Route path="/vip-login" element={<VipLogin />} />
-                    <Route path="/vip-subscription" element={<VipSubscription />} />
-                    <Route path="/vip-payment" element={<VipPayment />} />
-                    <Route path="/vip-confirmation" element={<VipConfirmation />} />
-                    <Route path="/feedback" element={<Feedback />} />
-                    <Route path="/secretadminportal" element={<AdminLogin />} />
-                    <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                    <Route path="/admin" element={<NotFound />} />
-                    <Route path="/admin-login" element={<NotFound />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                  
-                  <DialogContainer />
-                </MainLayout>
-              </UserProvider>
-            </ChatProvider>
-          </DialogProvider>
+          <ModalProvider>
+            <DialogProvider>
+              <ChatProvider>
+                <UserProvider>
+                  <MainLayout>
+                    <Toaster />
+                    <Sonner />
+                    <NavigationLock />
+                    <AuthListener />
+                    <PerformanceMonitor />
+                    <ErrorHandler logoutInProgressRef={logoutInProgressRef} />
+                    
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
+                      <Route path="/vip-profile" element={<VipProfileSetup />} />
+                      <Route path="/vip-signup" element={<VipSignup />} />
+                      <Route path="/vip-login" element={<VipLogin />} />
+                      <Route path="/vip-subscription" element={<VipSubscription />} />
+                      <Route path="/vip-payment" element={<VipPayment />} />
+                      <Route path="/vip-confirmation" element={<VipConfirmation />} />
+                      <Route path="/feedback" element={<Feedback />} />
+                      <Route path="/secretadminportal" element={<AdminLogin />} />
+                      <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                      <Route path="/admin" element={<NotFound />} />
+                      <Route path="/admin-login" element={<NotFound />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                    
+                    <DialogContainer />
+                  </MainLayout>
+                </UserProvider>
+              </ChatProvider>
+            </DialogProvider>
+          </ModalProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

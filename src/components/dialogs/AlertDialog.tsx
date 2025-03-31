@@ -10,8 +10,7 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { useDialog } from '@/context/DialogContext';
-import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
-import { useDialogCleanup } from '@/hooks/useDialogCleanup';
+import { useModal } from '@/context/ModalContext';
 
 // Memoized dialog content component to prevent unnecessary re-renders
 const AlertDialogContent = memo(({
@@ -24,19 +23,14 @@ const AlertDialogContent = memo(({
   onClose: () => void;
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const { registerNode } = useSafeDOMOperations();
   const mountedRef = useRef(true);
 
-  // Register the content element for tracking
+  // Mark component as unmounted when it's about to be removed
   useEffect(() => {
-    if (contentRef.current) {
-      registerNode(contentRef.current);
-    }
-    
     return () => {
       mountedRef.current = false;
     };
-  }, [registerNode]);
+  }, []);
 
   return (
     <DialogContent 
@@ -65,42 +59,32 @@ AlertDialogContent.displayName = 'AlertDialogContent';
 
 const AlertDialogComponent = () => {
   const { state, closeDialog } = useDialog();
-  const { handleDialogClose, isClosingRef } = useDialogCleanup();
+  const { openModal, closeModal } = useModal();
   
   const isOpen = state.isOpen && state.type === 'alert';
   
-  // Safer close method using our hook
+  // Safer close method using our modal context
   const handleClose = useCallback(() => {
-    handleDialogClose(closeDialog);
-  }, [closeDialog, handleDialogClose]);
+    closeModal();
+    closeDialog();
+  }, [closeDialog, closeModal]);
   
-  // Cleanup on unmount
+  // Open the modal when the dialog state changes
   useEffect(() => {
-    return () => {
-      // Mark dialog as closing when component unmounts
-      if (isClosingRef) {
-        isClosingRef.current = true;
-      }
-    };
-  }, [isClosingRef]);
+    if (isOpen) {
+      const { title, message } = state.data;
+      openModal(
+        <AlertDialogContent
+          title={title}
+          message={message}
+          onClose={handleClose}
+        />
+      );
+    }
+  }, [isOpen, state.data, openModal, handleClose]);
   
-  if (!isOpen) return null;
-
-  const { title, message } = state.data;
-
-  return (
-    <Dialog 
-      open={true} 
-      onOpenChange={(open) => !open && handleClose()}
-      modal={true}
-    >
-      <AlertDialogContent
-        title={title}
-        message={message}
-        onClose={handleClose}
-      />
-    </Dialog>
-  );
+  // Nothing to render here as the actual rendering happens via the modal context
+  return null;
 };
 
 export default memo(AlertDialogComponent);
