@@ -2,7 +2,7 @@
 import { useCallback, useRef } from 'react';
 import { useUser } from '@/context/UserContext';
 import { useAdmin } from '@/hooks/useAdmin';
-import { signOutUser } from '@/lib/supabase/supabaseAuth';
+import { signOut } from '@/lib/supabase/supabaseAuth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 
@@ -43,7 +43,7 @@ export const useLogout = () => {
         console.log('Admin logout flow initiated');
         try {
           // First sign out from Supabase
-          await signOutUser();
+          await signOut();
           // Then execute admin-specific logout
           await adminLogout();
           
@@ -79,7 +79,7 @@ export const useLogout = () => {
         
         // Sign out from Supabase (but continue regardless of result)
         try {
-          await signOutUser();
+          await signOut();
         } catch (error) {
           console.warn('Non-critical error during Supabase signOut:', error);
         }
