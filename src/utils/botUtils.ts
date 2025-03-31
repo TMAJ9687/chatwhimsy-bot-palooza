@@ -1,26 +1,27 @@
+import { Bot } from '@/types/chat';
 
-import { Bot } from '../types/chat';
-import { botProfiles } from '../data/botProfiles';
-
-export const getRandomBot = (): Bot => {
-  return botProfiles[Math.floor(Math.random() * botProfiles.length)];
-};
+// Default generic responses when bot-specific responses aren't available
+const DEFAULT_BOT_RESPONSES = [
+  "Hello! How are you today?",
+  "I'd love to chat more about that!",
+  "That's interesting. Tell me more.",
+  "Great to hear from you!",
+  "Thanks for sharing that with me.",
+  "What else would you like to talk about?"
+];
 
 export const getRandomBotResponse = (botId: string): string => {
-  const bot = botProfiles.find(b => b.id === botId);
-  if (!bot) return "Hello there!";
-  return bot.responses[Math.floor(Math.random() * bot.responses.length)];
+  // For now, just return a random response from the default list
+  // This can be enhanced to include bot-specific responses later
+  return DEFAULT_BOT_RESPONSES[Math.floor(Math.random() * DEFAULT_BOT_RESPONSES.length)];
 };
 
-export const sortUsers = (users: Bot[]): Bot[] => {
-  return [...users].sort((a, b) => {
-    if (a.vip && !b.vip) return -1;
-    if (!a.vip && b.vip) return 1;
-    
-    if (a.country !== b.country) {
-      return a.country.localeCompare(b.country);
-    }
-    
-    return a.name.localeCompare(b.name);
-  });
+// Get a random response from a specific bot
+export const getBotRandomResponse = (bot: Bot): string => {
+  if (bot.responses && bot.responses.length > 0) {
+    return bot.responses[Math.floor(Math.random() * bot.responses.length)];
+  }
+  return DEFAULT_BOT_RESPONSES[Math.floor(Math.random() * DEFAULT_BOT_RESPONSES.length)];
 };
+
+// Other bot utility functions can be added here

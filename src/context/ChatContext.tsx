@@ -1,29 +1,34 @@
 
-import React, { createContext, useContext, ReactNode } from 'react';
-import { ChatContextType } from '@/types/chatContext';
-import { useUser } from './UserContext';
+import React, { createContext, useContext, ReactNode, useMemo } from 'react';
+import { Bot, Message, FilterState, Notification } from '@/types/chat';
 import { useChatState } from '@/hooks/useChatState';
+
+// Import from types/chatContext to ensure compatibility
+import { ChatContextType } from '@/types/chatContext';
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Get user info and VIP status from UserContext
-  const { isVip } = useUser();
-  
-  // Use our custom hook for all chat state
   const chatState = useChatState();
+  
+  // Create a memoized context value to prevent unnecessary re-renders
+  const contextValue = useMemo<ChatContextType>(() => ({
+    ...chatState
+  }), [chatState]);
 
   return (
-    <ChatContext.Provider value={chatState}>
+    <ChatContext.Provider value={contextValue}>
       {children}
     </ChatContext.Provider>
   );
 };
 
-export const useChat = (): ChatContextType => {
+export const useChat = () => {
   const context = useContext(ChatContext);
+  
   if (context === undefined) {
     throw new Error('useChat must be used within a ChatProvider');
   }
+  
   return context;
 };

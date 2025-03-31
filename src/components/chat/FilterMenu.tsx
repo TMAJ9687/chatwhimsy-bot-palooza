@@ -1,17 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
-import { Slider } from '@/components/ui/slider';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { X } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { countries } from '@/data/countries';
+import React from 'react';
 import { FilterState } from '@/types/chat';
 
 interface FilterMenuProps {
@@ -27,17 +14,14 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
     country: filters.country || [],
     age: filters.age || [18, 80],
     vip: filters.vip || null,
-    // For backwards compatibility
     countries: filters.country || [],
     ageRange: filters.age || [18, 80]
   });
   
-  // Auto-apply filters whenever they change
   useEffect(() => {
     onChange(tempFilters);
   }, [tempFilters, onChange]);
   
-  // Count active filters (excluding default values)
   const activeFilterCount = React.useMemo(() => {
     let count = 0;
     if (tempFilters.gender.length > 0) count++;
@@ -65,18 +49,17 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
         return {
           ...prev,
           country: newCountry,
-          countries: newCountry // Keep in sync for backwards compatibility
+          countries: newCountry
         };
       });
     } else {
       if (tempFilters.country.length >= MAX_COUNTRIES) {
-        // If already at max, replace the oldest one
         setTempFilters(prev => {
           const newCountry = [...prev.country.slice(1), country];
           return {
             ...prev,
             country: newCountry,
-            countries: newCountry // Keep in sync for backwards compatibility
+            countries: newCountry
           };
         });
       } else {
@@ -85,7 +68,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
           return {
             ...prev,
             country: newCountry,
-            countries: newCountry // Keep in sync for backwards compatibility
+            countries: newCountry
           };
         });
       }
@@ -98,14 +81,13 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
       return {
         ...prev,
         country: newCountry,
-        countries: newCountry // Keep in sync for backwards compatibility
+        countries: newCountry
       };
     });
   };
   
   const handleGenderSelect = (value: string) => {
     setTempFilters(prev => {
-      // Toggle gender selection
       let newGender;
       if (prev.gender.includes(value)) {
         newGender = prev.gender.filter(g => g !== value);
@@ -123,14 +105,13 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
     setTempFilters(prev => ({
       ...prev,
       age: value as [number, number],
-      ageRange: value as [number, number] // Keep in sync for backwards compatibility
+      ageRange: value as [number, number]
     }));
   };
   
   return (
     <div className="w-full">
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm space-y-4">
-        {/* Gender filter */}
         <div>
           <label className="block text-sm font-medium mb-2 dark:text-gray-300">Gender</label>
           <div className="flex gap-2">
@@ -153,7 +134,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
           </div>
         </div>
         
-        {/* Age range filter */}
         <div>
           <div className="flex justify-between mb-2">
             <label className="text-sm font-medium dark:text-gray-300">Age range</label>
@@ -173,7 +153,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
           </div>
         </div>
         
-        {/* Country filter */}
         <div>
           <label className="block text-sm font-medium mb-2 dark:text-gray-300">
             Country <span className="text-xs text-gray-500 dark:text-gray-400">(Max {MAX_COUNTRIES})</span>
@@ -201,7 +180,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
             </SelectContent>
           </Select>
           
-          {/* Selected countries */}
           {tempFilters.country.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3">
               {tempFilters.country.map(country => {
@@ -227,7 +205,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
           )}
         </div>
         
-        {/* VIP filter */}
         <div>
           <label className="block text-sm font-medium mb-2 dark:text-gray-300">User Type</label>
           <div className="flex gap-2">
@@ -250,7 +227,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
           </div>
         </div>
         
-        {/* Filter actions */}
         <div className="pt-2">
           <Button 
             variant="outline" 
@@ -266,4 +242,5 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
   );
 };
 
+export { FilterState };
 export default FilterMenu;

@@ -5,7 +5,7 @@ export const VIP_CHAR_LIMIT = 2000;
 export const CONSECUTIVE_LIMIT = 5;
 
 // Validate image file for upload
-export const validateImageFile = (file: File): { valid: boolean; error?: string } => {
+export const validateImageFile = (file: File, isVip?: boolean): { valid: boolean; error?: string } => {
   // Check if it's actually an image
   if (!file.type.startsWith('image/')) {
     return { valid: false, error: 'File must be an image' };
@@ -47,4 +47,25 @@ export const checkSpamMessages = (
   }
   
   return { valid: true };
+};
+
+// Add hasConsecutiveChars function needed by MessageTextarea
+export const hasConsecutiveChars = (text: string, limit: number = 5): boolean => {
+  if (!text) return false;
+  
+  for (let i = 0; i < text.length - limit + 1; i++) {
+    const char = text[i];
+    let consecutive = true;
+    
+    for (let j = 1; j < limit; j++) {
+      if (text[i + j] !== char) {
+        consecutive = false;
+        break;
+      }
+    }
+    
+    if (consecutive) return true;
+  }
+  
+  return false;
 };

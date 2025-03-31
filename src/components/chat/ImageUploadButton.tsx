@@ -55,11 +55,11 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
     }
     
     // Pass isVip to validateImageFile to apply correct image type restrictions
-    const validation = validateImageFile(file, isVip);
+    const validation = validateImageFile(file);
     if (!validation.valid) {
       toast({
         title: "Invalid file",
-        description: validation.message
+        description: validation.error
       });
       return;
     }

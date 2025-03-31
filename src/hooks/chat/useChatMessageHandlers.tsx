@@ -17,10 +17,15 @@ export const useChatMessageHandlers = (
     
     const newMessage: Message = {
       id: `user-${Date.now()}`,
-      content: text,
-      sender: 'user',
+      senderId: 'user',
+      senderName: 'You',
+      receiverId: currentBotId,
+      text: text,
+      content: text, // Add for compatibility with both interfaces
+      sender: 'user', // Add for compatibility with both interfaces
       timestamp: new Date(),
       status: 'sending',
+      isRead: false
     };
     
     setUserChats(prev => ({
@@ -41,10 +46,15 @@ export const useChatMessageHandlers = (
     
     const newMessage: Message = {
       id: `user-${Date.now()}`,
-      content: imageDataUrl,
-      sender: 'user',
+      senderId: 'user',
+      senderName: 'You',
+      receiverId: currentBotId,
+      text: 'Image',
+      content: imageDataUrl, // Add for compatibility with both interfaces
+      sender: 'user', // Add for compatibility with both interfaces
       timestamp: new Date(),
       status: 'sending',
+      isRead: false,
       isImage: true,
     };
     
@@ -79,12 +89,18 @@ export const useChatMessageHandlers = (
     
     const newMessage: Message = {
       id: `user-${Date.now()}`,
-      content: voiceDataUrl,
-      sender: 'user',
+      senderId: 'user',
+      senderName: 'You',
+      receiverId: currentBotId,
+      text: 'Voice message',
+      content: voiceDataUrl, // Add for compatibility with both interfaces
+      sender: 'user', // Add for compatibility with both interfaces
       timestamp: new Date(),
       status: 'sending',
+      isRead: false,
       isVoice: true,
-      duration: duration,
+      voiceDuration: duration,
+      duration: duration // Add for compatibility with both interfaces
     };
     
     setUserChats(prev => ({
