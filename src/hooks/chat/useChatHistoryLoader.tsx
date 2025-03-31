@@ -1,6 +1,6 @@
 
 import { useCallback } from 'react';
-import { getChatHistory } from '@/firebase/firestore/chatHistory';
+import { getChatHistory } from '@/lib/supabase/supabaseChatHistory';
 import { toast } from '@/components/ui/use-toast';
 
 export const useChatHistoryLoader = (

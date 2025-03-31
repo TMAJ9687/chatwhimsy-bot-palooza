@@ -1,8 +1,9 @@
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
 import { onAuthStateChange, isUserAdmin } from '@/firebase/auth';
+import AdminAuthService from '@/services/admin/adminAuthService';
 
 /**
  * Hook to manage admin user state
@@ -11,10 +12,18 @@ export const useAdminUser = () => {
   const navigate = useNavigate();
   const { user, setUser } = useUser();
   const [isLoading, setIsLoading] = useState(true);
+  const authListenerSetRef = useRef(false);
   
   // Setup firebase auth listener
   useEffect(() => {
     console.log('Setting up admin user auth listener');
+    
+    if (authListenerSetRef.current) {
+      console.log('Auth listener already set up, skipping');
+      return;
+    }
+    
+    authListenerSetRef.current = true;
     
     // Set up Firebase auth state listener
     const unsubscribe = onAuthStateChange((firebaseUser) => {
@@ -44,26 +53,27 @@ export const useAdminUser = () => {
             });
           }
         }
-      } else if (localStorage.getItem('adminData')) {
-        // If Firebase user is logged out but we have adminData in localStorage,
-        // reconstruct admin user from localStorage
-        console.log('No Firebase user, checking localStorage fallback');
-        const adminEmail = localStorage.getItem('adminEmail') || 'admin@example.com';
+      } else if (AdminAuthService.isAdminSession()) {
+        // If Firebase user is logged out but we have admin session active,
+        // reconstruct admin user profile
+        console.log('No Firebase user, checking admin session fallback');
         
-        setUser({
-          id: 'admin-user',
-          nickname: 'Admin',
-          email: adminEmail,
-          gender: 'male',
-          age: 30,
-          country: 'US',
-          interests: ['Administration'],
-          isVip: true,
-          isAdmin: true,
-          subscriptionTier: 'none',
-          imagesRemaining: Infinity,
-          voiceMessagesRemaining: Infinity
-        });
+        if (!user?.isAdmin) {
+          setUser({
+            id: 'admin-user',
+            nickname: 'Admin',
+            email: 'admin@example.com',
+            gender: 'male',
+            age: 30,
+            country: 'US',
+            interests: ['Administration'],
+            isVip: true,
+            isAdmin: true,
+            subscriptionTier: 'none',
+            imagesRemaining: Infinity,
+            voiceMessagesRemaining: Infinity
+          });
+        }
       }
       
       setIsLoading(false);
@@ -72,12 +82,13 @@ export const useAdminUser = () => {
     return () => {
       console.log('Cleaning up admin user auth listener');
       unsubscribe();
+      authListenerSetRef.current = false;
     };
-  }, [setUser, user]);
+  }, [setUser]);
   
   // Function to redirect to dashboard if admin is authenticated
   const redirectToDashboardIfAdmin = useCallback(() => {
-    if (user?.isAdmin) {
+    if (user?.isAdmin || AdminAuthService.isAdminSession()) {
       navigate('/admin-dashboard');
     }
   }, [navigate, user?.isAdmin]);

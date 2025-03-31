@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminSession } from '@/hooks/useAdminSession';
-import { verifyAdminCredentials, setAdminLoggedIn } from '@/services/admin/adminService';
+import AdminAuthService from '@/services/admin/adminAuthService';
 import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/shared/Logo';
 import ThemeToggle from '@/components/shared/ThemeToggle';
@@ -27,11 +27,10 @@ const AdminLogin: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const isValid = await verifyAdminCredentials(email, password);
+      const isValid = await AdminAuthService.verifyAdminCredentials(email, password);
       
       if (isValid) {
         console.log('Admin credentials verified successfully');
-        setAdminLoggedIn(true);
         toast({
           title: 'Login successful.',
           description: 'Redirecting to admin dashboard...',
