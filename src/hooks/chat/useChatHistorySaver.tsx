@@ -1,7 +1,8 @@
 
 import { useCallback } from 'react';
 import { Message } from '@/types/chat';
-import { saveChatHistory } from '@/firebase/firestore';
+import { saveChatHistory } from '@/lib/supabase/supabaseChatHistory';
+import { toast } from '@/components/ui/use-toast';
 
 export const useChatHistorySaver = (
   isVip: boolean,
@@ -22,7 +23,14 @@ export const useChatHistorySaver = (
     saveTimeoutRef.current[botId] = setTimeout(() => {
       const messages = userChats[botId] || [];
       saveChatHistory(userId, botId, messages)
-        .catch(err => console.error('Error saving chat history:', err));
+        .catch(err => {
+          console.error('Error saving chat history:', err);
+          toast({
+            title: "Save Error",
+            description: "Could not save your chat history. Please try again later.",
+            variant: "destructive"
+          });
+        });
       
       // Clear the timeout reference
       saveTimeoutRef.current[botId] = null;

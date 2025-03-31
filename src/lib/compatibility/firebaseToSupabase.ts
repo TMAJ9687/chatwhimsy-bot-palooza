@@ -1,10 +1,20 @@
 
 import { supabase } from '@/lib/supabase/supabaseClient';
+import * as chatHistory from '@/lib/supabase/supabaseChatHistory';
 
 /**
  * Compatibility layer to map Firebase functions to Supabase
  * This helps with the migration from Firebase to Supabase
  */
+
+// Re-export chat history functions for compatibility
+export const firebaseToSupabaseChatHistory = {
+  saveChatHistory: chatHistory.saveChatHistory,
+  getChatHistory: chatHistory.getChatHistory,
+  getAllChatHistories: chatHistory.getAllChatHistories,
+  deleteChatHistory: chatHistory.deleteChatHistory,
+  deleteAllChatHistories: chatHistory.deleteAllChatHistories
+};
 
 // Auth compatibility
 export const firebaseAuthToSupabase = {

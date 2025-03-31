@@ -1,6 +1,7 @@
 
 import { useCallback } from 'react';
-import { getChatHistory } from '@/firebase/firestore';
+import { getChatHistory } from '@/lib/supabase/supabaseChatHistory';
+import { toast } from '@/components/ui/use-toast';
 
 export const useChatHistoryLoader = (
   isVip: boolean,
@@ -32,6 +33,11 @@ export const useChatHistoryLoader = (
       chatHistoryLoadedRef.current.add(botId);
     } catch (error) {
       console.error(`Error loading chat history for bot ${botId}:`, error);
+      toast({
+        title: "Load Error",
+        description: "Could not load your chat history. Please try again later.",
+        variant: "destructive"
+      });
     }
   }, [isVip, userId, chatHistoryLoadedRef]);
 
