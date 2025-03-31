@@ -1,7 +1,6 @@
 
 import { useState, useCallback, useMemo } from 'react';
-import { Bot } from '@/types/chat';
-import { FilterState } from '@/types/chatContext';
+import { Bot, FilterState } from '@/types/chat';
 
 export const useBotFiltering = (bots: Bot[]) => {
   const [filters, setFilters] = useState<FilterState>({
@@ -46,11 +45,16 @@ export const useBotFiltering = (bots: Bot[]) => {
 
   const filteredBots = useMemo(() => filterBots(bots), [bots, filterBots]);
 
+  const handleFilterChange = (newFilters: FilterState) => {
+    setFilters(newFilters);
+  };
+
   return {
     filters,
     setFilters,
     searchTerm,
     setSearchTerm,
-    filteredBots
+    filteredBots,
+    handleFilterChange
   };
 };

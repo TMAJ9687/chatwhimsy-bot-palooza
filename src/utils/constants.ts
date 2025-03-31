@@ -1,20 +1,12 @@
+// Message character limits
+export const MAX_CHAR_LIMIT = 500;
+export const VIP_CHAR_LIMIT = 2000;
+export const CONSECUTIVE_LIMIT = 5;
 
-// Character limits for messages
-export const STANDARD_CHAR_LIMIT = 250;
-export const VIP_CHAR_LIMIT = 1000;
-export const CONSECUTIVE_LIMIT = 3;
-
-// Image upload limits
-export const STANDARD_UPLOAD_LIMIT = 15;
-export const VIP_UPLOAD_LIMIT = 100;
-export const STANDARD_IMAGE_SIZE_LIMIT = 5 * 1024 * 1024; // 5MB
-export const VIP_IMAGE_SIZE_LIMIT = 10 * 1024 * 1024; // 10MB
-
-// Supported image types
-export const STANDARD_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-export const VIP_IMAGE_TYPES = [...STANDARD_IMAGE_TYPES, 'image/gif', 'image/svg+xml'];
-
-// Chat preferences
-export const AUTO_SCROLL_THRESHOLD = 100; // pixels
-export const DEFAULT_BOT_TYPING_DELAY = 3000; // ms
-export const MESSAGE_BATCH_SIZE = 20;
+// Other application constants
+export const DEFAULT_AGE_RANGE: [number, number] = [18, 50];
+export const DEFAULT_COUNTRY = "United States";
+export const DEFAULT_LANGUAGE = "en";
+export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+export const SUPPORTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif"];
+export const SUPPORTED_AUDIO_TYPES = ["audio/mp3", "audio/mpeg", "audio/wav"];

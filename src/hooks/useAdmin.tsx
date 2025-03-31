@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { Bot } from '@/types/chat';
 import { useToast } from '@/hooks/use-toast';
@@ -21,11 +20,11 @@ export const useAdmin = () => {
   
   // Initialize all admin hooks
   const { isAdmin, adminLogout, changeAdminPassword } = useAdminAuth();
-  const { adminActions, loadAdminActions } = useAdminActions();
+  const { adminActions, loadAdminActions } = useAdminActions(isAdmin);
   const botsManager = useAdminBots();
   const usersManager = useAdminUsers();
   const reportsManager = useAdminReports();
-  const { saveSiteSettings, getSiteSettings } = useAdminSettings();
+  const { saveSiteSettings, getSiteSettings } = useAdminSettings(isAdmin);
   
   // Combine processing states
   const isProcessing = false; // Simplified as the hooks no longer expose this

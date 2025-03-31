@@ -1,90 +1,43 @@
+import { v4 as uuidv4 } from 'uuid';
+import { Message } from '@/types/chat';
+import { MAX_CHAR_LIMIT, VIP_CHAR_LIMIT, CONSECUTIVE_LIMIT } from '@/utils/constants';
 
-import { toast } from "@/hooks/use-toast";
-import { STANDARD_CHAR_LIMIT, VIP_CHAR_LIMIT, CONSECUTIVE_LIMIT } from "@/utils/constants";
-
-// Re-export the constants so they can be imported from this file
-export { STANDARD_CHAR_LIMIT as MAX_CHAR_LIMIT, VIP_CHAR_LIMIT, CONSECUTIVE_LIMIT };
-
-export const validateImageFile = (file: File, isVip: boolean = false): { valid: boolean; message?: string } => {
-  // Check file type
-  if (isVip) {
-    // VIP users can upload any image type, including GIF
-    if (!file.type.startsWith('image/')) {
-      return {
-        valid: false,
-        message: "Please select an image file."
-      };
-    }
-  } else {
-    // Standard users can only upload standard image formats
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      return {
-        valid: false,
-        message: "Please select a JPG, PNG, or WebP image. GIFs are only available for VIP users."
-      };
-    }
-  }
-  
-  // Check file size (5MB limit for standard, 10MB for VIP)
-  const maxSize = isVip ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
-  if (file.size > maxSize) {
-    return {
-      valid: false,
-      message: isVip 
-        ? "Image size should be less than 10MB."
-        : "Image size should be less than 5MB. VIP users can upload larger images."
-    };
-  }
-  
-  return { valid: true };
+// Function to create a new message
+export const createMessage = (content: string, sender: 'user' | 'bot', isVip: boolean = false): Message => {
+  return {
+    id: uuidv4(),
+    content: content.substring(0, isVip ? VIP_CHAR_LIMIT : MAX_CHAR_LIMIT),
+    sender: sender,
+    timestamp: new Date(),
+    status: 'sending',
+  };
 };
 
-export const checkCharacterLimit = (
-  text: string, 
-  isVip: boolean, 
-  showToast: boolean = true
-): boolean => {
-  const limit = isVip ? VIP_CHAR_LIMIT : STANDARD_CHAR_LIMIT;
-  
-  if (text.length > limit) {
-    if (showToast) {
-      toast({
-        title: "Character limit reached",
-        description: isVip ? 
-          `VIP messages are limited to ${VIP_CHAR_LIMIT} characters.` :
-          `Messages are limited to ${STANDARD_CHAR_LIMIT} characters. Upgrade to VIP for longer messages.`,
-        duration: 3000
-      });
-    }
-    return false;
-  }
-  return true;
+// Function to truncate message content
+export const truncateMessage = (content: string, isVip: boolean = false): string => {
+  const limit = isVip ? VIP_CHAR_LIMIT : MAX_CHAR_LIMIT;
+  return content.length > limit ? content.substring(0, limit) + '...' : content;
 };
 
-export const hasConsecutiveChars = (text: string, isVip: boolean = false): boolean => {
-  if (!text) return false;
-  
-  if (isVip) {
-    // For VIP: check for 4+ consecutive numbers or 7+ consecutive letters
-    const numberPattern = /(\d)\1{3,}/;
-    if (numberPattern.test(text)) return true;
-    
-    const letterPattern = /([a-zA-Z])\1{6,}/;
-    if (letterPattern.test(text)) return true;
-    
-    return false;
-  } else {
-    // For standard users: check for 3+ consecutive identical characters
-    for (let i = 0; i <= text.length - CONSECUTIVE_LIMIT; i++) {
-      let isConsecutive = true;
-      for (let j = 1; j < CONSECUTIVE_LIMIT; j++) {
-        if (text[i] !== text[i + j]) {
-          isConsecutive = false;
-          break;
-        }
-      }
-      if (isConsecutive) return true;
-    }
-    return false;
-  }
+// Function to validate message content
+export const isValidMessage = (content: string): boolean => {
+  return content.trim().length > 0;
+};
+
+// Function to check if message exceeds character limit
+export const exceedsCharLimit = (content: string, isVip: boolean = false): boolean => {
+  return content.length > (isVip ? VIP_CHAR_LIMIT : MAX_CHAR_LIMIT);
+};
+
+// Function to format timestamp
+export const formatTimestamp = (date: Date): string => {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
+
+// Function to check consecutive message limit
+export const checkConsecutiveLimit = (messages: Message[], sender: 'user' | 'bot'): boolean => {
+  const recentMessages = messages.slice(-CONSECUTIVE_LIMIT);
+  return recentMessages.every(msg => msg.sender === sender);
 };

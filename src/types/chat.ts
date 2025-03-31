@@ -7,34 +7,18 @@ export interface Bot {
   age: number;
   country: string;
   countryCode: string;
-  interests: string[];
   vip: boolean;
+  interests: string[];
   responses: string[];
   personalityTraits: string[];
 }
 
-export interface ChatMessage {
-  id: string;
-  text: string;
-  senderId: string;
-  senderName: string;
-  timestamp: string;
-  isBot: boolean;
-  isSystem?: boolean;
-  type?: 'text' | 'image' | 'voice';
-  imageUrl?: string;
-  voiceUrl?: string;
-  translated?: boolean;
-  originalText?: string;
-}
-
-// Added Message interface with proper properties
 export interface Message {
   id: string;
   content: string;
   sender: 'user' | 'bot' | 'system';
   timestamp: Date;
-  status?: MessageStatus;
+  status?: 'sending' | 'sent' | 'delivered' | 'read';
   isImage?: boolean;
   isVoice?: boolean;
   duration?: number;
@@ -44,22 +28,16 @@ export interface Message {
   isDeleted?: boolean;
 }
 
-// Added MessageStatus type
-export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read';
-
-// Added Translation interface
 export interface Translation {
   language: string;
   content: string;
 }
 
-// Added Reaction interface
 export interface Reaction {
   userId: string;
   emoji: string;
 }
 
-// Added Notification interface
 export interface Notification {
   id: string;
   title: string;
@@ -69,7 +47,6 @@ export interface Notification {
   botId?: string;
 }
 
-// Added FilterState interface
 export interface FilterState {
   gender: string[];
   country: string[];
@@ -77,7 +54,10 @@ export interface FilterState {
   vip: boolean | null;
 }
 
-// Added constants
-export const MAX_CHAR_LIMIT = 250;
-export const VIP_CHAR_LIMIT = 1000;
-export const CONSECUTIVE_LIMIT = 3;
+// Message character limits
+export const MAX_CHAR_LIMIT = 500;
+export const VIP_CHAR_LIMIT = 2000;
+export const CONSECUTIVE_LIMIT = 5;
+
+// Message status types
+export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read';

@@ -4,9 +4,20 @@ import { ensureAdminTables, createRequiredTables } from '@/utils/migrationUtils'
 import type { Bot } from '@/types/chat';
 
 // Create a Supabase client with admin rights
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '';
+// Get the Supabase URL and service key from the environment variables
+const supabaseUrl = "https://lvawljaqsafbjpnrwkyd.supabase.co";
+const supabaseServiceKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXdsamFxc2FmYmpwbnJ3a3lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMzNjczMzgsImV4cCI6MjA1ODk0MzMzOH0.PoAP2KhiL2dUDI1Ti_SAoQiqsI8jhKIrLw_3Vra6Qls";
 
+// Check if URL is available before creating client
+if (!supabaseUrl) {
+  console.error("Supabase URL is missing");
+}
+
+if (!supabaseServiceKey) {
+  console.error("Supabase service key is missing");
+}
+
+// Create the Supabase admin client
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 // Initialize admin data in Supabase

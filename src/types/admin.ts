@@ -1,11 +1,13 @@
 
-export interface AdminUser {
+// Admin types
+export interface AdminAction {
   id: string;
-  email: string;
-  role: 'admin' | 'moderator' | 'viewer';
-  lastLogin?: string;
-  createdAt: string;
-  displayName?: string;
+  adminId: string;
+  adminName: string;
+  actionType: 'ban' | 'unban' | 'delete' | 'edit' | 'other' | 'kick' | 'upgrade' | 'downgrade';
+  details: string;
+  timestamp: string;
+  userId?: string;
 }
 
 export interface BanRecord {
@@ -14,45 +16,45 @@ export interface BanRecord {
   reason: string;
   adminId: string;
   timestamp: string;
-  duration?: number; // in days, null means permanent
+  duration?: string;
   expires?: string;
-  ipAddress?: string;
-  deviceInfo?: string;
-}
-
-export interface AdminAction {
-  id: string;
-  adminId: string;
-  adminName: string;
-  actionType: 'ban' | 'unban' | 'delete' | 'edit' | 'other';
-  details: string;
-  timestamp: string;
-  userId?: string;
-  contentId?: string;
+  identifier?: string;
+  identifierType?: string;
+  expiresAt?: string;
 }
 
 export interface ReportFeedback {
   id: string;
-  reporterId: string;
-  targetId: string;
-  targetType: 'user' | 'message' | 'content';
-  reason: string;
-  details?: string;
+  type: 'report' | 'feedback';
+  userId: string;
+  content: string;
   timestamp: string;
+  expires?: string;
   status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
   adminNotes?: string;
-  actionTaken?: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
 }
 
-export interface AdminSettings {
+export interface SiteSettings {
   id: string;
-  maxReportsBeforeAutoFlag: number;
-  autobanEnabled: boolean;
-  maxLoginAttempts: number;
-  loginLockoutDuration: number; // in minutes
-  reportExpiryDays: number;
-  moderationKeywords: string[];
-  updatedAt: string;
-  updatedBy: string;
+  siteName: string;
+  siteDescription: string;
+  maintenanceMode: boolean;
+  registrationEnabled: boolean;
+  theme: string;
+  adminContact: string;
+}
+
+export interface VipDuration {
+  label: string;
+  value: string;
+  price: number;
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  activeUsers: number;
+  bannedUsers: number;
+  vipUsers: number;
+  totalMessages: number;
+  reportsCount: number;
 }
