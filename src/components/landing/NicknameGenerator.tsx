@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, RefreshCw } from 'lucide-react';
 import Button from '../shared/Button';
+import { useNicknameValidation } from '@/hooks/useNicknameValidation';
+import { toast } from '@/hooks/use-toast';
 
 const adjectives = [
   'Happy', 'Clever', 'Brave', 'Shiny', 'Witty', 
@@ -25,6 +27,7 @@ const NicknameGenerator: React.FC<NicknameGeneratorProps> = ({ onNicknameSelecte
   const [nickname, setNickname] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasSelected, setHasSelected] = useState(false);
+  const { checkNicknameAvailability, isChecking, isAvailable, reserveNickname } = useNicknameValidation();
 
   const generateRandomNickname = (): string => {
     const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
@@ -33,20 +36,62 @@ const NicknameGenerator: React.FC<NicknameGeneratorProps> = ({ onNicknameSelecte
     return `${randomAdjective}${randomNoun}${randomNumber}`;
   };
 
-  const handleGenerateNickname = () => {
+  const handleGenerateNickname = async () => {
     setIsGenerating(true);
     
-    // Simulate a brief delay for animation effect
-    setTimeout(() => {
-      setNickname(generateRandomNickname());
-      setIsGenerating(false);
-    }, 300);
+    // Try up to 5 times to generate a unique nickname
+    let attempts = 0;
+    let newNickname = '';
+    let available = false;
+    
+    while (attempts < 5 && !available) {
+      newNickname = generateRandomNickname();
+      // eslint-disable-next-line no-await-in-loop
+      available = await checkNicknameAvailability(newNickname, false);
+      attempts++;
+    }
+    
+    if (available) {
+      setNickname(newNickname);
+    } else {
+      // If we couldn't find an available nickname after 5 attempts, just use the last one
+      setNickname(newNickname);
+      toast({
+        title: "Warning",
+        description: "This nickname might not be available. Try generating another one.",
+        variant: "destructive"
+      });
+    }
+    
+    setIsGenerating(false);
   };
 
-  const handleContinue = () => {
-    if (nickname && !hasSelected) {
-      setHasSelected(true);
-      onNicknameSelected(nickname);
+  const handleContinue = async () => {
+    if (nickname && !hasSelected && !isChecking) {
+      // One final availability check before continuing
+      const available = await checkNicknameAvailability(nickname, false);
+      
+      if (available) {
+        // Reserve the nickname temporarily
+        const reserved = await reserveNickname(nickname);
+        
+        if (reserved) {
+          setHasSelected(true);
+          onNicknameSelected(nickname);
+        } else {
+          toast({
+            title: "Error",
+            description: "Could not reserve nickname. Please try again.",
+            variant: "destructive"
+          });
+        }
+      } else {
+        toast({
+          title: "Nickname Unavailable",
+          description: "This nickname is no longer available. Please generate a new one.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -71,13 +116,19 @@ const NicknameGenerator: React.FC<NicknameGeneratorProps> = ({ onNicknameSelecte
           size="sm"
           className="rounded-lg p-2 hover:bg-primary/10"
           onClick={handleGenerateNickname}
-          isLoading={isGenerating}
+          isLoading={isGenerating || isChecking}
           icon={<RefreshCw className="h-5 w-5" />}
           aria-label="Generate new nickname"
         >
           Refresh
         </Button>
       </div>
+      
+      {isAvailable === false && nickname && (
+        <div className="text-red-500 text-sm mb-4 text-center">
+          This nickname is already taken. Please generate another one.
+        </div>
+      )}
 
       <Button
         variant="primary"
@@ -86,7 +137,7 @@ const NicknameGenerator: React.FC<NicknameGeneratorProps> = ({ onNicknameSelecte
         icon={<ArrowRight className="h-5 w-5" />}
         iconPosition="right"
         onClick={handleContinue}
-        disabled={!nickname || isGenerating || hasSelected}
+        disabled={!nickname || isGenerating || isChecking || isAvailable === false || hasSelected}
         className="mt-2"
       >
         Continue

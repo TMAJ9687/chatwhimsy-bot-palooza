@@ -187,6 +187,27 @@ export type Database = {
           },
         ]
       }
+      nicknames: {
+        Row: {
+          created_at: string | null
+          is_temporary: boolean | null
+          nickname: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          is_temporary?: boolean | null
+          nickname: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          is_temporary?: boolean | null
+          nickname?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number | null
@@ -373,6 +394,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_nickname_availability: {
+        Args: {
+          nickname_to_check: string
+        }
+        Returns: boolean
+      }
       delete_old_messages: {
         Args: Record<PropertyKey, never>
         Returns: undefined

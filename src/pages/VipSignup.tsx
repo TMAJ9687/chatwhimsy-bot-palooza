@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +11,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import ThemeToggle from '@/components/shared/ThemeToggle';
+import { useNicknameValidation } from '@/hooks/useNicknameValidation';
 
 // Form schema
 const signupSchema = z.object({
@@ -63,11 +63,13 @@ const VipSignup = () => {
   const { toast } = useToast();
   const { updateUserProfile } = useUser();
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingNickname, setIsCheckingNickname] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const selectedPlan = searchParams.get('plan') || 'monthly';
   const planDetails = getPlanDetails(selectedPlan);
+  const { checkNicknameAvailability } = useNicknameValidation();
   
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -79,27 +81,60 @@ const VipSignup = () => {
     },
   });
 
-  // If no plan is selected, redirect to plan selection
   useEffect(() => {
     if (!selectedPlan) {
       navigate('/vip-subscription');
     }
   }, [selectedPlan, navigate]);
 
-  const handleSignup = (values: SignupFormValues) => {
+  const validateNickname = async (nickname: string) => {
+    setIsCheckingNickname(true);
+    try {
+      const available = await checkNicknameAvailability(nickname, true);
+      setIsCheckingNickname(false);
+      return available;
+    } catch (err) {
+      console.error('Error validating nickname:', err);
+      setIsCheckingNickname(false);
+      return false;
+    }
+  };
+
+  const handleSignup = async (values: SignupFormValues) => {
+    const isNicknameAvailable = await validateNickname(values.nickname);
+    
+    if (!isNicknameAvailable) {
+      form.setError('nickname', { 
+        type: 'manual',
+        message: 'This nickname is not available or doesn\'t meet VIP requirements'
+      });
+      return;
+    }
+    
     setIsLoading(true);
     
-    // Show payment method dialog
     setTimeout(() => {
       setIsLoading(false);
       
-      // Navigate to payment page with form values and plan
       navigate(`/vip-payment?plan=${selectedPlan}&email=${encodeURIComponent(values.email)}&nickname=${encodeURIComponent(values.nickname)}`);
     }, 800);
   };
 
   const handleBackToPlans = () => {
     navigate('/vip-subscription');
+  };
+
+  const handleNicknameBlur = async () => {
+    const nickname = form.getValues('nickname');
+    if (nickname && nickname.length >= 3) {
+      const isValid = await validateNickname(nickname);
+      if (!isValid) {
+        form.setError('nickname', { 
+          type: 'manual',
+          message: 'This nickname is not available or doesn\'t meet VIP requirements'
+        });
+      }
+    }
   };
 
   return (
@@ -147,7 +182,8 @@ const VipSignup = () => {
                           <Input 
                             placeholder="Choose a nickname" 
                             className="pl-10"
-                            {...field} 
+                            {...field}
+                            onBlur={handleNicknameBlur} 
                           />
                         </div>
                       </FormControl>
@@ -225,7 +261,7 @@ const VipSignup = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600" 
-                  disabled={isLoading}
+                  disabled={isLoading || isCheckingNickname}
                 >
                   {isLoading ? 'Creating account...' : 'Continue to Payment'}
                 </Button>

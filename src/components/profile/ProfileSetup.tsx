@@ -7,6 +7,8 @@ import GenderSelector from './GenderSelector';
 import AgeSelector from './AgeSelector';
 import InterestsSelector from './InterestsSelector';
 import AdPlaceholder from './AdPlaceholder';
+import { useNicknameValidation } from '@/hooks/useNicknameValidation';
+import { toast } from '@/hooks/use-toast';
 
 interface ProfileSetupProps {
   nickname: string;
@@ -29,6 +31,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
   const [ageOptions, setAgeOptions] = useState<number[]>([]);
   const [isInterestsOpen, setIsInterestsOpen] = useState<boolean>(false);
   const [profileSubmitted, setProfileSubmitted] = useState<boolean>(false);
+  const { validateAndReserveNickname } = useNicknameValidation();
 
   useEffect(() => {
     const options = [];
@@ -65,8 +68,25 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
     detectCountry();
   }, []);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (gender && age && country && !profileSubmitted) {
+      // Revalidate nickname to ensure it's still available
+      try {
+        const validation = await validateAndReserveNickname(nickname, false, true);
+        if (!validation.valid) {
+          toast({
+            title: "Nickname Issue",
+            description: validation.message,
+            variant: "destructive"
+          });
+          navigate('/');
+          return;
+        }
+      } catch (err) {
+        console.error('Error validating nickname:', err);
+        // Continue anyway as this is just a double-check
+      }
+      
       console.log('Saving profile data for standard user');
       setProfileSubmitted(true);
       
