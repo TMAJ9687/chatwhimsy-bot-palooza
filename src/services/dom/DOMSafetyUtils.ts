@@ -29,9 +29,9 @@ export class DOMSafetyUtils {
         // Check if it's truly a child - extra validation
         const childNodes = Array.from(parent.childNodes);
         if (childNodes.includes(element as Node)) {
-          if (isElement(element)) {
-            // Use our type guard to ensure element is of correct type
-            parent.removeChild(element as ChildNode);
+          if (isChildNode(element)) {
+            // Properly handle ChildNode for removal
+            parent.removeChild(element);
             return true;
           }
         }

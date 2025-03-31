@@ -22,7 +22,8 @@ export function isNode(value: unknown): value is Node {
  */
 export function isChildNode(value: unknown): value is ChildNode {
   return isNode(value) && 
-    ('parentNode' in value || 'parentElement' in value);
+    ('parentNode' in value || 'parentElement' in value) &&
+    typeof (value as any).remove === 'function';
 }
 
 /**

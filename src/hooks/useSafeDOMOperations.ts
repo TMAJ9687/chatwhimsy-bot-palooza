@@ -1,6 +1,6 @@
-
 import { useEffect, useCallback, useRef } from 'react';
 import { domRegistry } from '@/services/dom';
+import { isChildNode } from '@/types/dom';
 
 /**
  * Hook for safely manipulating DOM elements
@@ -52,13 +52,10 @@ export const useSafeDOMOperations = () => {
         // Check if it's truly a child - extra validation
         const childNodes = Array.from(parent.childNodes);
         if (childNodes.includes(element as Node)) {
-          // We need to make sure element is an Element before using removeChild
-          if (element instanceof Element) {
-            // Make sure it's a valid child node before removing
-            if (element.parentNode === parent) {
-              parent.removeChild(element as ChildNode);
-              return true;
-            }
+          // We need to ensure the node is a ChildNode before removing
+          if (isChildNode(element)) {
+            parent.removeChild(element);
+            return true;
           }
         }
       }
@@ -79,11 +76,11 @@ export const useSafeDOMOperations = () => {
         }
         
         // Final attempt with removeChild after rechecking parent
-        if (element.parentNode && element.parentNode.contains(element) && element instanceof Element) {
+        if (element.parentNode && element.parentNode.contains(element) && isChildNode(element)) {
           const parent = element.parentNode;
           // Additional safety check to ensure it's a valid child
           if (element.parentNode === parent) {
-            parent.removeChild(element as ChildNode);
+            parent.removeChild(element);
             return true;
           }
         }

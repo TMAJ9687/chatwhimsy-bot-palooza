@@ -1,5 +1,5 @@
-
 import { toast } from '@/hooks/use-toast';
+import { isChildNode } from '@/types/dom';
 
 // Singleton instance for DOM operations registry
 let domCleanupRegistered = false;
@@ -117,9 +117,9 @@ export const performDOMCleanup = (): void => {
                   element.remove();
                 } catch (e) {
                   // If that fails, try removeChild with proper type assertion and additional checks
-                  if (element.parentNode && element.parentNode.contains(element) && element instanceof Element) {
-                    // Use proper casting for TypeScript
-                    element.parentNode.removeChild(element as unknown as ChildNode);
+                  if (element.parentNode && element.parentNode.contains(element) && isChildNode(element)) {
+                    // Use proper type checking for ChildNode
+                    element.parentNode.removeChild(element);
                   }
                 }
               }
