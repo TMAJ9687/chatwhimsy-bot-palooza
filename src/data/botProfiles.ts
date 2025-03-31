@@ -18,7 +18,8 @@ export const botProfiles: Bot[] = [
       "I'm curious to know more about you. What do you enjoy doing?",
       "That's really interesting! Tell me more about yourself.",
       "I love connecting with new people. What brought you here today?"
-    ]
+    ],
+    personalityTraits: ['Friendly', 'Outgoing', 'Creative', 'Curious']
   },
   {
     id: 'bot2',
@@ -35,7 +36,8 @@ export const botProfiles: Bot[] = [
       "I just finished a great book. Do you enjoy reading?",
       "I'm trying to improve my cooking skills. Any favorite dishes?",
       "It's so nice to chat with someone new. Tell me about your day!"
-    ]
+    ],
+    personalityTraits: ['Calm', 'Intellectual', 'Thoughtful', 'Patient']
   },
   {
     id: 'bot3',
@@ -52,7 +54,8 @@ export const botProfiles: Bot[] = [
       "I've been trying to stay fit lately. Any workout tips?",
       "I'm planning my next trip. Any travel recommendations?",
       "What's the best place you've ever visited?"
-    ]
+    ],
+    personalityTraits: ['Adventurous', 'Athletic', 'Laid-back', 'Jovial']
   },
   {
     id: 'bot4',
@@ -69,7 +72,8 @@ export const botProfiles: Bot[] = [
       "Have you ever been to Rio? It's beautiful during Carnival.",
       "What kind of music do you like to listen to?",
       "I'm learning English. How many languages do you speak?"
-    ]
+    ],
+    personalityTraits: ['Passionate', 'Energetic', 'Fun-loving', 'Social']
   },
   {
     id: 'bot5',
@@ -86,7 +90,8 @@ export const botProfiles: Bot[] = [
       "I love anime and manga. Do you have any favorites?",
       "Japanese food is amazing. What's your favorite cuisine?",
       "I work in tech. What do you do for a living?"
-    ]
+    ],
+    personalityTraits: ['Polite', 'Tech-savvy', 'Trendy', 'Organized']
   },
   {
     id: 'bot6',
@@ -103,7 +108,8 @@ export const botProfiles: Bot[] = [
       "I'm an architect. I love studying the pyramids and ancient structures.",
       "Have you ever tried Egyptian coffee? It's quite strong but delicious!",
       "What places would you like to visit someday?"
-    ]
+    ],
+    personalityTraits: ['Knowledgeable', 'Analytical', 'Cultured', 'Hospitable']
   },
   {
     id: 'bot7',
@@ -120,7 +126,8 @@ export const botProfiles: Bot[] = [
       "I'm an artist in Mexico City. Do you enjoy art?",
       "Mexico has so many beautiful places to visit. Have you ever been here?",
       "What are your hobbies? I'd love to learn more about you."
-    ]
+    ],
+    personalityTraits: ['Creative', 'Warm', 'Expressive', 'Detailed']
   },
   {
     id: 'bot8',
@@ -137,6 +144,7 @@ export const botProfiles: Bot[] = [
       "I work as a software engineer in Bangalore. What do you do?",
       "I love Bollywood movies! What kind of films do you enjoy watching?",
       "Have you ever tried Indian food? It's so flavorful!"
-    ]
+    ],
+    personalityTraits: ['Spiritual', 'Tech-oriented', 'Disciplined', 'Thoughtful']
   }
 ];

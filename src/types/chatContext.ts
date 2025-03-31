@@ -1,5 +1,46 @@
 
-import { Bot, Message, Notification, FilterState } from './chat';
+import { Bot } from './chat';
+
+export interface Message {
+  id: string;
+  content: string;
+  sender: 'user' | 'bot' | 'system';
+  timestamp: Date;
+  status?: 'sending' | 'sent' | 'delivered' | 'read';
+  isImage?: boolean;
+  isVoice?: boolean;
+  duration?: number;
+  translations?: Translation[];
+  replyTo?: string;
+  reactions?: Reaction[];
+  isDeleted?: boolean;
+}
+
+export interface Translation {
+  language: string;
+  content: string;
+}
+
+export interface Reaction {
+  userId: string;
+  emoji: string;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  time: Date;
+  read: boolean;
+  botId?: string;
+}
+
+export interface FilterState {
+  gender: string[];
+  country: string[];
+  age: [number, number];
+  vip: boolean | null;
+}
 
 export interface ChatContextType {
   userChats: Record<string, Message[]>;
@@ -36,7 +77,7 @@ export interface ChatContextType {
   handleDeleteConversation: (userId: string) => void;
   handleTranslateMessage: (messageId: string, targetLanguage: string) => void;
   getSharedMedia: (userId: string) => { images: Message[], voice: Message[] };
-  // New VIP features
+  // VIP features
   handleReplyToMessage: (messageId: string, content: string) => void;
   handleReactToMessage: (messageId: string, emoji: string) => void;
   handleUnsendMessage: (messageId: string) => void;
