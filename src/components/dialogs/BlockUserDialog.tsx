@@ -13,98 +13,68 @@ import {
 import { Button } from '../ui/button';
 import { useToast } from "@/hooks/use-toast";
 import { useDialog } from '@/context/DialogContext';
-import { useModal } from '@/context/ModalContext';
 
-// Memoized dialog content component to prevent unnecessary re-renders
-const BlockUserContent = memo(({ 
-  onConfirm, 
-  onCancel, 
-  userName 
-}: { 
-  onConfirm: () => void;
-  onCancel: () => void;
-  userName: string; 
-}) => {
-  return (
-    <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle>Block User</AlertDialogTitle>
-        <AlertDialogDescription>
-          Are you sure you want to block {userName}? You won't be able to receive messages from them anymore.
-        </AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogCancel asChild>
-          <Button variant="outline" onClick={onCancel} type="button">
-            Cancel
-          </Button>
-        </AlertDialogCancel>
-        <AlertDialogAction asChild>
-          <Button variant="destructive" onClick={onConfirm} type="button">
-            Block User
-          </Button>
-        </AlertDialogAction>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  );
-});
-
-BlockUserContent.displayName = 'BlockUserContent';
-
-// Main dialog component
 const BlockUserDialog = () => {
   const { state, closeDialog } = useDialog();
-  const { openModal, closeModal } = useModal();
   const { toast } = useToast();
   
-  // Only destructure when needed
+  // Check if this dialog is open
   const isOpen = state.isOpen && state.type === 'block';
   
-  // Use requestAnimationFrame to debounce block action
+  // Destructure data only when dialog is open to avoid undefined values
+  const { userName, userId, onBlockUser } = isOpen ? state.data : { userName: '', userId: '', onBlockUser: null };
+  
+  // Handle block confirmation
   const handleConfirmBlock = useCallback(() => {
-    if (!isOpen) return;
-    
-    // Use requestAnimationFrame to prevent UI freeze
-    requestAnimationFrame(() => {
-      const { userName, userId, onBlockUser } = state.data;
-      
-      // Call the block user function from props with userId
-      if (typeof onBlockUser === 'function' && userId) {
-        onBlockUser(userId);
-      }
-      
-      // Show a toast notification with minimal options
-      toast({
-        title: "User blocked",
-        description: `You have blocked ${userName}.`,
-        duration: 3000,
-      });
-      
-      // Close the dialog and modal
-      closeModal();
-      closeDialog();
-    });
-  }, [isOpen, state.data, toast, closeDialog, closeModal]);
-
-  // Open the modal when the dialog state changes
-  useEffect(() => {
-    if (isOpen) {
-      const { userName } = state.data;
-      openModal(
-        <BlockUserContent 
-          onConfirm={handleConfirmBlock} 
-          onCancel={() => {
-            closeModal();
-            closeDialog();
-          }}
-          userName={userName}
-        />
-      );
+    if (typeof onBlockUser === 'function' && userId) {
+      onBlockUser(userId);
     }
-  }, [isOpen, state.data, openModal, handleConfirmBlock, closeDialog, closeModal]);
+    
+    // Show a toast notification
+    toast({
+      title: "User blocked",
+      description: `You have blocked ${userName}.`,
+    });
+    
+    // Close the dialog
+    closeDialog();
+  }, [userName, userId, onBlockUser, toast, closeDialog]);
 
-  // Nothing to render here as the actual rendering happens via the modal context
-  return null;
+  // If not open, render nothing
+  if (!isOpen) return null;
+
+  return (
+    <AlertDialog open={isOpen} onOpenChange={(open) => !open && closeDialog()}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Block User</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to block {userName}? You won't be able to receive messages from them anymore.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel asChild>
+            <Button 
+              variant="outline" 
+              onClick={closeDialog}
+              type="button"
+            >
+              Cancel
+            </Button>
+          </AlertDialogCancel>
+          <AlertDialogAction asChild>
+            <Button 
+              variant="destructive"
+              onClick={handleConfirmBlock}
+              type="button"
+            >
+              Block User
+            </Button>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
 };
 
 export default memo(BlockUserDialog);

@@ -6,11 +6,12 @@ import { trackEvent } from '@/utils/performanceMonitor';
 // Import dialogs normally instead of lazy loading for critical/problematic ones
 import SiteRulesDialog from './SiteRulesDialog';
 import LogoutConfirmationDialog from './LogoutConfirmationDialog';
-import VipSelectDialog from './VipSelectDialog'; // Import directly to avoid dynamic import issues
+import VipSelectDialog from './VipSelectDialog';
+import BlockUserDialog from './BlockUserDialog';
+import AlertDialogComponent from './AlertDialog';
 
-// Using lazy loading for all other dialogs to reduce initial load time
+// Using lazy loading for non-critical dialogs
 const ReportDialog = React.lazy(() => import('./ReportDialog'));
-const BlockUserDialog = React.lazy(() => import('./BlockUserDialog'));
 const VipLoginDialog = React.lazy(() => import('./VipLoginDialog'));
 const VipSignupDialog = React.lazy(() => import('./VipSignupDialog'));
 const VipSubscriptionDialog = React.lazy(() => import('./VipSubscriptionDialog'));
@@ -18,9 +19,8 @@ const VipPaymentDialog = React.lazy(() => import('./VipPaymentDialog'));
 const VipConfirmationDialog = React.lazy(() => import('./VipConfirmationDialog'));
 const AccountDeletionDialog = React.lazy(() => import('./AccountDeletionDialog'));
 const ConfirmDialog = React.lazy(() => import('./ConfirmDialog'));
-const AlertDialogComponent = React.lazy(() => import('./AlertDialog'));
 
-// Loading fallback component - lightweight and minimal
+// Loading fallback component
 const DialogFallback = () => (
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div className="bg-white rounded-lg p-4 shadow-lg animate-pulse">
@@ -33,8 +33,7 @@ const DialogFallback = () => (
 
 /**
  * This component renders the appropriate dialog based on the current dialog state
- * Critical dialogs (SiteRules, LogoutConfirmation, and VipSelect) are imported directly
- * to avoid dynamic import issues
+ * Critical dialogs are imported directly to avoid dynamic import issues
  */
 const DialogContainer = () => {
   const { state } = useDialog();
@@ -80,49 +79,31 @@ const DialogContainer = () => {
     return null;
   }
 
-  // Special case for directly imported dialogs - render without Suspense
-  // and with enhanced error handling
-  if (state.type === 'siteRules') {
-    try {
+  // For critical dialogs that are directly imported
+  switch (state.type) {
+    case 'siteRules':
       return <SiteRulesDialog key="siteRules" />;
-    } catch (error) {
-      console.error('Error rendering SiteRulesDialog:', error);
-      return null;
-    }
-  }
-  
-  if (state.type === 'logout') {
-    try {
+    case 'logout':
       return <LogoutConfirmationDialog key="logout" />;
-    } catch (error) {
-      console.error('Error rendering LogoutConfirmationDialog:', error);
-      return null;
-    }
-  }
-  
-  // Add VipSelectDialog to direct imports
-  if (state.type === 'vipSelect') {
-    try {
+    case 'vipSelect':
       return <VipSelectDialog key="vipSelect" />;
-    } catch (error) {
-      console.error('Error rendering VipSelectDialog:', error);
-      return null;
-    }
+    case 'block':
+      return <BlockUserDialog key="block" />;
+    case 'alert':
+      return <AlertDialogComponent key="alert" />;
   }
 
+  // For dialogs that use lazy loading
   return (
     <Suspense fallback={<DialogFallback />}>
       {(() => {
         // Don't render anything if component is unmounting
         if (!mountedRef.current) return null;
         
-        // Render the appropriate dialog component based on the dialog type
-        // Adding keys to help React better track component identity
+        // Render the appropriate lazy-loaded dialog component
         switch (state.type) {
           case 'report':
             return <ReportDialog key="report" />;
-          case 'block':
-            return <BlockUserDialog key="block" />;
           case 'vipLogin':
             return <VipLoginDialog key="vipLogin" />;
           case 'vipSignup':
@@ -137,8 +118,6 @@ const DialogContainer = () => {
             return <AccountDeletionDialog key="accountDeletion" />;
           case 'confirm':
             return <ConfirmDialog key="confirm" />;
-          case 'alert':
-            return <AlertDialogComponent key="alert" />;
           default:
             return null;
         }
@@ -147,5 +126,4 @@ const DialogContainer = () => {
   );
 };
 
-// Optimize with memo to prevent unnecessary re-renders
 export default memo(DialogContainer);
