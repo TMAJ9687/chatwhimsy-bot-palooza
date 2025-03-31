@@ -1,92 +1,75 @@
 
-// Constants for message limitations
-export const MAX_CHAR_LIMIT = 500;
-export const VIP_CHAR_LIMIT = 2000;
-export const CONSECUTIVE_LIMIT = 5;
+import { Message } from '@/types/chat';
 
-// Validate image file for upload
-export const validateImageFile = (file: File, isVip?: boolean): { valid: boolean; error?: string } => {
-  // Check if it's actually an image
+/**
+ * Validates if a message contains at least some text
+ */
+export const isValidMessage = (text: string, minLength = 1): { valid: boolean; error?: string } => {
+  if (!text || text.trim().length < minLength) {
+    return { 
+      valid: false, 
+      error: `Message must be at least ${minLength} character${minLength > 1 ? 's' : ''} long.` 
+    };
+  }
+
+  return { valid: true };
+};
+
+/**
+ * Checks if text has too many consecutive characters (spam prevention)
+ */
+export const hasConsecutiveChars = (text: string, maxConsecutive = 5): boolean => {
+  // Simple regex to detect repeated characters
+  const regex = new RegExp(`(.)\\1{${maxConsecutive - 1},}`, 'i');
+  return regex.test(text);
+};
+
+/**
+ * Detects URLs in message text
+ */
+export const containsUrls = (text: string): boolean => {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return urlRegex.test(text);
+};
+
+/**
+ * Validates image before upload
+ */
+export const validateImage = (file: File, maxSizeMB = 5): { valid: boolean; error?: string } => {
+  // Check if it's an image
   if (!file.type.startsWith('image/')) {
-    return { valid: false, error: 'File must be an image' };
+    return { valid: false, error: 'File must be an image.' };
   }
   
-  // Check file size (5MB limit)
-  const MAX_SIZE = 5 * 1024 * 1024; // 5MB in bytes
-  if (file.size > MAX_SIZE) {
-    return { valid: false, error: 'Image must be smaller than 5MB' };
-  }
-  
-  return { valid: true };
-};
-
-// Check character limit - updated signature with correct parameters
-export const checkCharacterLimit = (text: string, isVip: boolean, returnBoolean: boolean = false): { valid: boolean; error?: string } | boolean => {
-  const limit = isVip ? VIP_CHAR_LIMIT : MAX_CHAR_LIMIT;
-  
-  if (text.length > limit) {
-    return returnBoolean ? false : {
-      valid: false,
-      error: `Message exceeds the ${limit} character limit${!isVip ? '. Upgrade to VIP for longer messages' : ''}`
-    };
-  }
-  
-  return returnBoolean ? true : { valid: true };
-};
-
-// Check for duplicate or spam messages
-export const checkSpamMessages = (
-  newMessage: string, 
-  recentMessages: string[]
-): { valid: boolean; error?: string } => {
-  if (recentMessages.length >= CONSECUTIVE_LIMIT && recentMessages.every(msg => msg === newMessage)) {
-    return {
-      valid: false,
-      error: 'Too many identical messages sent in a row'
-    };
+  // Check size (convert MB to bytes)
+  const maxSizeBytes = maxSizeMB * 1024 * 1024;
+  if (file.size > maxSizeBytes) {
+    return { valid: false, error: `Image must be smaller than ${maxSizeMB}MB.` };
   }
   
   return { valid: true };
 };
 
-// Add hasConsecutiveChars function needed by MessageTextarea
-export const hasConsecutiveChars = (text: string, maxConsecutive: number = 5): boolean => {
-  if (!text) return false;
-  
-  for (let i = 0; i < text.length - maxConsecutive + 1; i++) {
-    const char = text[i];
-    let consecutive = true;
-    
-    for (let j = 1; j < maxConsecutive; j++) {
-      if (text[i + j] !== char) {
-        consecutive = false;
-        break;
-      }
-    }
-    
-    if (consecutive) return true;
+/**
+ * Validates voice message before upload
+ */
+export const validateVoiceMessage = (blob: Blob, maxSeconds = 60): { valid: boolean; error?: string } => {
+  // Check maximum size (rough estimate based on 128kbps audio)
+  const estimatedMaxSize = maxSeconds * 16 * 1024; // 16KB per second at 128kbps
+  if (blob.size > estimatedMaxSize) {
+    return { valid: false, error: `Voice message cannot be longer than ${maxSeconds} seconds.` };
   }
   
-  return false;
+  return { valid: true };
 };
 
-// Validate message content with correct parameters
-export const validateMessage = (text: string, isVip: boolean): { valid: boolean; error?: string } => {
-  // Check character limit
-  const charCheck = checkCharacterLimit(text, isVip);
-  if ('valid' in charCheck && !charCheck.valid) {
-    return charCheck;
-  }
-  
-  // Check consecutive characters
-  if (hasConsecutiveChars(text, isVip ? 6 : 5)) {
-    return {
-      valid: false,
-      error: isVip 
-        ? "Please avoid sending messages with more than 6 consecutive identical characters."
-        : "Please avoid sending messages with more than 5 consecutive identical characters."
+// Fixed function signature to return object instead of boolean
+export const checkImageLimit = (imagesRemaining: number): { valid: boolean; error?: string } => {
+  if (imagesRemaining <= 0) {
+    return { 
+      valid: false, 
+      error: 'You have used all your image uploads for today.' 
     };
   }
-  
   return { valid: true };
 };

@@ -22,8 +22,8 @@ export const logAdminAction = async (action: Partial<AdminAction>): Promise<Admi
   if (!timestamp) {
     timestamp = new Date().toISOString();
   } else if (typeof timestamp !== 'string') {
-    // Use type check instead of instanceof
-    timestamp = new Date(timestamp).toISOString();
+    // Convert Date to ISO string if it's a Date object
+    timestamp = new Date(timestamp as any).toISOString();
   }
   
   // Create the action object with all required fields

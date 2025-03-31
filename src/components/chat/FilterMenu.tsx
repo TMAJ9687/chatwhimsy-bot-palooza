@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,20 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { countries } from '@/data/countries';
+import { FilterState } from '@/types/chat';
 
 interface FilterMenuProps {
   filters: FilterState;
   onChange: (filters: FilterState) => void;
-}
-
-export interface FilterState {
-  gender: string[];
-  country: string[];
-  age: [number, number];
-  vip: boolean | null;
-  // Include these properties to match both type definitions
-  countries: string[];
-  ageRange: [number, number];
 }
 
 const MAX_COUNTRIES = 2;
@@ -259,3 +249,5 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ filters, onChange }) => {
 };
 
 export default FilterMenu;
+
+export type { FilterState };

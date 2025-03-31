@@ -2,10 +2,11 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Create Supabase admin client with service role key
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://lvawljaqsafbjpnrwkyd.supabase.co";
 const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '';
 
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+// Create the Supabase admin client
+const supabaseAdminClient = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false
@@ -13,29 +14,33 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 });
 
 // Mock admin service functions for TypeScript compatibility
-supabaseAdmin.getAllBots = async () => [];
-supabaseAdmin.getBot = async () => null;
-supabaseAdmin.createBot = async () => ({ id: '' });
-supabaseAdmin.updateBot = async () => ({ id: '' });
-supabaseAdmin.deleteBot = async () => true;
+// These functions will be replaced with actual implementations later
+const supabaseAdmin = {
+  getAllBots: async () => [],
+  getBot: async () => null,
+  createBot: async () => ({ id: '' }),
+  updateBot: async () => ({ id: '' }),
+  deleteBot: async () => true,
 
-supabaseAdmin.getBannedUsers = async () => [];
-supabaseAdmin.banUser = async () => ({ id: '' });
-supabaseAdmin.unbanUser = async () => true;
-supabaseAdmin.isUserBanned = async () => false;
+  getBannedUsers: async () => [],
+  banUser: async () => ({ id: '' }),
+  unbanUser: async () => true,
+  isUserBanned: async () => false,
 
-supabaseAdmin.getAdminActions = async () => [];
-supabaseAdmin.logAdminAction = async () => ({ id: '' });
+  getAdminActions: async () => [],
+  logAdminAction: async () => ({ id: '' }),
 
-supabaseAdmin.getReportsAndFeedback = async () => [];
-supabaseAdmin.addReportOrFeedback = async () => ({ id: '' });
-supabaseAdmin.resolveReportOrFeedback = async () => true;
-supabaseAdmin.deleteReportOrFeedback = async () => true;
-supabaseAdmin.cleanupExpiredReportsFeedback = async () => true;
+  getReportsAndFeedback: async () => [],
+  addReportOrFeedback: async () => ({ id: '' }),
+  resolveReportOrFeedback: async () => true,
+  deleteReportOrFeedback: async () => true,
+  cleanupExpiredReportsFeedback: async () => true,
 
-supabaseAdmin.kickUser = async () => true;
-supabaseAdmin.upgradeToVIP = async () => true;
-supabaseAdmin.downgradeToStandard = async () => true;
-supabaseAdmin.initializeSupabaseAdminData = async () => true;
+  kickUser: async () => true,
+  upgradeToVIP: async () => true,
+  downgradeToStandard: async () => true,
+  initializeSupabaseAdminData: async () => true
+};
 
+export { supabaseAdmin };
 export default supabaseAdmin;
