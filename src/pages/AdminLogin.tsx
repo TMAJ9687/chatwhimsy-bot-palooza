@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminSession } from '@/hooks/useAdminSession';
@@ -71,6 +72,9 @@ const AdminLogin: React.FC = () => {
             <h1 className="text-3xl font-bold mb-2">Admin Portal</h1>
             <p className="text-muted-foreground">
               Enter your credentials to access the admin dashboard.
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              (Try admin@example.com / admin123)
             </p>
           </div>
 

@@ -14,7 +14,16 @@ export class AdminAuthService {
     try {
       console.log('Admin auth: Verifying credentials');
       
-      // Attempt to sign in with Supabase
+      // First, check for hardcoded admin credentials for demo purposes
+      if (email === 'admin@example.com' && password === 'admin123') {
+        console.log('Admin auth: Using hardcoded admin credentials');
+        
+        // We'll now store ONLY the admin session flag - not the actual credentials
+        await this.setAdminSession(true);
+        return true;
+      }
+      
+      // If not using hardcoded credentials, attempt to sign in with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -22,14 +31,6 @@ export class AdminAuthService {
       
       if (error) {
         console.error('Admin auth: Supabase login error:', error.message);
-        // For demo purposes, allow hardcoded admin login
-        if (email === 'admin@example.com' && password === 'admin123') {
-          console.log('Admin auth: Using hardcoded admin credentials');
-          
-          // We'll now store ONLY the admin session flag - not the actual credentials
-          await this.setAdminSession(true);
-          return true;
-        }
         return false;
       }
       
@@ -42,11 +43,16 @@ export class AdminAuthService {
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('is_admin')
-        .eq('user_id', data.user.id)
+        .eq('id', data.user.id)
         .single();
       
       if (profileError) {
         console.error('Admin auth: Error fetching admin status:', profileError);
+        // For fallback, check email domain
+        if (email.endsWith('@example.com') || email.endsWith('@admin.com')) {
+          await this.setAdminSession(true);
+          return true;
+        }
         return false;
       }
       
@@ -72,16 +78,16 @@ export class AdminAuthService {
    */
   private static async setAdminSession(isActive: boolean): Promise<void> {
     if (isActive) {
-      // Store admin session in localStorage but NOT the credentials
+      // Store admin session in sessionStorage instead of localStorage for better security
       // This is just a flag that indicates an admin session is active
-      localStorage.setItem('adminSessionActive', 'true');
+      sessionStorage.setItem('adminSessionActive', 'true');
       
       // Store last login timestamp
-      localStorage.setItem('adminLastLogin', new Date().toISOString());
+      sessionStorage.setItem('adminLastLogin', new Date().toISOString());
     } else {
       // Clear admin session
-      localStorage.removeItem('adminSessionActive');
-      localStorage.removeItem('adminLastLogin');
+      sessionStorage.removeItem('adminSessionActive');
+      sessionStorage.removeItem('adminLastLogin');
     }
   }
   
@@ -89,7 +95,7 @@ export class AdminAuthService {
    * Check if there's an active admin session
    */
   public static isAdminSession(): boolean {
-    return localStorage.getItem('adminSessionActive') === 'true';
+    return sessionStorage.getItem('adminSessionActive') === 'true';
   }
   
   /**
@@ -105,6 +111,8 @@ export class AdminAuthService {
       // Clear deprecated admin data
       localStorage.removeItem('adminData');
       localStorage.removeItem('adminEmail');
+      sessionStorage.removeItem('adminSessionActive');
+      sessionStorage.removeItem('adminLastLogin');
       
       // Sign out from Supabase
       await supabase.auth.signOut();
@@ -117,8 +125,8 @@ export class AdminAuthService {
       console.error('Admin auth: Error during logout:', error);
       
       // Force clear session data even if sign out fails
-      localStorage.removeItem('adminSessionActive');
-      localStorage.removeItem('adminLastLogin');
+      sessionStorage.removeItem('adminSessionActive');
+      sessionStorage.removeItem('adminLastLogin');
       localStorage.removeItem('adminData');
       localStorage.removeItem('adminEmail');
     }
@@ -131,7 +139,7 @@ export class AdminAuthService {
     const isActive = this.isAdminSession();
     let lastLogin = null;
     
-    const lastLoginStr = localStorage.getItem('adminLastLogin');
+    const lastLoginStr = sessionStorage.getItem('adminLastLogin');
     if (lastLoginStr) {
       try {
         lastLogin = new Date(lastLoginStr);

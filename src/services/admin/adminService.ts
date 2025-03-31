@@ -1,11 +1,6 @@
 
 import * as firebaseAuth from '@/firebase/auth';
-import * as botManagement from './botManagement';
-import * as banManagement from './banManagement';
-import * as reportService from './reportService';
-import * as adminAction from './adminAction';
-import * as userManagement from './userManagement';
-import * as firestoreService from '@/firebase/firestore';
+import * as supabaseAdmin from '@/lib/supabase/supabaseAdmin';
 import AdminAuthService from './adminAuthService';
 
 // Re-export all admin service functions
@@ -15,19 +10,19 @@ export const {
   createBot,
   updateBot,
   deleteBot
-} = botManagement;
+} = supabaseAdmin;
 
 export const {
   getBannedUsers,
   banUser,
   unbanUser,
   isUserBanned
-} = banManagement;
+} = supabaseAdmin;
 
 export const {
   getAdminActions,
   logAdminAction
-} = adminAction;
+} = supabaseAdmin;
 
 export const {
   getReportsAndFeedback,
@@ -35,19 +30,19 @@ export const {
   resolveReportOrFeedback,
   deleteReportOrFeedback,
   cleanupExpiredReportsFeedback
-} = reportService;
+} = supabaseAdmin;
 
 export const {
   kickUser,
   upgradeToVIP,
   downgradeToStandard
-} = userManagement;
+} = supabaseAdmin;
 
 /**
  * Initialize admin service - ensures all required data is loaded
  */
 export const initializeAdminService = async (): Promise<void> => {
-  await firestoreService.initializeFirestoreData();
+  await supabaseAdmin.initializeSupabaseAdminData();
 };
 
 /**

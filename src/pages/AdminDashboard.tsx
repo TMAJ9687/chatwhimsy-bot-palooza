@@ -14,6 +14,7 @@ import Statistics from '@/components/admin/statistics/Statistics';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { signOutUser } from '@/firebase/auth';
+import { ensureAdminTables } from '@/utils/migrationUtils';
 
 const AdminDashboard = () => {
   const { isAuthenticated, user, isLoading: sessionLoading } = useAdminSession();
@@ -24,23 +25,26 @@ const AdminDashboard = () => {
   const [retryCount, setRetryCount] = useState(0);
   
   useEffect(() => {
+    // Ensure admin tables exist
+    ensureAdminTables().catch(err => {
+      console.error('Error ensuring admin tables:', err);
+    });
+    
     // If not authenticated as admin, redirect to login
     if (!isAuthenticated && !sessionLoading && !loading) {
-      navigate('/admin-login');
+      navigate('/secretadminportal');
     }
   }, [isAuthenticated, navigate, sessionLoading, loading]);
   
   const handleLogout = async () => {
     try {
-      // First sign out from Firebase
-      await signOutUser();
-      // Then run app-specific logout
+      // Use our dedicated admin logout
       await adminLogout();
       toast({
         title: "Logged out",
         description: "You have been logged out successfully",
       });
-      navigate('/admin-login');
+      navigate('/secretadminportal');
     } catch (error) {
       console.error('Error logging out:', error);
       toast({
@@ -69,7 +73,7 @@ const AdminDashboard = () => {
               </AlertDescription>
             </Alert>
             <div className="flex justify-center mt-4">
-              <Button onClick={() => navigate('/admin-login')}>Go to Login</Button>
+              <Button onClick={() => navigate('/secretadminportal')}>Go to Login</Button>
             </div>
           </CardContent>
         </Card>
