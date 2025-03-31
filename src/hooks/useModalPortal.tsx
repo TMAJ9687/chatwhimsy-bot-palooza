@@ -14,7 +14,7 @@ export const useModalPortal = () => {
   
   // Create the portal root on first use
   useEffect(() => {
-    if (!isDOMReady()) return;
+    if (!isDOMReady) return;
     
     // Create portal container if it doesn't exist already
     let portalElement = document.getElementById('modal-portal-root');

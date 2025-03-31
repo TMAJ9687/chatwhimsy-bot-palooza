@@ -50,7 +50,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       setIsFullyMounted(false);
       
       // Run cleanup operation on unmount
-      if (isDOMReady()) {
+      if (isDOMReady) {
         cleanup();
       }
     };

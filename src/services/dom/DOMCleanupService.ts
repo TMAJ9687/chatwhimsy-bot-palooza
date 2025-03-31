@@ -4,6 +4,7 @@
  */
 import { DOMOperationQueue } from './DOMOperationQueue';
 import { DOMSafetyUtils } from './DOMSafetyUtils';
+import { isChildNode } from '@/types/dom';
 
 export class DOMCleanupService {
   private cleanupInProgress = false;
@@ -128,9 +129,9 @@ export class DOMCleanupService {
                   if (element.parentNode && element.parentNode.contains(element)) {
                     // Double-check it's really a child
                     const updatedChildNodes = Array.from(element.parentNode.childNodes);
-                    if (updatedChildNodes.includes(element as Node) && element instanceof Element) {
-                      // Use proper casting for TypeScript
-                      element.parentNode.removeChild(element as unknown as ChildNode);
+                    if (updatedChildNodes.includes(element as Node) && isChildNode(element)) {
+                      // Use proper type guard for safer removal
+                      element.parentNode.removeChild(element);
                     }
                   }
                 }

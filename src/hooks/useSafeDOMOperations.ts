@@ -56,7 +56,7 @@ export const useSafeDOMOperations = () => {
           if (element instanceof Element) {
             // Make sure it's a valid child node before removing
             if (element.parentNode === parent) {
-              parent.removeChild(element as unknown as ChildNode);
+              parent.removeChild(element as ChildNode);
               return true;
             }
           }
@@ -83,7 +83,7 @@ export const useSafeDOMOperations = () => {
           const parent = element.parentNode;
           // Additional safety check to ensure it's a valid child
           if (element.parentNode === parent) {
-            parent.removeChild(element as unknown as ChildNode);
+            parent.removeChild(element as ChildNode);
             return true;
           }
         }

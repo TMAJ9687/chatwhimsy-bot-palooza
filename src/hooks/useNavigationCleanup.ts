@@ -16,7 +16,7 @@ export const useNavigationCleanup = () => {
 
   // Enhanced DOM cleanup utility with debouncing and safeguards
   const cleanupUI = useCallback(() => {
-    // Check if DOM is ready before proceeding - fixed function call
+    // Check if DOM is ready before proceeding - fixed to use as value not function
     if (!isDOMReady) return;
     
     const now = Date.now();

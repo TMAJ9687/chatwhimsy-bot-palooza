@@ -1,4 +1,6 @@
 
+import { isChildNode, isElement, isInDocument } from '@/types/dom';
+
 /**
  * Utility class for safely performing DOM operations
  */
@@ -27,9 +29,9 @@ export class DOMSafetyUtils {
         // Check if it's truly a child - extra validation
         const childNodes = Array.from(parent.childNodes);
         if (childNodes.includes(element as Node)) {
-          if (element instanceof Element) {
-            // Cast to appropriate type for TypeScript
-            parent.removeChild(element as unknown as ChildNode);
+          if (isElement(element)) {
+            // Use our type guard to ensure element is of correct type
+            parent.removeChild(element as ChildNode);
             return true;
           }
         }
@@ -53,7 +55,7 @@ export class DOMSafetyUtils {
    * Safely determines if an element is in the DOM
    */
   public isElementInDOM(element: Element): boolean {
-    return !!(element && document.contains(element));
+    return isInDocument(element);
   }
   
   /**
