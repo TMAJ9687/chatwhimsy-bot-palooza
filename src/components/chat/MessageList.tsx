@@ -1,9 +1,10 @@
 
 import React from 'react';
-import MessageBubble, { Message } from './MessageBubble';
+import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import { useChat } from '@/context/ChatContext';
 import { useUser } from '@/context/UserContext';
+import { Message } from '@/types/chat';
 
 interface MessageListProps {
   messages: Message[];

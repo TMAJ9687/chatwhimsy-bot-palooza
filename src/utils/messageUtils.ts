@@ -16,6 +16,21 @@ export const isValidMessage = (text: string, minLength = 1): { valid: boolean; e
 };
 
 /**
+ * Checks character limits for messages based on user type
+ */
+export const checkCharacterLimit = (text: string, isVip: boolean, showToast = false): boolean => {
+  const maxLength = isVip ? 2000 : 500;
+  const isWithinLimit = text.length <= maxLength;
+  
+  if (!isWithinLimit && showToast) {
+    // Toast is shown by the component that calls this, we just return the result
+    console.log(`Message exceeds character limit (${maxLength})`);
+  }
+  
+  return isWithinLimit;
+};
+
+/**
  * Checks if text has too many consecutive characters (spam prevention)
  */
 export const hasConsecutiveChars = (text: string, maxConsecutive = 5): boolean => {
@@ -33,7 +48,7 @@ export const containsUrls = (text: string): boolean => {
 };
 
 /**
- * Validates image before upload
+ * Validates image before upload - alias for validateImageFile for compatibility
  */
 export const validateImage = (file: File, maxSizeMB = 5): { valid: boolean; error?: string } => {
   // Check if it's an image
@@ -49,6 +64,9 @@ export const validateImage = (file: File, maxSizeMB = 5): { valid: boolean; erro
   
   return { valid: true };
 };
+
+// Alias for validateImage for code compatibility
+export const validateImageFile = validateImage;
 
 /**
  * Validates voice message before upload

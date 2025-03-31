@@ -1,6 +1,6 @@
 
 import * as firebaseAuth from '@/firebase/auth';
-import * as supabaseAdmin from '@/lib/supabase/supabaseAdmin';
+import { supabaseAdmin } from '@/lib/supabase/supabaseAdmin';
 import AdminAuthService from './adminAuthService';
 
 // Re-export all admin service functions
@@ -9,33 +9,27 @@ export const {
   getBot,
   createBot,
   updateBot,
-  deleteBot
-} = supabaseAdmin;
+  deleteBot,
 
-export const {
   getBannedUsers,
   banUser,
   unbanUser,
-  isUserBanned
-} = supabaseAdmin;
+  isUserBanned,
 
-export const {
   getAdminActions,
-  logAdminAction
-} = supabaseAdmin;
+  logAdminAction,
 
-export const {
   getReportsAndFeedback,
   addReportOrFeedback,
   resolveReportOrFeedback,
   deleteReportOrFeedback,
-  cleanupExpiredReportsFeedback
-} = supabaseAdmin;
+  cleanupExpiredReportsFeedback,
 
-export const {
   kickUser,
   upgradeToVIP,
-  downgradeToStandard
+  downgradeToStandard,
+  
+  initializeSupabaseAdminData
 } = supabaseAdmin;
 
 /**

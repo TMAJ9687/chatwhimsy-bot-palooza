@@ -43,15 +43,15 @@ export interface Message {
   isImage?: boolean;
   isVoice?: boolean;
   voiceDuration?: number;
-  // Add fields from chatContext Message type
-  content?: string;
-  sender?: 'user' | 'bot' | 'system';
+  // Add fields from chatContext Message type to make them compatible
+  content: string;
+  sender: 'user' | 'bot' | 'system';
   status?: 'sending' | 'sent' | 'delivered' | 'read';
   translations?: Translation[];
   reactions?: Reaction[];
   isDeleted?: boolean;
   duration?: number;
-  replyTo?: string | null; // Changed from Message to string for compatibility
+  replyTo?: string | null;
 }
 
 // Add required Translation and Notification types

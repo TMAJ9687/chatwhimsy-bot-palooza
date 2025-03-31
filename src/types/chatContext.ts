@@ -1,5 +1,5 @@
 
-import { Bot } from './chat';
+import { Bot, Translation, Reaction, Notification, FilterState } from './chat';
 
 export interface Message {
   id: string;
@@ -14,33 +14,14 @@ export interface Message {
   replyTo?: string;
   reactions?: Reaction[];
   isDeleted?: boolean;
-}
-
-export interface Translation {
-  language: string;
-  content: string;
-}
-
-export interface Reaction {
-  userId: string;
-  emoji: string;
-}
-
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  time: Date;
-  read: boolean;
-  botId?: string;
-}
-
-// Update FilterState to match the one in chat.ts
-export interface FilterState {
-  gender: string[];
-  country: string[];
-  age: [number, number];
-  vip: boolean | null;
+  // Add fields from chat.ts Message type for compatibility
+  senderId?: string;
+  senderName?: string;
+  senderAvatar?: string;
+  receiverId?: string;
+  text?: string;
+  isRead?: boolean;
+  voiceDuration?: number;
 }
 
 export interface ChatContextType {

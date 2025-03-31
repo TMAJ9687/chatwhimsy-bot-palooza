@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useVipFeatures } from '@/hooks/useVipFeatures';
-import { checkCharacterLimit, hasConsecutiveChars } from '@/utils/messageUtils';
+import { hasConsecutiveChars, checkCharacterLimit } from '@/utils/messageUtils';
 import { useToast } from '@/hooks/use-toast';
 
 interface MessageTextareaProps {
@@ -36,7 +36,7 @@ const MessageTextarea: React.FC<MessageTextareaProps> = ({
     const newText = e.target.value;
     
     // Updated to use boolean return value
-    if (!checkCharacterLimit(newText, isVip, true)) {
+    if (!checkCharacterLimit(newText, isVip)) {
       onChange(newText.slice(0, charLimit));
       return;
     }

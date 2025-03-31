@@ -44,7 +44,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   const handleSubmitMessage = () => {
     if (disabled) return;
     
-    if (message.trim() && checkCharacterLimit(message, isUserVip, true)) {
+    if (message.trim() && checkCharacterLimit(message, isUserVip)) {
       onSendMessage(message.trim());
       setMessage('');
     }
@@ -73,7 +73,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   const handleEmojiClick = (emoji: string) => {
     const newText = message + emoji;
     
-    if (!checkCharacterLimit(newText, isUserVip, true)) {
+    if (!checkCharacterLimit(newText, isUserVip)) {
       return;
     }
     

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabaseAdmin } from '@/lib/supabase/supabaseAdmin';
 import { AdminAction } from '@/firebase/firestore/adminActionCollection';
@@ -10,7 +11,7 @@ interface UseAdminHook {
   loadAdminActions: () => Promise<void>;
   loadBannedUsers: () => Promise<void>;
   logAdminAction: (action: Omit<AdminAction, 'id' | 'timestamp'>) => Promise<AdminAction | null>;
-  banUser: (banData: Omit<BanRecord, 'id'>) => Promise<BanRecord | null>;
+  banUser: (banData: Omit<BanRecord, 'id' | 'timestamp'>) => Promise<BanRecord | null>;
   unbanUser: (banId: string) => Promise<boolean>;
   deleteUser: (userId: string) => Promise<boolean>;
 }
@@ -77,7 +78,7 @@ const useAdmin = (): UseAdminHook => {
    * Ban a user
    * @param banData - Ban record data
    */
-  const handleBanUser = async (banData: Omit<BanRecord, 'id'>): Promise<BanRecord | null> => {
+  const handleBanUser = async (banData: Omit<BanRecord, 'id' | 'timestamp'>): Promise<BanRecord | null> => {
     try {
       const newBan = await supabaseAdmin.banUser(banData);
       if (newBan) {

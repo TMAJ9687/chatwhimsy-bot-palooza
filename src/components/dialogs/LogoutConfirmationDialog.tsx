@@ -1,6 +1,6 @@
 
-import React, { useCallback } from 'react';
-import { useDialog } from '@/context/DialogContext';
+import React from 'react';
+import { Button } from '../ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,68 +10,53 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '../ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/context/UserContext';
-import { useAdmin } from '@/hooks/useAdmin';
-import { useLogout } from '@/hooks/useLogout';
+import { useNavigate } from 'react-router-dom';
+import useAdmin from '@/hooks/useAdmin';
 
-const LogoutConfirmationDialog = () => {
-  const { state, closeDialog } = useDialog();
+interface LogoutConfirmationDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}
+
+const LogoutConfirmationDialog: React.FC<LogoutConfirmationDialogProps> = ({
+  open,
+  onClose,
+  onConfirm,
+}) => {
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const { user } = useUser();
-  const { isAdmin } = useAdmin();
-  const { performLogout } = useLogout();
-  
-  const isVip = user?.isVip || false;
 
-  const handleConfirm = useCallback(async () => {
-    console.log('Logout confirmed, beginning process');
+  const handleConfirm = () => {
+    // Call the onConfirm callback
+    onConfirm();
     
-    // Close the dialog immediately before logout actions
-    closeDialog();
+    // Show a toast message
+    toast({
+      title: "Logged out successfully",
+      description: "You have been logged out of your account.",
+    });
     
-    // Wait a moment for dialog to fully close before continuing
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
-    // Proceed with logout
-    try {
-      console.log('Executing logout directly');
-      performLogout();
-    } catch (error) {
-      console.error('Failed during logout confirmation:', error);
-    }
-  }, [closeDialog, performLogout]);
-
-  const getFeedbackMessage = () => {
-    if (isAdmin) {
-      return "Are you sure you want to log out from the admin dashboard?";
-    } else if (isVip) {
-      return "Are you sure you want to leave? We'll miss you :(";
-    } else {
-      return "Before you go, would you like to share your feedback on the next screen?";
-    }
+    // Close the dialog
+    onClose();
   };
 
   return (
-    <AlertDialog 
-      open={state.isOpen && state.type === 'logout'} 
-      onOpenChange={(open) => !open && closeDialog()}
-    >
+    <AlertDialog open={open} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Leaving so soon?</AlertDialogTitle>
+          <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
           <AlertDialogDescription>
-            {getFeedbackMessage()}
+            You will be logged out of your account and will need to sign in again to access your chats.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>No, Stay</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleConfirm}
-            className="bg-red-500 hover:bg-red-600"
-            data-testid="confirm-logout"
-          >
-            Yes, Logout
-          </AlertDialogAction>
+          <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirm}>Log out</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

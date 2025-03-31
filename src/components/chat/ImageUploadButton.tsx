@@ -2,7 +2,7 @@
 import React, { useRef } from 'react';
 import { ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { validateImageFile } from '@/utils/messageUtils';
+import { validateImage } from '@/utils/messageUtils';
 
 interface ImageUploadButtonProps {
   onImageSelected: (imageDataUrl: string) => void;
@@ -41,7 +41,7 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
     if (!file) return;
     
     // Validate the file
-    const validation = validateImageFile(file);
+    const validation = validateImage(file);
     if (!validation.valid) {
       toast({
         title: "Invalid image",

@@ -1,15 +1,30 @@
 
 import { BanRecord } from '@/types/admin';
-import * as firestoreService from '@/firebase/firestore';
+import * as firebaseCollection from '@/firebase/firestore/banCollection';
 
 /**
  * Get all banned users
  */
 export const getBannedUsers = async (): Promise<BanRecord[]> => {
   try {
-    return await firestoreService.getBannedUsers();
+    const banRecords = await firebaseCollection.getBannedUsers();
+    // Convert the firestore ban records to the admin type
+    return banRecords.map(record => {
+      return {
+        id: record.id,
+        userId: record.id, // Use id as userId for compatibility
+        identifier: record.identifier,
+        identifierType: record.identifierType,
+        reason: record.reason,
+        duration: record.duration,
+        timestamp: record.timestamp,
+        expiresAt: record.expiresAt,
+        permanent: record.permanent,
+        adminId: record.adminId
+      } as BanRecord;
+    });
   } catch (error) {
-    console.error('Error getting banned users, using empty array:', error);
+    console.error('Error getting banned users:', error);
     return [];
   }
 };
@@ -17,20 +32,40 @@ export const getBannedUsers = async (): Promise<BanRecord[]> => {
 /**
  * Ban a user
  */
-export const banUser = async (banRecord: Omit<BanRecord, 'id' | 'timestamp'>): Promise<BanRecord> => {
-  return await firestoreService.banUser(banRecord);
+export const banUser = async (banData: Omit<BanRecord, 'id'>): Promise<BanRecord> => {
+  try {
+    const { userId, ...otherData } = banData;
+    const banRecord = await firebaseCollection.banUser(otherData);
+    return {
+      ...banRecord,
+      userId: banRecord.id // Use id as userId for compatibility
+    } as BanRecord;
+  } catch (error) {
+    console.error('Error banning user:', error);
+    throw error;
+  }
 };
 
 /**
  * Unban a user
  */
-export const unbanUser = async (id: string, adminId: string): Promise<boolean> => {
-  return await firestoreService.unbanUser(id, adminId);
+export const unbanUser = async (banId: string): Promise<boolean> => {
+  try {
+    return await firebaseCollection.unbanUser(banId);
+  } catch (error) {
+    console.error('Error unbanning user:', error);
+    throw error;
+  }
 };
 
 /**
  * Check if a user is banned
  */
-export const isUserBanned = async (identifier: string): Promise<BanRecord | null> => {
-  return await firestoreService.isUserBanned(identifier);
+export const isUserBanned = async (userId: string): Promise<boolean> => {
+  try {
+    return await firebaseCollection.isUserBanned(userId);
+  } catch (error) {
+    console.error('Error checking if user is banned:', error);
+    return false;
+  }
 };

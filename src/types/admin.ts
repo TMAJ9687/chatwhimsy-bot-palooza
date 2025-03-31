@@ -1,57 +1,43 @@
 
-// Admin types
+// Define admin types
+
+export type AdminActionType = 'ban' | 'unban' | 'kick' | 'upgrade' | 'downgrade' | 'delete' | 'edit' | 'other';
+
+// Admin action record
 export interface AdminAction {
   id: string;
+  actionType: AdminActionType | string;  // Allow string for backward compatibility
+  targetId?: string;
+  targetType?: string;
+  timestamp: string;
   adminId: string;
   adminName: string;
-  actionType: 'ban' | 'unban' | 'delete' | 'edit' | 'other' | 'kick' | 'upgrade' | 'downgrade';
   details: string;
-  timestamp: string;
-  userId?: string;
+  duration?: string;
 }
 
+// Ban record
 export interface BanRecord {
   id: string;
   userId: string;
+  identifier: string;
+  identifierType: 'email' | 'ip' | 'userId';
   reason: string;
-  adminId: string;
+  duration: number;  // in hours, 0 for permanent
   timestamp: string;
-  duration?: string;
-  expires?: string;
-  identifier?: string;
-  identifierType?: string;
-  expiresAt?: string;
+  expiresAt: string;
+  permanent: boolean;
+  adminId: string;
 }
 
+// Report/feedback record
 export interface ReportFeedback {
   id: string;
   type: 'report' | 'feedback';
   userId: string;
   content: string;
   timestamp: string;
-  expires?: string;
-  status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
-  adminNotes?: string;
-}
-
-export interface SiteSettings {
-  id: string;
-  siteName: string;
-  siteDescription: string;
-  maintenanceMode: boolean;
-  registrationEnabled: boolean;
-  theme: string;
-  adminContact: string;
-}
-
-// Change from interface to string union type
-export type VipDuration = '1 Day' | '1 Week' | '1 Month' | '1 Year' | 'Lifetime';
-
-export interface AdminStats {
-  totalUsers: number;
-  activeUsers: number;
-  bannedUsers: number;
-  vipUsers: number;
-  totalMessages: number;
-  reportsCount: number;
+  expiresAt: string;
+  resolved: boolean;
+  status: 'open' | 'closed' | 'reviewing';
 }
