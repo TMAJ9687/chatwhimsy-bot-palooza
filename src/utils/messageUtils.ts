@@ -1,7 +1,12 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { Message } from '@/types/chat';
-import { MAX_CHAR_LIMIT, VIP_CHAR_LIMIT, CONSECUTIVE_LIMIT, SUPPORTED_IMAGE_TYPES, MAX_FILE_SIZE } from '@/utils/constants';
+import { SUPPORTED_IMAGE_TYPES, MAX_FILE_SIZE } from '@/utils/constants';
+
+// Export these constants directly from messageUtils for backward compatibility
+export const MAX_CHAR_LIMIT = 500;
+export const VIP_CHAR_LIMIT = 2000;
+export const CONSECUTIVE_LIMIT = 5;
 
 // Function to create a new message
 export const createMessage = (content: string, sender: 'user' | 'bot', isVip: boolean = false): Message => {

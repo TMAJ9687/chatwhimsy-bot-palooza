@@ -52,6 +52,9 @@ export interface FilterState {
   country: string[];
   age: [number, number];
   vip: boolean | null;
+  // For backwards compatibility
+  countries?: string[];
+  ageRange?: [number, number];
 }
 
 // Message status types
