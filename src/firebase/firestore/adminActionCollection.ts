@@ -37,9 +37,10 @@ export const getAdminActions = async (): Promise<AdminAction[]> => {
 
 export const logAdminAction = async (action: Partial<AdminAction>): Promise<AdminAction> => {
   try {
-    const timestamp = action.timestamp instanceof Date ? 
-      action.timestamp.toISOString() : 
-      new Date().toISOString();
+    // Convert timestamp string or Date to ISO string for consistent handling
+    const timestamp = typeof action.timestamp === 'string' ? 
+      action.timestamp : 
+      (action.timestamp instanceof Date ? action.timestamp.toISOString() : new Date().toISOString());
     
     const actionToStore = {
       ...action,

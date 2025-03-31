@@ -25,12 +25,16 @@ const initialState: DialogState = {
   data: {}
 };
 
-// Create context
+// Create context with a default value
 const DialogContext = createContext<{
   state: DialogState;
   openDialog: (type: DialogType, data?: Record<string, any>) => void;
   closeDialog: () => void;
-} | undefined>(undefined);
+}>({
+  state: initialState,
+  openDialog: () => {},
+  closeDialog: () => {}
+});
 
 // Optimized reducer - completely reset state on close
 function dialogReducer(state: DialogState, action: DialogAction): DialogState {

@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { Bot } from '@/types/chat';
 import { toast } from '@/components/ui/use-toast';

@@ -10,7 +10,7 @@ export const kickUser = async (userId: string, adminId: string): Promise<any> =>
     actionType: 'kick',
     targetId: userId,
     targetType: 'user',
-    timestamp: new Date(),
+    timestamp: new Date().toISOString(), // Convert Date to string
     adminId: adminId,
     adminName: '',
     details: ''
@@ -28,7 +28,7 @@ export const upgradeToVIP = async (
     targetId: userId,
     targetType: 'user',
     duration: duration,
-    timestamp: new Date(),
+    timestamp: new Date().toISOString(), // Convert Date to string
     adminId: adminId,
     adminName: '',
     details: ''
@@ -41,7 +41,7 @@ export const downgradeToStandard = async (userId: string, adminId: string): Prom
     actionType: 'downgrade',
     targetId: userId,
     targetType: 'user',
-    timestamp: new Date(),
+    timestamp: new Date().toISOString(), // Convert Date to string
     adminId: adminId,
     adminName: '',
     details: ''
