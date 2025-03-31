@@ -1,9 +1,9 @@
-
 import React, { useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigationType, useNavigate } from 'react-router-dom';
 import { useNavigationCleanup } from '@/hooks/useNavigationCleanup';
 import { useErrorCleaner } from '@/hooks/useErrorCleaner';
-import { toast } from '@/hooks/use-toast'; 
+import { toast } from '@/hooks/use-toast';
+import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
 
 /**
  * This component helps prevent navigation issues by cleaning up any stale state
@@ -14,6 +14,7 @@ const NavigationLock: React.FC = () => {
   const navigate = useNavigate();
   const navigationType = useNavigationType();
   const { cleanupUI, cleanupTimeoutsRef, navigationInProgressRef } = useNavigationCleanup();
+  const { isDOMReady } = useSafeDOMOperations();
   const cleanupCountRef = useRef(0);
   const lastLocationRef = useRef(location.pathname);
   const firestoreErrorShownRef = useRef(false);
@@ -22,6 +23,12 @@ const NavigationLock: React.FC = () => {
 
   // Enhanced cleanup function that ensures all dialogs and overlays are removed
   const enhancedCleanup = useCallback(() => {
+    // Only run cleanup if DOM is ready
+    if (!isDOMReady) {
+      console.log('DOM not ready, skipping cleanup');
+      return;
+    }
+    
     cleanupUI();
     cleanupCountRef.current++;
     
@@ -109,7 +116,7 @@ const NavigationLock: React.FC = () => {
         console.warn('Error checking/fixing user data:', e);
       }
     }
-  }, [cleanupUI, location.pathname]);
+  }, [cleanupUI, location.pathname, isDOMReady]);
   
   // Register enhanced error handler
   useErrorCleaner(enhancedCleanup);
@@ -168,6 +175,12 @@ const NavigationLock: React.FC = () => {
   
   // Watch for route changes to clean up UI with improved timing
   useEffect(() => {
+    // Skip if DOM not ready
+    if (!isDOMReady) {
+      console.log('DOM not ready, skipping navigation effects');
+      return;
+    }
+    
     // Skip if it's the same location (prevents unnecessary cleanups)
     if (lastLocationRef.current === location.pathname) {
       return;
@@ -211,10 +224,16 @@ const NavigationLock: React.FC = () => {
       // Clean up when component unmounts or before route change
       enhancedCleanup();
     };
-  }, [location.pathname, navigationType, enhancedCleanup, cleanupTimeoutsRef, navigationInProgressRef]);
+  }, [location.pathname, navigationType, enhancedCleanup, cleanupTimeoutsRef, navigationInProgressRef, isDOMReady]);
 
   // Clean up on component mount and unmount
   useEffect(() => {
+    // Skip if DOM not ready
+    if (!isDOMReady) {
+      console.log('DOM not ready, skipping initial cleanup');
+      return;
+    }
+    
     // Initial cleanup
     enhancedCleanup();
     
@@ -249,7 +268,7 @@ const NavigationLock: React.FC = () => {
         enhancedCleanup();
       });
     };
-  }, [enhancedCleanup, cleanupTimeoutsRef]);
+  }, [enhancedCleanup, cleanupTimeoutsRef, isDOMReady]);
 
   // This is a utility component - it doesn't render anything
   return null;

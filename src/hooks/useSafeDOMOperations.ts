@@ -7,8 +7,16 @@ import { domRegistry } from '@/services/dom';
  */
 export const useSafeDOMOperations = () => {
   const operationsInProgressRef = useRef<Set<string>>(new Set());
+  const domReadyRef = useRef(typeof document !== 'undefined' && 
+                           !!document?.body && 
+                           !!document?.documentElement);
   
+  // Set DOM ready state on mount
   useEffect(() => {
+    domReadyRef.current = typeof document !== 'undefined' && 
+                         !!document?.body && 
+                         !!document?.documentElement;
+    
     // Clean up registry on unmount
     return () => {
       Array.from(operationsInProgressRef.current).forEach(id => {
@@ -117,18 +125,11 @@ export const useSafeDOMOperations = () => {
   }, [safeRemoveElement]);
 
   /**
-   * Checks if DOM is ready for operations
-   */
-  const isDOMReady = useCallback((): boolean => {
-    return typeof document !== 'undefined' && 
-           !!document?.body && 
-           !!document?.documentElement;
-  }, []);
-
-  /**
    * Cleanup overlay elements using domRegistry
    */
   const cleanupOverlays = useCallback((): void => {
+    if (!domReadyRef.current) return;
+    
     if (domRegistry && typeof domRegistry.cleanupOverlays === 'function') {
       domRegistry.cleanupOverlays();
     } else {
@@ -151,17 +152,17 @@ export const useSafeDOMOperations = () => {
    */
   const createCleanupFn = useCallback((selectors: string): (() => void) => {
     return () => {
-      if (isDOMReady()) {
+      if (domReadyRef.current) {
         safeRemoveElementsBySelector(selectors);
       }
     };
-  }, [safeRemoveElementsBySelector, isDOMReady]);
+  }, [safeRemoveElementsBySelector]);
 
   return {
     safeRemoveElement,
     isElementInDOM,
     safeRemoveElementsBySelector,
-    isDOMReady,
+    isDOMReady: domReadyRef.current, // Return as boolean value, not function
     cleanupOverlays,
     registerNode,
     createCleanupFn
