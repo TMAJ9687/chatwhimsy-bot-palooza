@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback, useRef } from 'react';
 import { domRegistry } from '@/services/dom';
 
@@ -81,7 +80,7 @@ export const useSafeDOMOperations = () => {
         }
         
         // Final attempt with removeChild after rechecking parent
-        if (element.parentNode.contains(element)) {
+        if (element.parentNode.contains(element) && element instanceof Element) {
           const parent = element.parentNode;
           parent.removeChild(element);
           return true;

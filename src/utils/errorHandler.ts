@@ -116,8 +116,8 @@ export const performDOMCleanup = (): void => {
                   // First try the modern remove() method
                   element.remove();
                 } catch (e) {
-                  // If that fails, try removeChild with proper type assertion
-                  if (element.parentNode && element.parentNode.contains(element)) {
+                  // If that fails, try removeChild with proper type assertion and additional checks
+                  if (element.parentNode && element.parentNode.contains(element) && element instanceof Element) {
                     element.parentNode.removeChild(element);
                   }
                 }

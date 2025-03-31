@@ -62,8 +62,8 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
                 try {
                   el.remove();
                 } catch (e) {
-                  if (el.parentNode && el.parentNode.contains(el)) {
-                    el.parentNode.removeChild(el as unknown as ChildNode);
+                  if (el.parentNode && el.parentNode.contains(el) && el instanceof Element) {
+                    el.parentNode.removeChild(el);
                   }
                 }
               }

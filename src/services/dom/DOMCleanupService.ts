@@ -128,7 +128,7 @@ export class DOMCleanupService {
                   if (element.parentNode && element.parentNode.contains(element)) {
                     // Double-check it's really a child
                     const updatedChildNodes = Array.from(element.parentNode.childNodes);
-                    if (updatedChildNodes.includes(element as Node)) {
+                    if (updatedChildNodes.includes(element as Node) && element instanceof Element) {
                       element.parentNode.removeChild(element);
                     }
                   }

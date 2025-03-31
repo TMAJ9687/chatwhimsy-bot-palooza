@@ -27,8 +27,10 @@ export class DOMSafetyUtils {
         // Check if it's truly a child - extra validation
         const childNodes = Array.from(parent.childNodes);
         if (childNodes.includes(element as Node)) {
-          parent.removeChild(element);
-          return true;
+          if (element instanceof Element) {
+            parent.removeChild(element);
+            return true;
+          }
         }
       }
     } catch (e) {

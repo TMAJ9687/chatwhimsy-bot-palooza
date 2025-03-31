@@ -41,6 +41,9 @@ export class AuthService {
       localStorage.setItem('chatUser', JSON.stringify(userProfile));
       
       // For server-side persistence, we'll store in Supabase if available
+      // NOTE: We're commenting out Supabase operations since the session_tokens table doesn't exist
+      // We'll need to create a migration for this table later
+      /*
       try {
         const { data, error } = await supabase
           .from('session_tokens')
@@ -58,6 +61,7 @@ export class AuthService {
         // If Supabase operations fail, we can still rely on localStorage
         console.warn('Error during Supabase operation for temp user:', e);
       }
+      */
       
       return userProfile;
     } catch (error) {
