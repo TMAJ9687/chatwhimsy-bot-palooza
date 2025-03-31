@@ -1,8 +1,10 @@
+
 import { useCallback, useRef } from 'react';
 import { useUser } from '@/context/UserContext';
 import { useAdmin } from '@/hooks/useAdmin';
-import { signOutUser } from '@/firebase/auth';
-import { performDOMCleanup, cleanupDynamicImportArtifacts } from '@/utils/errorHandler';
+import { signOutUser } from '@/lib/supabase/supabaseAuth';
+import { useNavigate } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 
 /**
  * Hook that provides logout functionality with proper redirection
@@ -11,61 +13,13 @@ import { performDOMCleanup, cleanupDynamicImportArtifacts } from '@/utils/errorH
 export const useLogout = () => {
   const { user, clearUser } = useUser();
   const { adminLogout, isAdmin } = useAdmin();
+  const navigate = useNavigate();
   const isVip = user?.isVip || false;
   const logoutInProgressRef = useRef(false);
-  const domFrozenRef = useRef(false);
   
   /**
-   * Freezes React's DOM reconciliation to prevent removeChild errors
-   * This ensures React won't try to manipulate nodes we're about to navigate away from
+   * Simplified logout function that avoids DOM manipulations
    */
-  const freezeReactDOM = useCallback(() => {
-    if (domFrozenRef.current) return;
-    
-    domFrozenRef.current = true;
-    console.log('Freezing React DOM operations');
-    
-    try {
-      // Apply a special data attribute to the root to signal freezing
-      if (document.getElementById('root')) {
-        document.getElementById('root')?.setAttribute('data-navigation', 'in-progress');
-      }
-      
-      // Remove modal and dialog classes that might interfere with navigation
-      if (document.body) {
-        document.body.style.overflow = 'auto';
-        document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-      }
-      
-      // Patch removeChild to be a no-op for nodes being navigated away from
-      const originalRemoveChild = Node.prototype.removeChild;
-      Node.prototype.removeChild = function(child) {
-        // If we're navigating, don't throw errors for missing children
-        if (domFrozenRef.current) {
-          console.log('Intercepted removeChild during navigation');
-          // Check if child is actually a child before removing
-          if (this.contains(child)) {
-            return originalRemoveChild.call(this, child);
-          }
-          // Return the child without throwing if not found during navigation
-          return child;
-        }
-        // Otherwise use original behavior
-        return originalRemoveChild.call(this, child);
-      };
-      
-      // Restore the original after a short delay (after navigation should be complete)
-      setTimeout(() => {
-        if (domFrozenRef.current) {
-          Node.prototype.removeChild = originalRemoveChild;
-          domFrozenRef.current = false;
-        }
-      }, 1000);
-    } catch (e) {
-      console.warn('Error while freezing DOM:', e);
-    }
-  }, []);
-  
   const performLogout = useCallback(async (callback?: () => void) => {
     // Prevent multiple logout attempts
     if (logoutInProgressRef.current) {
@@ -78,52 +32,41 @@ export const useLogout = () => {
     try {
       console.log('Starting logout process...');
       
-      // Set logout event to trigger listeners and prevent automatic relogin
+      // Set logout event to trigger listeners
       localStorage.setItem('logoutEvent', Date.now().toString());
       
-      // Execute in sequence with proper timing using microtasks
-      await new Promise(resolve => {
-        queueMicrotask(() => {
-          // First clean up DOM state to prevent React errors
-          performDOMCleanup();
-          
-          queueMicrotask(() => {
-            // Also clean up any dynamic import artifacts
-            cleanupDynamicImportArtifacts();
-            
-            queueMicrotask(() => {
-              // Clean up storage systematically
-              localStorage.removeItem('chatUser');
-              localStorage.removeItem('vipProfileComplete');
-              localStorage.removeItem('adminEmail');
-              
-              // Now freeze React DOM before navigation
-              freezeReactDOM();
-              resolve(null);
-            });
-          });
-        });
-      });
+      // First clear user data in context
+      clearUser();
       
-      // Force a hard reload immediately with clear navigation target
-      // This bypasses React's DOM manipulation issues
+      // Handle admin logout
       if (isAdmin) {
         console.log('Admin logout flow initiated');
         try {
+          // First sign out from Supabase
           await signOutUser();
+          // Then execute admin-specific logout
           await adminLogout();
-          clearUser();
           
-          // Use location.replace for cleaner navigation without history
-          window.location.replace('/secretadminportal');
+          // Show toast
+          toast({
+            title: 'Logout successful',
+            description: 'You have been logged out from the admin panel',
+          });
+          
+          // Navigate to admin login
+          navigate('/secretadminportal', { replace: true });
         } catch (adminError) {
           console.error('Error in admin logout:', adminError);
-          window.location.replace('/secretadminportal');
+          // Force navigation as fallback
+          navigate('/secretadminportal', { replace: true });
         }
       } else {
         console.log('Standard user logout flow initiated');
-        // Clear user data first
-        clearUser();
+        
+        // Clean up storage
+        localStorage.removeItem('chatUser');
+        localStorage.removeItem('vipProfileComplete');
+        localStorage.removeItem('temporaryUserToken');
         
         // Run the callback if one was provided
         if (callback && typeof callback === 'function') {
@@ -134,36 +77,43 @@ export const useLogout = () => {
           }
         }
         
-        // Use force reload approach to completely reset app state
-        const destination = isVip ? '/' : '/feedback';
-        console.log(`Navigating to ${destination} with force reload`);
+        // Sign out from Supabase (but continue regardless of result)
+        try {
+          await signOutUser();
+        } catch (error) {
+          console.warn('Non-critical error during Supabase signOut:', error);
+        }
         
-        // Use location.replace for cleaner navigation and append cache-busting parameter
-        window.location.replace(`${destination}?t=${Date.now()}`);
+        // Show toast
+        toast({
+          title: 'Logout successful',
+          description: 'You have been logged out',
+        });
+        
+        // Navigate to appropriate destination
+        const destination = isVip ? '/' : '/feedback';
+        navigate(destination, { replace: true });
       }
     } catch (error) {
       console.error('Error during logout:', error);
       
-      // Fallback logout - always navigate to home with forced reload
+      // Fallback logout
       try {
         clearUser();
-        freezeReactDOM();
-        
-        console.log('Using fallback logout approach with force reload');
-        window.location.href = '/?fallback=true';
-        
-        // Ensure page reloads if navigation doesn't happen immediately
-        setTimeout(() => {
-          window.location.reload();
-        }, 100);
+        navigate('/', { replace: true });
       } catch (e) {
         console.error('Fallback logout also failed', e);
-        window.location.reload();
+        window.location.href = '/';
       } finally {
         logoutInProgressRef.current = false;
       }
+    } finally {
+      // Clean up flag after a delay to prevent rapid re-attempts
+      setTimeout(() => {
+        logoutInProgressRef.current = false;
+      }, 500);
     }
-  }, [user, isVip, isAdmin, adminLogout, clearUser, freezeReactDOM]);
+  }, [user, isVip, isAdmin, adminLogout, clearUser, navigate]);
 
   return { performLogout };
 };
