@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -46,26 +47,24 @@ const App = () => {
               <ModalProvider>
                 <DialogProvider>
                   <ChatProvider>
-                    <UserProvider>
-                      <MainLayout>
-                        <Routes>
-                          <Route path="/" element={<MainPage />} />
-                          <Route path="/chat/:botId" element={<ChatPage />} />
-                          <Route path="/profile" element={<ProfilePage />} />
-                          <Route path="/settings" element={<SettingsPage />} />
-                          <Route path="/vip" element={<VIPPage />} />
-                          <Route path="/faq" element={<FAQPage />} />
-                          <Route path="/secretadminportal" element={<AdminLogin />} />
-                          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                          <Route path="/admin-dashboard/users" element={<AdminDashboard />} />
-                          <Route path="/admin-dashboard/bots" element={<AdminDashboard />} />
-                          <Route path="/admin-dashboard/reports" element={<AdminDashboard />} />
-                          <Route path="/admin-dashboard/settings" element={<AdminDashboard />} />
-                          <Route path="/admin-dashboard/moderation" element={<AdminDashboard />} />
-                          <Route path="*" element={<NotFound />} />
-                        </Routes>
-                      </MainLayout>
-                    </UserProvider>
+                    <MainLayout>
+                      <Routes>
+                        <Route path="/" element={<MainPage />} />
+                        <Route path="/chat/:botId" element={<ChatPage />} />
+                        <Route path="/profile" element={<ProfilePage />} />
+                        <Route path="/settings" element={<SettingsPage />} />
+                        <Route path="/vip" element={<VIPPage />} />
+                        <Route path="/faq" element={<FAQPage />} />
+                        <Route path="/secretadminportal" element={<AdminLogin />} />
+                        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                        <Route path="/admin-dashboard/users" element={<AdminDashboard />} />
+                        <Route path="/admin-dashboard/bots" element={<AdminDashboard />} />
+                        <Route path="/admin-dashboard/reports" element={<AdminDashboard />} />
+                        <Route path="/admin-dashboard/settings" element={<AdminDashboard />} />
+                        <Route path="/admin-dashboard/moderation" element={<AdminDashboard />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </MainLayout>
                   </ChatProvider>
                 </DialogProvider>
               </ModalProvider>

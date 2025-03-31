@@ -1,174 +1,164 @@
 
 import { supabase } from './supabaseClient';
-import { AdminAction, BanRecord, ReportFeedback } from '@/types/admin';
-import { Bot } from '@/types/chat';
 import { v4 as uuidv4 } from 'uuid';
+import { ensureAdminTables, createRequiredTables } from '@/utils/migrationUtils';
+import type { Bot } from '@/types/chat';
 
-/**
- * Admin data service for Supabase
- * Replaces the Firebase admin service with Supabase equivalent
- */
+// Initialize admin data in Supabase
+export const initializeSupabaseAdminData = async () => {
+  try {
+    // Create required tables if they don't exist
+    await createRequiredTables();
+    
+    // Ensure admin profile exists
+    await ensureAdminTables();
+    
+    console.log('Supabase admin data initialized successfully');
+    return true;
+  } catch (error) {
+    console.error('Error initializing Supabase admin data:', error);
+    return false;
+  }
+};
 
-// Bot Management
+// Get all bots
 export const getAllBots = async (): Promise<Bot[]> => {
   try {
-    // Get bots data from Supabase
     const { data, error } = await supabase
       .from('profiles')
-      .select('*');
-      
-    if (error) {
-      console.error('Error getting bots from Supabase:', error);
-      throw error;
-    }
+      .select('*')
+      .eq('is_bot', true);
     
-    // Transform to Bot interface
-    return data.map(profile => ({
-      id: profile.id,
-      name: profile.nickname || profile.display_name || 'User',
-      avatar: profile.avatar_url || '',
-      gender: profile.gender || 'other',
-      age: profile.age || 25,
-      country: profile.country || 'Unknown',
-      interests: profile.interests || [],
-      vip: profile.is_admin || false, // VIPs are admin users in this case
-      about: profile.bio || '',
-      personalityTraits: [] 
+    if (error) throw error;
+    
+    // Transform data to match Bot type
+    const bots: Bot[] = data.map(item => ({
+      id: item.id,
+      name: item.name || item.display_name,
+      avatar: item.avatar_url,
+      gender: item.gender,
+      age: item.age,
+      country: item.country,
+      countryCode: item.country_code || 'US',
+      interests: item.interests || [],
+      vip: item.is_vip || false,
+      responses: item.responses || [],
+      personalityTraits: item.personality_traits || []
     }));
+    
+    console.log('Loaded', bots.length, 'bots');
+    return bots;
   } catch (error) {
     console.error('Error getting all bots:', error);
     return [];
   }
 };
 
-export const getBot = async (id: string): Promise<Bot | undefined> => {
+// Get a specific bot
+export const getBot = async (id: string): Promise<Bot | null> => {
   try {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', id)
+      .eq('is_bot', true)
       .single();
-      
-    if (error) {
-      console.error('Error getting bot:', error);
-      return undefined;
-    }
+    
+    if (error) throw error;
+    
+    if (!data) return null;
     
     return {
       id: data.id,
-      name: data.nickname || data.display_name || 'User',
-      avatar: data.avatar_url || '',
-      gender: data.gender || 'other',
-      age: data.age || 25,
-      country: data.country || 'Unknown',
+      name: data.name || data.display_name,
+      avatar: data.avatar_url,
+      gender: data.gender,
+      age: data.age,
+      country: data.country,
+      countryCode: data.country_code || 'US',
       interests: data.interests || [],
-      vip: data.is_admin || false,
-      about: data.bio || '',
-      personalityTraits: []
+      vip: data.is_vip || false,
+      responses: data.responses || [],
+      personalityTraits: data.personality_traits || []
     };
   } catch (error) {
     console.error('Error getting bot:', error);
-    return undefined;
-  }
-};
-
-export const createBot = async (bot: Omit<Bot, 'id'>): Promise<Bot> => {
-  try {
-    const newBotId = `bot-${uuidv4().slice(0, 8)}`;
-    
-    const { data, error } = await supabase
-      .from('profiles')
-      .insert({
-        id: newBotId,
-        nickname: bot.name,
-        display_name: bot.name,
-        gender: bot.gender,
-        age: bot.age,
-        country: bot.country,
-        bio: bot.about,
-        avatar_url: bot.avatar,
-        interests: bot.interests,
-        is_admin: bot.vip
-      })
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error creating bot:', error);
-      throw error;
-    }
-    
-    return {
-      id: data.id,
-      name: data.nickname || data.display_name,
-      avatar: data.avatar_url || '',
-      gender: data.gender || 'other',
-      age: data.age || 25,
-      country: data.country || 'Unknown',
-      interests: data.interests || [],
-      vip: data.is_admin || false,
-      about: data.bio || '',
-      personalityTraits: []
-    };
-  } catch (error) {
-    console.error('Error creating bot:', error);
-    throw error;
-  }
-};
-
-export const updateBot = async (id: string, updates: Partial<Bot>): Promise<Bot | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({
-        nickname: updates.name,
-        display_name: updates.name,
-        gender: updates.gender,
-        age: updates.age,
-        country: updates.country,
-        bio: updates.about,
-        avatar_url: updates.avatar,
-        interests: updates.interests,
-        is_admin: updates.vip
-      })
-      .eq('id', id)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error updating bot:', error);
-      return null;
-    }
-    
-    return {
-      id: data.id,
-      name: data.nickname || data.display_name,
-      avatar: data.avatar_url || '',
-      gender: data.gender || 'other',
-      age: data.age || 25,
-      country: data.country || 'Unknown',
-      interests: data.interests || [],
-      vip: data.is_admin || false,
-      about: data.bio || '',
-      personalityTraits: []
-    };
-  } catch (error) {
-    console.error('Error updating bot:', error);
     return null;
   }
 };
 
+// Create a new bot
+export const createBot = async (bot: Omit<Bot, 'id'>): Promise<string | null> => {
+  try {
+    const id = uuidv4();
+    
+    const { error } = await supabase
+      .from('profiles')
+      .insert({
+        id,
+        name: bot.name,
+        display_name: bot.name,
+        avatar_url: bot.avatar,
+        gender: bot.gender,
+        age: bot.age,
+        country: bot.country,
+        country_code: bot.countryCode,
+        interests: bot.interests,
+        is_vip: bot.vip,
+        is_bot: true,
+        responses: bot.responses || [],
+        personality_traits: bot.personalityTraits || []
+      });
+    
+    if (error) throw error;
+    
+    return id;
+  } catch (error) {
+    console.error('Error creating bot:', error);
+    return null;
+  }
+};
+
+// Update an existing bot
+export const updateBot = async (id: string, bot: Partial<Bot>): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        name: bot.name,
+        display_name: bot.name,
+        avatar_url: bot.avatar,
+        gender: bot.gender,
+        age: bot.age,
+        country: bot.country,
+        country_code: bot.countryCode,
+        interests: bot.interests,
+        is_vip: bot.vip,
+        responses: bot.responses,
+        personality_traits: bot.personalityTraits
+      })
+      .eq('id', id)
+      .eq('is_bot', true);
+    
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating bot:', error);
+    return false;
+  }
+};
+
+// Delete a bot
 export const deleteBot = async (id: string): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('profiles')
       .delete()
-      .eq('id', id);
-      
-    if (error) {
-      console.error('Error deleting bot:', error);
-      return false;
-    }
+      .eq('id', id)
+      .eq('is_bot', true);
+    
+    if (error) throw error;
     
     return true;
   } catch (error) {
@@ -177,156 +167,65 @@ export const deleteBot = async (id: string): Promise<boolean> => {
   }
 };
 
-// Admin Actions
-export const getAdminActions = async (): Promise<AdminAction[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('admin_actions')
-      .select('*');
-      
-    if (error) {
-      console.error('Error getting admin actions:', error);
-      return [];
-    }
-    
-    return data.map(action => ({
-      ...action,
-      timestamp: new Date(action.timestamp)
-    }));
-  } catch (error) {
-    console.error('Error getting admin actions:', error);
-    return [];
-  }
-};
-
-export const logAdminAction = async (action: AdminAction): Promise<AdminAction> => {
-  try {
-    const { data, error } = await supabase
-      .from('admin_actions')
-      .insert({
-        ...action,
-        id: action.id || uuidv4(),
-        timestamp: action.timestamp.toISOString()
-      })
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error logging admin action:', error);
-      return action;
-    }
-    
-    return {
-      ...data,
-      timestamp: new Date(data.timestamp)
-    };
-  } catch (error) {
-    console.error('Error logging admin action:', error);
-    return action;
-  }
-};
-
-// Ban Management
-export const getBannedUsers = async (): Promise<BanRecord[]> => {
+// Get all banned users
+export const getBannedUsers = async () => {
   try {
     const { data, error } = await supabase
       .from('banned_users')
       .select('*');
-      
-    if (error) {
-      console.error('Error getting banned users:', error);
-      return [];
-    }
     
-    return data.map(ban => ({
-      ...ban,
-      timestamp: new Date(ban.timestamp),
-      expiresAt: ban.expiresAt ? new Date(ban.expiresAt) : undefined
-    }));
+    if (error) throw error;
+    
+    return data || [];
   } catch (error) {
     console.error('Error getting banned users:', error);
     return [];
   }
 };
 
-export const banUser = async (banRecord: Omit<BanRecord, 'id' | 'timestamp'>): Promise<BanRecord> => {
+// Ban a user
+export const banUser = async (userId: string, reason: string, duration: string) => {
   try {
+    const id = uuidv4();
     const now = new Date();
-    const newBan = {
-      ...banRecord,
-      id: uuidv4(),
-      timestamp: now.toISOString(),
-      expiresAt: banRecord.expiresAt ? banRecord.expiresAt.toISOString() : null
-    };
+    let expiresAt = null;
     
-    const { data, error } = await supabase
-      .from('banned_users')
-      .insert(newBan)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error banning user:', error);
-      throw error;
+    if (duration !== 'permanent') {
+      const days = parseInt(duration.split(' ')[0]);
+      expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
     }
     
-    // Log the admin action
-    await logAdminAction({
-      id: uuidv4(),
-      actionType: 'ban',
-      targetId: banRecord.identifier,
-      targetType: banRecord.identifierType,
-      reason: banRecord.reason,
-      duration: banRecord.duration,
-      timestamp: now,
-      adminId: banRecord.adminId
-    });
+    const { error } = await supabase
+      .from('banned_users')
+      .insert({
+        id,
+        identifier: userId,
+        identifier_type: 'user_id',
+        reason,
+        duration,
+        timestamp: now.toISOString(),
+        expires_at: expiresAt ? expiresAt.toISOString() : null,
+        admin_id: 'admin' // Get from auth context in a real app
+      });
     
-    return {
-      ...data,
-      timestamp: new Date(data.timestamp),
-      expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined
-    };
+    if (error) throw error;
+    
+    return true;
   } catch (error) {
     console.error('Error banning user:', error);
-    throw error;
+    return false;
   }
 };
 
-export const unbanUser = async (id: string, adminId: string): Promise<boolean> => {
+// Unban a user
+export const unbanUser = async (id: string) => {
   try {
-    // Get the ban record first
-    const { data: banData, error: fetchError } = await supabase
-      .from('banned_users')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (fetchError) {
-      console.error('Error fetching ban record:', fetchError);
-      return false;
-    }
-    
-    // Delete the ban
     const { error } = await supabase
       .from('banned_users')
       .delete()
       .eq('id', id);
-      
-    if (error) {
-      console.error('Error unbanning user:', error);
-      return false;
-    }
     
-    // Log admin action
-    await logAdminAction({
-      id: uuidv4(),
-      actionType: 'unban',
-      targetId: banData.identifier,
-      targetType: banData.identifierType,
-      timestamp: new Date(),
-      adminId: adminId
-    });
+    if (error) throw error;
     
     return true;
   } catch (error) {
@@ -335,126 +234,131 @@ export const unbanUser = async (id: string, adminId: string): Promise<boolean> =
   }
 };
 
-export const isUserBanned = async (identifier: string): Promise<BanRecord | null> => {
+// Check if a user is banned
+export const isUserBanned = async (userId: string) => {
   try {
     const { data, error } = await supabase
       .from('banned_users')
       .select('*')
-      .eq('identifier', identifier)
-      .single();
-      
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // No record found
-        return null;
+      .eq('identifier', userId)
+      .eq('identifier_type', 'user_id');
+    
+    if (error) throw error;
+    
+    if (!data || data.length === 0) return false;
+    
+    // Check if any ban is still active
+    const now = new Date();
+    for (const ban of data) {
+      if (!ban.expires_at || new Date(ban.expires_at) > now) {
+        return true;
       }
-      console.error('Error checking if user is banned:', error);
-      return null;
     }
     
-    // Check if ban has expired
-    const ban = {
-      ...data,
-      timestamp: new Date(data.timestamp),
-      expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined
-    };
-    
-    if (ban.expiresAt && new Date() > ban.expiresAt) {
-      // Remove expired ban
-      await supabase
-        .from('banned_users')
-        .delete()
-        .eq('id', ban.id);
-        
-      return null;
-    }
-    
-    return ban;
+    return false;
   } catch (error) {
     console.error('Error checking if user is banned:', error);
-    return null;
+    return false;
   }
 };
 
-// Reports and Feedback
-export const getReportsAndFeedback = async (): Promise<ReportFeedback[]> => {
+// Get all admin actions
+export const getAdminActions = async () => {
   try {
-    // Clean up expired items first
-    await cleanupExpiredReportsFeedback();
+    const { data, error } = await supabase
+      .from('admin_actions')
+      .select('*')
+      .order('timestamp', { ascending: false });
     
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error getting admin actions:', error);
+    return [];
+  }
+};
+
+// Log an admin action
+export const logAdminAction = async (actionType: string, targetId: string, targetType: string, reason?: string) => {
+  try {
+    const id = uuidv4();
+    
+    const { error } = await supabase
+      .from('admin_actions')
+      .insert({
+        id,
+        action_type: actionType,
+        target_id: targetId,
+        target_type: targetType,
+        reason,
+        timestamp: new Date().toISOString(),
+        admin_id: 'admin' // Get from auth context in a real app
+      });
+    
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error logging admin action:', error);
+    return false;
+  }
+};
+
+// Get all reports and feedback
+export const getReportsAndFeedback = async () => {
+  try {
     const { data, error } = await supabase
       .from('reports_feedback')
-      .select('*');
-      
-    if (error) {
-      console.error('Error getting reports and feedback:', error);
-      return [];
-    }
+      .select('*')
+      .order('timestamp', { ascending: false });
     
-    return data.map(item => ({
-      ...item,
-      timestamp: new Date(item.timestamp),
-      expiresAt: new Date(item.expiresAt)
-    }));
+    if (error) throw error;
+    
+    return data || [];
   } catch (error) {
     console.error('Error getting reports and feedback:', error);
     return [];
   }
 };
 
-export const addReportOrFeedback = async (
-  type: 'report' | 'feedback', 
-  userId: string, 
-  content: string
-): Promise<ReportFeedback> => {
+// Add a report or feedback
+export const addReportOrFeedback = async (type: string, userId: string, content: string) => {
   try {
+    const id = uuidv4();
     const now = new Date();
-    const expiresAt = new Date(now);
-    expiresAt.setHours(expiresAt.getHours() + 24);
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
     
-    const item = {
-      id: uuidv4(),
-      type,
-      userId,
-      content,
-      timestamp: now.toISOString(),
-      expiresAt: expiresAt.toISOString(),
-      resolved: false
-    };
-    
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('reports_feedback')
-      .insert(item)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error adding report or feedback:', error);
-      throw error;
-    }
+      .insert({
+        id,
+        type,
+        user_id: userId,
+        content,
+        timestamp: now.toISOString(),
+        expires_at: expiresAt.toISOString(),
+        resolved: false
+      });
     
-    return {
-      ...data,
-      timestamp: new Date(data.timestamp),
-      expiresAt: new Date(data.expiresAt)
-    };
+    if (error) throw error;
+    
+    return true;
   } catch (error) {
     console.error('Error adding report or feedback:', error);
-    throw error;
+    return false;
   }
 };
 
-export const resolveReportOrFeedback = async (id: string): Promise<boolean> => {
+// Resolve a report or feedback
+export const resolveReportOrFeedback = async (id: string) => {
   try {
     const { error } = await supabase
       .from('reports_feedback')
       .update({ resolved: true })
       .eq('id', id);
-      
-    if (error) {
-      console.error('Error resolving report or feedback:', error);
-      return false;
-    }
+    
+    if (error) throw error;
     
     return true;
   } catch (error) {
@@ -463,17 +367,15 @@ export const resolveReportOrFeedback = async (id: string): Promise<boolean> => {
   }
 };
 
-export const deleteReportOrFeedback = async (id: string): Promise<boolean> => {
+// Delete a report or feedback
+export const deleteReportOrFeedback = async (id: string) => {
   try {
     const { error } = await supabase
       .from('reports_feedback')
       .delete()
       .eq('id', id);
-      
-    if (error) {
-      console.error('Error deleting report or feedback:', error);
-      return false;
-    }
+    
+    if (error) throw error;
     
     return true;
   } catch (error) {
@@ -482,84 +384,63 @@ export const deleteReportOrFeedback = async (id: string): Promise<boolean> => {
   }
 };
 
-export const cleanupExpiredReportsFeedback = async (): Promise<void> => {
+// Cleanup expired reports and feedback
+export const cleanupExpiredReportsFeedback = async () => {
   try {
-    const now = new Date().toISOString();
+    const now = new Date();
     
     const { error } = await supabase
       .from('reports_feedback')
       .delete()
-      .lt('expiresAt', now);
-      
-    if (error) {
-      console.error('Error cleaning up expired reports and feedback:', error);
-    }
+      .lt('expires_at', now.toISOString());
+    
+    if (error) throw error;
+    
+    return true;
   } catch (error) {
     console.error('Error cleaning up expired reports and feedback:', error);
+    return false;
   }
 };
 
-// User Management
-export const kickUser = async (userId: string, adminId: string): Promise<AdminAction> => {
-  const action: AdminAction = {
-    id: uuidv4(),
-    actionType: 'kick',
-    targetId: userId,
-    targetType: 'user',
-    timestamp: new Date(),
-    adminId: adminId
-  };
-  
-  return await logAdminAction(action);
+// User management functions
+export const kickUser = async (userId: string, reason: string) => {
+  // In a real app, this would invalidate user sessions
+  return await logAdminAction('kick', userId, 'user', reason);
 };
 
-export const upgradeToVIP = async (
-  userId: string, 
-  adminId: string, 
-  duration: string = 'Lifetime'
-): Promise<AdminAction> => {
-  // Update user's VIP status
-  await supabase
-    .from('profiles')
-    .update({ is_admin: true })
-    .eq('id', userId);
-  
-  const action: AdminAction = {
-    id: uuidv4(),
-    actionType: 'upgrade',
-    targetId: userId,
-    targetType: 'user',
-    duration: duration,
-    timestamp: new Date(),
-    adminId: adminId
-  };
-  
-  return await logAdminAction(action);
+export const upgradeToVIP = async (userId: string) => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_vip: true })
+      .eq('id', userId);
+    
+    if (error) throw error;
+    
+    await logAdminAction('upgrade_to_vip', userId, 'user');
+    
+    return true;
+  } catch (error) {
+    console.error('Error upgrading user to VIP:', error);
+    return false;
+  }
 };
 
-export const downgradeToStandard = async (userId: string, adminId: string): Promise<AdminAction> => {
-  // Update user's VIP status
-  await supabase
-    .from('profiles')
-    .update({ is_admin: false })
-    .eq('id', userId);
-  
-  const action: AdminAction = {
-    id: uuidv4(),
-    actionType: 'downgrade',
-    targetId: userId,
-    targetType: 'user',
-    timestamp: new Date(),
-    adminId: adminId
-  };
-  
-  return await logAdminAction(action);
-};
-
-// Initialize admin service
-export const initializeSupabaseAdminData = async (): Promise<void> => {
-  console.log('Initializing Supabase admin data...');
-  // Make sure the tables exist, if not, we'll set them up
-  
-  return Promise.resolve();
+export const downgradeToStandard = async (userId: string) => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_vip: false })
+      .eq('id', userId);
+    
+    if (error) throw error;
+    
+    await logAdminAction('downgrade_to_standard', userId, 'user');
+    
+    return true;
+  } catch (error) {
+    console.error('Error downgrading user to standard:', error);
+    return false;
+  }
 };
