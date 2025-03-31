@@ -49,8 +49,8 @@ export const performDOMCleanup = (): void => {
                 } catch (e) {
                   // If that fails, try removeChild with proper type assertion
                   if (element.parentNode && element.parentNode.contains(element)) {
-                    // Properly cast to ChildNode to satisfy TypeScript
-                    element.parentNode.removeChild(element as unknown as ChildNode);
+                    // Element is already a valid ChildNode, no need for as unknown
+                    element.parentNode.removeChild(element);
                   }
                 }
               }

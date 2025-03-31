@@ -1,3 +1,4 @@
+
 /**
  * Utility class for safely performing DOM operations
  */
@@ -26,8 +27,8 @@ export class DOMSafetyUtils {
         // Check if it's truly a child - extra validation
         const childNodes = Array.from(parent.childNodes);
         if (childNodes.includes(element as Node)) {
-          // Properly cast to ChildNode to satisfy TypeScript
-          parent.removeChild(element as unknown as ChildNode);
+          // Use proper type assertion for ChildNode
+          parent.removeChild(element);
           return true;
         }
       }
