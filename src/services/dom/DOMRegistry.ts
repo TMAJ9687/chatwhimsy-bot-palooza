@@ -12,6 +12,7 @@ class DOMRegistry {
   private cleanupService: DOMCleanupService;
   private operationQueue: DOMOperationQueue;
   private safetyUtils: DOMSafetyUtils;
+  private operations = new Map<string, { timestamp: number }>();
 
   private constructor() {
     this.cleanupService = new DOMCleanupService();
@@ -70,6 +71,22 @@ class DOMRegistry {
     } catch (error) {
       console.warn('[DOMRegistry] Error registering node:', error);
     }
+  }
+
+  /**
+   * Register an operation for tracking
+   */
+  public registerOperation(id: string): void {
+    this.operations.set(id, {
+      timestamp: Date.now()
+    });
+  }
+
+  /**
+   * Unregister an operation
+   */
+  public unregisterOperation(id: string): void {
+    this.operations.delete(id);
   }
 
   /**

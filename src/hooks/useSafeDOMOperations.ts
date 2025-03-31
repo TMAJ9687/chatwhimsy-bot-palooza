@@ -12,7 +12,9 @@ export const useSafeDOMOperations = () => {
     // Clean up registry on unmount
     return () => {
       Array.from(operationsInProgressRef.current).forEach(id => {
-        domRegistry.unregisterOperation(id);
+        if (typeof domRegistry.unregisterOperation === 'function') {
+          domRegistry.unregisterOperation(id);
+        }
       });
       operationsInProgressRef.current.clear();
     };
@@ -44,8 +46,11 @@ export const useSafeDOMOperations = () => {
         if (childNodes.includes(element as Node)) {
           // We need to make sure element is an Element before using removeChild
           if (element instanceof Element) {
-            parent.removeChild(element);
-            return true;
+            // Make sure it's a valid child node before removing
+            if (element.parentNode === parent) {
+              parent.removeChild(element as unknown as ChildNode);
+              return true;
+            }
           }
         }
       }
@@ -68,8 +73,11 @@ export const useSafeDOMOperations = () => {
         // Final attempt with removeChild after rechecking parent
         if (element.parentNode && element.parentNode.contains(element) && element instanceof Element) {
           const parent = element.parentNode;
-          parent.removeChild(element);
-          return true;
+          // Additional safety check to ensure it's a valid child
+          if (element.parentNode === parent) {
+            parent.removeChild(element as unknown as ChildNode);
+            return true;
+          }
         }
       } catch (finalError) {
         console.warn('All attempts to remove element failed:', finalError);
@@ -107,10 +115,55 @@ export const useSafeDOMOperations = () => {
       return 0;
     }
   }, [safeRemoveElement]);
-  
+
+  /**
+   * Checks if DOM is ready for operations
+   */
+  const isDOMReady = useCallback((): boolean => {
+    return typeof document !== 'undefined' && 
+           !!document?.body && 
+           !!document?.documentElement;
+  }, []);
+
+  /**
+   * Cleanup overlay elements using domRegistry
+   */
+  const cleanupOverlays = useCallback((): void => {
+    if (domRegistry && typeof domRegistry.cleanupOverlays === 'function') {
+      domRegistry.cleanupOverlays();
+    } else {
+      // Fallback if registry not available
+      safeRemoveElementsBySelector('.fixed.inset-0, [role="dialog"], [aria-modal="true"]');
+    }
+  }, [safeRemoveElementsBySelector]);
+
+  /**
+   * Register a node with the DOM registry
+   */
+  const registerNode = useCallback((node: Node | null): void => {
+    if (domRegistry && typeof domRegistry.registerNode === 'function' && node) {
+      domRegistry.registerNode(node);
+    }
+  }, []);
+
+  /**
+   * Creates a cleanup function for specific selectors
+   */
+  const createCleanupFn = useCallback((selectors: string): (() => void) => {
+    return () => {
+      if (isDOMReady()) {
+        safeRemoveElementsBySelector(selectors);
+      }
+    };
+  }, [safeRemoveElementsBySelector, isDOMReady]);
+
   return {
     safeRemoveElement,
     isElementInDOM,
-    safeRemoveElementsBySelector
+    safeRemoveElementsBySelector,
+    isDOMReady,
+    cleanupOverlays,
+    registerNode,
+    createCleanupFn
   };
 };

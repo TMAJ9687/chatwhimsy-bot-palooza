@@ -28,7 +28,8 @@ export class DOMSafetyUtils {
         const childNodes = Array.from(parent.childNodes);
         if (childNodes.includes(element as Node)) {
           if (element instanceof Element) {
-            parent.removeChild(element);
+            // Cast to appropriate type for TypeScript
+            parent.removeChild(element as unknown as ChildNode);
             return true;
           }
         }
