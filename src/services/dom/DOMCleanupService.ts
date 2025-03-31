@@ -129,7 +129,6 @@ export class DOMCleanupService {
                     // Double-check it's really a child
                     const updatedChildNodes = Array.from(element.parentNode.childNodes);
                     if (updatedChildNodes.includes(element as Node)) {
-                      // Use proper type assertion - Element is already a valid ChildNode
                       element.parentNode.removeChild(element);
                     }
                   }

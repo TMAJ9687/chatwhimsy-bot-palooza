@@ -83,7 +83,6 @@ export const useSafeDOMOperations = () => {
         // Final attempt with removeChild after rechecking parent
         if (element.parentNode.contains(element)) {
           const parent = element.parentNode;
-          // Element is already a valid ChildNode
           parent.removeChild(element);
           return true;
         }
