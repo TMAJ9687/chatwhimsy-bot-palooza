@@ -19,11 +19,16 @@ export function isNode(value: unknown): value is Node {
 
 /**
  * Type guard to check if a value is a ChildNode
+ * This is a more comprehensive check that ensures the node has
+ * the required properties to be a valid ChildNode
  */
 export function isChildNode(value: unknown): value is ChildNode {
   return isNode(value) && 
-    ('parentNode' in value || 'parentElement' in value) &&
-    typeof (value as any).remove === 'function';
+    'parentNode' in value && 
+    'remove' in value &&
+    'before' in value &&
+    'after' in value &&
+    'replaceWith' in value;
 }
 
 /**
