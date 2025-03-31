@@ -28,6 +28,13 @@ import ErrorHandler from "./components/core/ErrorHandler";
 import PerformanceMonitor from "./components/core/PerformanceMonitor";
 import useLogoutEffect from "./hooks/useLogoutEffect";
 import { UserProvider } from "./context/UserContext";
+import useSupabaseAuthSync from "./hooks/useSupabaseAuthSync";
+
+// Create a component that will handle auth sync separately to avoid React errors
+const AuthStateManager = () => {
+  useSupabaseAuthSync();
+  return null;
+};
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,6 +67,7 @@ const App = () => {
             <DialogProvider>
               <ChatProvider>
                 <UserProvider>
+                  <AuthStateManager />
                   <MainLayout>
                     <Toaster />
                     <Sonner />

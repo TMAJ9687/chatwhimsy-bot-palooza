@@ -23,12 +23,15 @@ const AlertDialogComponent = () => {
   // If not open, render nothing
   if (!isOpen) return null;
 
+  // Create a unique ID for accessibility
+  const descriptionId = `alert-dialog-description-${Date.now()}`;
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeDialog()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" aria-describedby={descriptionId}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{message}</DialogDescription>
+          <DialogDescription id={descriptionId}>{message}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button onClick={closeDialog}>OK</Button>

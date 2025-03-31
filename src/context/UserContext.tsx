@@ -16,6 +16,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [loadError, setLoadError] = useState<Error | null>(null);
 
   // Load user data from Supabase or localStorage on component mount
   useEffect(() => {
@@ -40,6 +41,25 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
           } else {
             console.log('Auth user has no profile yet');
+            // Create a basic profile if none exists
+            const basicProfile: UserProfile = {
+              id: authUser.id,
+              nickname: authUser.email?.split('@')[0] || 'User',
+              email: authUser.email || '',
+              gender: 'male',
+              age: 25,
+              country: 'US',
+              interests: [],
+              isVip: true,
+              subscriptionTier: 'monthly',
+              imagesRemaining: 100,
+              voiceMessagesRemaining: 50
+            };
+            setUser(basicProfile);
+            // Save this basic profile
+            updateSupabaseProfile(basicProfile).catch(e => {
+              console.warn('Error creating basic profile:', e);
+            });
           }
         } else {
           // Check for temporary user via token
@@ -83,6 +103,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } catch (error) {
         console.error('Error loading user data:', error);
+        setLoadError(error as Error);
       } finally {
         setInitialLoadComplete(true);
       }
@@ -196,7 +217,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isVip,
     isAdmin,
     subscribeToVip,
-    cancelVipSubscription
+    cancelVipSubscription,
+    loadError
   }), [
     user, 
     setUser, 
@@ -206,7 +228,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isVip,
     isAdmin,
     subscribeToVip, 
-    cancelVipSubscription
+    cancelVipSubscription,
+    loadError
   ]);
 
   return (

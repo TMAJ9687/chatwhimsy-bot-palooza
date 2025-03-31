@@ -43,12 +43,14 @@ const BlockUserDialog = () => {
   // If not open, render nothing
   if (!isOpen) return null;
 
+  const dialogDescriptionId = `block-user-description-${userId}`;
+
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => !open && closeDialog()}>
-      <AlertDialogContent>
+      <AlertDialogContent aria-describedby={dialogDescriptionId}>
         <AlertDialogHeader>
           <AlertDialogTitle>Block User</AlertDialogTitle>
-          <AlertDialogDescription>
+          <AlertDialogDescription id={dialogDescriptionId}>
             Are you sure you want to block {userName}? You won't be able to receive messages from them anymore.
           </AlertDialogDescription>
         </AlertDialogHeader>
