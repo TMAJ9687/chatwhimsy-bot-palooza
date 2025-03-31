@@ -35,12 +35,13 @@ const MessageTextarea: React.FC<MessageTextareaProps> = ({
   const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
     
+    // Updated to use boolean return value
     if (!checkCharacterLimit(newText, isVip, true)) {
       onChange(newText.slice(0, charLimit));
       return;
     }
     
-    if (newText.length > message.length && hasConsecutiveChars(newText, isVip)) {
+    if (newText.length > message.length && hasConsecutiveChars(newText, isVip ? 6 : 5)) {
       toast({
         title: "Pattern detected",
         description: isVip 

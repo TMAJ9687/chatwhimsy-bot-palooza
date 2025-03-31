@@ -93,16 +93,14 @@ const UserList = memo(({
               >
                 <Filter className="w-3 h-3" />
                 <span>Filters</span>
-                {Object.values(filters).some(val => 
-                  Array.isArray(val) ? 
-                    (val[0] > 18 || val[1] < 80) : 
-                    (val !== 'any' && val.length > 0)
-                ) && (
+                {(filters.gender.length > 0 ||
+                  (filters.age[0] > 18 || filters.age[1] < 80) ||
+                  filters.country.length > 0) && (
                   <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
                     {
-                      (filters.gender !== 'any' ? 1 : 0) +
-                      ((filters.ageRange[0] > 18 || filters.ageRange[1] < 80) ? 1 : 0) +
-                      (filters.countries.length > 0 ? 1 : 0)
+                      (filters.gender.length > 0 ? 1 : 0) +
+                      ((filters.age[0] > 18 || filters.age[1] < 80) ? 1 : 0) +
+                      (filters.country.length > 0 ? 1 : 0)
                     }
                   </Badge>
                 )}

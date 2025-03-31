@@ -24,4 +24,20 @@ export const getBotRandomResponse = (bot: Bot): string => {
   return DEFAULT_BOT_RESPONSES[Math.floor(Math.random() * DEFAULT_BOT_RESPONSES.length)];
 };
 
+// Sort users by online status, VIP status, and recent message
+export const sortUsers = (users: Bot[]): Bot[] => {
+  return [...users].sort((a, b) => {
+    // First, sort by online status
+    if (a.online && !b.online) return -1;
+    if (!a.online && b.online) return 1;
+    
+    // Then, sort by VIP status
+    if (a.vip && !b.vip) return -1;
+    if (!a.vip && b.vip) return 1;
+    
+    // Finally, sort by name alphabetically
+    return a.name.localeCompare(b.name);
+  });
+};
+
 // Other bot utility functions can be added here

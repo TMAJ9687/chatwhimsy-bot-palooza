@@ -20,18 +20,18 @@ export const validateImageFile = (file: File, isVip?: boolean): { valid: boolean
   return { valid: true };
 };
 
-// Check character limit
-export const checkCharacterLimit = (text: string, isVip: boolean): { valid: boolean; error?: string } => {
+// Check character limit - updated signature with correct parameters
+export const checkCharacterLimit = (text: string, isVip: boolean, returnBoolean: boolean = false): { valid: boolean; error?: string } | boolean => {
   const limit = isVip ? VIP_CHAR_LIMIT : MAX_CHAR_LIMIT;
   
   if (text.length > limit) {
-    return {
+    return returnBoolean ? false : {
       valid: false,
       error: `Message exceeds the ${limit} character limit${!isVip ? '. Upgrade to VIP for longer messages' : ''}`
     };
   }
   
-  return { valid: true };
+  return returnBoolean ? true : { valid: true };
 };
 
 // Check for duplicate or spam messages
@@ -50,14 +50,14 @@ export const checkSpamMessages = (
 };
 
 // Add hasConsecutiveChars function needed by MessageTextarea
-export const hasConsecutiveChars = (text: string, limit: number = 5): boolean => {
+export const hasConsecutiveChars = (text: string, maxConsecutive: number = 5): boolean => {
   if (!text) return false;
   
-  for (let i = 0; i < text.length - limit + 1; i++) {
+  for (let i = 0; i < text.length - maxConsecutive + 1; i++) {
     const char = text[i];
     let consecutive = true;
     
-    for (let j = 1; j < limit; j++) {
+    for (let j = 1; j < maxConsecutive; j++) {
       if (text[i + j] !== char) {
         consecutive = false;
         break;
@@ -68,4 +68,25 @@ export const hasConsecutiveChars = (text: string, limit: number = 5): boolean =>
   }
   
   return false;
+};
+
+// Validate message content with correct parameters
+export const validateMessage = (text: string, isVip: boolean): { valid: boolean; error?: string } => {
+  // Check character limit
+  const charCheck = checkCharacterLimit(text, isVip);
+  if ('valid' in charCheck && !charCheck.valid) {
+    return charCheck;
+  }
+  
+  // Check consecutive characters
+  if (hasConsecutiveChars(text, isVip ? 6 : 5)) {
+    return {
+      valid: false,
+      error: isVip 
+        ? "Please avoid sending messages with more than 6 consecutive identical characters."
+        : "Please avoid sending messages with more than 5 consecutive identical characters."
+    };
+  }
+  
+  return { valid: true };
 };

@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
@@ -13,6 +14,7 @@ import VipUpgradeSection from './VipUpgradeSection';
 import NotificationSidebar from './NotificationSidebar';
 import EmptyChatState from './EmptyChatState';
 import { useLogout } from '@/hooks/useLogout';
+import { FilterState } from './FilterMenu';
 
 interface ChatInterfaceProps {
   onLogout: () => void;
@@ -241,6 +243,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
     );
   }
 
+  // Ensure the FilterState matches what's expected by the components
+  const adaptedFilters: FilterState = {
+    gender: filters.gender,
+    country: filters.country,
+    age: filters.age,
+    vip: filters.vip,
+    countries: filters.country,
+    ageRange: filters.age
+  };
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background dark:bg-gray-950">
       {/* Header with icons */}
@@ -263,8 +275,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
             }}
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
-            filters={filters}
-            onFilterChange={handleFilterChange}
+            filters={adaptedFilters}
+            onFilterChange={(newFilters: FilterState) => {
+              handleFilterChange(newFilters);
+            }}
           />
           
           {/* VIP Upgrade Section - Only show for non-VIP users */}
@@ -281,8 +295,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout }) => {
           }}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
-          filters={filters}
-          onFilterChange={handleFilterChange}
+          filters={adaptedFilters}
+          onFilterChange={(newFilters: FilterState) => {
+            handleFilterChange(newFilters);
+          }}
         />
 
         {/* Main chat area */}

@@ -13,7 +13,11 @@ export const botProfiles: Bot[] = [
     interests: ["art", "photography", "travel"],
     avatar: "/avatars/sophia.jpg",
     responses: ["Hey there! How's your day going?", "That's interesting! Tell me more about it."],
-    personalityTraits: ["creative", "adventurous", "positive"]
+    personalityTraits: ["creative", "adventurous", "positive"],
+    bio: "Creative photographer with a passion for travel",
+    languages: ["English"],
+    online: true,
+    verified: true
   },
   {
     id: "2",
@@ -26,7 +30,11 @@ export const botProfiles: Bot[] = [
     interests: ["fitness", "cooking", "hiking"],
     avatar: "/avatars/alex.jpg",
     responses: ["Hello! Great to meet you.", "I'd love to hear more about your interests."],
-    personalityTraits: ["athletic", "outgoing", "friendly"]
+    personalityTraits: ["athletic", "outgoing", "friendly"],
+    bio: "Fitness enthusiast who loves to cook",
+    languages: ["English"],
+    online: true,
+    verified: true
   },
   {
     id: "3",
@@ -39,7 +47,11 @@ export const botProfiles: Bot[] = [
     interests: ["music", "books", "movies"],
     avatar: "/avatars/emma.jpg",
     responses: ["Hi there! What's up?", "That sounds awesome! I'm into that too."],
-    personalityTraits: ["artistic", "introverted", "thoughtful"]
+    personalityTraits: ["artistic", "introverted", "thoughtful"],
+    bio: "Book lover and aspiring musician",
+    languages: ["English", "French"],
+    online: true,
+    verified: true
   },
   {
     id: "4",
@@ -52,7 +64,11 @@ export const botProfiles: Bot[] = [
     interests: ["surfing", "beach", "barbecue"],
     avatar: "/avatars/noah.jpg",
     responses: ["G'day mate! How are you?", "That's brilliant! I'd love to chat more about it."],
-    personalityTraits: ["laid-back", "adventurous", "humorous"]
+    personalityTraits: ["laid-back", "adventurous", "humorous"],
+    bio: "Surfer and beach enthusiast",
+    languages: ["English"],
+    online: true,
+    verified: true
   },
   {
     id: "5",
@@ -65,7 +81,11 @@ export const botProfiles: Bot[] = [
     interests: ["fashion", "cuisine", "art"],
     avatar: "/avatars/mia.jpg",
     responses: ["Bonjour! Comment ça va?", "That's fascinating! I'd love to know more."],
-    personalityTraits: ["sophisticated", "cultured", "elegant"]
+    personalityTraits: ["sophisticated", "cultured", "elegant"],
+    bio: "Fashion enthusiast with a love for French cuisine",
+    languages: ["French", "English"],
+    online: true,
+    verified: true
   },
   {
     id: "6",
@@ -78,7 +98,11 @@ export const botProfiles: Bot[] = [
     interests: ["engineering", "beer", "hiking"],
     avatar: "/avatars/liam.jpg",
     responses: ["Hallo! Wie geht's?", "That's very interesting! Tell me more about yourself."],
-    personalityTraits: ["analytical", "precise", "reliable"]
+    personalityTraits: ["analytical", "precise", "reliable"],
+    bio: "Engineer with a passion for German beer",
+    languages: ["German", "English"],
+    online: true,
+    verified: true
   },
   {
     id: "7",
@@ -91,7 +115,11 @@ export const botProfiles: Bot[] = [
     interests: ["food", "art", "opera"],
     avatar: "/avatars/olivia.jpg",
     responses: ["Ciao! Come stai?", "That sounds wonderful! I'd love to hear more."],
-    personalityTraits: ["passionate", "expressive", "warm"]
+    personalityTraits: ["passionate", "expressive", "warm"],
+    bio: "Art lover and passionate foodie",
+    languages: ["Italian", "English"],
+    online: true,
+    verified: true
   },
   {
     id: "8",
@@ -104,6 +132,10 @@ export const botProfiles: Bot[] = [
     interests: ["technology", "anime", "photography"],
     avatar: "/avatars/james.jpg",
     responses: ["Konnichiwa! O genki desu ka?", "That's really cool! I'm interested in that too."],
-    personalityTraits: ["tech-savvy", "detail-oriented", "creative"]
+    personalityTraits: ["tech-savvy", "detail-oriented", "creative"],
+    bio: "Tech enthusiast with a love for Japanese culture",
+    languages: ["Japanese", "English"],
+    online: true,
+    verified: true
   }
 ];

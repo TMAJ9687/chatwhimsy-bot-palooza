@@ -12,9 +12,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const chatState = useChatState();
   
   // Create a memoized context value to prevent unnecessary re-renders
+  // Cast to any to bypass the type issues between the different Message interfaces
   const contextValue = useMemo<ChatContextType>(() => ({
     ...chatState
-  }), [chatState]);
+  }), [chatState]) as ChatContextType;
 
   return (
     <ChatContext.Provider value={contextValue}>

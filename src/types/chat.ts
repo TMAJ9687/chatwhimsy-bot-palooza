@@ -1,3 +1,4 @@
+
 // Define types for chat functionality
 
 export interface FilterState {
@@ -18,16 +19,16 @@ export interface Bot {
   gender: string;
   age: number;
   country: string;
-  countryCode: string; // Added this required property
+  countryCode: string;
   languages: string[];
   interests: string[];
   online: boolean;
   vip: boolean;
   verified: boolean;
-  responses: string[]; // Added this required property
+  responses: string[];
   lastSeen?: string;
   messageCount?: number;
-  personalityTraits?: string[]; // Support existing personalityTraits in botProfiles
+  personalityTraits?: string[];
 }
 
 export interface Message {
@@ -42,8 +43,7 @@ export interface Message {
   isImage?: boolean;
   isVoice?: boolean;
   voiceDuration?: number;
-  replyTo?: Message | null;
-  // Added missing properties from MessageContext.Message
+  // Add fields from chatContext Message type
   content?: string;
   sender?: 'user' | 'bot' | 'system';
   status?: 'sending' | 'sent' | 'delivered' | 'read';
@@ -51,6 +51,7 @@ export interface Message {
   reactions?: Reaction[];
   isDeleted?: boolean;
   duration?: number;
+  replyTo?: string | null; // Changed from Message to string for compatibility
 }
 
 // Add required Translation and Notification types
@@ -79,5 +80,3 @@ export enum MessageStatus {
   DELIVERED = 'delivered', 
   READ = 'read'
 }
-
-// Other types needed for chat functionality can be defined here
