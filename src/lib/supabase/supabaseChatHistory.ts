@@ -74,6 +74,7 @@ export const saveChatHistory = async (
     console.log(`Saved chat history for conversation: ${conversationId}`);
   } catch (error) {
     console.error('Error saving chat history:', error);
+    throw error;
   }
 };
 
@@ -194,6 +195,7 @@ export const deleteChatHistory = async (
     console.log(`Deleted chat history for conversation: ${conversationId}`);
   } catch (error) {
     console.error('Error deleting chat history:', error);
+    throw error;
   }
 };
 
@@ -219,5 +221,6 @@ export const deleteAllChatHistories = async (userId: string): Promise<void> => {
     console.log(`Deleted all chat histories for user: ${userId}`);
   } catch (error) {
     console.error('Error deleting all chat histories:', error);
+    throw error;
   }
 };

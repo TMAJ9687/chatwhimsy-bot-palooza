@@ -42,6 +42,33 @@ export type Database = {
           },
         ]
       }
+      chat_history: {
+        Row: {
+          bot_id: string
+          created_at: string | null
+          id: string
+          last_updated: string | null
+          messages: Json | null
+          user_id: string
+        }
+        Insert: {
+          bot_id: string
+          created_at?: string | null
+          id: string
+          last_updated?: string | null
+          messages?: Json | null
+          user_id: string
+        }
+        Update: {
+          bot_id?: string
+          created_at?: string | null
+          id?: string
+          last_updated?: string | null
+          messages?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversation_participants: {
         Row: {
           conversation_id: string
