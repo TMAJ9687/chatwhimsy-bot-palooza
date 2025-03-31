@@ -54,10 +54,5 @@ export interface FilterState {
   vip: boolean | null;
 }
 
-// Message character limits
-export const MAX_CHAR_LIMIT = 500;
-export const VIP_CHAR_LIMIT = 2000;
-export const CONSECUTIVE_LIMIT = 5;
-
 // Message status types
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read';

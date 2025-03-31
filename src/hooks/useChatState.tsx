@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Bot, Message, FilterState } from '@/types/chat';
 import { useBotFiltering } from './useBotFiltering';
@@ -63,7 +64,7 @@ export const useChatState = () => {
   const selectBot = useCallback((bot: Bot) => {
     setCurrentBot(bot);
     // Additional logic when selecting a bot can be added here
-  }, [/* dependencies */]);
+  }, []);
 
   // Return the chat state and functions
   return {
@@ -105,17 +106,11 @@ export const useChatState = () => {
     
     // Bot filtering
     filters,
-    setFilters,
     searchTerm,
-    setSearchTerm,
-    filteredUsers: filteredBots, // Renamed for compatibility
-    visibleUsers: filteredBots, // Renamed for compatibility
-    
-    // Function to handle filter changes
-    handleFilterChange,
+    filteredUsers: filteredBots,
+    visibleUsers: filteredBots,
     
     // Bot selection
-    currentBot,
-    selectUser: selectBot, // Keep the function name for compatibility
+    currentBot
   };
 };
