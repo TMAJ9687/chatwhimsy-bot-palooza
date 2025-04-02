@@ -11,7 +11,15 @@ import { useDialog } from '@/context/DialogContext';
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { updateUserProfile, user } = useUser();
-  const { openDialog } = useDialog();
+  let openDialog = () => console.log('Dialog context not available');
+  
+  try {
+    const dialogContext = useDialog();
+    openDialog = dialogContext.openDialog;
+  } catch (error) {
+    console.error('Dialog context not available:', error);
+  }
+  
   const [step, setStep] = useState<'nickname' | 'profile'>('nickname');
   const [nickname, setNickname] = useState('');
   const [nicknameError, setNicknameError] = useState('');
@@ -125,7 +133,12 @@ const LandingPage: React.FC = () => {
   };
 
   const handleVipClick = () => {
-    openDialog('vipSelect');
+    try {
+      openDialog('vipSelect');
+    } catch (error) {
+      console.error('Failed to open dialog:', error);
+      navigate('/vip-signup');
+    }
   };
 
   return (

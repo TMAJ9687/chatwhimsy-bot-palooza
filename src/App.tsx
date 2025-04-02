@@ -55,8 +55,8 @@ const App = () => {
         <BrowserRouter>
           <UserProvider>
             <UIStateProvider>
-              <OverlayProvider>
-                <DialogProvider>
+              <DialogProvider>
+                <OverlayProvider>
                   <ModalProvider>
                     <ChatProvider>
                       <PortalManager />
@@ -89,8 +89,8 @@ const App = () => {
                       </MainLayout>
                     </ChatProvider>
                   </ModalProvider>
-                </DialogProvider>
-              </OverlayProvider>
+                </OverlayProvider>
+              </DialogProvider>
             </UIStateProvider>
           </UserProvider>
         </BrowserRouter>
