@@ -2,7 +2,7 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
-import { signOutUser } from '@/services/auth/supabaseAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Hook that provides logout functionality with proper redirection
@@ -46,7 +46,7 @@ export const useLogout = () => {
       // Clear storage systematically
       localStorage.removeItem('chatUser');
       localStorage.removeItem('vipProfileComplete');
-      localStorage.removeItem('adminEmail'); // Also clear admin email
+      localStorage.removeItem('adminEmail');
       
       // Clear user data first
       clearUser();
@@ -60,9 +60,9 @@ export const useLogout = () => {
         }
       }
       
-      // Attempt to sign out of Supabase
+      // Sign out from Supabase
       try {
-        await signOutUser();
+        await supabase.auth.signOut();
       } catch (error) {
         console.error('Supabase signout error:', error);
       }

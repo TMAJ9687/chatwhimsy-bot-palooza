@@ -1,8 +1,7 @@
 
 import React, { useEffect, useCallback } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
-import { useUIState } from '@/context/UIStateContext';
-import { useErrorCleaner } from '@/hooks/useErrorCleaner';
+import { performDOMCleanup } from '@/utils/errorHandler';
 
 /**
  * This component helps prevent navigation issues by cleaning up any stale state
@@ -11,16 +10,15 @@ import { useErrorCleaner } from '@/hooks/useErrorCleaner';
 const NavigationLock: React.FC = () => {
   const location = useLocation();
   const navigationType = useNavigationType();
-  const { 
-    clearOverlays, 
-    startNavigation, 
-    endNavigation,
-    state: { navigation }
-  } = useUIState();
-
+  
+  // Navigation state with refs to avoid dependencies
+  const lastPathnameRef = React.useRef<string | null>(null);
+  const isNavigatingRef = React.useRef(false);
+  
   // Enhanced cleanup function that ensures all dialogs and overlays are removed
   const enhancedCleanup = useCallback(() => {
-    clearOverlays();
+    // Clear overlays directly without context dependencies
+    performDOMCleanup();
     
     // Add specific cleanup for chat navigation
     if (location.pathname === '/chat') {
@@ -39,26 +37,24 @@ const NavigationLock: React.FC = () => {
         console.warn('Error checking/fixing user data:', e);
       }
     }
-  }, [clearOverlays, location.pathname]);
-  
-  // Register enhanced error handler
-  useErrorCleaner(enhancedCleanup);
+  }, [location.pathname]);
   
   // Watch for route changes to clean up UI with improved timing
   useEffect(() => {
     // Skip if it's the first render (no navigation)
-    if (!navigation.lastPathname) {
-      startNavigation(location.pathname);
+    if (!lastPathnameRef.current) {
+      lastPathnameRef.current = location.pathname;
       return;
     }
     
     // Skip if it's the same location (prevents unnecessary cleanups)
-    if (navigation.lastPathname === location.pathname) {
+    if (lastPathnameRef.current === location.pathname) {
       return;
     }
     
     // Set navigation in progress
-    startNavigation(location.pathname);
+    isNavigatingRef.current = true;
+    lastPathnameRef.current = location.pathname;
     
     // Use requestAnimationFrame for smoother cleanup timing
     requestAnimationFrame(() => {
@@ -80,7 +76,7 @@ const NavigationLock: React.FC = () => {
       
       // Mark navigation complete after a delay
       const navigationCompleteTimeout = window.setTimeout(() => {
-        endNavigation();
+        isNavigatingRef.current = false;
       }, 500);
       
       return () => {
@@ -96,10 +92,7 @@ const NavigationLock: React.FC = () => {
   }, [
     location.pathname, 
     navigationType, 
-    enhancedCleanup, 
-    navigation.lastPathname,
-    startNavigation,
-    endNavigation
+    enhancedCleanup
   ]);
 
   // Clean up on component mount and unmount

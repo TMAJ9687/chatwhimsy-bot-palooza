@@ -1,19 +1,17 @@
 
 import { useEffect } from 'react';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
-import { useUIState } from '@/context/UIStateContext';
+import { performDOMCleanup } from '@/utils/errorHandler';
 
 interface ErrorHandlerProps {
   logoutInProgressRef: React.MutableRefObject<boolean>;
 }
 
 const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
-  const { clearOverlays } = useUIState();
-  
-  // Use our new error handler hook
+  // Use our error handler hook
   useErrorHandler({
     onError: () => {
-      // Reset body state
+      // Reset body state directly without depending on UIStateContext
       document.body.style.overflow = 'auto';
       document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
       
@@ -22,8 +20,8 @@ const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
         document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
       }
       
-      // Clear any open overlays
-      clearOverlays();
+      // Clean up any overlays
+      performDOMCleanup();
     }
   });
   

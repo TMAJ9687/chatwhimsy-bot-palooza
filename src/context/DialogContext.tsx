@@ -1,6 +1,5 @@
 
 import React, { createContext, useContext, useReducer, ReactNode, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useUIState } from './UIStateContext';
 
 // Define dialog types
 type DialogType = 'report' | 'block' | 'siteRules' | 'logout' | 'vipLogin' | 'vipSignup' 
@@ -52,21 +51,26 @@ function dialogReducer(state: DialogState, action: DialogAction): DialogState {
 // Provider component
 export function DialogProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(dialogReducer, initialState);
-  const { lockBody, unlockBody, addOverlay, removeOverlay } = useUIState();
-  const dialogIdRef = useRef('dialog');
+  const dialogIdRef = useRef('dialog-context');
+  const prevStateRef = useRef(state);
 
   // Effect to manage body scroll lock based on dialog state
   useEffect(() => {
+    // Skip if state hasn't changed to avoid loops
+    if (state === prevStateRef.current) return;
+    prevStateRef.current = state;
+
+    // Apply body styles directly here instead of using UIStateContext
     if (state.isOpen) {
       // Lock body scroll when dialog opens
-      lockBody();
-      addOverlay(dialogIdRef.current);
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('dialog-open');
     } else {
-      // Unlock body scroll when dialog closes
-      removeOverlay(dialogIdRef.current);
-      unlockBody();
+      // Unlock body scroll when dialog closes, but be careful about other active dialogs
+      document.body.style.overflow = 'auto';
+      document.body.classList.remove('dialog-open');
     }
-  }, [state.isOpen, lockBody, unlockBody, addOverlay, removeOverlay]);
+  }, [state]);
 
   // Memoize functions to prevent unnecessary re-renders
   const openDialog = useCallback((type: DialogType, data?: Record<string, any>) => {

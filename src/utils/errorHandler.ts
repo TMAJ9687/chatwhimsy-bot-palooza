@@ -1,6 +1,6 @@
 
 /**
- * Global error handler utilities to handle DOM-related errors
+ * Global error handler utilities to handle DOM-related errors without circular dependencies
  */
 
 /**

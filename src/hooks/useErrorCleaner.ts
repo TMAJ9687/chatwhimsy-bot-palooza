@@ -1,30 +1,38 @@
 
 import { useEffect } from 'react';
-import { useUIState } from '@/context/UIStateContext';
-import { useErrorHandler } from './useErrorHandler';
+import { performDOMCleanup } from '@/utils/errorHandler';
 
 /**
- * Hook to help clean up when errors occur - declarative replacement for DOM manipulation
- * @param cleanupFn Function to call when an error is detected
+ * A hook that ensures DOM is properly cleaned up if errors occur
  */
-export const useErrorCleaner = (cleanupFn: () => void) => {
-  const { clearOverlays, clearError } = useUIState();
-  
-  // Use our error handler hook with a custom callback
-  useErrorHandler({
-    onError: () => {
-      // Run the provided cleanup function
-      if (typeof cleanupFn === 'function') {
-        cleanupFn();
+export const useErrorCleaner = (
+  customCleanup?: () => void
+) => {
+  useEffect(() => {
+    // Setup error handler
+    const handleError = (event: ErrorEvent) => {
+      if (
+        event.message &&
+        (event.message.includes('removeChild') || 
+         event.message.includes('appendChild') ||
+         event.message.includes('not a child'))
+      ) {
+        // First perform standard DOM cleanup
+        performDOMCleanup();
+        
+        // Then run custom cleanup if provided
+        if (customCleanup) {
+          customCleanup();
+        }
       }
-      
-      // Clear any open overlays
-      clearOverlays();
-      
-      // Clear the error state
-      clearError();
-    }
-  });
+    };
+    
+    window.addEventListener('error', handleError);
+    
+    return () => {
+      window.removeEventListener('error', handleError);
+    };
+  }, [customCleanup]);
 };
 
 export default useErrorCleaner;

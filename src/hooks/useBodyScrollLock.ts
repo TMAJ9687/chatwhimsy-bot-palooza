@@ -1,6 +1,5 @@
 
-import { useEffect } from 'react';
-import { useUIState } from '@/context/UIStateContext';
+import { useEffect, useCallback, useRef } from 'react';
 
 interface ScrollLockOptions {
   lockOnMount?: boolean;
@@ -8,41 +7,49 @@ interface ScrollLockOptions {
 }
 
 /**
- * Hook to manage body scroll locking in a declarative way
+ * Simple hook to manage body scroll locking without circular dependencies
  */
 export const useBodyScrollLock = (options: ScrollLockOptions = {}) => {
   const { lockOnMount = false, id = 'unknown-component' } = options;
-  const { lockBody, unlockBody, addOverlay, removeOverlay, isOverlayActive } = useUIState();
+  const isLockedRef = useRef(false);
+  
+  // The lock function
+  const lock = useCallback(() => {
+    if (document.body) {
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('dialog-open');
+      isLockedRef.current = true;
+    }
+  }, []);
+  
+  // The unlock function
+  const unlock = useCallback(() => {
+    if (document.body && isLockedRef.current) {
+      document.body.style.overflow = 'auto';
+      document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
+      isLockedRef.current = false;
+    }
+  }, []);
   
   // Set up the scroll lock on mount if requested
   useEffect(() => {
     if (lockOnMount) {
-      lockBody();
-      addOverlay(id);
+      lock();
     }
     
     // Clean up on unmount
     return () => {
-      removeOverlay(id);
-      // Only unlock the body if no other overlays are active
-      if (!isOverlayActive(id)) {
-        unlockBody();
+      if (isLockedRef.current) {
+        unlock();
       }
     };
-  }, [lockOnMount, lockBody, unlockBody, addOverlay, removeOverlay, isOverlayActive, id]);
+  }, [lockOnMount, lock, unlock]);
   
   return {
-    lock: () => {
-      lockBody();
-      addOverlay(id);
-    },
-    unlock: () => {
-      removeOverlay(id);
-      // Only unlock if no other overlays are active
-      if (!isOverlayActive(id)) {
-        unlockBody();
-      }
-    },
-    isLocked: isOverlayActive(id)
+    lock,
+    unlock,
+    isLocked: isLockedRef.current
   };
 };
+
+export default useBodyScrollLock;

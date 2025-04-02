@@ -2,7 +2,6 @@
 import React, { memo, useEffect, Suspense, useRef } from 'react';
 import { useDialog } from '@/context/DialogContext';
 import { trackEvent } from '@/utils/performanceMonitor';
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 // Import dialogs normally instead of lazy loading for critical ones
 import SiteRulesDialog from './SiteRulesDialog';
@@ -43,12 +42,6 @@ const DialogContainer = () => {
   const activeDialogTypeRef = useRef<string | null>(null);
   const renderAttemptedRef = useRef(false);
   
-  // Use body scroll lock hook
-  const { lock, unlock } = useBodyScrollLock({
-    lockOnMount: false,
-    id: 'dialog-container'
-  });
-  
   // Track when component unmounts to prevent setState after unmount
   useEffect(() => {
     mountedRef.current = true;
@@ -56,32 +49,30 @@ const DialogContainer = () => {
     return () => {
       mountedRef.current = false;
       activeDialogTypeRef.current = null;
-      
-      // Ensure body is unlocked when component unmounts
-      if (document.body) {
-        document.body.style.overflow = 'auto';
-        document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-      }
     };
   }, []);
   
-  // Lock/unlock body based on dialog state
+  // Apply body style changes when dialog opens/closes
   useEffect(() => {
     if (!mountedRef.current) return;
     
     if (state.isOpen && !renderAttemptedRef.current) {
-      lock();
+      // Apply body styles for open dialog
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('dialog-open');
       renderAttemptedRef.current = true;
       
       // Track the currently active dialog type to help with cleanup
       activeDialogTypeRef.current = state.type;
       trackEvent(`dialog-render-${state.type}`, () => {});
     } else if (!state.isOpen && renderAttemptedRef.current) {
-      unlock();
+      // Only restore body state if we were the ones who changed it
+      document.body.style.overflow = 'auto';
+      document.body.classList.remove('dialog-open');
       renderAttemptedRef.current = false;
       activeDialogTypeRef.current = null;
     }
-  }, [state.isOpen, state.type, lock, unlock]);
+  }, [state.isOpen, state.type]);
 
   // Don't render anything if not open or component is unmounting
   if (!state.isOpen || !mountedRef.current) {
