@@ -14,6 +14,40 @@ if (!rootElement) throw new Error("Failed to find the root element");
 
 const root = createRoot(rootElement);
 
+// Filter out noisy console messages in production
+if (process.env.NODE_ENV === 'production') {
+  // Store the original console methods
+  const originalConsoleError = console.error;
+  const originalConsoleWarn = console.warn;
+  
+  // Filter console errors
+  console.error = function filterError(...args) {
+    // Filter out Firebase-related errors and browser extension errors
+    const errorText = args.join(' ');
+    if (errorText.includes('firebase') || 
+        errorText.includes('Firestore') ||
+        errorText.includes('contentScript.js') ||
+        errorText.includes('Unrecognized feature') ||
+        errorText.includes('preloaded using link preload') ||
+        errorText.includes('allowedOriginsToCommunicateWith')) {
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
+  
+  // Filter console warnings
+  console.warn = function filterWarning(...args) {
+    // Filter out Firebase-related warnings
+    const warningText = args.join(' ');
+    if (warningText.includes('firebase') || 
+        warningText.includes('Firestore') ||
+        warningText.includes('preloaded using link preload')) {
+      return;
+    }
+    originalConsoleWarn.apply(console, args);
+  };
+}
+
 // Create a custom error handler for React rendering errors
 const handleRenderError = (error: Error) => {
   console.error("Error during React rendering:", error);

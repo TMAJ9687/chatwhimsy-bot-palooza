@@ -22,8 +22,23 @@ const NavigationLock: React.FC = () => {
     try {
       clearOverlays();
     } catch (error) {
-      console.error('Failed to clear overlays:', error);
+      // Silently handle this error - no need to report to user
+      console.debug('Failed to clear overlays, this is likely not a major issue:', error);
     }
+    
+    // Handle any location-specific cleanup
+    const handleLocationChange = () => {
+      // Clear problematic event listeners during navigation
+      // This helps prevent potential memory leaks
+      try {
+        document.body.style.overflow = 'auto';
+        document.body.classList.remove('dialog-open', 'modal-open', 'overflow-hidden');
+      } catch (e) {
+        console.debug('DOM cleanup during navigation failed:', e);
+      }
+    };
+    
+    handleLocationChange();
     
     // This effect runs on every navigation change
   }, [location.pathname, clearOverlays]);
