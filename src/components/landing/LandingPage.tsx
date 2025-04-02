@@ -17,14 +17,12 @@ const LandingPage: React.FC = () => {
   const [nicknameError, setNicknameError] = useState('');
   const [navigationInProgress, setNavigationInProgress] = useState(false);
 
-  // Function to validate nickname input
   const validateNickname = (value: string): boolean => {
     if (value.length > 16) {
       setNicknameError('Nickname must be 16 characters or less');
       return false;
     }
     
-    // Check for more than 2 consecutive identical characters
     for (let i = 0; i < value.length - 2; i++) {
       if (value[i] === value[i + 1] && value[i] === value[i + 2]) {
         setNicknameError('Cannot use more than 2 identical characters in a row');
@@ -39,7 +37,6 @@ const LandingPage: React.FC = () => {
   const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     
-    // Check if the last 3 characters would form a repetition
     if (newValue.length >= 3) {
       const lastChar = newValue[newValue.length - 1];
       const secondLastChar = newValue[newValue.length - 2];
@@ -112,7 +109,6 @@ const LandingPage: React.FC = () => {
     const randomNumber = Math.floor(Math.random() * 100);
     const generatedNickname = `${randomAdjective}${randomNoun}${randomNumber}`;
     
-    // Clear any previous errors when generating a nickname
     setNicknameError('');
     return generatedNickname;
   };
@@ -121,7 +117,6 @@ const LandingPage: React.FC = () => {
     if (nickname && !nicknameError) {
       setStep('profile');
     } else if (!nickname) {
-      // Generate nickname and then move to profile step
       const randomNickname = generateRandomNickname();
       setNickname(randomNickname);
       updateUserProfile({ nickname: randomNickname });

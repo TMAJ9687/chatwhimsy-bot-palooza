@@ -27,13 +27,13 @@ const VipPaymentModal = () => {
     >
       <Card className="max-w-md mx-auto">
         <CardHeader>
-          <CardTitle>Payment</CardTitle>
+          <CardTitle>VIP Payment</CardTitle>
           <CardDescription>
-            Complete your payment to activate VIP membership
+            Complete your VIP subscription payment
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="mb-4">You're one step away from unlocking all VIP features. Complete your payment to continue.</p>
+          <p className="mb-4">Securely process your payment to activate your VIP membership and unlock all premium features.</p>
         </CardContent>
         <CardFooter className="flex justify-end space-x-2">
           <Button variant="outline" onClick={closeModal}>Cancel</Button>

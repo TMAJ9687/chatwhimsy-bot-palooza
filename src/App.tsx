@@ -26,6 +26,10 @@ import { ChatProvider } from './context/ChatContext';
 import NavigationLock from './components/shared/NavigationLock';
 import AuthListener from './components/core/AuthListener';
 import { UserProvider } from './context/UserContext';
+import { UIStateProvider } from './context/UIStateContext';
+import { DialogProvider } from './context/DialogContext';
+import DialogContainer from './components/dialogs/DialogContainer';
+import ErrorHandler from './components/core/ErrorHandler';
 
 // Create QueryClient with proper configuration to reduce re-renders
 const queryClient = new QueryClient({
@@ -50,38 +54,44 @@ const App = () => {
       <TooltipProvider>
         <BrowserRouter>
           <UserProvider>
-            <OverlayProvider>
-              <ModalProvider>
-                <ChatProvider>
-                  <PortalManager />
-                  <MainLayout>
-                    <Toaster />
-                    <Sonner />
-                    <NavigationLock />
-                    <AuthListener />
-                    
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
-                      <Route path="/vip-profile" element={<VipProfileSetup />} />
-                      <Route path="/vip-signup" element={<VipSignup />} />
-                      <Route path="/vip-login" element={<VipLogin />} />
-                      <Route path="/vip-subscription" element={<VipSubscription />} />
-                      <Route path="/vip-payment" element={<VipPayment />} />
-                      <Route path="/vip-confirmation" element={<VipConfirmation />} />
-                      <Route path="/feedback" element={<Feedback />} />
-                      <Route path="/secretadminportal" element={<AdminLogin />} />
-                      <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                      <Route path="/admin" element={<NotFound />} />
-                      <Route path="/admin-login" element={<NotFound />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                    
-                    <ModalContainer />
-                  </MainLayout>
-                </ChatProvider>
-              </ModalProvider>
-            </OverlayProvider>
+            <UIStateProvider>
+              <OverlayProvider>
+                <DialogProvider>
+                  <ModalProvider>
+                    <ChatProvider>
+                      <PortalManager />
+                      <MainLayout>
+                        <Toaster />
+                        <Sonner />
+                        <NavigationLock />
+                        <AuthListener />
+                        <ErrorHandler />
+                        
+                        <Routes>
+                          <Route path="/" element={<Index />} />
+                          <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
+                          <Route path="/vip-profile" element={<VipProfileSetup />} />
+                          <Route path="/vip-signup" element={<VipSignup />} />
+                          <Route path="/vip-login" element={<VipLogin />} />
+                          <Route path="/vip-subscription" element={<VipSubscription />} />
+                          <Route path="/vip-payment" element={<VipPayment />} />
+                          <Route path="/vip-confirmation" element={<VipConfirmation />} />
+                          <Route path="/feedback" element={<Feedback />} />
+                          <Route path="/secretadminportal" element={<AdminLogin />} />
+                          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                          <Route path="/admin" element={<NotFound />} />
+                          <Route path="/admin-login" element={<NotFound />} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                        
+                        <ModalContainer />
+                        <DialogContainer />
+                      </MainLayout>
+                    </ChatProvider>
+                  </ModalProvider>
+                </DialogProvider>
+              </OverlayProvider>
+            </UIStateProvider>
           </UserProvider>
         </BrowserRouter>
       </TooltipProvider>

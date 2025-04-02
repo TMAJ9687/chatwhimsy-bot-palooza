@@ -13,6 +13,13 @@ const ErrorHandler: React.FC = () => {
     const handleGlobalError = (event: ErrorEvent) => {
       event.preventDefault();
       handleError(event.error || new Error(event.message));
+      
+      // Show a user-friendly error toast
+      toast({
+        title: "Something went wrong",
+        description: "We're working on fixing the issue. Please try again.",
+        variant: "destructive",
+      });
     };
     
     window.addEventListener('error', handleGlobalError);
@@ -20,7 +27,7 @@ const ErrorHandler: React.FC = () => {
     return () => {
       window.removeEventListener('error', handleGlobalError);
     };
-  }, []);
+  }, [toast]);
   
   return null;
 };

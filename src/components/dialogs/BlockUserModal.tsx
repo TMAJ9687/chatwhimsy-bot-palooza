@@ -1,69 +1,81 @@
 
-import React, { memo, useCallback } from 'react';
-import { useToast } from "@/hooks/use-toast";
-import { useModal } from '@/context/ModalContext';
-import { Overlay } from '@/components/ui/overlay';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
+import { Overlay } from '@/components/ui/overlay';
+import { useModal } from '@/context/ModalContext';
+import { useToast } from "@/hooks/use-toast";
 
-const BlockUserModal = () => {
+const BlockUserModal: React.FC = () => {
   const { state, closeModal } = useModal();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Get userName from modal data
+  const { userName, userId, onBlock } = state.data || {};
+  
+  const handleBlock = () => {
+    setIsSubmitting(true);
+    
+    // Log the block action
+    console.log('Blocking user:', {
+      user: userName,
+      id: userId
+    });
+    
+    // Call the onBlock callback if provided
+    if (typeof onBlock === 'function') {
+      onBlock(userId);
+    }
+    
+    // Show success toast
+    toast({
+      title: "User Blocked",
+      description: `${userName} has been blocked. You won't receive messages from them anymore.`,
+    });
+    
+    // Close modal
+    closeModal();
+  };
+  
+  const handleCancel = () => {
+    closeModal();
+  };
   
   const isOpen = state.isOpen && state.type === 'block';
   
-  // Don't render anything if modal isn't open
   if (!isOpen) return null;
   
-  const { userName, userId, onBlockUser } = state.data;
-  
-  const handleConfirmBlock = () => {
-    // Call the block user function from props with userId
-    if (typeof onBlockUser === 'function' && userId) {
-      onBlockUser(userId);
-    }
-    
-    // Show a toast notification
-    toast({
-      title: "User blocked",
-      description: `You have blocked ${userName}.`,
-      duration: 3000,
-    });
-    
-    // Close the dialog
-    closeModal();
-  };
-
   return (
     <Overlay
       id="block-user-modal"
       isOpen={isOpen}
       onClose={closeModal}
     >
-      <AlertDialog open={true} onOpenChange={(open) => !open && closeModal()}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Block User</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to block {userName}? You won't be able to receive messages from them anymore.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel asChild>
-              <Button variant="outline" onClick={closeModal} type="button">
-                Cancel
-              </Button>
-            </AlertDialogCancel>
-            <AlertDialogAction asChild>
-              <Button variant="destructive" onClick={handleConfirmBlock} type="button">
-                Block User
-              </Button>
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-auto z-50">
+        <h2 className="text-xl font-semibold mb-2">Block User</h2>
+        <p className="text-gray-600 dark:text-gray-300 mb-4">
+          Are you sure you want to block {userName}? You won't receive messages from them anymore.
+        </p>
+        
+        <div className="flex justify-end space-x-2 mt-6">
+          <Button
+            variant="outline"
+            onClick={handleCancel}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleBlock}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Blocking..." : "Block User"}
+          </Button>
+        </div>
+      </div>
     </Overlay>
   );
 };
 
-export default memo(BlockUserModal);
+export default BlockUserModal;
