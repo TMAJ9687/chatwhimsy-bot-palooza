@@ -15,9 +15,9 @@ export interface AdminState {
 
 export interface AdminAction {
   id: string;
-  actionType: 'kick' | 'ban' | 'unban' | 'edit' | 'upgrade' | 'downgrade';
+  actionType: string;
   targetId: string;
-  targetType: 'user' | 'bot' | 'ip';
+  targetType: string;
   reason?: string;
   duration?: string;
   timestamp: Date;

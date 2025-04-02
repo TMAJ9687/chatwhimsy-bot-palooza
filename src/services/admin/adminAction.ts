@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { AdminAction, AdminActionType } from '@/types/admin';
+import { AdminAction } from '@/types/admin';
 import * as adminAuth from '@/services/admin/adminAuth';
 
 /**
@@ -18,7 +18,19 @@ export const getAdminActions = async (): Promise<AdminAction[]> => {
       return [];
     }
     
-    return data || [];
+    // Transform the raw data to match our AdminAction type
+    const mappedActions: AdminAction[] = (data || []).map(item => ({
+      id: item.id,
+      actionType: item.action_type,
+      targetId: item.target_id,
+      targetType: item.target_type,
+      reason: item.reason,
+      duration: item.duration,
+      timestamp: new Date(item.timestamp),
+      adminId: item.admin_id
+    }));
+    
+    return mappedActions;
   } catch (error) {
     console.error('Error in getAdminActions:', error);
     return [];
@@ -29,7 +41,7 @@ export const getAdminActions = async (): Promise<AdminAction[]> => {
  * Log admin action
  */
 export const logAdminAction = async (
-  actionType: AdminActionType,
+  actionType: string,
   targetId: string,
   targetType: string,
   reason?: string,
