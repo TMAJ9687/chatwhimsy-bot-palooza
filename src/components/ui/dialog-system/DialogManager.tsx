@@ -5,12 +5,12 @@ import { useUI } from '@/context/UIContext';
 // Import critical dialogs directly
 import LogoutConfirmDialog from '@/components/dialogs/LogoutConfirmationDialog';
 import SiteRulesDialog from '@/components/dialogs/SiteRulesDialog';
+import AlertDialog from '@/components/dialogs/AlertDialog';
+import ConfirmDialog from '@/components/dialogs/ConfirmDialog';
 
 // Lazy load other dialogs
 const ReportDialog = lazy(() => import('@/components/dialogs/ReportDialog'));
 const BlockUserDialog = lazy(() => import('@/components/dialogs/BlockUserDialog'));
-const ConfirmDialog = lazy(() => import('@/components/dialogs/ConfirmDialog'));
-const AlertDialog = lazy(() => import('@/components/dialogs/AlertDialog'));
 const AccountDeletionDialog = lazy(() => import('@/components/dialogs/AccountDeletionDialog'));
 const VipLoginDialog = lazy(() => import('@/components/dialogs/VipLoginDialog'));
 const VipSignupDialog = lazy(() => import('@/components/dialogs/VipSignupDialog'));
@@ -44,6 +44,14 @@ const DialogManager: React.FC = () => {
   if (activeDialog === 'siteRules') {
     return <SiteRulesDialog />;
   }
+  
+  if (activeDialog === 'alert') {
+    return <AlertDialog />;
+  }
+  
+  if (activeDialog === 'confirm') {
+    return <ConfirmDialog />;
+  }
 
   // Lazily load other dialogs
   return (
@@ -54,10 +62,6 @@ const DialogManager: React.FC = () => {
             return <ReportDialog />;
           case 'block':
             return <BlockUserDialog />;
-          case 'alert':
-            return <AlertDialog />;
-          case 'confirm':
-            return <ConfirmDialog />;
           case 'accountDeletion':
             return <AccountDeletionDialog />;
           case 'vipLogin':
