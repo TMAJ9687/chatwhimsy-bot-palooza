@@ -1,10 +1,8 @@
 
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
-import { useNavigationCleanup } from '@/hooks/useNavigationCleanup';
+import { useUIState } from '@/context/UIStateContext';
 import { useErrorCleaner } from '@/hooks/useErrorCleaner';
-import { performDOMCleanup } from '@/utils/errorHandler';
-import { toast } from '@/hooks/use-toast';
 
 /**
  * This component helps prevent navigation issues by cleaning up any stale state
@@ -13,17 +11,16 @@ import { toast } from '@/hooks/use-toast';
 const NavigationLock: React.FC = () => {
   const location = useLocation();
   const navigationType = useNavigationType();
-  const { cleanupUI, cleanupTimeoutsRef, navigationInProgressRef } = useNavigationCleanup();
-  const cleanupCountRef = useRef(0);
-  const lastLocationRef = useRef(location.pathname);
+  const { 
+    clearOverlays, 
+    startNavigation, 
+    endNavigation,
+    state: { navigation }
+  } = useUIState();
 
   // Enhanced cleanup function that ensures all dialogs and overlays are removed
   const enhancedCleanup = useCallback(() => {
-    cleanupUI();
-    cleanupCountRef.current++;
-    
-    // Perform advanced DOM cleanup
-    performDOMCleanup();
+    clearOverlays();
     
     // Add specific cleanup for chat navigation
     if (location.pathname === '/chat') {
@@ -42,23 +39,26 @@ const NavigationLock: React.FC = () => {
         console.warn('Error checking/fixing user data:', e);
       }
     }
-  }, [cleanupUI, location.pathname]);
+  }, [clearOverlays, location.pathname]);
   
   // Register enhanced error handler
   useErrorCleaner(enhancedCleanup);
   
   // Watch for route changes to clean up UI with improved timing
   useEffect(() => {
-    // Skip if it's the same location (prevents unnecessary cleanups)
-    if (lastLocationRef.current === location.pathname) {
+    // Skip if it's the first render (no navigation)
+    if (!navigation.lastPathname) {
+      startNavigation(location.pathname);
       return;
     }
     
-    // Update last location
-    lastLocationRef.current = location.pathname;
+    // Skip if it's the same location (prevents unnecessary cleanups)
+    if (navigation.lastPathname === location.pathname) {
+      return;
+    }
     
     // Set navigation in progress
-    navigationInProgressRef.current = true;
+    startNavigation(location.pathname);
     
     // Use requestAnimationFrame for smoother cleanup timing
     requestAnimationFrame(() => {
@@ -78,21 +78,29 @@ const NavigationLock: React.FC = () => {
         enhancedCleanup();
       }, 300);
       
-      cleanupTimeoutsRef.current.push(secondCleanupId);
-      
       // Mark navigation complete after a delay
       const navigationCompleteTimeout = window.setTimeout(() => {
-        navigationInProgressRef.current = false;
+        endNavigation();
       }, 500);
       
-      cleanupTimeoutsRef.current.push(navigationCompleteTimeout);
+      return () => {
+        clearTimeout(secondCleanupId);
+        clearTimeout(navigationCompleteTimeout);
+      };
     });
     
     return () => {
       // Clean up when component unmounts or before route change
       enhancedCleanup();
     };
-  }, [location.pathname, navigationType, enhancedCleanup, cleanupTimeoutsRef, navigationInProgressRef]);
+  }, [
+    location.pathname, 
+    navigationType, 
+    enhancedCleanup, 
+    navigation.lastPathname,
+    startNavigation,
+    endNavigation
+  ]);
 
   // Clean up on component mount and unmount
   useEffect(() => {
@@ -103,34 +111,15 @@ const NavigationLock: React.FC = () => {
     const delayedCleanup = window.setTimeout(() => {
       enhancedCleanup();
     }, 300);
-    cleanupTimeoutsRef.current.push(delayedCleanup);
-    
-    // Setup global error handler for removeChild errors
-    const handleDOMError = (event: ErrorEvent) => {
-      if (event.message && event.message.includes('removeChild') && 
-          event.message.includes('not a child')) {
-        // Prevent the error from propagating
-        event.preventDefault();
-        event.stopPropagation();
-        console.warn('Caught removeChild error, suppressing and cleaning up');
-        
-        // Run enhanced cleanup
-        enhancedCleanup();
-        
-        return false;
-      }
-    };
-    
-    window.addEventListener('error', handleDOMError, true);
     
     return () => {
+      clearTimeout(delayedCleanup);
       // Final cleanup when unmounting
-      window.removeEventListener('error', handleDOMError, true);
       requestAnimationFrame(() => {
         enhancedCleanup();
       });
     };
-  }, [enhancedCleanup, cleanupTimeoutsRef]);
+  }, [enhancedCleanup]);
 
   // This is a utility component - it doesn't render anything
   return null;

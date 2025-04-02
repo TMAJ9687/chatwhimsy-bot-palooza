@@ -1,5 +1,6 @@
 
-import React, { createContext, useContext, useReducer, ReactNode, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useUIState } from './UIStateContext';
 
 // Define dialog types
 type DialogType = 'report' | 'block' | 'siteRules' | 'logout' | 'vipLogin' | 'vipSignup' 
@@ -51,6 +52,21 @@ function dialogReducer(state: DialogState, action: DialogAction): DialogState {
 // Provider component
 export function DialogProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(dialogReducer, initialState);
+  const { lockBody, unlockBody, addOverlay, removeOverlay } = useUIState();
+  const dialogIdRef = useRef('dialog');
+
+  // Effect to manage body scroll lock based on dialog state
+  useEffect(() => {
+    if (state.isOpen) {
+      // Lock body scroll when dialog opens
+      lockBody();
+      addOverlay(dialogIdRef.current);
+    } else {
+      // Unlock body scroll when dialog closes
+      removeOverlay(dialogIdRef.current);
+      unlockBody();
+    }
+  }, [state.isOpen, lockBody, unlockBody, addOverlay, removeOverlay]);
 
   // Memoize functions to prevent unnecessary re-renders
   const openDialog = useCallback((type: DialogType, data?: Record<string, any>) => {

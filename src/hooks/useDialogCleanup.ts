@@ -1,27 +1,39 @@
 
-import { useCallback, useRef } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
+import { useUIState } from '@/context/UIStateContext';
 
 /**
- * A hook for dialog cleanup that handles both closing logic and tracks closing state
+ * Hook to safely clean up dialogs
  */
 export const useDialogCleanup = () => {
-  // Reference to track if dialog is in the process of closing
   const isClosingRef = useRef(false);
-
-  // Safe close method with proper timing
-  const handleDialogClose = useCallback((onClose: () => void) => {
-    // Set closing state to true
+  const { clearOverlays } = useUIState();
+  
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (isClosingRef.current) {
+        clearOverlays();
+      }
+    };
+  }, [clearOverlays]);
+  
+  const handleDialogClose = useCallback((closeDialog: () => void) => {
     isClosingRef.current = true;
     
-    // Use a more direct approach to closing
-    onClose();
+    // Run the close dialog function
+    if (typeof closeDialog === 'function') {
+      closeDialog();
+    }
     
-    // Reset the closing state after a short delay
+    // Clear overlays after a small delay to ensure smooth animations
     setTimeout(() => {
-      isClosingRef.current = false;
-    }, 300);
-  }, []);
-
+      if (isClosingRef.current) {
+        clearOverlays();
+      }
+    }, 100);
+  }, [clearOverlays]);
+  
   return {
     handleDialogClose,
     isClosingRef

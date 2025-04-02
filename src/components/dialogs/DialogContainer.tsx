@@ -2,6 +2,7 @@
 import React, { memo, useEffect, Suspense, useRef } from 'react';
 import { useDialog } from '@/context/DialogContext';
 import { trackEvent } from '@/utils/performanceMonitor';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 // Import dialogs normally instead of lazy loading for critical ones
 import SiteRulesDialog from './SiteRulesDialog';
@@ -41,24 +42,19 @@ const DialogContainer = () => {
   const mountedRef = useRef(true);
   const activeDialogTypeRef = useRef<string | null>(null);
   
+  // Use our new body scroll lock hook
+  useBodyScrollLock({
+    lockOnMount: false,
+    id: 'dialog-container'
+  });
+  
   // Track when component unmounts to prevent setState after unmount
   useEffect(() => {
     mountedRef.current = true;
     
-    // Enhanced cleanup on unmount
     return () => {
       mountedRef.current = false;
       activeDialogTypeRef.current = null;
-      
-      // Cleanup any stuck dialog elements
-      if (typeof document !== 'undefined') {
-        try {
-          document.body.style.overflow = 'auto';
-          document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-        } catch (e) {
-          // Ignore any errors during emergency cleanup
-        }
-      }
     };
   }, []);
   
