@@ -146,11 +146,12 @@ export const logAdminAction = async (action: Omit<AdminAction, 'id'>): Promise<A
       return null;
     }
     
+    // Convert the server response to our application type
     return {
       id: data.id,
-      actionType: data.action_type,
+      actionType: data.action_type as "kick" | "ban" | "unban" | "edit" | "upgrade" | "downgrade",
       targetId: data.target_id,
-      targetType: data.target_type,
+      targetType: data.target_type as "user" | "bot" | "ip",
       reason: data.reason,
       duration: data.duration,
       timestamp: new Date(data.timestamp),
@@ -178,9 +179,9 @@ export const getAdminActions = async (): Promise<AdminAction[]> => {
     // Map the returned data to our AdminAction type
     return data.map((item: any) => ({
       id: item.id,
-      actionType: item.action_type,
+      actionType: item.action_type as "kick" | "ban" | "unban" | "edit" | "upgrade" | "downgrade",
       targetId: item.target_id,
-      targetType: item.target_type,
+      targetType: item.target_type as "user" | "bot" | "ip",
       reason: item.reason,
       duration: item.duration,
       timestamp: new Date(item.timestamp),
