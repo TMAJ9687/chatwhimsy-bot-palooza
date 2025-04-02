@@ -15,6 +15,7 @@ import { useUser } from '@/context/UserContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useDialogCleanup } from '@/hooks/useDialogCleanup';
 import { useLogout } from '@/hooks/useLogout';
+import { LogOut } from 'lucide-react';
 
 const LogoutConfirmationDialog = () => {
   const { state, closeDialog } = useDialog();
@@ -90,7 +91,10 @@ const LogoutConfirmationDialog = () => {
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Leaving so soon?</AlertDialogTitle>
+          <AlertDialogTitle className="flex items-center gap-2">
+            <LogOut className="h-5 w-5 text-red-500" />
+            <span>Leaving so soon?</span>
+          </AlertDialogTitle>
           <AlertDialogDescription>
             {getFeedbackMessage()}
           </AlertDialogDescription>

@@ -60,13 +60,13 @@ const Button: React.FC<ButtonProps> = ({
       )}
       
       {!isLoading && icon && iconPosition === 'left' && (
-        <span className="mr-2">{icon}</span>
+        <span className="mr-2 inline-flex items-center justify-center">{icon}</span>
       )}
       
       {children}
       
       {!isLoading && icon && iconPosition === 'right' && (
-        <span className="ml-2">{icon}</span>
+        <span className="ml-2 inline-flex items-center justify-center">{icon}</span>
       )}
     </button>
   );

@@ -47,7 +47,7 @@ const ChatAppHeader = ({
           aria-label="Logout"
           title="Logout"
         >
-          <LogOut className="h-5 w-5 text-red-500" />
+          <LogOut className="h-5 w-5 text-red-500 dark:text-red-400" />
         </button>
       </div>
     </header>
