@@ -31,3 +31,34 @@ export const uploadDataURLImage = async (
     throw error;
   }
 };
+
+/**
+ * Uploads a profile image to storage and returns the download URL
+ */
+export const uploadProfileImage = async (
+  file: File,
+  userId: string
+): Promise<string> => {
+  try {
+    console.log('Uploading profile image for user:', userId);
+    
+    // Convert file to data URL
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    
+    // In a real implementation, this would upload to a storage service
+    // For now, we're just returning the data URL
+    console.log(`Would upload profile image of type ${file.type} for user ${userId}`);
+    
+    // Return the data URL for now
+    return dataUrl;
+  } catch (error) {
+    console.error('Error uploading profile image:', error);
+    throw error;
+  }
+};
+

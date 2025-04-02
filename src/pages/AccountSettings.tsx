@@ -13,7 +13,7 @@ const AccountSettings: React.FC = () => {
   const [nickname, setNickname] = useState(user?.nickname || '');
   const [email, setEmail] = useState(user?.email || '');
   const [age, setAge] = useState(user?.age || 0);
-  const [gender, setGender] = useState(user?.gender || 'male');
+  const [gender, setGender] = useState<'male' | 'female'>(user?.gender || 'male');
   const [country, setCountry] = useState(user?.country || '');
   const [interests, setInterests] = useState<string[]>(user?.interests || []);
 
@@ -26,7 +26,7 @@ const AccountSettings: React.FC = () => {
         nickname,
         email,
         age,
-        gender: gender as 'male' | 'female',
+        gender,
         country,
         interests
       });
