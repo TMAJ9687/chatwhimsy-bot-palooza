@@ -1,113 +1,69 @@
 
-/**
- * Global error handler utilities to handle DOM-related errors without circular dependencies
- */
+import { toast } from "@/hooks/use-toast";
 
 /**
- * Safely performs DOM cleanup when a DOM error is detected
+ * Function to handle application errors
  */
-export const performDOMCleanup = () => {
-  try {
-    // Reset body styles
-    if (document.body) {
-      document.body.style.overflow = 'auto';
-      document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-    }
-    
-    // Remove any problematic overlay elements with careful validation
-    const selectors = [
-      '.fixed.inset-0',
-      '[data-radix-dialog-overlay]',
-      '[data-radix-alert-dialog-overlay]',
-      '.vaul-overlay',
-      '[aria-modal="true"]',
-      '[role="dialog"]'
-    ];
-    
-    selectors.forEach(selector => {
-      try {
-        document.querySelectorAll(selector).forEach(el => {
-          try {
-            if (el.parentNode) {
-              // First verify it's actually a child of its parent
-              const parent = el.parentNode;
-              const isRealChild = Array.from(parent.childNodes).includes(el);
-              
-              if (isRealChild) {
-                // Try safest removal method first
-                try {
-                  el.remove();
-                } catch (err) {
-                  // Fallback to parent.removeChild with verification
-                  if (parent.contains(el)) {
-                    parent.removeChild(el);
-                  }
-                }
-              }
-            }
-          } catch (err) {
-            // Ignore individual element errors
-          }
-        });
-      } catch (err) {
-        // Ignore selector errors
-      }
-    });
-  } catch (error) {
-    console.warn('Error during DOM cleanup:', error);
+export const handleError = (error: Error, additionalInfo?: Record<string, any>) => {
+  console.error('Application error:', error, additionalInfo);
+  
+  // Show user-friendly toast notification
+  toast({
+    title: "An error occurred",
+    description: getErrorMessage(error),
+    variant: "destructive",
+  });
+  
+  // Track the error (you could send to monitoring service)
+  trackError(error, additionalInfo);
+};
+
+/**
+ * Get a user-friendly error message from various error types
+ */
+export const getErrorMessage = (error: unknown): string => {
+  if (typeof error === 'string') return error;
+  
+  if (error instanceof Error) {
+    return error.message;
   }
+  
+  return 'An unknown error occurred';
 };
 
 /**
- * Create a global error handler that can be attached to the window
+ * Track error for monitoring
  */
-export const createGlobalErrorHandler = () => {
-  return (event: ErrorEvent) => {
-    // Check if this is a DOM removal error
-    if (
-      event.message &&
-      (event.message.includes('removeChild') || 
-       event.message.includes('appendChild')) &&
-      event.message.includes('not a child')
-    ) {
-      // Prevent default behavior
-      event.preventDefault();
-      console.warn('Caught DOM manipulation error, cleaning up', event.message);
-      
-      // Run cleanup
-      performDOMCleanup();
-      
-      return false;
-    }
+const trackError = (error: Error, additionalInfo?: Record<string, any>) => {
+  // This could be connected to an error monitoring service
+  const errorData = {
+    message: error.message,
+    stack: error.stack,
+    timestamp: new Date().toISOString(),
+    ...additionalInfo
   };
+  
+  // Log for now, but could be sent to a service
+  console.log('Tracking error:', errorData);
 };
 
 /**
- * Setup global error handling
+ * Set up global error handling
  */
 export const setupGlobalErrorHandling = () => {
-  const errorHandler = createGlobalErrorHandler();
-  
-  // Use capture phase to catch errors before they propagate
-  window.addEventListener('error', errorHandler, { capture: true });
-  
-  // Also handle unhandled promise rejections
+  // Handle unhandled promise rejections
   window.addEventListener('unhandledrejection', (event) => {
-    const errorMessage = event.reason?.message || String(event.reason);
-    
-    if (
-      errorMessage.includes('removeChild') || 
-      errorMessage.includes('appendChild') || 
-      errorMessage.includes('not a child')
-    ) {
-      event.preventDefault();
-      console.warn('Unhandled promise rejection with DOM error:', errorMessage);
-      performDOMCleanup();
-    }
-  }, { capture: true });
+    handleError(
+      new Error(`Unhandled promise rejection: ${event.reason || 'Unknown error'}`),
+      { source: 'unhandledrejection' }
+    );
+  });
   
-  // Return a cleanup function
-  return () => {
-    window.removeEventListener('error', errorHandler, { capture: true });
-  };
+  // Handle runtime errors
+  window.addEventListener('error', (event) => {
+    // We don't want to interfere with normal React error handling
+    if (event.error) {
+      handleError(event.error, { source: 'window.onerror' });
+    }
+  });
 };

@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
@@ -18,17 +18,14 @@ import VipConfirmation from './pages/VipConfirmation';
 import Feedback from './pages/Feedback';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
-import { useState, useCallback, useRef } from 'react';
-import { DialogProvider } from './context/DialogContext';
-import DialogContainer from './components/dialogs/DialogContainer';
+import { OverlayProvider } from './context/OverlayContext';
+import { ModalProvider } from './context/ModalContext';
+import ModalContainer from './components/dialogs/ModalContainer';
+import PortalManager from './components/core/PortalManager';
 import { ChatProvider } from './context/ChatContext';
 import NavigationLock from './components/shared/NavigationLock';
 import AuthListener from './components/core/AuthListener';
-import ErrorHandler from './components/core/ErrorHandler';
-import PerformanceMonitor from './components/core/PerformanceMonitor';
-import useLogoutEffect from './hooks/useLogoutEffect';
 import { UserProvider } from './context/UserContext';
-import { UIStateProvider } from './context/UIStateContext';
 
 // Create QueryClient with proper configuration to reduce re-renders
 const queryClient = new QueryClient({
@@ -44,36 +41,8 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
-  const [hasLoggedOut, setHasLoggedOut] = useState(false);
-  const { logoutInProgressRef } = useLogoutEffect(hasLoggedOut, setHasLoggedOut);
-
-  const handleLogout = useCallback(() => {
-    logoutInProgressRef.current = true;
-    setHasLoggedOut(true);
-  }, []);
-
-  // Setup global error handler
-  useEffect(() => {
-    // Initialize DOM error handler
-    const setupErrorHandler = () => {
-      const errorHandler = (event: ErrorEvent) => {
-        // Detect DOM removal errors
-        if (event.message && 
-            (event.message.includes('removeChild') || 
-             event.message.includes('not a child'))) {
-          console.warn('Caught DOM error:', event.message);
-          // Reset body state
-          document.body.style.overflow = 'auto';
-          document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-        }
-      };
-      
-      window.addEventListener('error', errorHandler);
-      return () => window.removeEventListener('error', errorHandler);
-    };
-    
-    const cleanup = setupErrorHandler();
-    return () => cleanup();
+  const handleLogout = React.useCallback(() => {
+    // This will now be handled by the ModalContext
   }, []);
 
   return (
@@ -81,16 +50,15 @@ const App = () => {
       <TooltipProvider>
         <BrowserRouter>
           <UserProvider>
-            <UIStateProvider>
-              <DialogProvider>
+            <OverlayProvider>
+              <ModalProvider>
                 <ChatProvider>
+                  <PortalManager />
                   <MainLayout>
                     <Toaster />
                     <Sonner />
                     <NavigationLock />
                     <AuthListener />
-                    <PerformanceMonitor />
-                    <ErrorHandler logoutInProgressRef={logoutInProgressRef} />
                     
                     <Routes>
                       <Route path="/" element={<Index />} />
@@ -109,11 +77,11 @@ const App = () => {
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                     
-                    <DialogContainer />
+                    <ModalContainer />
                   </MainLayout>
                 </ChatProvider>
-              </DialogProvider>
-            </UIStateProvider>
+              </ModalProvider>
+            </OverlayProvider>
           </UserProvider>
         </BrowserRouter>
       </TooltipProvider>
