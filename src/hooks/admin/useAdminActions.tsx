@@ -2,7 +2,7 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { AdminAction } from '@/types/admin';
-import * as adminService from '@/services/admin/adminService';
+import { getAdminActions } from '@/services/admin/adminService';
 
 /**
  * Custom hook for admin actions functionality
@@ -17,7 +17,7 @@ export const useAdminActions = (isAdmin: boolean) => {
     
     try {
       console.log('Loading admin actions...');
-      const loadedActions = await adminService.getAdminActions();
+      const loadedActions = await getAdminActions();
       setAdminActions(loadedActions);
       console.log(`Loaded ${loadedActions.length} admin actions`);
       return loadedActions;

@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminSession } from '@/hooks/useAdminSession';
-import { verifyAdminCredentials, setAdminLoggedIn } from '@/services/admin/supabaseAdminAuth';
+import { adminLogin } from '@/services/admin/supabaseAdminAuth';
 import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/shared/Logo';
 import ThemeToggle from '@/components/shared/ThemeToggle';
@@ -29,11 +28,10 @@ const AdminLogin: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const isValid = await verifyAdminCredentials(email, password);
+      const isValid = await adminLogin(email, password);
       
       if (isValid) {
-        console.log('Admin credentials verified successfully');
-        setAdminLoggedIn(true);
+        console.log('Admin login successful');
         toast({
           title: 'Login successful.',
           description: 'Redirecting to admin dashboard...',
@@ -42,7 +40,7 @@ const AdminLogin: React.FC = () => {
         // Redirect to admin dashboard after successful login
         navigate('/admin-dashboard');
       } else {
-        console.log('Admin credentials verification failed');
+        console.log('Admin login failed');
         toast({
           variant: 'destructive',
           title: 'Authentication failed.',
