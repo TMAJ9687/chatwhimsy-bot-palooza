@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { AdminAction } from '@/types/admin';
+import { AdminUser } from '@/integrations/supabase/adminTypes';
 
 /**
  * Set admin login status in local storage
@@ -31,19 +32,15 @@ export const isAdminLoggedIn = async (): Promise<boolean> => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return false;
     
-    // Check if user is in admin_users table
-    const { data: adminUser, error } = await supabase
-      .from('admin_users')
-      .select('id')
-      .eq('id', session.user.id)
-      .single();
+    // Check if user is in admin_users table using raw query
+    const { data, error } = await supabase.rpc('is_admin', { user_id: session.user.id });
     
     if (error) {
       console.error('Error checking admin status:', error);
       return false;
     }
     
-    const isAdmin = !!adminUser;
+    const isAdmin = data === true;
     console.log('User is admin:', isAdmin);
     
     // Update localStorage for compatibility
@@ -103,18 +100,14 @@ export const verifyAdminCredentials = async (email: string, password: string): P
     if (!session) return false;
     
     // Check if user is in admin_users table
-    const { data: adminUser, error: adminError } = await supabase
-      .from('admin_users')
-      .select('id')
-      .eq('id', session.user.id)
-      .single();
+    const { data, error: adminError } = await supabase.rpc('is_admin', { user_id: session.user.id });
     
     if (adminError) {
       console.error('Error checking admin status:', adminError);
       return false;
     }
     
-    const isAdmin = !!adminUser;
+    const isAdmin = data === true;
     console.log('Login successful, user is admin:', isAdmin);
     
     // Update localStorage for compatibility
@@ -138,19 +131,15 @@ export const logAdminAction = async (action: Omit<AdminAction, 'id'>): Promise<A
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('No admin session');
     
-    const { data, error } = await supabase
-      .from('admin_actions')
-      .insert({
-        admin_id: session.user.id,
-        action_type: action.actionType,
-        target_id: action.targetId,
-        target_type: action.targetType,
-        reason: action.reason,
-        duration: action.duration,
-        timestamp: new Date().toISOString()
-      })
-      .select()
-      .single();
+    // Use custom insert query to add admin action
+    const { data, error } = await supabase.rpc('log_admin_action', {
+      p_admin_id: session.user.id,
+      p_action_type: action.actionType,
+      p_target_id: action.targetId || null,
+      p_target_type: action.targetType || null,
+      p_reason: action.reason || null,
+      p_duration: action.duration || null
+    });
     
     if (error) {
       console.error('Error logging admin action:', error);
@@ -178,17 +167,15 @@ export const logAdminAction = async (action: Omit<AdminAction, 'id'>): Promise<A
  */
 export const getAdminActions = async (): Promise<AdminAction[]> => {
   try {
-    const { data, error } = await supabase
-      .from('admin_actions')
-      .select('*')
-      .order('timestamp', { ascending: false });
+    // Use a stored procedure to get admin actions
+    const { data, error } = await supabase.rpc('get_admin_actions');
     
     if (error) {
       console.error('Error fetching admin actions:', error);
       return [];
     }
     
-    return data.map(item => ({
+    return data.map((item: any) => ({
       id: item.id,
       actionType: item.action_type,
       targetId: item.target_id,

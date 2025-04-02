@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAdminSession from '@/hooks/useAdminSession';
@@ -40,18 +39,21 @@ const AdminDashboard = () => {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        // Fetch stats from Supabase
-        const [usersResponse, vipResponse, bansResponse] = await Promise.all([
-          supabase.from('profiles').select('id', { count: 'exact' }),
-          supabase.from('vip_subscriptions').select('id', { count: 'exact' }).eq('is_active', true),
-          supabase.from('admin_actions').select('id', { count: 'exact' }).eq('action_type', 'ban')
-        ]);
+        // Fetch stats using RPC function
+        const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
         
-        setStats({
-          totalUsers: usersResponse.count || 0,
-          vipUsers: vipResponse.count || 0,
-          activeBans: bansResponse.count || 0
-        });
+        if (error) {
+          console.error('Error loading stats:', error);
+          return;
+        }
+        
+        if (data) {
+          setStats({
+            totalUsers: data.total_users || 0,
+            vipUsers: data.vip_users || 0,
+            activeBans: data.active_bans || 0
+          });
+        }
       } catch (error) {
         console.error('Error loading stats:', error);
       }

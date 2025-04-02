@@ -5,7 +5,7 @@ import * as banManagement from './banManagement';
 import * as reportService from './reportService';
 import * as adminAction from './adminAction';
 import * as userManagement from './userManagement';
-import * as supabaseFirestore from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 // Re-export all admin service functions
 export const {
@@ -56,7 +56,11 @@ export const {
 export const initializeAdminService = async (): Promise<void> => {
   // Check connection to Supabase
   try {
-    const { data, error } = await supabaseFirestore.supabase.from('admin_users').select('count');
+    // Use RPC to check connection
+    const { data, error } = await supabase.rpc('is_admin', { 
+      user_id: '00000000-0000-0000-0000-000000000000'
+    });
+    
     if (error) {
       console.error('Error connecting to Supabase:', error);
     } else {

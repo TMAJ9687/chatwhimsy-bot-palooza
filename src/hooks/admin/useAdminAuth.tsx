@@ -35,20 +35,19 @@ export const useAdminAuth = () => {
       if (event === 'SIGNED_IN') {
         if (session?.user) {
           try {
-            const { data } = await supabase
-              .from('admin_users')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
+            const { data, error } = await supabase.rpc('get_admin_user', {
+              p_user_id: session.user.id
+            });
             
-            if (data) {
+            if (error) {
+              console.error('Error checking admin status:', error);
+            } else if (data) {
               setAdminData(data);
               
               // Update last login
-              await supabase
-                .from('admin_users')
-                .update({ last_login: new Date().toISOString() })
-                .eq('id', session.user.id);
+              await supabase.rpc('update_admin_last_login', {
+                p_user_id: session.user.id
+              });
                 
               // Update user context if needed
               if (!user?.isAdmin) {
@@ -91,13 +90,13 @@ export const useAdminAuth = () => {
         if (session?.user) {
           setAuthUser(session.user);
           
-          const { data } = await supabase
-            .from('admin_users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+          const { data, error } = await supabase.rpc('get_admin_user', {
+            p_user_id: session.user.id
+          });
           
-          if (data) {
+          if (error) {
+            console.error('Error checking admin status:', error);
+          } else if (data) {
             setAdminData(data);
             
             // Update user context if needed

@@ -1,7 +1,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { isAdminLoggedIn } from '@/services/admin/adminService';
+import * as adminService from '@/services/admin/adminService';
 
 /**
  * Hook to protect admin routes and handle redirects
@@ -14,60 +14,62 @@ export const useAdminProtection = (redirectPath: string = '/secretadminportal') 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   
   // Check admin authentication on mount and when location changes
-  const checkAdminAuth = useCallback(() => {
+  const checkAdminAuth = useCallback(async () => {
     console.log('Checking admin authentication status...');
     console.log('Current path:', location.pathname);
     
     // IMPORTANT: Don't check admin logged in status if on the login page
     // to prevent immediate redirects
-    const adminLoggedIn = location.pathname === '/secretadminportal' 
-      ? false 
-      : isAdminLoggedIn();
-      
-    console.log('Admin logged in (service):', adminLoggedIn);
-    setIsAuthenticated(adminLoggedIn);
-    
-    // If on admin login page, don't redirect regardless of auth state
     if (location.pathname === '/secretadminportal') {
-      console.log('On admin login page, not redirecting');
+      setIsAuthenticated(false);
       setIsLoading(false);
       return;
     }
     
-    // If logged in and on an admin page (but not login), stay there
-    if (adminLoggedIn && location.pathname.includes('/admin')) {
-      console.log('Admin is authenticated on admin page, not redirecting');
-      setIsLoading(false);
-      return;
-    }
-    
-    // If logged in as admin and on admin login page, redirect to dashboard
-    if (adminLoggedIn && location.pathname === '/secretadminportal') {
-      console.log('Admin is authenticated on login page, redirecting to dashboard');
-      setIsLoading(false);
-      navigate('/admin-dashboard');
-      return;
-    }
-    
-    // If not logged in as admin and on a protected page, redirect to login
-    if (!adminLoggedIn && location.pathname.includes('/admin') && 
-        location.pathname !== '/secretadminportal' && !redirectAttempted) {
-      console.log('Not authenticated as admin, redirecting to:', redirectPath);
-      setIsLoading(false);
-      setRedirectAttempted(true);
+    try {
+      const adminLoggedIn = await adminService.isAdminLoggedIn();
+      console.log('Admin logged in (service):', adminLoggedIn);
+      setIsAuthenticated(adminLoggedIn);
       
-      // Clear any stale admin data
-      localStorage.removeItem('adminEmail');
+      // If logged in and on an admin page (but not login), stay there
+      if (adminLoggedIn && location.pathname.includes('/admin')) {
+        console.log('Admin is authenticated on admin page, not redirecting');
+        setIsLoading(false);
+        return;
+      }
       
-      // Use a timeout to avoid infinite redirect loops
-      setTimeout(() => {
-        navigate(redirectPath);
-      }, 100);
-      return;
+      // If logged in as admin and on admin login page, redirect to dashboard
+      if (adminLoggedIn && location.pathname === '/secretadminportal') {
+        console.log('Admin is authenticated on login page, redirecting to dashboard');
+        setIsLoading(false);
+        navigate('/admin-dashboard');
+        return;
+      }
+      
+      // If not logged in as admin and on a protected page, redirect to login
+      if (!adminLoggedIn && location.pathname.includes('/admin') && 
+          location.pathname !== '/secretadminportal' && !redirectAttempted) {
+        console.log('Not authenticated as admin, redirecting to:', redirectPath);
+        setIsLoading(false);
+        setRedirectAttempted(true);
+        
+        // Clear any stale admin data
+        localStorage.removeItem('adminEmail');
+        
+        // Use a timeout to avoid infinite redirect loops
+        setTimeout(() => {
+          navigate(redirectPath);
+        }, 100);
+        return;
+      }
+      
+      setIsLoading(false);
+      console.log('Admin authentication check complete');
+    } catch (error) {
+      console.error('Error checking admin authentication:', error);
+      setIsAuthenticated(false);
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
-    console.log('Admin authentication check complete');
   }, [navigate, redirectPath, location.pathname, redirectAttempted]);
   
   // Reset redirect attempts when location changes

@@ -30,13 +30,15 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
         // If authenticated, get the current session
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          const { data } = await supabase
-            .from('admin_users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+          const { data, error } = await supabase.rpc('get_admin_user', {
+            p_user_id: session.user.id
+          });
             
-          setAdminUser(data || { email: session.user.email });
+          if (error) {
+            console.error('Error fetching admin user:', error);
+          } else {
+            setAdminUser(data || { email: session.user.email });
+          }
         }
       }
       
