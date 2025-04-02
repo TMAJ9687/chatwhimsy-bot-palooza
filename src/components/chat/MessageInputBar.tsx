@@ -10,7 +10,7 @@ import SendButton from './SendButton';
 import VipStatusBar from './VipStatusBar';
 import VoiceMessageButton from './VoiceMessageButton';
 import { X } from 'lucide-react';
-import { uploadDataURLImage } from '@/firebase/storage';
+import { uploadDataURLImage } from '@/utils/storageUtils';
 import { useUser } from '@/context/UserContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 

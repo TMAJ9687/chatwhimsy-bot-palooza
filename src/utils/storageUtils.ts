@@ -2,300 +2,138 @@
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 
-// Storage paths for different user types
-const STANDARD_BUCKET = 'standard-uploads';
-const VIP_BUCKET = 'vip-uploads';
-const PROFILE_BUCKET = 'profile-images';
-
 /**
- * Uploads an image to Supabase Storage
- * @param imageFile The image file or blob to upload
- * @param isVip Whether the user is a VIP
- * @param userId User ID to associate with the upload
- * @returns Promise with the download URL
- */
-export const uploadImage = async (
-  imageFile: File | Blob, 
-  isVip: boolean = false,
-  userId?: string
-): Promise<string> => {
-  try {
-    if (!userId) {
-      throw new Error('User ID is required for uploads');
-    }
-    
-    // Generate a unique filename
-    const fileExtension = getFileExtension(imageFile);
-    const fileName = `${uuidv4()}${fileExtension ? `.${fileExtension}` : ''}`;
-    
-    // Determine the storage bucket based on user type
-    const bucketId = isVip ? VIP_BUCKET : STANDARD_BUCKET;
-    
-    // Create the full path including user ID
-    const filePath = `${userId}/${fileName}`;
-    
-    // Upload to Supabase
-    const { data, error } = await supabase.storage
-      .from(bucketId)
-      .upload(filePath, imageFile, {
-        contentType: imageFile instanceof File ? imageFile.type : 'image/jpeg',
-        cacheControl: '3600'
-      });
-    
-    if (error) {
-      console.error('Error uploading to Supabase:', error);
-      throw error;
-    }
-    
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from(bucketId)
-      .getPublicUrl(filePath);
-    
-    return urlData.publicUrl;
-  } catch (error) {
-    console.error('Error uploading image:', error);
-    throw error;
-  }
-};
-
-/**
- * Uploads a profile image
- * @param imageFile The image file to upload
- * @param userId User ID
- * @returns Promise with the download URL
- */
-export const uploadProfileImage = async (
-  imageFile: File | Blob, 
-  userId: string
-): Promise<string> => {
-  try {
-    const fileExtension = getFileExtension(imageFile);
-    const fileName = `${userId}${fileExtension ? `.${fileExtension}` : ''}`;
-    
-    // Upload to profile images bucket
-    const { data, error } = await supabase.storage
-      .from(PROFILE_BUCKET)
-      .upload(fileName, imageFile, {
-        contentType: imageFile instanceof File ? imageFile.type : 'image/jpeg',
-        cacheControl: '3600',
-        upsert: true
-      });
-    
-    if (error) {
-      console.error('Error uploading profile image:', error);
-      throw error;
-    }
-    
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from(PROFILE_BUCKET)
-      .getPublicUrl(fileName);
-    
-    return urlData.publicUrl;
-  } catch (error) {
-    console.error('Error uploading profile image:', error);
-    throw error;
-  }
-};
-
-/**
- * Uploads a base64 data URL as an image
- * @param dataUrl The data URL string
- * @param isVip Whether the user is a VIP
- * @param userId User ID
- * @returns Promise with the download URL
+ * Upload a data URL image to Supabase Storage
+ * @param dataUrl Base64 data URL of the image
+ * @param isVip Flag indicating if user is VIP to determine bucket
+ * @param userId User ID for the file path
+ * @returns URL of the uploaded file
  */
 export const uploadDataURLImage = async (
   dataUrl: string,
   isVip: boolean = false,
-  userId?: string
+  userId: string
 ): Promise<string> => {
   try {
-    if (!userId) {
-      throw new Error('User ID is required for uploads');
+    // Convert data URL to File object
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    
+    // Determine file type and create unique filename
+    const fileType = blob.type.split('/')[1] || 'png';
+    const fileName = `${uuidv4()}.${fileType}`;
+    
+    // Determine which bucket to use based on user role
+    const bucketName = isVip ? 'vip-uploads' : 'standard-uploads';
+    
+    // Define file path - organize by user ID and date
+    const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const filePath = `${userId}/${date}/${fileName}`;
+    
+    // Upload to Supabase
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, blob, {
+        contentType: blob.type,
+        cacheControl: '3600'
+      });
+    
+    if (error) {
+      console.error('Supabase storage upload error:', error);
+      throw new Error(`Failed to upload image: ${error.message}`);
     }
     
-    // Convert data URL to blob
-    const blob = dataURLToBlob(dataUrl);
+    // Get public URL for the file
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(filePath);
     
-    // Upload the blob
-    return await uploadImage(blob, isVip, userId);
+    return publicUrl;
   } catch (error) {
-    console.error('Error uploading data URL image:', error);
+    console.error('Error uploading image to Supabase:', error);
     throw error;
   }
 };
 
 /**
- * Gets the extension from a File or Blob
+ * Upload a profile image to Supabase Storage
+ * @param file Image file to upload
+ * @param userId User ID for the file path
+ * @returns URL of the uploaded file
  */
-function getFileExtension(file: File | Blob): string | null {
-  if (file instanceof File) {
-    const parts = file.name.split('.');
-    return parts.length > 1 ? parts.pop()?.toLowerCase() || null : null;
-  }
-  
-  // For blobs, try to determine from type
-  const mimeType = file.type;
-  if (mimeType.startsWith('image/')) {
-    return mimeType.split('/')[1] || null;
-  }
-  
-  return null;
-}
-
-/**
- * Converts a data URL to a Blob
- */
-function dataURLToBlob(dataUrl: string): Blob {
-  const arr = dataUrl.split(',');
-  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-  
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
-  }
-  
-  return new Blob([u8arr], { type: mime });
-}
-
-/**
- * Lists all images for a user
- * @param userId User ID
- * @param isVip Whether the user is a VIP
- * @returns Promise with array of download URLs
- */
-export const listUserImages = async (
-  userId: string,
-  isVip: boolean = false
-): Promise<string[]> => {
+export const uploadProfileImage = async (
+  file: File,
+  userId: string
+): Promise<string> => {
   try {
-    const bucketId = isVip ? VIP_BUCKET : STANDARD_BUCKET;
+    // Determine file type and create unique filename
+    const fileType = file.type.split('/')[1] || 'png';
+    const fileName = `${uuidv4()}.${fileType}`;
     
-    // List files in the user's folder
+    // Use profile-images bucket for all profile images
+    const bucketName = 'profile-images';
+    
+    // Define file path
+    const filePath = `${userId}/${fileName}`;
+    
+    // Upload to Supabase
     const { data, error } = await supabase.storage
-      .from(bucketId)
-      .list(`${userId}`);
+      .from(bucketName)
+      .upload(filePath, file, {
+        contentType: file.type,
+        cacheControl: '3600',
+        upsert: true // Replace if exists
+      });
     
     if (error) {
-      console.error('Error listing user images:', error);
-      return [];
+      console.error('Supabase profile image upload error:', error);
+      throw new Error(`Failed to upload profile image: ${error.message}`);
     }
     
-    // Get public URLs for all files
-    const urls = data.map(file => {
-      const { data: urlData } = supabase.storage
-        .from(bucketId)
-        .getPublicUrl(`${userId}/${file.name}`);
-      
-      return urlData.publicUrl;
-    });
+    // Get public URL for the file
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(filePath);
     
-    return urls;
+    return publicUrl;
   } catch (error) {
-    console.error('Error listing user images:', error);
-    return [];
+    console.error('Error uploading profile image to Supabase:', error);
+    throw error;
   }
 };
 
 /**
- * Gets the profile image URL for a user
- * @param userId User ID
- * @returns Promise with the download URL or null if not found
- */
-export const getProfileImageUrl = async (userId: string): Promise<string | null> => {
-  try {
-    // List all files in the profile-images bucket
-    const { data, error } = await supabase.storage
-      .from(PROFILE_BUCKET)
-      .list();
-    
-    if (error) {
-      console.error('Error listing profile images:', error);
-      return null;
-    }
-    
-    // Find files that match the userId pattern
-    const userFile = data.find(file => file.name.startsWith(userId));
-    
-    if (userFile) {
-      const { data: urlData } = supabase.storage
-        .from(PROFILE_BUCKET)
-        .getPublicUrl(userFile.name);
-      
-      return urlData.publicUrl;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error getting profile image:', error);
-    return null;
-  }
-};
-
-/**
- * Deletes an image from Supabase Storage
- * @param fileUrl The public URL of the file to delete
- * @param isVip Whether the user is a VIP
- * @param userId User ID
- * @returns Promise<boolean> indicating success
+ * Delete an image from Supabase Storage
+ * @param url Full URL of the image to delete
+ * @param isVip Flag indicating if user is VIP to determine bucket
+ * @returns Boolean indicating success
  */
 export const deleteImage = async (
-  fileUrl: string,
-  isVip: boolean = false,
-  userId?: string
+  url: string,
+  isVip: boolean = false
 ): Promise<boolean> => {
   try {
-    if (!userId) {
-      throw new Error('User ID is required for deleting files');
-    }
+    // Determine which bucket based on user role
+    const bucketName = isVip ? 'vip-uploads' : 'standard-uploads';
     
     // Extract the file path from the URL
-    const bucketId = isVip ? VIP_BUCKET : STANDARD_BUCKET;
-    const path = getPathFromUrl(fileUrl, bucketId);
+    const urlObj = new URL(url);
+    const pathSegments = urlObj.pathname.split('/');
+    const filePath = pathSegments.slice(pathSegments.indexOf(bucketName) + 1).join('/');
     
-    if (!path) {
-      console.error('Could not extract path from URL:', fileUrl);
-      return false;
-    }
-    
-    // Delete the file
+    // Delete from Supabase
     const { error } = await supabase.storage
-      .from(bucketId)
-      .remove([path]);
+      .from(bucketName)
+      .remove([filePath]);
     
     if (error) {
-      console.error('Error deleting image:', error);
+      console.error('Supabase storage delete error:', error);
       return false;
     }
     
     return true;
   } catch (error) {
-    console.error('Error deleting image:', error);
+    console.error('Error deleting image from Supabase:', error);
     return false;
   }
 };
-
-/**
- * Helper to extract path from Supabase Storage URL
- */
-function getPathFromUrl(url: string, bucketId: string): string | null {
-  try {
-    // Extract the path from the URL
-    // Example URL: https://example.com/storage/v1/object/public/bucket/path/to/file.jpg
-    const regex = new RegExp(`/storage/v1/object/public/${bucketId}/(.+)`);
-    const match = url.match(regex);
-    
-    if (match && match[1]) {
-      return decodeURIComponent(match[1]);
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error extracting path from URL:', error);
-    return null;
-  }
-}

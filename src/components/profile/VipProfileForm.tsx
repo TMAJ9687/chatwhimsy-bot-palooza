@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,7 +15,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { User, Calendar, MapPin, Heart, Save, Check, Image } from 'lucide-react';
 import { countries } from '@/data/countries';
-import { uploadProfileImage } from '@/firebase/storage';
+import { uploadProfileImage } from '@/utils/storageUtils';
 
 const profileFormSchema = z.object({
   gender: z.enum(['male', 'female'], {

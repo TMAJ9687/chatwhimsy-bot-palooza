@@ -1,72 +1,92 @@
 
-import * as adminAuth from '@/services/admin/supabaseAdminAuth';
-import * as botManagement from './botManagement';
-import * as banManagement from './banManagement';
-import * as reportService from './reportService';
-import * as adminAction from './adminAction';
-import * as userManagement from './userManagement';
 import { supabase } from '@/integrations/supabase/client';
 
-// Re-export all admin service functions
-export const {
-  getAllBots,
-  getBot,
-  createBot,
-  updateBot,
-  deleteBot
-} = botManagement;
-
-export const {
-  getBannedUsers,
-  banUser,
-  unbanUser,
-  isUserBanned
-} = banManagement;
-
-export const {
-  getAdminActions,
-  logAdminAction
-} = adminAction;
-
-export const {
-  getReportsAndFeedback,
-  addReportOrFeedback,
-  resolveReportOrFeedback,
-  deleteReportOrFeedback,
-  cleanupExpiredReportsFeedback
-} = reportService;
-
-export const {
-  kickUser,
-  upgradeToVIP,
-  downgradeToStandard
-} = userManagement;
-
-// Re-export admin auth functions
-export const {
-  setAdminLoggedIn,
-  isAdminLoggedIn,
-  adminLogout,
-  verifyAdminCredentials
-} = adminAuth;
+/**
+ * Check if admin is logged in
+ */
+export const isAdminLoggedIn = async (): Promise<boolean> => {
+  try {
+    // Check if we have a session
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      console.log('No active session found');
+      return false;
+    }
+    
+    // In a real app, you would check admin role via RLS or custom claims
+    // For now, we'll use localStorage as a fallback for demo purposes
+    const isAdmin = localStorage.getItem('adminEmail') === session.user.email;
+    
+    if (!isAdmin) {
+      // This would typically check against admin roles in the database
+      const { data, error } = await supabase
+        .from('admin_users')
+        .select('id')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (error || !data) {
+        console.log('User is not an admin according to database');
+        return false;
+      }
+      
+      return true;
+    }
+    
+    return isAdmin;
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+};
 
 /**
- * Initialize admin service - ensures all required data is loaded
+ * Admin login
  */
-export const initializeAdminService = async (): Promise<void> => {
-  // Check connection to Supabase
+export const adminLogin = async (email: string, password: string): Promise<boolean> => {
   try {
-    // Use RPC to check connection
-    const { data, error } = await supabase.rpc('is_admin', { 
-      user_id: '00000000-0000-0000-0000-000000000000'
+    const { data, error } = await supabase.auth.signInWithPassword({ 
+      email, 
+      password 
     });
     
     if (error) {
-      console.error('Error connecting to Supabase:', error);
-    } else {
-      console.log('Successfully connected to Supabase admin service');
+      console.error('Admin login error:', error.message);
+      return false;
     }
+    
+    if (data.user) {
+      // Store admin email in localStorage for demo purposes
+      // In a real app, you would rely on server-side role verification
+      localStorage.setItem('adminEmail', email);
+      localStorage.setItem('adminData', JSON.stringify({ email }));
+      
+      return true;
+    }
+    
+    return false;
   } catch (error) {
-    console.error('Failed to initialize admin service:', error);
+    console.error('Admin login error:', error);
+    return false;
+  }
+};
+
+/**
+ * Admin logout
+ */
+export const adminLogout = async (): Promise<void> => {
+  try {
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      console.error('Admin logout error:', error.message);
+    }
+    
+    // Clean up localStorage
+    localStorage.removeItem('adminEmail');
+    localStorage.removeItem('adminData');
+  } catch (error) {
+    console.error('Admin logout error:', error);
   }
 };

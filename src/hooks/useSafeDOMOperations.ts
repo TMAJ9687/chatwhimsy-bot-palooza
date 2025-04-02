@@ -1,3 +1,4 @@
+
 import { useCallback, useRef } from 'react';
 
 /**
@@ -80,10 +81,45 @@ export const useSafeDOMOperations = () => {
     }
   }, [safeRemoveElement]);
   
+  /**
+   * Check if DOM is ready for operations
+   */
+  const isDOMReady = useCallback(() => {
+    return typeof document !== 'undefined' && 
+           !!document?.body && 
+           !!document?.documentElement;
+  }, []);
+  
+  /**
+   * Create a cleanup function for specific selectors
+   */
+  const createCleanupFn = useCallback((selectors: string) => {
+    return () => {
+      if (!isDOMReady()) return;
+      
+      try {
+        // Reset body state
+        if (document.body) {
+          document.body.style.overflow = 'auto';
+          document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
+        }
+        
+        // Try to safely remove elements matching the selectors
+        document.querySelectorAll(selectors).forEach(element => {
+          safeRemoveElement(element);
+        });
+      } catch (error) {
+        console.warn(`Error in cleanup function for ${selectors}:`, error);
+      }
+    };
+  }, [safeRemoveElement, isDOMReady]);
+  
   return {
     registerNode,
     safeRemoveElement,
-    cleanupOverlays
+    cleanupOverlays,
+    isDOMReady,
+    createCleanupFn
   };
 };
 

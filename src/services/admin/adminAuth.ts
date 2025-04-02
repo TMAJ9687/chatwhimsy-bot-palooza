@@ -1,75 +1,69 @@
 
-import * as firebaseAuth from '@/firebase/auth';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Set admin login status in local storage
+ * Admin login
  */
-export const setAdminLoggedIn = (isLoggedIn: boolean): void => {
-  console.log('Setting admin logged in state:', isLoggedIn);
-  
-  // Store admin authentication state
-  if (isLoggedIn) {
-    localStorage.setItem('adminData', JSON.stringify({ authenticated: true }));
-  } else {
-    localStorage.removeItem('adminData');
-    localStorage.removeItem('adminEmail');
-  }
-};
-
-/**
- * Verify if admin is currently logged in
- */
-export const isAdminLoggedIn = (): boolean => {
-  console.log('Checking if admin is logged in');
-  
-  // Don't check logged in state on login page to prevent redirect loops
-  if (window.location.pathname === '/secretadminportal') {
-    console.log('On admin login page, returning false to prevent redirect loop');
-    return false;
-  }
-  
-  // Check Firebase auth state first
-  const user = firebaseAuth.getCurrentUser();
-  if (user && firebaseAuth.isUserAdmin(user)) {
-    console.log('Admin is logged in via Firebase auth', user.email);
-    return true;
-  }
-  
-  // Fall back to localStorage for backward compatibility
-  const adminData = localStorage.getItem('adminData');
-  
-  if (adminData) {
-    try {
-      const data = JSON.parse(adminData);
-      const isAuthenticated = data.authenticated === true;
-      console.log('Admin authentication from localStorage:', isAuthenticated);
-      return isAuthenticated;
-    } catch (e) {
-      console.error('Error parsing admin data from localStorage', e);
-      localStorage.removeItem('adminData');
+export const adminLogin = async (email: string, password: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    
+    if (error) {
+      console.error('Admin login error:', error.message);
       return false;
     }
+    
+    if (data.user) {
+      // Store admin email for checking admin status
+      localStorage.setItem('adminEmail', email);
+      
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error in adminLogin:', error);
+    return false;
   }
-  
-  console.log('No admin session found');
-  return false;
 };
 
 /**
- * Logout admin user
+ * Admin logout
  */
 export const adminLogout = async (): Promise<void> => {
-  // Clear admin session from localStorage first for immediate effect
-  localStorage.removeItem('adminData');
-  localStorage.removeItem('adminEmail');
-  
-  // Sign out from Firebase
-  await firebaseAuth.signOutUser();
+  try {
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      console.error('Admin logout error:', error.message);
+    }
+    
+    // Clean up admin data
+    localStorage.removeItem('adminEmail');
+    localStorage.removeItem('adminData');
+  } catch (error) {
+    console.error('Error in adminLogout:', error);
+  }
 };
 
 /**
- * Verify admin credentials
+ * Check if admin is logged in
  */
-export const verifyAdminCredentials = async (email: string, password: string): Promise<boolean> => {
-  return await firebaseAuth.verifyAdminCredentials(email, password);
+export const isAdminLoggedIn = async (): Promise<boolean> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      return false;
+    }
+    
+    // Check if stored admin email matches session email
+    return localStorage.getItem('adminEmail') === session.user.email;
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
 };

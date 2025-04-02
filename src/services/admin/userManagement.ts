@@ -1,39 +1,104 @@
 
-import { AdminAction, VipDuration } from '@/types/admin';
-import * as firestoreService from '@/firebase/firestore';
+import { supabase } from '@/integrations/supabase/client';
+import { User } from '@/types/user';
 
-// User Management (for Standard/VIP users)
-export const kickUser = async (userId: string, adminId: string): Promise<AdminAction> => {
-  return await firestoreService.kickUser(userId, adminId);
-};
-
-export const upgradeToVIP = async (
-  userId: string, 
-  adminId: string, 
-  duration: VipDuration = 'Lifetime'
-): Promise<AdminAction> => {
-  return await firestoreService.upgradeToVIP(userId, adminId, duration);
-};
-
-export const downgradeToStandard = async (userId: string, adminId: string): Promise<AdminAction> => {
-  return await firestoreService.downgradeToStandard(userId, adminId);
-};
-
-// For compatibility with existing code that expects synchronous operations
-export const calculateExpiryDate = (duration: VipDuration): Date | null => {
-  const now = new Date();
-  
-  if (duration === '1 Day') {
-    return new Date(now.setDate(now.getDate() + 1));
-  } else if (duration === '1 Week') {
-    return new Date(now.setDate(now.getDate() + 7));
-  } else if (duration === '1 Month') {
-    return new Date(now.setMonth(now.getMonth() + 1));
-  } else if (duration === '1 Year') {
-    return new Date(now.setFullYear(now.getFullYear() + 1));
-  } else if (duration === 'Lifetime') {
-    return null; // No expiry
+/**
+ * Get all users
+ */
+export const getAllUsers = async (): Promise<User[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching users:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error in getAllUsers:', error);
+    return [];
   }
-  
-  return new Date(now.setDate(now.getDate() + 1)); // Default to 1 day if unknown
+};
+
+/**
+ * Update user
+ */
+export const updateUser = async (userId: string, userData: Partial<User>): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update(userData)
+      .eq('id', userId);
+    
+    if (error) {
+      console.error('Error updating user:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in updateUser:', error);
+    return false;
+  }
+};
+
+/**
+ * Delete user
+ */
+export const deleteUser = async (userId: string): Promise<boolean> => {
+  try {
+    // First delete associated user data (depends on your db schema)
+    try {
+      await supabase
+        .from('user_preferences')
+        .delete()
+        .eq('user_id', userId);
+    } catch (err) {
+      console.warn('Error deleting user preferences:', err);
+      // Continue anyway
+    }
+    
+    // Delete the user
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userId);
+    
+    if (error) {
+      console.error('Error deleting user:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in deleteUser:', error);
+    return false;
+  }
+};
+
+/**
+ * Get user details
+ */
+export const getUserDetails = async (userId: string): Promise<User | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching user details:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in getUserDetails:', error);
+    return null;
+  }
 };

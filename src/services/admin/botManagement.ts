@@ -1,52 +1,122 @@
 
+import { supabase } from '@/integrations/supabase/client';
 import { Bot } from '@/types/chat';
-import * as firestoreService from '@/firebase/firestore';
-import { botProfiles } from '@/data/botProfiles';
 
 /**
- * Get all bots from Firestore or fallback to local data
+ * Get all bots
  */
 export const getAllBots = async (): Promise<Bot[]> => {
   try {
-    const bots = await firestoreService.getAllBots();
+    const { data, error } = await supabase
+      .from('bots')
+      .select('*')
+      .order('created_at', { ascending: false });
     
-    // If Firestore returned empty results or failed, use local data
-    if (!bots || bots.length === 0) {
-      console.log('Using local bot profiles as fallback');
-      return botProfiles;
+    if (error) {
+      console.error('Error fetching bots:', error);
+      return [];
     }
     
-    return bots;
+    return data || [];
   } catch (error) {
-    console.error('Error getting bots from Firestore, using local fallback:', error);
-    return botProfiles;
+    console.error('Error in getAllBots:', error);
+    return [];
   }
-};
-
-/**
- * Get a specific bot by ID
- */
-export const getBot = async (id: string): Promise<Bot | undefined> => {
-  return await firestoreService.getBot(id);
 };
 
 /**
  * Create a new bot
  */
-export const createBot = async (bot: Omit<Bot, 'id'>): Promise<Bot> => {
-  return await firestoreService.createBot(bot);
+export const createBot = async (bot: Partial<Bot>): Promise<Bot | null> => {
+  try {
+    // Generate a unique ID if not provided
+    const botWithId = {
+      ...bot,
+      id: bot.id || `bot-${Date.now()}`,
+      created_at: new Date().toISOString()
+    };
+    
+    const { data, error } = await supabase
+      .from('bots')
+      .insert([botWithId])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating bot:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in createBot:', error);
+    return null;
+  }
 };
 
 /**
- * Update an existing bot
+ * Update a bot
  */
-export const updateBot = async (id: string, updates: Partial<Bot>): Promise<Bot | null> => {
-  return await firestoreService.updateBot(id, updates);
+export const updateBot = async (botId: string, botData: Partial<Bot>): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('bots')
+      .update(botData)
+      .eq('id', botId);
+    
+    if (error) {
+      console.error('Error updating bot:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in updateBot:', error);
+    return false;
+  }
 };
 
 /**
  * Delete a bot
  */
-export const deleteBot = async (id: string): Promise<boolean> => {
-  return await firestoreService.deleteBot(id);
+export const deleteBot = async (botId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('bots')
+      .delete()
+      .eq('id', botId);
+    
+    if (error) {
+      console.error('Error deleting bot:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in deleteBot:', error);
+    return false;
+  }
+};
+
+/**
+ * Get bot details
+ */
+export const getBotDetails = async (botId: string): Promise<Bot | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('bots')
+      .select('*')
+      .eq('id', botId)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching bot details:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in getBotDetails:', error);
+    return null;
+  }
 };
