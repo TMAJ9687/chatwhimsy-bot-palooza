@@ -20,17 +20,6 @@ const AuthListener = () => {
       return;
     }
     
-    // Allow direct access to VIP profile and VIP-related pages
-    if (location.pathname === '/vip-profile' || 
-        location.pathname === '/vip-login' ||
-        location.pathname === '/vip-signup' ||
-        location.pathname === '/vip-subscription' ||
-        location.pathname === '/vip-payment' ||
-        location.pathname === '/vip-confirmation') {
-      console.log('On VIP page, skipping auth redirects:', location.pathname);
-      return;
-    }
-    
     // Single, well-managed auth listener
     if (!authListenerSetRef.current) {
       console.log('Setting up Firebase auth state listener');
@@ -66,8 +55,7 @@ const AuthListener = () => {
   // Extracted redirect logic for better organization
   const handleNonAuthenticatedRedirect = (currentPath: string) => {
     // Public paths that don't require redirection
-    const publicPaths = ['/', '/vip-login', '/vip-signup', '/secretadminportal', '/feedback', 
-                         '/vip-profile', '/vip-subscription', '/vip-payment', '/vip-confirmation'];
+    const publicPaths = ['/', '/vip-login', '/vip-signup', '/secretadminportal', '/feedback'];
     
     // Early return for public paths
     if (publicPaths.includes(currentPath) || currentPath.includes('/admin')) {
@@ -90,17 +78,10 @@ const AuthListener = () => {
             return; // Do not redirect standard users with valid profile
           }
           
-          // Check if VIP profile is complete
-          const vipProfileComplete = localStorage.getItem('vipProfileComplete') === 'true';
-          if (userData.isVip && !vipProfileComplete) {
-            console.log('VIP user with incomplete profile, redirecting to VIP profile setup');
-            navigate('/vip-profile');
-            return;
-          }
-          
-          // Allow VIP users with complete profiles to access chat
-          if (userData.isVip && vipProfileComplete) {
-            console.log('VIP user with complete profile, allowing access to chat');
+          // VIP users without Firebase auth should be redirected to login
+          if (userData.isVip) {
+            console.log('VIP user without Firebase auth, redirecting to home');
+            navigate('/');
             return;
           }
         } else {
