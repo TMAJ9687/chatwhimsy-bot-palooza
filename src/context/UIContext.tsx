@@ -32,7 +32,7 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     lockBodyScroll,
     unlockBodyScroll,
     isMobileMenuOpen,
-    setMobileMenuOpen
+    setMobileMenuOpen: setIsMobileMenuOpen // Fixed: use the correct state setter
   }), [isBodyScrollLocked, isMobileMenuOpen]);
 
   return (

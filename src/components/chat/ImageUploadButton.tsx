@@ -73,12 +73,12 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
         // First pass the data URL to onImageSelected to maintain compatibility
         onImageSelected(result);
         
-        // In the background, upload to Supabase Storage if user is logged in
+        // In the background, upload to storage if user is logged in
         if (user?.id) {
           try {
             await uploadDataURLImage(result, isVip, user.id);
           } catch (error) {
-            console.error('Error uploading to Supabase:', error);
+            console.error('Error uploading to storage:', error);
             // Don't show error toast here since we already showed the image in chat
           }
         }

@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { Send, Image, Smile, X } from 'lucide-react';
 import Button from '../shared/Button';
-import { uploadDataURLImage } from '@/firebase/storage';
+import { uploadDataURLImage } from '@/utils/storageUtils'; // Updated import
 import { useUser } from '@/context/UserContext';
 
 interface MessageInputProps {
