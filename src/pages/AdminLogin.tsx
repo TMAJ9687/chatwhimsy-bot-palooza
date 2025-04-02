@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminSession } from '@/hooks/useAdminSession';
-import { adminLogin } from '@/services/admin/supabaseAdminAuth';
+import { adminLogin } from '@/services/admin/adminAuth';
 import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/shared/Logo';
 import ThemeToggle from '@/components/shared/ThemeToggle';

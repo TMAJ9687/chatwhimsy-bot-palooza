@@ -1,5 +1,11 @@
 
-import React, { createContext, useContext, useReducer, ReactNode, useMemo, useCallback, useEffect, useRef } from 'react';
+/**
+ * DEPRECATED: This context has been replaced with the UIContext.
+ * Please migrate to using useDialog hook from @/hooks/useDialog.
+ * This file is kept for backward compatibility during transition.
+ */
+import React, { createContext, useContext, useEffect } from 'react';
+import { useUI } from './UIContext';
 
 // Define dialog types
 type DialogType = 'report' | 'block' | 'siteRules' | 'logout' | 'vipLogin' | 'vipSignup' 
@@ -13,94 +19,54 @@ interface DialogState {
   data: Record<string, any>;
 }
 
-// Define dialog actions
-type DialogAction = 
-  | { type: 'OPEN_DIALOG'; payload: { type: DialogType; data?: Record<string, any> } }
-  | { type: 'CLOSE_DIALOG' };
-
-// Initial dialog state
-const initialState: DialogState = {
-  isOpen: false,
-  type: null,
-  data: {}
-};
-
-// Create context
+// Create context for backward compatibility
 const DialogContext = createContext<{
   state: DialogState;
   openDialog: (type: DialogType, data?: Record<string, any>) => void;
   closeDialog: () => void;
 } | undefined>(undefined);
 
-// Optimized reducer - completely reset state on close
-function dialogReducer(state: DialogState, action: DialogAction): DialogState {
-  switch (action.type) {
-    case 'OPEN_DIALOG':
-      return {
-        isOpen: true,
-        type: action.payload.type,
-        data: action.payload.data || {}
-      };
-    case 'CLOSE_DIALOG':
-      return initialState; // Reset completely to initial state 
-    default:
-      return state;
-  }
-}
-
-// Provider component
-export function DialogProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(dialogReducer, initialState);
-  const dialogIdRef = useRef('dialog-context');
-  const prevStateRef = useRef(state);
-
-  // Effect to manage body scroll lock based on dialog state
+// Provider component that now uses UIContext
+export function DialogProvider({ children }: { children: React.ReactNode }) {
+  const { 
+    state: uiState, 
+    openDialog: openUIDialog, 
+    closeDialog: closeUIDialog 
+  } = useUI();
+  
   useEffect(() => {
-    // Skip if state hasn't changed to avoid loops
-    if (state === prevStateRef.current) return;
-    prevStateRef.current = state;
-
-    // Apply body styles directly here instead of using UIStateContext
-    if (state.isOpen) {
-      // Lock body scroll when dialog opens
-      document.body.style.overflow = 'hidden';
-      document.body.classList.add('dialog-open');
-    } else {
-      // Unlock body scroll when dialog closes, but be careful about other active dialogs
-      document.body.style.overflow = 'auto';
-      document.body.classList.remove('dialog-open');
-    }
-  }, [state]);
-
-  // Memoize functions to prevent unnecessary re-renders
-  const openDialog = useCallback((type: DialogType, data?: Record<string, any>) => {
-    dispatch({ type: 'OPEN_DIALOG', payload: { type, data } });
+    console.warn(
+      'DialogContext is deprecated. Please migrate to using useDialog hook from @/hooks/useDialog.'
+    );
   }, []);
   
-  const closeDialog = useCallback(() => {
-    dispatch({ type: 'CLOSE_DIALOG' });
-  }, []);
+  const state: DialogState = {
+    isOpen: uiState.dialogs.activeDialog !== null,
+    type: uiState.dialogs.activeDialog,
+    data: uiState.dialogs.dialogData
+  };
 
-  // Memoize the context value to prevent unnecessary re-renders
-  const contextValue = useMemo(() => ({
-    state,
-    openDialog,
-    closeDialog
-  }), [state, openDialog, closeDialog]);
+  const openDialog = (type: DialogType, data?: Record<string, any>) => {
+    openUIDialog(type, data);
+  };
+  
+  const closeDialog = () => {
+    closeUIDialog();
+  };
 
   return (
-    <DialogContext.Provider value={contextValue}>
+    <DialogContext.Provider value={{ state, openDialog, closeDialog }}>
       {children}
     </DialogContext.Provider>
   );
 }
 
-// Custom hook
+// Custom hook for backward compatibility
 export function useDialog() {
   const context = useContext(DialogContext);
   
   if (context === undefined) {
-    throw new Error('useDialog must be used within a DialogProvider');
+    throw new Error('useDialog must be used within a DialogProvider or UIProvider');
   }
   
   return context;
