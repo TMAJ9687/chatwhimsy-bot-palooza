@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { AdminAction } from '@/types/admin';
-import { AdminUser } from '@/integrations/supabase/adminTypes';
+import { AdminUser, adminDb } from '@/integrations/supabase/adminTypes';
 
 /**
  * Set admin login status in local storage
@@ -131,14 +131,14 @@ export const logAdminAction = async (action: Omit<AdminAction, 'id'>): Promise<A
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('No admin session');
     
-    // Use custom insert query to add admin action
-    const { data, error } = await supabase.rpc('log_admin_action', {
-      p_admin_id: session.user.id,
-      p_action_type: action.actionType,
-      p_target_id: action.targetId || null,
-      p_target_type: action.targetType || null,
-      p_reason: action.reason || null,
-      p_duration: action.duration || null
+    // Use our helper to log the admin action
+    const { data, error } = await adminDb.adminActions().logAction({
+      admin_id: session.user.id,
+      action_type: action.actionType,
+      target_id: action.targetId,
+      target_type: action.targetType,
+      reason: action.reason,
+      duration: action.duration
     });
     
     if (error) {
@@ -167,14 +167,15 @@ export const logAdminAction = async (action: Omit<AdminAction, 'id'>): Promise<A
  */
 export const getAdminActions = async (): Promise<AdminAction[]> => {
   try {
-    // Use a stored procedure to get admin actions
-    const { data, error } = await supabase.rpc('get_admin_actions');
+    // Use our helper to get admin actions
+    const { data, error } = await adminDb.adminActions().getAdminActions();
     
     if (error) {
       console.error('Error fetching admin actions:', error);
       return [];
     }
     
+    // Map the returned data to our AdminAction type
     return data.map((item: any) => ({
       id: item.id,
       actionType: item.action_type,

@@ -4,6 +4,7 @@ import { useUser } from '@/context/UserContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import * as adminService from '@/services/admin/supabaseAdminAuth';
+import { adminDb } from '@/integrations/supabase/adminTypes';
 
 /**
  * Custom hook for admin authentication logic
@@ -35,9 +36,7 @@ export const useAdminAuth = () => {
       if (event === 'SIGNED_IN') {
         if (session?.user) {
           try {
-            const { data, error } = await supabase.rpc('get_admin_user', {
-              p_user_id: session.user.id
-            });
+            const { data, error } = await adminDb.adminUsers().getAdminUser(session.user.id);
             
             if (error) {
               console.error('Error checking admin status:', error);
@@ -45,9 +44,7 @@ export const useAdminAuth = () => {
               setAdminData(data);
               
               // Update last login
-              await supabase.rpc('update_admin_last_login', {
-                p_user_id: session.user.id
-              });
+              await adminDb.adminUsers().updateLastLogin(session.user.id);
                 
               // Update user context if needed
               if (!user?.isAdmin) {
@@ -90,9 +87,7 @@ export const useAdminAuth = () => {
         if (session?.user) {
           setAuthUser(session.user);
           
-          const { data, error } = await supabase.rpc('get_admin_user', {
-            p_user_id: session.user.id
-          });
+          const { data, error } = await adminDb.adminUsers().getAdminUser(session.user.id);
           
           if (error) {
             console.error('Error checking admin status:', error);

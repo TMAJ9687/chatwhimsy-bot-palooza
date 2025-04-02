@@ -5,6 +5,7 @@ import { useUser } from '@/context/UserContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import * as adminService from '@/services/admin/supabaseAdminAuth';
+import { adminDb } from '@/integrations/supabase/adminTypes';
 
 /**
  * Hook to manage admin session persistence and protection
@@ -30,9 +31,7 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
         // If authenticated, get the current session
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          const { data, error } = await supabase.rpc('get_admin_user', {
-            p_user_id: session.user.id
-          });
+          const { data, error } = await adminDb.adminUsers().getAdminUser(session.user.id);
             
           if (error) {
             console.error('Error fetching admin user:', error);

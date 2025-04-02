@@ -13,7 +13,7 @@ import Statistics from '@/components/admin/statistics/Statistics';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { adminLogout } from '@/services/admin/supabaseAdminAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { adminDb } from '@/integrations/supabase/adminTypes';
 
 const AdminDashboard = () => {
   const { isAuthenticated, user, isLoading: sessionLoading } = useAdminSession();
@@ -39,8 +39,8 @@ const AdminDashboard = () => {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        // Fetch stats using RPC function
-        const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
+        // Fetch stats using our helper function
+        const { data, error } = await adminDb.dashboard().getStats();
         
         if (error) {
           console.error('Error loading stats:', error);
