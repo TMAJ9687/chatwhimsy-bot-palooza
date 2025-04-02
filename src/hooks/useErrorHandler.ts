@@ -13,7 +13,29 @@ export const useErrorHandler = (options: ErrorHandlerOptions = {}) => {
   const { onError } = options;
   
   useEffect(() => {
+    // Maximum allowed errors in a time window before stopping execution
+    let errorCount = 0;
+    const MAX_ERRORS = 20;
+    const ERROR_WINDOW_MS = 2000;
+    let windowStartTime = Date.now();
+    
     const handleError = (event: ErrorEvent) => {
+      // Check if we're in a potential infinite loop
+      const currentTime = Date.now();
+      if (currentTime - windowStartTime > ERROR_WINDOW_MS) {
+        // Reset counter if the window has expired
+        errorCount = 0;
+        windowStartTime = currentTime;
+      }
+      
+      errorCount++;
+      
+      // If error threshold is exceeded, we might be in an infinite loop
+      if (errorCount > MAX_ERRORS) {
+        console.warn('Possible infinite loop detected. Stopping cascade of errors.');
+        return;
+      }
+      
       if (
         // Check if this is a DOM error, SVG error, or React error
         (event.message && 

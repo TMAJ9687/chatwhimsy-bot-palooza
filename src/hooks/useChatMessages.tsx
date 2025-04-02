@@ -12,7 +12,10 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
   const [imagesRemaining, setImagesRemaining] = useState(IMAGE_UPLOAD_LIMIT);
   const currentBotIdRef = useRef<string>('');
   const { user } = useUser();
-
+  
+  // Add a ref to prevent simulation running multiple times for the same message
+  const processingMessageIds = useRef<Set<string>>(new Set());
+  
   const setCurrentBotId = useCallback((botId: string) => {
     currentBotIdRef.current = botId;
   }, []);
@@ -32,6 +35,14 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
   }, [userChats]);
 
   const simulateBotResponse = useCallback((messageId: string, botId: string) => {
+    // Prevent duplicate processing of the same message
+    if (processingMessageIds.current.has(messageId)) {
+      return;
+    }
+    
+    // Mark this message as being processed
+    processingMessageIds.current.add(messageId);
+    
     setTypingBots(prev => ({
       ...prev,
       [botId]: true
@@ -53,7 +64,7 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
     setTimeout(() => updateMessageStatus('sent'), 500);
     setTimeout(() => updateMessageStatus('delivered'), 1500);
     
-    setTimeout(() => {
+    const responseTimeout = setTimeout(() => {
       const isCurrent = currentBotIdRef.current === botId;
       
       setTypingBots(prev => ({
@@ -100,7 +111,17 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
           ]
         };
       });
+      
+      // Remove the message from processing after it's fully handled
+      processingMessageIds.current.delete(messageId);
+      
     }, 3000);
+    
+    // Cleanup function in case component unmounts during simulation
+    return () => {
+      clearTimeout(responseTimeout);
+      processingMessageIds.current.delete(messageId);
+    };
   }, [isVip, onNewNotification]);
 
   const handleSendTextMessage = useCallback((text: string, currentBotId: string, botName: string) => {
@@ -185,6 +206,13 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
       console.error('Error fetching remaining uploads:', error);
     }
   }, [isVip]);
+
+  // Cleanup function to clear any hanging message processing on unmount
+  useEffect(() => {
+    return () => {
+      processingMessageIds.current.clear();
+    };
+  }, []);
 
   return {
     userChats,

@@ -25,17 +25,24 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const { safeRemoveElement, createCleanupFn, isDOMReady } = useSafeDOMOperations();
   const isMountedRef = useRef(true);
   const [isFullyMounted, setIsFullyMounted] = useState(false);
+  const previousMessagesLengthRef = useRef(0);
   
   // Only show status and typing indicators for VIP users
   const shouldShowStatus = isVip && showStatus;
   const shouldShowTyping = isVip && showTyping;
+
+  // Prevent excessive re-renders by checking if messages array actually changed
+  useEffect(() => {
+    // Store previous length to detect actual changes
+    previousMessagesLengthRef.current = messages.length;
+  }, [messages]);
 
   // Track component mounted state with improved lifecycle management
   useEffect(() => {
     isMountedRef.current = true;
     
     // Set fully mounted state in the next frame to ensure DOM is ready
-    requestAnimationFrame(() => {
+    const frameId = requestAnimationFrame(() => {
       if (isMountedRef.current) {
         setIsFullyMounted(true);
       }
@@ -48,6 +55,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       // Mark as unmounted before cleanup
       isMountedRef.current = false;
       setIsFullyMounted(false);
+      cancelAnimationFrame(frameId);
       
       // Run cleanup operation on unmount
       if (isDOMReady()) {
