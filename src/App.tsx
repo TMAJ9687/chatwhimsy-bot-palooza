@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
@@ -18,7 +17,7 @@ import VipConfirmation from './pages/VipConfirmation';
 import Feedback from './pages/Feedback';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { DialogProvider } from './context/DialogContext';
 import DialogContainer from './components/dialogs/DialogContainer';
 import { ChatProvider } from './context/ChatContext';

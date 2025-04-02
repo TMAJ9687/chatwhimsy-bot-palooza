@@ -22,7 +22,7 @@ const LogoutConfirmationDialog = () => {
   const { user } = useUser();
   const { isAdmin } = useAdmin();
   
-  // Get dialog cleanup utilities with error handling
+  // Get dialog cleanup utilities with improved error handling
   const { handleDialogClose, isClosingRef } = useDialogCleanup();
   
   // Track if component is mounted to prevent state updates after unmount
@@ -39,16 +39,38 @@ const LogoutConfirmationDialog = () => {
   // Track mounted state
   useEffect(() => {
     isMountedRef.current = true;
+    
+    // Clear body state manually to avoid UI state issues
+    if (document.body) {
+      document.body.style.overflow = 'auto';
+    }
+    
     return () => {
       isMountedRef.current = false;
+      
+      // Reset dialog state on unmount
+      if (isClosingRef.current && document.body) {
+        document.body.style.overflow = 'auto';
+        document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
+      }
     };
   }, []);
 
+  // Safe close with direct DOM cleanup as fallback
   const handleSafeClose = useCallback(() => {
     // Skip if already unmounted
     if (!isMountedRef.current) return;
     
+    // Close dialog and clean up
     handleDialogClose(() => closeDialog());
+    
+    // Additional direct cleanup to ensure modals are removed
+    setTimeout(() => {
+      if (document.body) {
+        document.body.style.overflow = 'auto';
+        document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
+      }
+    }, 150);
   }, [closeDialog, handleDialogClose]);
 
   const handleConfirm = useCallback(async () => {
