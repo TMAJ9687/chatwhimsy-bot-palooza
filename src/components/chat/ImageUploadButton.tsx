@@ -4,7 +4,7 @@ import { Image } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { validateImageFile } from '@/utils/messageUtils';
-import { uploadDataURLImage } from '@/firebase/storage';
+import { uploadDataURLImage } from '@/utils/storageUtils';
 import { useUser } from '@/context/UserContext';
 
 interface ImageUploadButtonProps {
@@ -70,13 +70,17 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
       try {
         const result = reader.result as string;
         
-        // For now, we'll still pass the data URL to onImageSelected
-        // This maintains compatibility with the existing code
+        // First pass the data URL to onImageSelected to maintain compatibility
         onImageSelected(result);
         
-        // In the background, upload to Firebase Storage
+        // In the background, upload to Supabase Storage if user is logged in
         if (user?.id) {
-          await uploadDataURLImage(result, isVip, user.id);
+          try {
+            await uploadDataURLImage(result, isVip, user.id);
+          } catch (error) {
+            console.error('Error uploading to Supabase:', error);
+            // Don't show error toast here since we already showed the image in chat
+          }
         }
       } catch (error) {
         console.error('Error processing image:', error);

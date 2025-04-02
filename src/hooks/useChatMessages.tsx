@@ -3,7 +3,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Message, Bot } from '@/types/chat';
 import { getRandomBotResponse } from '@/utils/botUtils';
 import { trackImageUpload, getRemainingUploads, IMAGE_UPLOAD_LIMIT } from '@/utils/imageUploadLimiter';
-import { uploadDataURLImage } from '@/firebase/storage';
+import { uploadDataURLImage } from '@/utils/storageUtils';
 import { useUser } from '@/context/UserContext';
 
 export const useChatMessages = (isVip: boolean, onNewNotification: (botId: string, content: string, botName: string) => void) => {
@@ -165,9 +165,14 @@ export const useChatMessages = (isVip: boolean, onNewNotification: (botId: strin
       const remaining = await trackImageUpload(isVip);
       setImagesRemaining(remaining);
       
-      // Upload the image to Firebase Storage
+      // Upload the image to Supabase Storage if user is logged in
       if (user?.id) {
-        await uploadDataURLImage(imageDataUrl, isVip, user.id);
+        try {
+          await uploadDataURLImage(imageDataUrl, isVip, user.id);
+        } catch (error) {
+          console.error('Error uploading to Supabase:', error);
+          // Don't show error since we already displayed the image in chat
+        }
       }
     } catch (error) {
       console.error('Error tracking image upload:', error);

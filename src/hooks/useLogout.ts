@@ -2,7 +2,7 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
-import { signOutUser } from '@/firebase/auth';
+import { signOutUser } from '@/services/auth/supabaseAuth';
 
 /**
  * Hook that provides logout functionality with proper redirection
@@ -60,11 +60,11 @@ export const useLogout = () => {
         }
       }
       
-      // Attempt to sign out of Firebase
+      // Attempt to sign out of Supabase
       try {
         await signOutUser();
       } catch (error) {
-        console.error('Firebase signout error:', error);
+        console.error('Supabase signout error:', error);
       }
       
       // Force a hard redirect based on user type

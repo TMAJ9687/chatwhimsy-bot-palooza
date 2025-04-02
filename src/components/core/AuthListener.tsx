@@ -1,14 +1,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { onAuthStateChange } from '@/firebase/auth';
+import { onAuthStateChange } from '@/services/auth/supabaseAuth';
+import { User } from '@supabase/supabase-js';
 
 const AuthListener = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const authListenerSetRef = useRef(false);
   const adminRedirectInProgress = useRef(false);
-  const [firebaseUser, setFirebaseUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   
   useEffect(() => {
     console.log('AuthListener initialized, current path:', location.pathname);
@@ -22,12 +23,12 @@ const AuthListener = () => {
     
     // Single, well-managed auth listener
     if (!authListenerSetRef.current) {
-      console.log('Setting up Firebase auth state listener');
+      console.log('Setting up Supabase auth state listener');
       authListenerSetRef.current = true;
       
       const unsubscribe = onAuthStateChange((user) => {
-        console.log('Firebase auth state changed:', user ? `logged in as ${user.email}` : 'logged out');
-        setFirebaseUser(user);
+        console.log('Supabase auth state changed:', user ? `logged in as ${user.email}` : 'logged out');
+        setUser(user);
         
         if (!user) {
           const currentPath = location.pathname;
@@ -45,7 +46,7 @@ const AuthListener = () => {
       
       // Ensure cleanup on unmount
       return () => {
-        console.log('Cleaning up Firebase auth listener');
+        console.log('Cleaning up Supabase auth listener');
         unsubscribe();
         authListenerSetRef.current = false;
       };
@@ -78,9 +79,9 @@ const AuthListener = () => {
             return; // Do not redirect standard users with valid profile
           }
           
-          // VIP users without Firebase auth should be redirected to login
+          // VIP users without auth should be redirected to login
           if (userData.isVip) {
-            console.log('VIP user without Firebase auth, redirecting to home');
+            console.log('VIP user without auth, redirecting to home');
             navigate('/');
             return;
           }
