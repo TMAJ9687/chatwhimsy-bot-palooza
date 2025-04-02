@@ -1,51 +1,88 @@
-/**
- * DEPRECATED: This hook has been replaced with React-based implementations.
- * This file is kept for backward compatibility but should not be used for new code.
- * Use the UIContext, useDialog, and useModal hooks instead.
- */
-import { useCallback, useEffect, useRef } from 'react';
-import { useUI } from '@/context/UIContext';
+
+import { useCallback, useRef } from 'react';
 
 /**
- * @deprecated Use UIContext and related hooks instead
+ * Hook that provides safe DOM manipulation utilities
  */
 export const useSafeDOMOperations = () => {
   // Keep track of DOM nodes we've created for safe cleanup
   const nodesRegistryRef = useRef(new WeakMap());
-  const { lockBody, unlockBody } = useUI();
-  
-  useEffect(() => {
-    console.warn(
-      'useSafeDOMOperations is deprecated. Use UIContext, useDialog, and useModal hooks instead.'
-    );
-  }, []);
   
   /**
    * Register a DOM node for future tracking/cleanup
-   * @deprecated Use the modal and dialog system
    */
   const registerNode = useCallback((node: Element) => {
     nodesRegistryRef.current.set(node, true);
   }, []);
   
   /**
-   * @deprecated Use UIContext for declarative UI management
+   * Safely remove a DOM element with validation
    */
   const safeRemoveElement = useCallback((element: Element | null) => {
-    console.warn('safeRemoveElement is deprecated. Use React refs and effects instead.');
+    if (!element) return false;
+    
+    try {
+      // First validate element still exists and has a parent
+      if (!element.parentNode) return false;
+      
+      // Check if element is in DOM
+      if (!document.contains(element)) return false;
+      
+      // Verify parent-child relationship
+      const isRealChild = Array.from(element.parentNode.childNodes).includes(element);
+      if (!isRealChild) return false;
+      
+      // Try removing with element.remove()
+      try {
+        element.remove();
+        return true;
+      } catch (e) {
+        // Fallback to parentNode.removeChild
+        if (element.parentNode && element.parentNode.contains(element)) {
+          element.parentNode.removeChild(element);
+          return true;
+        }
+      }
+    } catch (error) {
+      console.warn('Error removing element safely:', error);
+    }
+    
     return false;
   }, []);
   
   /**
-   * @deprecated Use UIContext for declarative UI management
+   * Clean up all overlays in the document
    */
   const cleanupOverlays = useCallback(() => {
-    console.warn('cleanupOverlays is deprecated. Use useDialog and useModal hooks instead.');
-    unlockBody();
-  }, [unlockBody]);
+    try {
+      // Reset body state
+      if (document.body) {
+        document.body.style.overflow = 'auto';
+        document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
+      }
+      
+      // Common overlay selectors
+      const selectors = [
+        '.fixed.inset-0',
+        '[data-radix-dialog-overlay]',
+        '[data-radix-alert-dialog-overlay]',
+        '.backdrop',
+        '.modal-backdrop'
+      ];
+      
+      // Try to safely remove each overlay
+      selectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(element => {
+          safeRemoveElement(element);
+        });
+      });
+    } catch (error) {
+      console.warn('Error cleaning up overlays:', error);
+    }
+  }, [safeRemoveElement]);
   
   /**
-   * @deprecated Use React's built-in mechanisms
+   * Check if DOM is ready for operations
    */
   const isDOMReady = useCallback(() => {
     return typeof document !== 'undefined' && 
@@ -54,14 +91,28 @@ export const useSafeDOMOperations = () => {
   }, []);
   
   /**
-   * @deprecated Use useEffect cleanup functions
+   * Create a cleanup function for specific selectors
    */
   const createCleanupFn = useCallback((selectors: string) => {
     return () => {
-      console.warn('createCleanupFn is deprecated. Use React effects instead.');
-      unlockBody();
+      if (!isDOMReady()) return;
+      
+      try {
+        // Reset body state
+        if (document.body) {
+          document.body.style.overflow = 'auto';
+          document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
+        }
+        
+        // Try to safely remove elements matching the selectors
+        document.querySelectorAll(selectors).forEach(element => {
+          safeRemoveElement(element);
+        });
+      } catch (error) {
+        console.warn(`Error in cleanup function for ${selectors}:`, error);
+      }
     };
-  }, [unlockBody]);
+  }, [safeRemoveElement, isDOMReady]);
   
   return {
     registerNode,
