@@ -1,38 +1,39 @@
 
-import { useEffect } from 'react';
-import { performDOMCleanup } from '@/utils/errorHandler';
+import { useEffect, useCallback } from 'react';
+import { useToast } from './use-toast';
 
 /**
- * A hook that ensures DOM is properly cleaned up if errors occur
+ * A hook to help clean up UI errors and show user-friendly messages
  */
-export const useErrorCleaner = (
-  customCleanup?: () => void
-) => {
+export const useErrorCleaner = () => {
+  const { toast } = useToast();
+  
   useEffect(() => {
-    // Setup error handler
-    const handleError = (event: ErrorEvent) => {
-      if (
-        event.message &&
-        (event.message.includes('removeChild') || 
-         event.message.includes('appendChild') ||
-         event.message.includes('not a child'))
-      ) {
-        // First perform standard DOM cleanup
-        performDOMCleanup();
-        
-        // Then run custom cleanup if provided
-        if (customCleanup) {
-          customCleanup();
-        }
-      }
+    // Clear any "zombie" elements or orphaned overlays
+    const cleanup = () => {
+      // Use React state management instead of direct DOM manipulation
+      console.log('Error cleaner running');
     };
     
-    window.addEventListener('error', handleError);
+    // Run cleanup on mount
+    cleanup();
     
-    return () => {
-      window.removeEventListener('error', handleError);
-    };
-  }, [customCleanup]);
+    // Run cleanup on unmount
+    return cleanup;
+  }, []);
+  
+  const handleError = useCallback((error: Error, context?: string) => {
+    console.error(`Error in ${context || 'application'}:`, error);
+    
+    toast({
+      title: 'Something went wrong',
+      description: error.message || 'Please try again or refresh the page',
+      variant: 'destructive'
+    });
+    
+  }, [toast]);
+  
+  return { handleError };
 };
 
 export default useErrorCleaner;

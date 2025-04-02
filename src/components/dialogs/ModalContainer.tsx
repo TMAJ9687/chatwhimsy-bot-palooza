@@ -5,6 +5,16 @@ import { useModal } from '@/context/ModalContext';
 // Import frequently used modals directly
 import SiteRulesModal from './SiteRulesModal';
 import LogoutConfirmationModal from './LogoutConfirmationModal';
+import AlertModal from './AlertModal';
+
+// Simple loading fallback
+const ModalFallback = () => (
+  <div className="bg-white rounded-lg p-4 shadow-lg animate-pulse">
+    <div className="h-6 w-32 bg-gray-200 mb-4 rounded"></div>
+    <div className="h-4 w-64 bg-gray-200 mb-2 rounded"></div>
+    <div className="h-4 w-48 bg-gray-200 rounded"></div>
+  </div>
+);
 
 // Lazy load other modals
 const ReportModal = lazy(() => import('./ReportModal'));
@@ -17,16 +27,6 @@ const VipConfirmationModal = lazy(() => import('./VipConfirmationModal'));
 const AccountDeletionModal = lazy(() => import('./AccountDeletionModal'));
 const VipSelectModal = lazy(() => import('./VipSelectModal'));
 const ConfirmModal = lazy(() => import('./ConfirmModal'));
-const AlertModal = lazy(() => import('./AlertModal'));
-
-// Simple loading fallback
-const ModalFallback = () => (
-  <div className="bg-white rounded-lg p-4 shadow-lg animate-pulse">
-    <div className="h-6 w-32 bg-gray-200 mb-4 rounded"></div>
-    <div className="h-4 w-64 bg-gray-200 mb-2 rounded"></div>
-    <div className="h-4 w-48 bg-gray-200 rounded"></div>
-  </div>
-);
 
 const ModalContainer: React.FC = () => {
   const { state } = useModal();
@@ -42,6 +42,10 @@ const ModalContainer: React.FC = () => {
   
   if (state.type === 'logout') {
     return <LogoutConfirmationModal />;
+  }
+  
+  if (state.type === 'alert') {
+    return <AlertModal />;
   }
 
   return (
@@ -68,8 +72,6 @@ const ModalContainer: React.FC = () => {
             return <VipSelectModal />;
           case 'confirm':
             return <ConfirmModal />;
-          case 'alert':
-            return <AlertModal />;
           default:
             return null;
         }

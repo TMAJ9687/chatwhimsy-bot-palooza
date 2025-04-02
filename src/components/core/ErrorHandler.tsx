@@ -1,31 +1,27 @@
 
-import { useEffect } from 'react';
-import { useErrorHandler } from '@/hooks/useErrorHandler';
-import { performDOMCleanup } from '@/utils/errorHandler';
+import React, { useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { handleError, setupGlobalErrorHandling } from '@/utils/errorHandler';
 
-interface ErrorHandlerProps {
-  logoutInProgressRef: React.MutableRefObject<boolean>;
-}
-
-const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
-  // Use our error handler hook
-  useErrorHandler({
-    onError: () => {
-      // Reset body state directly without depending on UIStateContext
-      document.body.style.overflow = 'auto';
-      document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-      
-      if (logoutInProgressRef.current) {
-        document.body.style.overflow = 'auto';
-        document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-      }
-      
-      // Clean up any overlays
-      performDOMCleanup();
-    }
-  });
+const ErrorHandler: React.FC = () => {
+  const { toast } = useToast();
   
-  // This is a utility component - it doesn't render anything
+  // Set up global error handling on mount
+  useEffect(() => {
+    setupGlobalErrorHandling();
+    
+    const handleGlobalError = (event: ErrorEvent) => {
+      event.preventDefault();
+      handleError(event.error || new Error(event.message));
+    };
+    
+    window.addEventListener('error', handleGlobalError);
+    
+    return () => {
+      window.removeEventListener('error', handleGlobalError);
+    };
+  }, []);
+  
   return null;
 };
 
