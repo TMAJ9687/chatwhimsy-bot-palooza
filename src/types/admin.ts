@@ -1,43 +1,63 @@
 
-// Define admin types
+import { Bot } from './chat';
+import { UserProfile } from './user';
 
-export type AdminActionType = 'ban' | 'unban' | 'kick' | 'upgrade' | 'downgrade' | 'delete' | 'edit' | 'other';
+export interface AdminProfile extends UserProfile {
+  isAdmin: boolean;
+  displayName: string;
+}
 
-// Admin action record
+export interface AdminState {
+  isAdmin: boolean;
+  authenticated: boolean;
+  lastLogin?: Date;
+}
+
 export interface AdminAction {
   id: string;
-  actionType: AdminActionType | string;  // Allow string for backward compatibility
-  targetId?: string;
-  targetType?: string;
-  timestamp: string;
-  adminId: string;
-  adminName: string;
-  details: string;
+  actionType: 'kick' | 'ban' | 'unban' | 'edit' | 'upgrade' | 'downgrade';
+  targetId: string;
+  targetType: 'user' | 'bot' | 'ip';
+  reason?: string;
   duration?: string;
+  timestamp: Date;
+  adminId: string;
 }
 
-// Ban record
 export interface BanRecord {
   id: string;
-  userId: string;
-  identifier: string;
-  identifierType: 'email' | 'ip' | 'userId';
+  identifier: string; // username or IP
+  identifierType: 'user' | 'ip';
   reason: string;
-  duration: number;  // in hours, 0 for permanent
-  timestamp: string;
-  expiresAt: string;
-  permanent: boolean;
+  duration: string;
+  timestamp: Date;
+  expiresAt?: Date;
   adminId: string;
 }
 
-// Report/feedback record
+export type VipDuration = '1 Day' | '1 Week' | '1 Month' | '1 Year' | 'Lifetime';
+
 export interface ReportFeedback {
   id: string;
   type: 'report' | 'feedback';
   userId: string;
   content: string;
-  timestamp: string;
-  expiresAt: string;
+  timestamp: Date;
+  expiresAt: Date; // Auto-delete after 24 hours
   resolved: boolean;
-  status: 'open' | 'closed' | 'reviewing';
+}
+
+// Admin dashboard specific types
+export interface AdminStats {
+  totalUsers: number;
+  activeUsers: number;
+  vipUsers: number;
+  bannedUsers: number;
+  reportsPending: number;
+}
+
+export interface AdminSettings {
+  emailNotifications: boolean;
+  autoDeleteReports: boolean;
+  autoDeleteAfterHours: number;
 }

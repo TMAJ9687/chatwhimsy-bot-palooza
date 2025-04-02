@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminSession } from '@/hooks/useAdminSession';
-import AdminAuthService from '@/services/admin/adminAuthService';
+import { verifyAdminCredentials, setAdminLoggedIn } from '@/services/admin/adminService';
 import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/shared/Logo';
 import ThemeToggle from '@/components/shared/ThemeToggle';
@@ -28,10 +27,11 @@ const AdminLogin: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const isValid = await AdminAuthService.verifyAdminCredentials(email, password);
+      const isValid = await verifyAdminCredentials(email, password);
       
       if (isValid) {
         console.log('Admin credentials verified successfully');
+        setAdminLoggedIn(true);
         toast({
           title: 'Login successful.',
           description: 'Redirecting to admin dashboard...',
@@ -72,9 +72,6 @@ const AdminLogin: React.FC = () => {
             <h1 className="text-3xl font-bold mb-2">Admin Portal</h1>
             <p className="text-muted-foreground">
               Enter your credentials to access the admin dashboard.
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              (Try admin@example.com / admin123)
             </p>
           </div>
 

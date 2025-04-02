@@ -2,9 +2,7 @@
 import { 
   collection, 
   getDocs, 
-  Timestamp,
-  setDoc,
-  doc
+  Timestamp 
 } from 'firebase/firestore';
 import { db } from '../config';
 import { botProfiles } from '@/data/botProfiles';
@@ -27,6 +25,9 @@ export const initializeFirestoreData = async (): Promise<void> => {
     
     // If bots collection is empty, populate with default bots
     if (botsSnapshot.empty) {
+      // Import on demand to avoid circular dependencies
+      const { setDoc, doc } = await import('firebase/firestore');
+      
       const promises = botProfiles.map(bot => setDoc(doc(db, 'bots', bot.id), bot));
       await Promise.all(promises);
       console.log('Firestore initialized with default bot data');
@@ -34,33 +35,5 @@ export const initializeFirestoreData = async (): Promise<void> => {
   } catch (error) {
     console.error('Error initializing Firestore data:', error);
     throw error;
-  }
-};
-
-// Ensure the required collections exist
-export const ensureCollectionsExist = async (): Promise<void> => {
-  try {
-    // Check if users collection exists and create if not
-    const usersSnapshot = await getDocs(collection(db, 'users'));
-    if (usersSnapshot.empty) {
-      console.log('Users collection is empty, creating sample user');
-      // Create a sample admin user to ensure the collection exists
-      await setDoc(doc(db, 'users', 'admin'), {
-        id: 'admin',
-        nickname: 'Admin',
-        email: 'admin@example.com',
-        isAdmin: true,
-        isVip: true,
-        gender: 'male',
-        age: 30,
-        country: 'US',
-        interests: ['technology'],
-        subscriptionTier: 'annual',
-        imagesRemaining: Infinity,
-        voiceMessagesRemaining: Infinity
-      });
-    }
-  } catch (error) {
-    console.error('Error ensuring collections exist:', error);
   }
 };

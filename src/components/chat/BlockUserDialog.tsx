@@ -20,6 +20,7 @@ interface BlockUserDialogProps {
   userName: string;
 }
 
+// Using a simpler component structure with fewer state updates
 const BlockUserDialog: React.FC<BlockUserDialogProps> = ({
   isOpen,
   onClose,
@@ -46,7 +47,7 @@ const BlockUserDialog: React.FC<BlockUserDialogProps> = ({
   if (!isOpen) return null;
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <AlertDialog open={isOpen}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Block User</AlertDialogTitle>

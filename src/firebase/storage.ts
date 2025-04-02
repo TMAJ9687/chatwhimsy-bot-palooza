@@ -1,16 +1,20 @@
 
-// This file now redirects all Firebase Storage operations to Supabase Storage
-import { supabase } from '../lib/supabase/supabaseClient';
+import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
+import { storage } from './config';
 import { v4 as uuidv4 } from 'uuid';
 
-// Storage paths for different user types (for compatibility)
+// Storage paths for different user types
 const STANDARD_USERS_PATH = 'standard-uploads';
 const VIP_USERS_PATH = 'vip-uploads'; 
 const PROFILE_IMAGES_PATH = 'profile-images';
-const TEMPORARY_PATH = 'temp-uploads';
+const TEMPORARY_PATH = 'temp-uploads'; // For temporary storage
 
 /**
- * Uploads an image to Supabase Storage
+ * Uploads an image to Firebase Storage
+ * @param imageFile The image file or blob to upload
+ * @param isVip Whether the user is a VIP
+ * @param userId Optional user ID to associate with the upload
+ * @returns Promise with the download URL
  */
 export const uploadImage = async (
   imageFile: File | Blob, 
@@ -30,34 +34,27 @@ export const uploadImage = async (
       ? `${storagePath}/${userId}/${fileName}`
       : `${storagePath}/${fileName}`;
     
-    // Upload the file to Supabase storage
-    let file: File;
-    if (imageFile instanceof Blob) {
-      file = new File([imageFile], fileName, { type: imageFile.type });
-    } else {
-      file = imageFile;
-    }
+    // Create a storage reference
+    const storageRef = ref(storage, fullPath);
     
-    const { error } = await supabase.storage
-      .from('uploads')
-      .upload(fullPath, file);
-      
-    if (error) throw error;
+    // Upload the file
+    await uploadBytes(storageRef, imageFile);
     
     // Get the download URL
-    const { data } = supabase.storage
-      .from('uploads')
-      .getPublicUrl(fullPath);
+    const downloadURL = await getDownloadURL(storageRef);
     
-    return data.publicUrl;
+    return downloadURL;
   } catch (error) {
-    console.error('Error uploading image to Supabase Storage:', error);
+    console.error('Error uploading image to Firebase Storage:', error);
     throw error;
   }
 };
 
 /**
  * Uploads a profile image
+ * @param imageFile The image file to upload
+ * @param userId User ID
+ * @returns Promise with the download URL
  */
 export const uploadProfileImage = async (
   imageFile: File | Blob, 
@@ -68,34 +65,28 @@ export const uploadProfileImage = async (
     const fileName = `${userId}${fileExtension ? `.${fileExtension}` : ''}`;
     const fullPath = `${PROFILE_IMAGES_PATH}/${fileName}`;
     
-    // Convert blob to file if needed
-    let file: File;
-    if (imageFile instanceof Blob) {
-      file = new File([imageFile], fileName, { type: imageFile.type });
-    } else {
-      file = imageFile;
-    }
+    const storageRef = ref(storage, fullPath);
     
     // Upload the file
-    const { error } = await supabase.storage
-      .from('uploads')
-      .upload(fullPath, file);
-      
-    if (error) throw error;
+    await uploadBytes(storageRef, imageFile);
     
     // Get the download URL
-    const { data } = supabase.storage
-      .from('uploads')
-      .getPublicUrl(fullPath);
+    const downloadURL = await getDownloadURL(storageRef);
     
-    return data.publicUrl;
+    return downloadURL;
   } catch (error) {
     console.error('Error uploading profile image:', error);
     throw error;
   }
 };
 
-// Convert base64 data URL to image and upload
+/**
+ * Uploads a base64 data URL as an image
+ * @param dataUrl The data URL string
+ * @param isVip Whether the user is a VIP
+ * @param userId Optional user ID
+ * @returns Promise with the download URL
+ */
 export const uploadDataURLImage = async (
   dataUrl: string,
   isVip: boolean = false,
@@ -113,7 +104,9 @@ export const uploadDataURLImage = async (
   }
 };
 
-// Utility function to get file extension
+/**
+ * Gets the extension from a File or Blob
+ */
 function getFileExtension(file: File | Blob): string | null {
   if (file instanceof File) {
     const parts = file.name.split('.');
@@ -129,7 +122,9 @@ function getFileExtension(file: File | Blob): string | null {
   return null;
 }
 
-// Convert a data URL to a Blob
+/**
+ * Converts a data URL to a Blob
+ */
 function dataURLToBlob(dataUrl: string): Blob {
   const arr = dataUrl.split(',');
   const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
@@ -144,55 +139,50 @@ function dataURLToBlob(dataUrl: string): Blob {
   return new Blob([u8arr], { type: mime });
 }
 
-// List user images
+/**
+ * Lists all images for a user
+ * @param userId User ID
+ * @param isVip Whether the user is a VIP
+ * @returns Promise with array of download URLs
+ */
 export const listUserImages = async (
   userId: string,
   isVip: boolean = false
 ): Promise<string[]> => {
   try {
     const storagePath = isVip ? VIP_USERS_PATH : STANDARD_USERS_PATH;
-    const folderPath = `${storagePath}/${userId}`;
+    const userFolderRef = ref(storage, `${storagePath}/${userId}`);
     
-    const { data, error } = await supabase.storage
-      .from('uploads')
-      .list(folderPath);
-      
-    if (error) throw error;
-    if (!data) return [];
+    const listResult = await listAll(userFolderRef);
     
-    // Map to full URLs
-    return data.map(item => {
-      const { data } = supabase.storage
-        .from('uploads')
-        .getPublicUrl(`${folderPath}/${item.name}`);
-      return data.publicUrl;
-    });
+    const downloadUrls = await Promise.all(
+      listResult.items.map(itemRef => getDownloadURL(itemRef))
+    );
+    
+    return downloadUrls;
   } catch (error) {
     console.error('Error listing user images:', error);
     return [];
   }
 };
 
-// Get profile image URL
+/**
+ * Gets the profile image URL for a user
+ * @param userId User ID
+ * @returns Promise with the download URL or null if not found
+ */
 export const getProfileImageUrl = async (userId: string): Promise<string | null> => {
   try {
-    const { data, error } = await supabase.storage
-      .from('uploads')
-      .list(PROFILE_IMAGES_PATH);
-      
-    if (error) throw error;
-    if (!data) return null;
+    const profileImagesRef = ref(storage, PROFILE_IMAGES_PATH);
+    const listResult = await listAll(profileImagesRef);
     
     // Find files that start with userId
-    const userProfileImages = data.filter(item => 
+    const userProfileImages = listResult.items.filter(item => 
       item.name.startsWith(userId)
     );
     
     if (userProfileImages.length > 0) {
-      const { data } = supabase.storage
-        .from('uploads')
-        .getPublicUrl(`${PROFILE_IMAGES_PATH}/${userProfileImages[0].name}`);
-      return data.publicUrl;
+      return await getDownloadURL(userProfileImages[0]);
     }
     
     return null;
@@ -202,18 +192,17 @@ export const getProfileImageUrl = async (userId: string): Promise<string | null>
   }
 };
 
-// Delete an image
+/**
+ * Deletes an image from Firebase Storage
+ * @param imageUrl The download URL of the image to delete
+ * @returns Promise<boolean> indicating success
+ */
 export const deleteImage = async (imageUrl: string): Promise<boolean> => {
   try {
-    // Extract the path from the URL
-    const path = getPathFromUrl(imageUrl);
+    // Extract the storage path from the URL
+    const storageRef = ref(storage, getPathFromUrl(imageUrl));
     
-    // Delete from Supabase storage
-    const { error } = await supabase.storage
-      .from('uploads')
-      .remove([path]);
-      
-    if (error) throw error;
+    await deleteObject(storageRef);
     return true;
   } catch (error) {
     console.error('Error deleting image:', error);
@@ -221,14 +210,16 @@ export const deleteImage = async (imageUrl: string): Promise<boolean> => {
   }
 };
 
-// Helper to extract path from URL
+/**
+ * Helper to extract path from Firebase Storage URL
+ */
 function getPathFromUrl(url: string): string {
-  // Extract the file path from Supabase URL
-  const match = url.match(/\/storage\/v1\/object\/public\/uploads\/(.+)$/);
-  if (match && match[1]) {
-    return match[1];
-  }
+  // This is a simplification - in a real app you might need more robust parsing
+  // Firebase Storage URLs contain a token after the path
+  const baseUrl = "https://firebasestorage.googleapis.com/v0/b/chatwiilovable.firebasestorage.app/o/";
+  const pathPlusToken = url.replace(baseUrl, "");
+  const path = pathPlusToken.split("?")[0];
   
-  // Fallback: just use the last part of the URL
-  return url.split('/').pop() || '';
+  // URL decode the path (Firebase encodes paths in URLs)
+  return decodeURIComponent(path);
 }

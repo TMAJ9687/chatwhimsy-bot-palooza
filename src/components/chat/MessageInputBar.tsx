@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, memo } from 'react';
 import { useChat } from '@/context/ChatContext';
-import { checkCharacterLimit } from '@/utils/messageUtils';
+import { MAX_CHAR_LIMIT, checkCharacterLimit } from '@/utils/messageUtils';
 import ImagePreview from './ImagePreview';
 import ImageUploadButton from './ImageUploadButton';
 import EmojiButton from './EmojiButton';
@@ -44,7 +44,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   const handleSubmitMessage = () => {
     if (disabled) return;
     
-    if (message.trim() && checkCharacterLimit(message, isUserVip)) {
+    if (message.trim() && checkCharacterLimit(message, isUserVip, false)) {
       onSendMessage(message.trim());
       setMessage('');
     }
@@ -59,7 +59,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
       
       // Then upload to Firebase Storage in the background
       if (user?.id) {
-        await uploadDataURLImage(imagePreview, isUserVip);
+        await uploadDataURLImage(imagePreview, isUserVip, user.id);
       }
       
       setImagePreview(null);
@@ -73,7 +73,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
   const handleEmojiClick = (emoji: string) => {
     const newText = message + emoji;
     
-    if (!checkCharacterLimit(newText, isUserVip)) {
+    if (!checkCharacterLimit(newText, isUserVip, true)) {
       return;
     }
     
@@ -101,7 +101,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
     setReplyingToMessage(null);
   };
 
-  const isMessageValid = message.trim() && (isUserVip || message.length <= 500);
+  const isMessageValid = message.trim() && (isUserVip || message.length <= MAX_CHAR_LIMIT);
 
   return (
     <div className={`border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
@@ -115,9 +115,7 @@ const MessageInputBar: React.FC<MessageInputBarProps> = memo(({
             <span className="text-sm truncate max-w-[300px]">
               {replyingToMessage.isImage ? '📷 Image' : 
                replyingToMessage.isVoice ? '🎤 Voice message' : 
-               replyingToMessage.content?.substring(0, 30) || replyingToMessage.text?.substring(0, 30) || '' + (
-                 (replyingToMessage.content?.length || replyingToMessage.text?.length || 0) > 30 ? '...' : ''
-               )}
+               replyingToMessage.content.substring(0, 30) + (replyingToMessage.content.length > 30 ? '...' : '')}
             </span>
           </div>
           <button 

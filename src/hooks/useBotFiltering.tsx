@@ -1,63 +1,58 @@
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Bot, FilterState } from '@/types/chat';
-import { DEFAULT_AGE_RANGE } from '@/utils/constants';
+import { sortUsers } from '@/utils/botUtils';
 
-export const useBotFiltering = (bots: Bot[]) => {
-  const [filters, setFilters] = useState<FilterState>({
-    gender: [],
-    country: [],
-    age: DEFAULT_AGE_RANGE,
-    vip: null,
-    countries: [],
-    ageRange: DEFAULT_AGE_RANGE
-  });
+export const DEFAULT_FILTERS: FilterState = {
+  gender: 'any',
+  ageRange: [18, 80],
+  countries: []
+};
 
+export const useBotFiltering = (
+  initialBots: Bot[], 
+  blockedUsers: Set<string>
+) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
-  const filterBots = useCallback((botsToFilter: Bot[]) => {
-    return botsToFilter.filter(bot => {
-      // Name search
-      if (searchTerm && !bot.name.toLowerCase().includes(searchTerm.toLowerCase())) {
-        return false;
-      }
-
-      // Gender filter
-      if (filters.gender.length > 0 && !filters.gender.includes(bot.gender)) {
-        return false;
-      }
-
-      // Age filter
-      if (bot.age < filters.age[0] || bot.age > filters.age[1]) {
-        return false;
-      }
-
-      // Country filter
-      if (filters.country.length > 0 && !filters.country.includes(bot.country)) {
-        return false;
-      }
-
-      // VIP filter
-      if (filters.vip !== null && bot.vip !== filters.vip) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [searchTerm, filters]);
-
-  const filteredBots = useMemo(() => filterBots(bots), [bots, filterBots]);
-
-  const handleFilterChange = (newFilters: FilterState) => {
+  const handleFilterChange = useCallback((newFilters: FilterState) => {
     setFilters(newFilters);
-  };
+  }, []);
+
+  // Filter users based on criteria
+  const filteredUsers = useMemo(() => {
+    return initialBots.filter(user => {
+      // Search filter
+      const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Gender filter
+      const matchesGender = filters.gender === 'any' || user.gender === filters.gender;
+      
+      // Age range filter
+      const matchesAge = user.age >= filters.ageRange[0] && user.age <= filters.ageRange[1];
+      
+      // Country filter
+      const matchesCountry = filters.countries.length === 0 || 
+        filters.countries.includes(user.country);
+        
+      return matchesSearch && matchesGender && matchesAge && matchesCountry;
+    });
+  }, [initialBots, searchTerm, filters]);
+
+  // Create a memoized list of visible users (not blocked)
+  const visibleUsers = useMemo(() => 
+    filteredUsers.filter(user => !blockedUsers.has(user.id)),
+    [filteredUsers, blockedUsers]
+  );
 
   return {
-    filters,
-    setFilters,
     searchTerm,
+    filters,
+    filteredUsers,
+    visibleUsers,
     setSearchTerm,
-    filteredBots,
+    setFilters,
     handleFilterChange
   };
 };

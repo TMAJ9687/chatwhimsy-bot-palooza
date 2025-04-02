@@ -1,93 +1,91 @@
 
-import { Message } from '@/types/chat';
+import { toast } from "@/hooks/use-toast";
+import { MAX_CHAR_LIMIT, VIP_CHAR_LIMIT, CONSECUTIVE_LIMIT } from "@/types/chat";
+import { VIP_CHAR_LIMIT as VIP_LIMIT, STANDARD_CHAR_LIMIT as STANDARD_LIMIT } from "@/hooks/useVipFeatures";
 
-/**
- * Validates if a message contains at least some text
- */
-export const isValidMessage = (text: string, minLength = 1): { valid: boolean; error?: string } => {
-  if (!text || text.trim().length < minLength) {
-    return { 
-      valid: false, 
-      error: `Message must be at least ${minLength} character${minLength > 1 ? 's' : ''} long.` 
+// Re-export the constants so they can be imported from this file
+export { MAX_CHAR_LIMIT, VIP_CHAR_LIMIT, CONSECUTIVE_LIMIT };
+
+export const validateImageFile = (file: File, isVip: boolean = false): { valid: boolean; message?: string } => {
+  // Check file type
+  if (isVip) {
+    // VIP users can upload any image type, including GIF
+    if (!file.type.startsWith('image/')) {
+      return {
+        valid: false,
+        message: "Please select an image file."
+      };
+    }
+  } else {
+    // Standard users can only upload standard image formats
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      return {
+        valid: false,
+        message: "Please select a JPG, PNG, or WebP image. GIFs are only available for VIP users."
+      };
+    }
+  }
+  
+  // Check file size (5MB limit for standard, 10MB for VIP)
+  const maxSize = isVip ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+  if (file.size > maxSize) {
+    return {
+      valid: false,
+      message: isVip 
+        ? "Image size should be less than 10MB."
+        : "Image size should be less than 5MB. VIP users can upload larger images."
     };
   }
-
-  return { valid: true };
-};
-
-/**
- * Checks character limits for messages based on user type
- */
-export const checkCharacterLimit = (text: string, isVip: boolean, showToast = false): boolean => {
-  const maxLength = isVip ? 2000 : 500;
-  const isWithinLimit = text.length <= maxLength;
-  
-  if (!isWithinLimit && showToast) {
-    // Toast is shown by the component that calls this, we just return the result
-    console.log(`Message exceeds character limit (${maxLength})`);
-  }
-  
-  return isWithinLimit;
-};
-
-/**
- * Checks if text has too many consecutive characters (spam prevention)
- */
-export const hasConsecutiveChars = (text: string, maxConsecutive = 5): boolean => {
-  // Simple regex to detect repeated characters
-  const regex = new RegExp(`(.)\\1{${maxConsecutive - 1},}`, 'i');
-  return regex.test(text);
-};
-
-/**
- * Detects URLs in message text
- */
-export const containsUrls = (text: string): boolean => {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  return urlRegex.test(text);
-};
-
-/**
- * Validates image before upload - alias for validateImageFile for compatibility
- */
-export const validateImage = (file: File, maxSizeMB = 5): { valid: boolean; error?: string } => {
-  // Check if it's an image
-  if (!file.type.startsWith('image/')) {
-    return { valid: false, error: 'File must be an image.' };
-  }
-  
-  // Check size (convert MB to bytes)
-  const maxSizeBytes = maxSizeMB * 1024 * 1024;
-  if (file.size > maxSizeBytes) {
-    return { valid: false, error: `Image must be smaller than ${maxSizeMB}MB.` };
-  }
   
   return { valid: true };
 };
 
-// Alias for validateImage for code compatibility
-export const validateImageFile = validateImage;
-
-/**
- * Validates voice message before upload
- */
-export const validateVoiceMessage = (blob: Blob, maxSeconds = 60): { valid: boolean; error?: string } => {
-  // Check maximum size (rough estimate based on 128kbps audio)
-  const estimatedMaxSize = maxSeconds * 16 * 1024; // 16KB per second at 128kbps
-  if (blob.size > estimatedMaxSize) {
-    return { valid: false, error: `Voice message cannot be longer than ${maxSeconds} seconds.` };
-  }
+export const checkCharacterLimit = (
+  text: string, 
+  isVip: boolean, 
+  showToast: boolean = true
+): boolean => {
+  const limit = isVip ? VIP_LIMIT : STANDARD_LIMIT;
   
-  return { valid: true };
+  if (text.length > limit) {
+    if (showToast) {
+      toast({
+        title: "Character limit reached",
+        description: isVip ? 
+          `VIP messages are limited to ${VIP_LIMIT} characters.` :
+          `Messages are limited to ${STANDARD_LIMIT} characters. Upgrade to VIP for longer messages.`,
+        duration: 3000
+      });
+    }
+    return false;
+  }
+  return true;
 };
 
-// Fixed function signature to return object instead of boolean
-export const checkImageLimit = (imagesRemaining: number): { valid: boolean; error?: string } => {
-  if (imagesRemaining <= 0) {
-    return { 
-      valid: false, 
-      error: 'You have used all your image uploads for today.' 
-    };
+export const hasConsecutiveChars = (text: string, isVip: boolean = false): boolean => {
+  if (!text) return false;
+  
+  if (isVip) {
+    // For VIP: check for 4+ consecutive numbers or 7+ consecutive letters
+    const numberPattern = /(\d)\1{3,}/;
+    if (numberPattern.test(text)) return true;
+    
+    const letterPattern = /([a-zA-Z])\1{6,}/;
+    if (letterPattern.test(text)) return true;
+    
+    return false;
+  } else {
+    // For standard users: check for 3+ consecutive identical characters
+    for (let i = 0; i <= text.length - CONSECUTIVE_LIMIT; i++) {
+      let isConsecutive = true;
+      for (let j = 1; j < CONSECUTIVE_LIMIT; j++) {
+        if (text[i] !== text[i + j]) {
+          isConsecutive = false;
+          break;
+        }
+      }
+      if (isConsecutive) return true;
+    }
+    return false;
   }
-  return { valid: true };
 };

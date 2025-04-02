@@ -26,23 +26,24 @@ export const useChatInitialization = () => {
   useEffect(() => {
     const fetchUserCountry = async () => {
       try {
-        // Use the reliable ipapi.co service directly instead of the failing ipgeolocation service
-        const response = await fetch('https://ipapi.co/json/');
+        const response = await fetch('https://api.ipgeolocation.io/ipgeo?apiKey=API_KEY_HERE');
         if (!response.ok) {
-          throw new Error(`Country detection failed: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        setUserCountry(data.country_name || '');
-        
-        // Special case handling for Israel/Palestine
-        if (data.country_name && data.country_name.toLowerCase() === 'israel') {
-          setUserCountry('Palestine');
+          const fallbackResponse = await fetch('https://ipapi.co/json/');
+          const data = await fallbackResponse.json();
+          setUserCountry(data.country_name || '');
+        } else {
+          const data = await response.json();
+          setUserCountry(data.country_name || '');
         }
       } catch (error) {
         console.error('Error fetching user country:', error);
-        // Set a default country if detection fails
-        setUserCountry('United States');
+        try {
+          const fallbackResponse = await fetch('https://ipapi.co/json/');
+          const data = await fallbackResponse.json();
+          setUserCountry(data.country_name || '');
+        } catch (fallbackError) {
+          console.error('Error with fallback country fetch:', fallbackError);
+        }
       }
     };
 

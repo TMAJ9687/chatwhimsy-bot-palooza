@@ -1,52 +1,56 @@
 
+import { 
+  collection, 
+  getDocs, 
+  addDoc,
+  Timestamp
+} from 'firebase/firestore';
+import { db } from '../config';
+import { AdminAction } from '@/types/admin';
 import { v4 as uuidv4 } from 'uuid';
+import { timestampToDate, dateToTimestamp } from './utils';
 
-export interface AdminAction {
-  id: string;
-  actionType: string;
-  targetId?: string;
-  targetType?: string;
-  timestamp: string;  // Changed to string for consistency
-  adminId: string;
-  adminName: string;
-  details: string;
-  duration?: string;
-}
+// Collection name
+const ADMIN_ACTIONS_COLLECTION = 'adminActions';
 
-export const logAdminAction = async (action: Partial<AdminAction>): Promise<AdminAction> => {
-  // Generate a new ID if one wasn't provided
-  const id = action.id || uuidv4();
-  
-  // Ensure timestamp is a string
-  let timestamp = action.timestamp;
-  if (!timestamp) {
-    timestamp = new Date().toISOString();
-  } else if (timestamp instanceof Date) {
-    // Convert Date to ISO string if it's a Date object
-    timestamp = timestamp.toISOString();
+// Admin Actions Logging
+export const getAdminActions = async (): Promise<AdminAction[]> => {
+  try {
+    const actionsSnapshot = await getDocs(collection(db, ADMIN_ACTIONS_COLLECTION));
+    return actionsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        timestamp: data.timestamp ? timestampToDate(data.timestamp as Timestamp) : new Date(),
+        id: doc.id
+      } as AdminAction;
+    });
+  } catch (error) {
+    console.error('Error getting admin actions:', error);
+    return []; // Return empty array as fallback
   }
-  
-  // Create the action object with all required fields
-  const fullAction: AdminAction = {
-    id,
-    actionType: action.actionType || 'unknown',
-    targetId: action.targetId,
-    targetType: action.targetType,
-    timestamp: timestamp as string,
-    adminId: action.adminId || 'system',
-    adminName: action.adminName || 'System',
-    details: action.details || '',
-    duration: action.duration
-  };
-  
-  // Log to console for testing/debugging
-  console.log('Admin action logged:', fullAction);
-  
-  return fullAction;
 };
 
-// Function to get admin actions (replace with actual implementation when needed)
-export const getAdminActions = async (): Promise<AdminAction[]> => {
-  // Simulated response - replace with actual implementation
-  return [];
+export const logAdminAction = async (action: AdminAction): Promise<AdminAction> => {
+  try {
+    const actionToStore = {
+      ...action,
+      timestamp: dateToTimestamp(action.timestamp)
+    };
+    
+    const docRef = await addDoc(collection(db, ADMIN_ACTIONS_COLLECTION), actionToStore);
+    
+    // Return the action with the generated id
+    return {
+      ...action,
+      id: docRef.id
+    };
+  } catch (error) {
+    console.error('Error logging admin action:', error);
+    // Return the action with a temporary ID as fallback
+    return {
+      ...action,
+      id: `temp-${uuidv4()}`
+    };
+  }
 };

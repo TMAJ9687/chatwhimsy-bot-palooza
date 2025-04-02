@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { Check, Clock, Eye, EyeOff, Maximize, X, Globe, Reply, Smile, Trash } from 'lucide-react';
-import { Message, MessageStatus, Translation, Reaction } from '@/types/chat';
+import { Message as MessageType, MessageStatus } from '@/types/chat';
 import { renderContentWithEmojis } from '@/utils/emojiUtils';
 import VoiceMessagePlayer from './VoiceMessagePlayer';
 import { useChat } from '@/context/ChatContext';
@@ -9,6 +10,8 @@ import TranslateMessageDialog from './TranslateMessageDialog';
 import { Button } from '../ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import EmojiPicker from './EmojiPicker';
+
+export interface Message extends MessageType {}
 
 interface MessageBubbleProps {
   message: Message;
@@ -23,17 +26,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   showStatus = true,
   allMessages = []
 }) => {
-  // Use both old and new message properties to ensure compatibility
-  const sender = message.sender || (message.senderId === 'user' ? 'user' : 'bot');
-  const content = message.content || message.text;
-  const status = message.status;
-  const isImage = message.isImage;
-  const isVoice = message.isVoice;
-  const duration = message.duration || message.voiceDuration;
-  const translations = message.translations;
-  const reactions = message.reactions;
-  const isDeleted = message.isDeleted;
-  
+  const { sender, content, timestamp, status, isImage, isVoice, duration, translations, replyTo, reactions, isDeleted } = message;
+  const isUser = sender === 'user';
+  const isBot = sender === 'bot';
   const { isVip } = useUser();
   const { 
     handleTranslateMessage, 
@@ -50,11 +45,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const [showReactionPopover, setShowReactionPopover] = useState(false);
   
   // Find the message being replied to
-  const replyToMessage = message.replyTo ? 
-    (typeof message.replyTo === 'string' ? 
-      allMessages.find(m => m.id === message.replyTo) : 
-      message.replyTo) : 
-    null;
+  const replyToMessage = replyTo ? allMessages.find(m => m.id === replyTo) : null;
   
   // Update translation state when translations change
   useEffect(() => {
@@ -75,22 +66,22 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   // If message was deleted
   if (isDeleted) {
     return (
-      <div className={`flex flex-col ${sender === 'user' ? 'items-end' : 'items-start'} mb-1.5`}>
+      <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}>
         <div
           className={`
             relative px-3 py-2 rounded-2xl max-w-[80%] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 italic
-            ${sender === 'user' ? 'rounded-br-none' : 'rounded-bl-none'}
+            ${isUser ? 'rounded-br-none' : 'rounded-bl-none'}
           `}
         >
           This message was unsent
         </div>
         {isLastInGroup && showStatus && (
-          <div className={`flex items-center mt-0.5 text-xs text-gray-500 dark:text-gray-400 ${sender === 'user' ? 'mr-1' : 'ml-1'}`}>
+          <div className={`flex items-center mt-0.5 text-xs text-gray-500 dark:text-gray-400 ${isUser ? 'mr-1' : 'ml-1'}`}>
             <span>{new Intl.DateTimeFormat('en-US', {
               hour: 'numeric',
               minute: 'numeric',
               hour12: true
-            }).format(new Date(message.timestamp))}</span>
+            }).format(timestamp)}</span>
           </div>
         )}
       </div>
@@ -101,10 +92,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     hour: 'numeric',
     minute: 'numeric',
     hour12: true
-  }).format(new Date(message.timestamp));
+  }).format(timestamp);
 
   const getStatusIcon = () => {
-    if (sender !== 'user' || !showStatus) return null;
+    if (!isUser || !showStatus) return null;
     
     switch (status) {
       case 'sending':
@@ -173,7 +164,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const handleUnsendClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (message.id && sender === 'user') {
+    if (message.id && isUser) {
       handleUnsendMessage(message.id);
     }
   };
@@ -246,9 +237,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         </div>
       );
     } else if (isVoice && duration !== undefined) {
-      return <VoiceMessagePlayer audioSrc={content as string} duration={duration} />;
+      return <VoiceMessagePlayer audioSrc={content} duration={duration} />;
     } else {
-      return renderContentWithEmojis(currentContent as string);
+      return renderContentWithEmojis(currentContent);
     }
   };
 
@@ -278,14 +269,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   return (
     <>
       <div 
-        className={`flex flex-col ${sender === 'user' ? 'items-end' : 'items-start'} mb-1.5`}
+        className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} mb-1.5`}
         onClick={(e) => e.stopPropagation()}
       >
         {replyToMessage && (
           <div className={`
             max-w-[80%] px-2 py-1 mb-1 text-xs bg-gray-100 dark:bg-gray-700 rounded-md
             border-l-2 border-gray-300 dark:border-gray-500
-            ${sender === 'user' ? 'mr-2' : 'ml-2'}
+            ${isUser ? 'mr-2' : 'ml-2'}
           `}>
             <div className="font-medium text-gray-500 dark:text-gray-400">
               {replyToMessage.sender === 'user' ? 'You' : 'Reply to'}
@@ -301,7 +292,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         <div
           className={`
             relative px-3 py-2 rounded-2xl max-w-[80%]
-            ${sender === 'user' 
+            ${isUser 
               ? 'bg-teal-500 text-white rounded-br-none' 
               : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'}
             ${isVoice ? 'p-0 overflow-hidden min-w-[240px]' : ''}
@@ -309,7 +300,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         >
           {renderMessageContent()}
 
-          {isVip && sender === 'bot' && (
+          {isVip && isBot && (
             <div className="absolute -bottom-5 right-0 flex space-x-1">
               <Button 
                 variant="ghost" 
@@ -337,7 +328,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             </div>
           )}
 
-          {isVip && sender === 'user' && (
+          {isVip && isUser && (
             <div className="absolute -bottom-5 left-0 flex space-x-1">
               <Button 
                 variant="ghost" 
@@ -363,11 +354,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         {renderReactions()}
         
         {(isLastInGroup || isVip) && (
-          <div className={`flex items-center mt-0.5 text-xs text-gray-500 dark:text-gray-400 ${sender === 'user' ? 'mr-1' : 'ml-1'}`}>
+          <div className={`flex items-center mt-0.5 text-xs text-gray-500 dark:text-gray-400 ${isUser ? 'mr-1' : 'ml-1'}`}>
             <span>{formattedTime}</span>
-            {sender === 'user' && showStatus && <span className="ml-1">{getStatusIcon()}</span>}
+            {isUser && showStatus && <span className="ml-1">{getStatusIcon()}</span>}
             
-            {isVip && sender === 'bot' && !isImage && !isVoice && (
+            {isVip && isBot && !isImage && !isVoice && (
               <button 
                 onClick={handleTranslate}
                 className="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -383,11 +374,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       <TranslateMessageDialog 
         isOpen={showTranslationDialog}
         onClose={() => setShowTranslationDialog(false)}
-        onTranslate={(language) => {
-          if (message.id) {
-            handleTranslateMessage(message.id, language);
-          }
-        }}
+        onTranslate={handleTranslateConfirm}
       />
     </>
   );

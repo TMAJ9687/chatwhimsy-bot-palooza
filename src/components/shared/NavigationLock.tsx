@@ -1,9 +1,8 @@
 import React, { useEffect, useCallback, useRef } from 'react';
-import { useLocation, useNavigationType, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigationType } from 'react-router-dom';
 import { useNavigationCleanup } from '@/hooks/useNavigationCleanup';
 import { useErrorCleaner } from '@/hooks/useErrorCleaner';
-import { toast } from '@/hooks/use-toast';
-import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
+import { toast } from '@/hooks/use-toast'; 
 
 /**
  * This component helps prevent navigation issues by cleaning up any stale state
@@ -11,24 +10,13 @@ import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
  */
 const NavigationLock: React.FC = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const navigationType = useNavigationType();
   const { cleanupUI, cleanupTimeoutsRef, navigationInProgressRef } = useNavigationCleanup();
-  const { isDOMReady } = useSafeDOMOperations();
   const cleanupCountRef = useRef(0);
   const lastLocationRef = useRef(location.pathname);
-  const firestoreErrorShownRef = useRef(false);
-  const vipNavRetryCountRef = useRef(0);
-  const vipNavTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Enhanced cleanup function that ensures all dialogs and overlays are removed
   const enhancedCleanup = useCallback(() => {
-    // Only run cleanup if DOM is ready
-    if (!isDOMReady) {
-      console.log('DOM not ready, skipping cleanup');
-      return;
-    }
-    
     cleanupUI();
     cleanupCountRef.current++;
     
@@ -66,7 +54,7 @@ const NavigationLock: React.FC = () => {
                   } catch (e) {
                     // Fallback to removeChild
                     if (parent.contains(el)) {
-                      parent.removeChild(el as ChildNode);
+                      parent.removeChild(el);
                     }
                   }
                 }
@@ -95,92 +83,18 @@ const NavigationLock: React.FC = () => {
             localStorage.setItem('chatUser', JSON.stringify(userData));
             console.log('Fixed chatUser in localStorage, explicitly set isVip=false');
           }
-          
-          // When Firestore has issues, make sure we let the user know
-          if (location.pathname === '/chat' && userData.isVip && !firestoreErrorShownRef.current) {
-            // Check if we've had Firestore errors
-            const firestoreErrors = sessionStorage.getItem('firestoreErrors');
-            const firestoreBlocked = sessionStorage.getItem('firestoreBlocked') === 'true';
-            
-            if ((firestoreErrors && parseInt(firestoreErrors) > 0) || firestoreBlocked) {
-              firestoreErrorShownRef.current = true;
-              toast({
-                title: "You're working offline",
-                description: "Profile changes will be saved locally. Check if ad blockers are enabled.",
-                variant: "default"
-              });
-            }
-          }
         }
       } catch (e) {
         console.warn('Error checking/fixing user data:', e);
       }
     }
-  }, [cleanupUI, location.pathname, isDOMReady]);
+  }, [cleanupUI, location.pathname]);
   
   // Register enhanced error handler
   useErrorCleaner(enhancedCleanup);
   
-  // Handle VIP profile navigation issues
-  useEffect(() => {
-    if (location.pathname === '/vip-profile') {
-      // Clear any stuck VIP navigation flags
-      localStorage.removeItem('vipNavigationInProgress');
-      
-      // Setup force navigation to chat if we get stuck
-      if (vipNavTimeoutRef.current) {
-        clearTimeout(vipNavTimeoutRef.current);
-      }
-      
-      vipNavTimeoutRef.current = setTimeout(() => {
-        // Check if we have a valid profile
-        try {
-          const savedUserData = localStorage.getItem('chatUser');
-          if (savedUserData) {
-            const userData = JSON.parse(savedUserData);
-            
-            // If user has all required fields, force completion
-            if (userData.gender && userData.age && userData.country && userData.isVip) {
-              console.log('VIP profile appears complete, marking as complete and enabling navigation');
-              localStorage.setItem('vipProfileComplete', 'true');
-              
-              // Only force navigate after multiple attempts
-              vipNavRetryCountRef.current++;
-              
-              if (vipNavRetryCountRef.current >= 2) {
-                toast({
-                  title: "Profile Ready",
-                  description: "You can now access the chat",
-                  variant: "default"
-                });
-                
-                // Force navigation to chat after cleanup
-                enhancedCleanup();
-                setTimeout(() => navigate('/chat'), 500);
-              }
-            }
-          }
-        } catch (e) {
-          console.warn('Error checking VIP profile data:', e);
-        }
-      }, 5000);
-      
-      return () => {
-        if (vipNavTimeoutRef.current) {
-          clearTimeout(vipNavTimeoutRef.current);
-        }
-      };
-    }
-  }, [location.pathname, navigate, enhancedCleanup]);
-  
   // Watch for route changes to clean up UI with improved timing
   useEffect(() => {
-    // Skip if DOM not ready
-    if (!isDOMReady) {
-      console.log('DOM not ready, skipping navigation effects');
-      return;
-    }
-    
     // Skip if it's the same location (prevents unnecessary cleanups)
     if (lastLocationRef.current === location.pathname) {
       return;
@@ -224,16 +138,10 @@ const NavigationLock: React.FC = () => {
       // Clean up when component unmounts or before route change
       enhancedCleanup();
     };
-  }, [location.pathname, navigationType, enhancedCleanup, cleanupTimeoutsRef, navigationInProgressRef, isDOMReady]);
+  }, [location.pathname, navigationType, enhancedCleanup, cleanupTimeoutsRef, navigationInProgressRef]);
 
   // Clean up on component mount and unmount
   useEffect(() => {
-    // Skip if DOM not ready
-    if (!isDOMReady) {
-      console.log('DOM not ready, skipping initial cleanup');
-      return;
-    }
-    
     // Initial cleanup
     enhancedCleanup();
     
@@ -268,7 +176,7 @@ const NavigationLock: React.FC = () => {
         enhancedCleanup();
       });
     };
-  }, [enhancedCleanup, cleanupTimeoutsRef, isDOMReady]);
+  }, [enhancedCleanup, cleanupTimeoutsRef]);
 
   // This is a utility component - it doesn't render anything
   return null;

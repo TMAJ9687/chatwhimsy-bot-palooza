@@ -1,124 +1,284 @@
 
 import { useState, useCallback } from 'react';
-import { BanRecord } from '@/types/admin';
-import { toast } from '@/components/ui/use-toast';
-import { supabaseAdmin } from '@/lib/supabase/supabaseAdmin';
+import { useUser } from '@/context/UserContext';
+import { useToast } from '@/hooks/use-toast';
+import { BanRecord, AdminAction } from '@/types/admin';
+import { VipDuration } from '@/types/admin';
+import { Bot } from '@/types/chat';
+import * as adminService from '@/services/admin/adminService';
 
-export const useAdminUsers = () => {
+/**
+ * Custom hook for user management functionality
+ */
+export const useAdminUsers = (
+  isAdmin: boolean, 
+  bots: Bot[], 
+  setBots: React.Dispatch<React.SetStateAction<Bot[]>>,
+  setAdminActions: React.Dispatch<React.SetStateAction<AdminAction[]>>
+) => {
+  const { user } = useUser();
+  const { toast } = useToast();
   const [bannedUsers, setBannedUsers] = useState<BanRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Load banned users data
   const loadBannedUsers = useCallback(async () => {
-    setLoading(true);
+    if (!isAdmin) return;
+    
     try {
-      console.log('Loading banned users data...');
-      
-      // Get banned users from Supabase
-      const { data, error } = await supabaseAdmin
-        .from('banned_users')
-        .select('*');
-      
-      if (error) {
-        throw error;
-      }
-      
-      console.log(`Loaded ${data?.length || 0} banned users`);
-      setBannedUsers(data || []);
+      console.log('Loading banned users...');
+      const loadedBanned = await adminService.getBannedUsers();
+      setBannedUsers(loadedBanned);
+      console.log(`Loaded ${loadedBanned.length} banned users`);
+      return loadedBanned;
     } catch (error) {
-      console.error('Error getting banned users:', error);
-      toast({
-        title: "Error loading banned users",
-        description: "There was a problem loading the banned users data.",
-        variant: "destructive"
-      });
-      setBannedUsers([]);
-    } finally {
-      setLoading(false);
+      console.error('Error loading banned users:', error);
+      return [];
     }
-  }, []);
-
-  const banUser = useCallback(async (userData: Omit<BanRecord, 'id'>): Promise<BanRecord | null> => {
+  }, [isAdmin]);
+  
+  // User actions
+  const kickUser = useCallback(async (userId: string) => {
+    if (!isAdmin || !user) return false;
+    if (isProcessing) return false;
+    
     try {
-      // Add user to Supabase
-      const { data, error } = await supabaseAdmin
-        .from('banned_users')
-        .insert([{
-          ...userData,
-          // Ensure timestamp is a string
-          timestamp: typeof userData.timestamp === 'object' ? 
-            (userData.timestamp as Date).toISOString() : 
-            userData.timestamp
-        }])
-        .select();
+      setIsProcessing(true);
+      console.log('Kicking user:', userId);
       
-      if (error) {
-        throw error;
-      }
+      // Optimistic update
+      const tempAction: AdminAction = {
+        id: `temp-${Date.now()}`,
+        actionType: 'kick',
+        targetId: userId,
+        targetType: 'user',
+        timestamp: new Date(),
+        adminId: user.id
+      };
       
-      if (data && data.length > 0) {
-        // Update local state
-        setBannedUsers(prev => [...prev, data[0] as BanRecord]);
+      setAdminActions(prev => [...prev, tempAction]);
+      
+      const action = await adminService.kickUser(userId, user.id);
+      
+      if (action) {
+        // Replace temporary action with the real one
+        setAdminActions(prev => prev.filter(a => a.id !== tempAction.id).concat(action));
         
         toast({
-          title: "User banned",
-          description: `User has been banned successfully.`
+          title: 'Success',
+          description: 'User kicked successfully',
         });
+        console.log('User kicked successfully');
         
-        return data[0] as BanRecord;
+        return true;
+      } else {
+        // Remove temporary action if failed
+        setAdminActions(prev => prev.filter(a => a.id !== tempAction.id));
+        console.error('User kick failed');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error kicking user:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to kick user',
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [isAdmin, user, toast, isProcessing, setAdminActions]);
+  
+  const banUser = useCallback(async (
+    identifier: string,
+    identifierType: 'user' | 'ip',
+    reason: string,
+    duration: string
+  ) => {
+    if (!isAdmin || !user) return null;
+    if (isProcessing) return null;
+    
+    try {
+      setIsProcessing(true);
+      
+      const banRecord = await adminService.banUser({
+        identifier,
+        identifierType,
+        reason,
+        duration,
+        adminId: user.id
+      });
+      
+      if (banRecord) {
+        setBannedUsers(prev => [...prev, banRecord]);
+        
+        // Refresh admin actions
+        const updatedActions = await adminService.getAdminActions();
+        setAdminActions(updatedActions);
+        
+        toast({
+          title: 'Success',
+          description: `User ${identifier} banned successfully`,
+        });
       }
       
-      throw new Error('No data returned from ban operation');
+      return banRecord;
     } catch (error) {
       console.error('Error banning user:', error);
       toast({
-        title: "Error banning user",
-        description: "There was a problem banning the user.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to ban user',
+        variant: 'destructive',
       });
       return null;
+    } finally {
+      setIsProcessing(false);
     }
-  }, []);
-
-  const unbanUser = useCallback(async (banId: string): Promise<boolean> => {
+  }, [isAdmin, user, toast, isProcessing, setAdminActions]);
+  
+  const unbanUser = useCallback(async (id: string) => {
+    if (!isAdmin || !user) return false;
+    
     try {
-      // Make sure banId is a string, not a number
-      const banIdString = String(banId);
+      setIsProcessing(true);
       
-      // Delete from Supabase
-      const { error } = await supabaseAdmin
-        .from('banned_users')
-        .delete()
-        .eq('id', banIdString);
+      // Optimistic update
+      setBannedUsers(prev => prev.filter(ban => ban.id !== id));
       
-      if (error) {
-        throw error;
+      const success = await adminService.unbanUser(id, user.id);
+      
+      if (success) {
+        // Refresh admin actions
+        const updatedActions = await adminService.getAdminActions();
+        setAdminActions(updatedActions);
+        
+        toast({
+          title: 'Success',
+          description: 'User unbanned successfully',
+        });
+      } else {
+        // Revert on failure
+        const allBannedUsers = await adminService.getBannedUsers();
+        setBannedUsers(allBannedUsers);
+        
+        toast({
+          title: 'Warning',
+          description: 'Could not unban user',
+          variant: 'destructive',
+        });
       }
       
-      // Update local state
-      setBannedUsers(prev => prev.filter(ban => ban.id !== banIdString));
-      
-      toast({
-        title: "User unbanned",
-        description: "The user has been unbanned successfully."
-      });
-      
-      return true;
+      return success;
     } catch (error) {
       console.error('Error unbanning user:', error);
       toast({
-        title: "Error unbanning user",
-        description: "There was a problem unbanning the user.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to unban user',
+        variant: 'destructive',
       });
       return false;
+    } finally {
+      setIsProcessing(false);
     }
-  }, []);
-
+  }, [isAdmin, user, toast, setAdminActions]);
+  
+  const upgradeToVIP = useCallback(async (userId: string, duration: VipDuration) => {
+    if (!isAdmin || !user) return false;
+    
+    try {
+      setIsProcessing(true);
+      
+      // Update bot's VIP status immediately for better UX
+      setBots(prev => prev.map(bot => 
+        bot.id === userId ? { ...bot, vip: true } : bot
+      ));
+      
+      const action = await adminService.upgradeToVIP(userId, user.id, duration);
+      
+      if (action) {
+        // Update admin actions list
+        setAdminActions(prev => [...prev, action]);
+        
+        toast({
+          title: 'Success',
+          description: `User upgraded to VIP successfully for ${duration}`,
+        });
+        
+        return true;
+      } else {
+        // Rollback if failed
+        setBots(prev => prev.map(bot => 
+          bot.id === userId ? { ...bot, vip: false } : bot
+        ));
+        
+        return false;
+      }
+    } catch (error) {
+      console.error('Error upgrading user:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to upgrade user',
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [isAdmin, user, toast, setBots, setAdminActions]);
+  
+  const downgradeToStandard = useCallback(async (userId: string) => {
+    if (!isAdmin || !user) return false;
+    
+    try {
+      setIsProcessing(true);
+      
+      // Update bot's VIP status immediately for better UX
+      setBots(prev => prev.map(bot => 
+        bot.id === userId ? { ...bot, vip: false } : bot
+      ));
+      
+      const action = await adminService.downgradeToStandard(userId, user.id);
+      
+      if (action) {
+        // Update admin actions list
+        setAdminActions(prev => [...prev, action]);
+        
+        toast({
+          title: 'Success',
+          description: 'User downgraded to standard successfully',
+        });
+        
+        return true;
+      } else {
+        // Rollback if failed
+        setBots(prev => prev.map(bot => 
+          bot.id === userId ? { ...bot, vip: true } : bot
+        ));
+        
+        return false;
+      }
+    } catch (error) {
+      console.error('Error downgrading user:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to downgrade user',
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [isAdmin, user, toast, setBots, setAdminActions]);
+  
   return {
     bannedUsers,
-    loading,
     loadBannedUsers,
+    kickUser,
     banUser,
-    unbanUser
+    unbanUser,
+    upgradeToVIP,
+    downgradeToStandard,
+    isProcessing
   };
 };

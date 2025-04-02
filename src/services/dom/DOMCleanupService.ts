@@ -4,7 +4,6 @@
  */
 import { DOMOperationQueue } from './DOMOperationQueue';
 import { DOMSafetyUtils } from './DOMSafetyUtils';
-import { safeRemoveElement } from '@/utils/domUtils';
 
 export class DOMCleanupService {
   private cleanupInProgress = false;
@@ -56,22 +55,12 @@ export class DOMCleanupService {
           '.modal-backdrop'
         ];
         
-        // Manually process each selector for safer batch removal
+        // Use the new utility method for safer batch removal
         selectors.forEach(selector => {
           try {
-            if (typeof document !== 'undefined') {
-              const elements = document.querySelectorAll(selector);
-              let removedCount = 0;
-              
-              elements.forEach(element => {
-                if (safeRemoveElement(element)) {
-                  removedCount++;
-                }
-              });
-              
-              if (removedCount > 0) {
-                console.log(`[DOMCleanupService] Removed ${removedCount} elements with selector ${selector}`);
-              }
+            const count = safetyUtils.safeRemoveElementsBySelector(selector);
+            if (count > 0) {
+              console.log(`[DOMCleanupService] Removed ${count} elements with selector ${selector}`);
             }
           } catch (e) {
             console.warn(`[DOMCleanupService] Error removing elements with selector ${selector}:`, e);
@@ -117,7 +106,20 @@ export class DOMCleanupService {
       selectors.forEach(selector => {
         document.querySelectorAll(selector).forEach(element => {
           try {
-            safeRemoveElement(element);
+            if (element.parentNode && document.contains(element)) {
+              // Safer removal check
+              if (Array.from(element.parentNode.childNodes).includes(element)) {
+                try {
+                  // First try the safer element.remove() method
+                  element.remove();
+                } catch (err) {
+                  // Fallback to removeChild with validation
+                  if (element.parentNode && element.parentNode.contains(element)) {
+                    element.parentNode.removeChild(element);
+                  }
+                }
+              }
+            }
           } catch (error) {
             console.warn('[DOMCleanupService] Error during emergency cleanup:', error);
           }

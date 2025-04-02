@@ -1,106 +1,120 @@
 
-// This file now redirects all Firebase auth operations to Supabase
-import { supabase } from '../lib/supabase/supabaseClient';
-import { firebaseAuthToSupabase } from '../lib/compatibility/firebaseToSupabase';
-import { performDOMCleanup } from '@/utils/errorHandler';
+import { 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged,
+  User as FirebaseUser,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail
+} from 'firebase/auth';
+import { auth } from './config';
 
-// Sign in with email and password - redirects to Supabase
-export const signInWithEmail = async (email: string, password: string) => {
+// Sign in with email and password
+export const signInWithEmail = async (email: string, password: string): Promise<FirebaseUser> => {
   try {
-    console.log('Attempting Supabase sign in:', email);
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    console.log('Attempting Firebase sign in:', email);
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    console.log('Firebase sign in successful, user:', userCredential.user.email);
     
-    if (error) throw error;
-    
-    console.log('Supabase sign in successful, user:', data.user?.email);
-    
-    if (isUserAdmin(data.user)) {
+    // Store admin email for session persistence if user is admin
+    if (isUserAdmin(userCredential.user)) {
       console.log('Admin user logged in, storing session data');
       localStorage.setItem('adminEmail', email);
       localStorage.setItem('adminData', JSON.stringify({ authenticated: true }));
     }
     
-    return data.user;
+    return userCredential.user;
   } catch (error: any) {
-    console.error("Supabase signIn error:", error.message);
+    console.error("Firebase signIn error:", error.code, error.message);
     throw error;
   }
 };
 
 // Create a new user with email and password
-export const createUserWithEmail = async (email: string, password: string) => {
+export const createUserWithEmail = async (email: string, password: string): Promise<FirebaseUser> => {
   console.log('Creating new user with email:', email);
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
-  
-  if (error) throw error;
-  
-  console.log('User created successfully:', data.user?.email);
-  return data.user;
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  console.log('User created successfully:', userCredential.user.email);
+  return userCredential.user;
 };
 
 // Send password reset email
-export const sendPasswordReset = async (email: string) => {
+export const sendPasswordReset = async (email: string): Promise<void> => {
   console.log('Sending password reset email to:', email);
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
-  
-  if (error) throw error;
-  
+  await sendPasswordResetEmail(auth, email);
   console.log('Password reset email sent successfully');
 };
 
 // Enhanced sign out with better cleanup
-export const signOutUser = async () => {
+export const signOutUser = async (): Promise<void> => {
   try {
-    console.log('Supabase signOut started');
+    console.log('Firebase signOut started');
     
     // Set logout event to enable cross-tab coordination
     localStorage.setItem('logoutEvent', Date.now().toString());
-    
-    // Clean up any UI elements that might cause issues during navigation
-    performDOMCleanup();
     
     // Clear admin-specific data first
     localStorage.removeItem('adminData');
     localStorage.removeItem('adminEmail');
     
-    // Systematic data cleanup before Supabase signout
+    // Clean up any UI elements that might cause issues during navigation
+    try {
+      if (document.body) {
+        document.body.style.overflow = 'auto';
+        document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+      }
+      
+      // Remove any overlay elements to avoid DOM errors
+      const overlaySelectors = [
+        '.fixed.inset-0',
+        '[data-radix-dialog-overlay]',
+        '[data-radix-alert-dialog-overlay]'
+      ];
+      
+      overlaySelectors.forEach(selector => {
+        try {
+          document.querySelectorAll(selector).forEach(el => {
+            try {
+              if (el.parentNode && document.contains(el) && 
+                  Array.from(el.parentNode.childNodes).includes(el)) {
+                el.remove();
+              }
+            } catch (err) {
+              // Ignore errors during emergency cleanup
+            }
+          });
+        } catch (err) {
+          // Ignore errors
+        }
+      });
+    } catch (err) {
+      // Ignore any DOM errors during cleanup
+    }
+    
+    // Systematic data cleanup before Firebase signout
     localStorage.removeItem('chatUser');
     localStorage.removeItem('vipProfileComplete');
     sessionStorage.clear();
     
     // Now perform the actual signOut operation
-    const { error } = await supabase.auth.signOut();
-    
-    if (error) throw error;
-    
-    console.log('Supabase signOut completed successfully');
+    await signOut(auth);
+    console.log('Firebase signOut completed successfully');
   } catch (error) {
-    console.error('Supabase signOut error:', error);
+    console.error('Firebase signOut error:', error);
     throw error;
   }
 };
 
 // Get current user
-export const getCurrentUser = () => {
-  // This function remains synchronous for compatibility, 
-  // but uses the stored Supabase session
-  try {
-    const session = JSON.parse(localStorage.getItem('sb-' + process.env.SUPABASE_PROJECT_ID + '-auth-token') || '{}');
-    return session?.user || null;
-  } catch (e) {
-    console.error('Error getting current user from Supabase session:', e);
-    return null;
-  }
+export const getCurrentUser = (): FirebaseUser | null => {
+  const currentUser = auth.currentUser;
+  console.log('Current Firebase user:', currentUser ? currentUser.email : 'None');
+  return currentUser;
 };
 
 // Check if user is admin
-export const isUserAdmin = (user: any): boolean => {
+export const isUserAdmin = (user: FirebaseUser | null): boolean => {
+  // In a real application, you would check custom claims or roles in Firestore
   if (!user) {
     console.log('No user provided for admin check');
     return false;
@@ -114,17 +128,31 @@ export const isUserAdmin = (user: any): boolean => {
 };
 
 // Listen to auth state changes
-export const onAuthStateChange = firebaseAuthToSupabase.onAuthStateChanged;
+export const onAuthStateChange = (callback: (user: FirebaseUser | null) => void): (() => void) => {
+  console.log('Setting up Firebase auth state listener');
+  return onAuthStateChanged(auth, (user) => {
+    console.log('Firebase auth state changed:', user ? user.email : 'logged out');
+    
+    if (user && isUserAdmin(user)) {
+      // Store admin status in localStorage if user is admin
+      console.log('Admin user detected in auth state change');
+      localStorage.setItem('adminEmail', user.email || 'admin@example.com');
+      localStorage.setItem('adminData', JSON.stringify({ authenticated: true }));
+    }
+    
+    callback(user);
+  });
+};
 
 // For demo purposes - this simulates verifying admin credentials
 export const verifyAdminCredentials = async (email: string, password: string): Promise<boolean> => {
   try {
     console.log('Verifying admin credentials');
     // This will throw if credentials are invalid
-    const user = await signInWithEmail(email, password);
+    await signInWithEmail(email, password);
     
     // Check if email is in the admin list
-    const isAdmin = isUserAdmin(user);
+    const isAdmin = isUserAdmin({email} as any);
     
     return isAdmin;
   } catch (error) {

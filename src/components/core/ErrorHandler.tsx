@@ -12,41 +12,49 @@ const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
     if (!errorHandlerSetRef.current) {
       errorHandlerSetRef.current = true;
       
-      // Set up basic error handlers
-      console.log('[ErrorHandler] Setting up error protection');
-      
-      // Handle global errors
       const handleError = (event: ErrorEvent) => {
-        const errorMessage = event.message || String(event.error);
-        
-        console.warn('[ErrorHandler] Caught error event:', errorMessage);
-        
-        // If logout is in progress, ensure body classes are reset
-        if (logoutInProgressRef.current && document.body) {
+        if (
+          event.message && 
+          event.message.includes('removeChild') && 
+          event.message.includes('not a child')
+        ) {
+          event.preventDefault();
+          console.warn('Caught removeChild error during navigation, suppressing');
+          
           document.body.style.overflow = 'auto';
           document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-        }
-      };
-      
-      // Also handle unhandled promise rejections
-      const handleRejection = (event: PromiseRejectionEvent) => {
-        const errorMessage = event.reason?.message || String(event.reason);
-        
-        console.warn('[ErrorHandler] Caught unhandled promise rejection:', errorMessage);
-        
-        // If logout is in progress, ensure body classes are reset
-        if (logoutInProgressRef.current && document.body) {
-          document.body.style.overflow = 'auto';
-          document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+          
+          if (logoutInProgressRef.current) {
+            document.body.style.overflow = 'auto';
+            document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+          }
+          
+          try {
+            document.querySelectorAll('.fixed.inset-0, [data-radix-dialog-overlay], [data-radix-alert-dialog-overlay]')
+              .forEach(el => {
+                try {
+                  if (el.parentNode) {
+                    const isChild = Array.from(el.parentNode.childNodes).includes(el);
+                    if (isChild) {
+                      el.remove();
+                    }
+                  }
+                } catch (e) {
+                  // Silent catch
+                }
+              });
+          } catch (e) {
+            // Silent catch
+          }
+          
+          return false;
         }
       };
       
       window.addEventListener('error', handleError, { capture: true });
-      window.addEventListener('unhandledrejection', handleRejection, { capture: true });
       
       return () => {
         window.removeEventListener('error', handleError, { capture: true });
-        window.removeEventListener('unhandledrejection', handleRejection, { capture: true });
         errorHandlerSetRef.current = false;
       };
     }

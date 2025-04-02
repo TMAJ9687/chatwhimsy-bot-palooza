@@ -1,85 +1,96 @@
 
-import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { ThemeProvider } from '@/components/theme-provider';
-import { UserProvider } from '@/context/UserContext';
-import { ChatProvider } from '@/context/ChatContext';
-import { ModalProvider } from '@/components/Modal';
-import { DialogProvider } from '@/components/Dialog';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import ChatInterface from '@/components/chat/ChatInterface';
-import ProfilePage from '@/pages/ProfilePage';
-import SettingsPage from '@/pages/SettingsPage';
-import VIPPage from '@/pages/VIPPage';
-import FAQPage from '@/pages/FAQPage';
-import NotFound from '@/pages/NotFound';
-import AdminLogin from '@/pages/AdminLogin';
-import AdminDashboard from '@/pages/AdminDashboard';
-import MainLayout from '@/layouts/MainLayout';
-import Index from '@/pages/Index';
-import ChatPage from '@/pages/ChatPage';
-import useSupabaseAuthSync from '@/hooks/useSupabaseAuthSync';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import MainLayout from "./components/layout/MainLayout";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import ChatInterface from "./components/chat/ChatInterface";
+import VipProfileSetup from "./pages/VipProfileSetup";
+import VipSignup from "./pages/VipSignup";
+import VipLogin from "./pages/VipLogin";
+import VipSubscription from "./pages/VipSubscription";
+import VipPayment from "./pages/VipPayment";
+import VipConfirmation from "./pages/VipConfirmation";
+import Feedback from "./pages/Feedback";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
+import { useState, useCallback } from "react";
+import { DialogProvider } from "./context/DialogContext";
+import DialogContainer from "./components/dialogs/DialogContainer";
+import { ChatProvider } from "./context/ChatContext";
+import NavigationLock from "./components/shared/NavigationLock";
+import AuthListener from "./components/core/AuthListener";
+import ErrorHandler from "./components/core/ErrorHandler";
+import PerformanceMonitor from "./components/core/PerformanceMonitor";
+import useLogoutEffect from "./hooks/useLogoutEffect";
+import { UserProvider } from "./context/UserContext";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 30000,
+      refetchOnWindowFocus: false,
+      structuralSharing: true,
+      gcTime: 5 * 60 * 1000,
+    },
+  },
+});
 
 const App = () => {
-  useSupabaseAuthSync();
+  const [hasLoggedOut, setHasLoggedOut] = useState(false);
+  const [userType] = useState<'standard' | 'vip' | null>(null);
+  
+  const { logoutInProgressRef } = useLogoutEffect(hasLoggedOut, setHasLoggedOut);
+
+  const handleLogout = useCallback(() => {
+    logoutInProgressRef.current = true;
+    setHasLoggedOut(true);
+  }, []);
 
   return (
-    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-      <UserProvider>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <BrowserRouter>
-              <ModalProvider>
-                <DialogProvider>
-                  <ChatProvider>
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/chat" element={
-                        <MainLayout>
-                          <ChatInterface onLogout={() => {}} />
-                        </MainLayout>
-                      } />
-                      <Route path="/chat/:botId" element={<ChatPage />} />
-                      <Route path="/profile" element={
-                        <MainLayout>
-                          <ProfilePage />
-                        </MainLayout>
-                      } />
-                      <Route path="/settings" element={
-                        <MainLayout>
-                          <SettingsPage />
-                        </MainLayout>
-                      } />
-                      <Route path="/vip" element={
-                        <MainLayout>
-                          <VIPPage />
-                        </MainLayout>
-                      } />
-                      <Route path="/faq" element={
-                        <MainLayout>
-                          <FAQPage />
-                        </MainLayout>
-                      } />
-                      <Route path="/secretadminportal" element={<AdminLogin />} />
-                      <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                      <Route path="/admin-dashboard/users" element={<AdminDashboard />} />
-                      <Route path="/admin-dashboard/bots" element={<AdminDashboard />} />
-                      <Route path="/admin-dashboard/reports" element={<AdminDashboard />} />
-                      <Route path="/admin-dashboard/settings" element={<AdminDashboard />} />
-                      <Route path="/admin-dashboard/moderation" element={<AdminDashboard />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </ChatProvider>
-                </DialogProvider>
-              </ModalProvider>
-            </BrowserRouter>
-          </TooltipProvider>
-        </QueryClientProvider>
-      </UserProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <BrowserRouter>
+          <DialogProvider>
+            <ChatProvider>
+              <UserProvider>
+                <MainLayout>
+                  <Toaster />
+                  <Sonner />
+                  <NavigationLock />
+                  <AuthListener />
+                  <PerformanceMonitor />
+                  <ErrorHandler logoutInProgressRef={logoutInProgressRef} />
+                  
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
+                    <Route path="/vip-profile" element={<VipProfileSetup />} />
+                    <Route path="/vip-signup" element={<VipSignup />} />
+                    <Route path="/vip-login" element={<VipLogin />} />
+                    <Route path="/vip-subscription" element={<VipSubscription />} />
+                    <Route path="/vip-payment" element={<VipPayment />} />
+                    <Route path="/vip-confirmation" element={<VipConfirmation />} />
+                    <Route path="/feedback" element={<Feedback />} />
+                    <Route path="/secretadminportal" element={<AdminLogin />} />
+                    <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                    <Route path="/admin" element={<NotFound />} />
+                    <Route path="/admin-login" element={<NotFound />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                  
+                  <DialogContainer />
+                </MainLayout>
+              </UserProvider>
+            </ChatProvider>
+          </DialogProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 };
 

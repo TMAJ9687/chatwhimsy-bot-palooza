@@ -1,9 +1,8 @@
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
-import AdminAuthService from '@/services/admin/adminAuthService';
-import { supabase } from '@/lib/supabase/supabaseClient';
+import { onAuthStateChange, isUserAdmin } from '@/firebase/auth';
 
 /**
  * Hook to manage admin user state
@@ -12,65 +11,27 @@ export const useAdminUser = () => {
   const navigate = useNavigate();
   const { user, setUser } = useUser();
   const [isLoading, setIsLoading] = useState(true);
-  const authListenerSetRef = useRef(false);
   
-  // Setup auth listener
+  // Setup firebase auth listener
   useEffect(() => {
     console.log('Setting up admin user auth listener');
     
-    if (authListenerSetRef.current) {
-      console.log('Auth listener already set up, skipping');
-      return;
-    }
-    
-    authListenerSetRef.current = true;
-    
-    // Check if admin session exists
-    if (AdminAuthService.isAdminSession()) {
-      console.log('Admin session found, creating admin user profile');
+    // Set up Firebase auth state listener
+    const unsubscribe = onAuthStateChange((firebaseUser) => {
+      console.log('Firebase auth state changed:', firebaseUser ? 'logged in' : 'logged out');
       
-      if (!user?.isAdmin) {
-        // Create admin user profile if not already set
-        setUser({
-          id: 'admin-user',
-          nickname: 'Admin',
-          email: 'admin@example.com',
-          gender: 'male',
-          age: 30,
-          country: 'US',
-          interests: ['Administration'],
-          isVip: true,
-          isAdmin: true,
-          subscriptionTier: 'none',
-          imagesRemaining: Infinity,
-          voiceMessagesRemaining: Infinity
-        });
-      }
-    }
-    
-    // Set up Supabase auth state listener
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Supabase auth state changed:', event);
-      
-      if (session?.user) {
-        // If authenticated, check if user is admin
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', session.user.id)
-          .single();
-          
-        const isAdmin = Boolean(profileData?.is_admin);
+      if (firebaseUser) {
+        const admin = isUserAdmin(firebaseUser);
+        console.log('User is admin:', admin);
         
-        if (isAdmin) {
-          console.log('User is admin:', isAdmin);
-          
+        if (admin) {
+          // Create admin user profile if not already set
           if (!user?.isAdmin) {
             console.log('Setting up admin user in context');
             setUser({
-              id: session.user.id,
+              id: firebaseUser.uid || 'admin-user',
               nickname: 'Admin',
-              email: session.user.email || 'admin@example.com',
+              email: firebaseUser.email || 'admin@example.com',
               gender: 'male',
               age: 30,
               country: 'US',
@@ -83,6 +44,26 @@ export const useAdminUser = () => {
             });
           }
         }
+      } else if (localStorage.getItem('adminData')) {
+        // If Firebase user is logged out but we have adminData in localStorage,
+        // reconstruct admin user from localStorage
+        console.log('No Firebase user, checking localStorage fallback');
+        const adminEmail = localStorage.getItem('adminEmail') || 'admin@example.com';
+        
+        setUser({
+          id: 'admin-user',
+          nickname: 'Admin',
+          email: adminEmail,
+          gender: 'male',
+          age: 30,
+          country: 'US',
+          interests: ['Administration'],
+          isVip: true,
+          isAdmin: true,
+          subscriptionTier: 'none',
+          imagesRemaining: Infinity,
+          voiceMessagesRemaining: Infinity
+        });
       }
       
       setIsLoading(false);
@@ -90,14 +71,13 @@ export const useAdminUser = () => {
     
     return () => {
       console.log('Cleaning up admin user auth listener');
-      authListener.subscription.unsubscribe();
-      authListenerSetRef.current = false;
+      unsubscribe();
     };
   }, [setUser, user]);
   
   // Function to redirect to dashboard if admin is authenticated
   const redirectToDashboardIfAdmin = useCallback(() => {
-    if (user?.isAdmin || AdminAuthService.isAdminSession()) {
+    if (user?.isAdmin) {
       navigate('/admin-dashboard');
     }
   }, [navigate, user?.isAdmin]);

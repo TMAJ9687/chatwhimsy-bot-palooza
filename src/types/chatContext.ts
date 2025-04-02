@@ -1,28 +1,5 @@
 
-import { Bot, Translation, Reaction, Notification, FilterState } from './chat';
-
-export interface Message {
-  id: string;
-  content: string;
-  sender: 'user' | 'bot' | 'system';
-  timestamp: Date;
-  status?: 'sending' | 'sent' | 'delivered' | 'read';
-  isImage?: boolean;
-  isVoice?: boolean;
-  duration?: number;
-  translations?: Translation[];
-  replyTo?: string;
-  reactions?: Reaction[];
-  isDeleted?: boolean;
-  // Add fields from chat.ts Message type for compatibility
-  senderId?: string;
-  senderName?: string;
-  senderAvatar?: string;
-  receiverId?: string;
-  text?: string;
-  isRead?: boolean;
-  voiceDuration?: number;
-}
+import { Bot, Message, Notification, FilterState } from './chat';
 
 export interface ChatContextType {
   userChats: Record<string, Message[]>;
@@ -59,7 +36,7 @@ export interface ChatContextType {
   handleDeleteConversation: (userId: string) => void;
   handleTranslateMessage: (messageId: string, targetLanguage: string) => void;
   getSharedMedia: (userId: string) => { images: Message[], voice: Message[] };
-  // VIP features
+  // New VIP features
   handleReplyToMessage: (messageId: string, content: string) => void;
   handleReactToMessage: (messageId: string, emoji: string) => void;
   handleUnsendMessage: (messageId: string) => void;

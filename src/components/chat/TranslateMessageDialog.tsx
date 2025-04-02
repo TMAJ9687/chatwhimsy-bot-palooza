@@ -47,10 +47,10 @@ const DialogContentComponent = memo(({
   onClose: () => void;
   onTranslate: () => void;
 }) => (
-  <DialogContent className="sm:max-w-[400px] hardware-accelerated" aria-describedby="translate-dialog-description">
+  <DialogContent className="sm:max-w-[400px] hardware-accelerated">
     <DialogHeader>
       <DialogTitle>Translate Message</DialogTitle>
-      <DialogDescription id="translate-dialog-description">
+      <DialogDescription>
         Select a language to translate this message to.
       </DialogDescription>
     </DialogHeader>

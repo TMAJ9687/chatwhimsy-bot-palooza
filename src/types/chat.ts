@@ -1,68 +1,39 @@
 
-// Define types for chat functionality
-
-export interface FilterState {
-  gender: string[];
-  country: string[];
-  age: [number, number];  
-  vip: boolean | null;
-  // These must exist to match in some components that expect them
-  countries: string[];
-  ageRange: [number, number];
-}
-
 export interface Bot {
   id: string;
   name: string;
-  avatar: string;
-  bio: string;
-  gender: string;
   age: number;
+  gender: string;
   country: string;
   countryCode: string;
-  languages: string[];
-  interests: string[];
-  online: boolean;
   vip: boolean;
-  verified: boolean;
+  interests: string[];
+  avatar: string;
   responses: string[];
-  lastSeen?: string;
-  messageCount?: number;
-  personalityTraits?: string[];
 }
+
+export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read';
 
 export interface Message {
   id: string;
-  senderId: string;
-  senderName: string;
-  senderAvatar?: string;
-  receiverId: string;
-  text: string;
-  timestamp: Date;
-  isRead: boolean;
-  isImage?: boolean;
-  isVoice?: boolean;
-  voiceDuration?: number;
-  // Add fields from chatContext Message type to make them compatible
   content: string;
   sender: 'user' | 'bot' | 'system';
-  status?: 'sending' | 'sent' | 'delivered' | 'read';
-  translations?: Translation[];
-  reactions?: Reaction[];
-  isDeleted?: boolean;
+  timestamp: Date;
+  status?: MessageStatus;
+  isImage?: boolean;
+  isVoice?: boolean;
   duration?: number;
-  replyTo?: string | null;
-}
-
-// Add required Translation and Notification types
-export interface Translation {
-  language: string;
-  content: string;
-}
-
-export interface Reaction {
-  userId: string;
-  emoji: string;
+  translations?: Array<{
+    language: string;
+    content: string;
+  }>;
+  // New fields for VIP features
+  replyTo?: string; // ID of message being replied to
+  reactions?: Array<{
+    emoji: string;
+    userId: string;
+  }>;
+  isDeleted?: boolean; // For unsend functionality
 }
 
 export interface Notification {
@@ -74,9 +45,16 @@ export interface Notification {
   botId?: string;
 }
 
-export enum MessageStatus {
-  SENDING = 'sending',
-  SENT = 'sent',
-  DELIVERED = 'delivered', 
-  READ = 'read'
+export type FilterGender = 'male' | 'female' | 'any';
+
+export interface FilterState {
+  gender: FilterGender;
+  ageRange: [number, number];
+  countries: string[];
 }
+
+// Message validation constants - these will be used as a fallback
+// The actual limits are now in useVipFeatures.tsx
+export const MAX_CHAR_LIMIT = 120; // Standard user character limit
+export const VIP_CHAR_LIMIT = 200; // VIP user character limit (updated from 500 to 200)
+export const CONSECUTIVE_LIMIT = 3;

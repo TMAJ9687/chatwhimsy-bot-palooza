@@ -1,18 +1,23 @@
 
-// This file is kept for backward compatibility during migration to Supabase
-// All Firebase functionality is disabled and redirected to Supabase
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
-// Mock implementations to avoid errors during the migration
-const app = {} as any;
-const auth = {} as any;
-const db = {} as any;
-const storage = {} as any;
-const firestoreAvailable = false;
-const firestoreBlocked = true;
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDY2ahen-rFA985JMwNXa_k9tS5Y9DYhIg",
+  authDomain: "chatwiilovable.firebaseapp.com",
+  projectId: "chatwiilovable",
+  storageBucket: "chatwiilovable.firebasestorage.app", 
+  messagingSenderId: "760246107454",
+  appId: "1:760246107454:web:a09ef90265dfa0c57f806f"
+};
 
-// Helper to detect if connection was blocked - always returns true during migration
-const detectFirestoreBlock = () => true;
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
 
-// Export mock objects and flags
-export { auth, db, storage, firestoreAvailable, firestoreBlocked, detectFirestoreBlock };
 export default app;

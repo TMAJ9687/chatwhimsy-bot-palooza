@@ -1,8 +1,11 @@
 
 import React, { useRef } from 'react';
-import { ImageIcon } from 'lucide-react';
+import { Image } from 'lucide-react';
+import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { validateImage } from '@/utils/messageUtils';
+import { validateImageFile } from '@/utils/messageUtils';
+import { uploadDataURLImage } from '@/firebase/storage';
+import { useUser } from '@/context/UserContext';
 
 interface ImageUploadButtonProps {
   onImageSelected: (imageDataUrl: string) => void;
@@ -19,16 +22,16 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user } = useUser();
 
-  const handleClick = () => {
+  const handleClickUpload = () => {
     if (disabled) return;
     
-    // Check if non-VIP user has images remaining
-    if (!isVip && imagesRemaining <= 0) {
+    // Standard users have upload limits
+    if (imagesRemaining <= 0 && !isVip) {
       toast({
-        title: "Image limit reached",
-        description: "You've used all your free images. Upgrade to VIP for unlimited image sharing.",
-        duration: 5000
+        title: "Upload limit reached",
+        description: "You have reached your daily image upload limit. Upgrade to VIP to upload unlimited images."
       });
       return;
     }
@@ -36,60 +39,84 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
+    
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Validate the file
-    const validation = validateImage(file);
-    if (!validation.valid) {
+    // Check upload limits for standard users
+    if (imagesRemaining <= 0 && !isVip) {
       toast({
-        title: "Invalid image",
-        description: validation.error,
-        duration: 3000
+        title: "Upload limit reached",
+        description: "You have reached your daily image upload limit. Upgrade to VIP to upload unlimited images."
       });
       return;
     }
-
-    // Convert the file to a Data URL
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      onImageSelected(dataUrl);
-    };
-    reader.readAsDataURL(file);
     
-    // Reset the file input to allow selecting the same file again
-    e.target.value = '';
+    // Pass isVip to validateImageFile to apply correct image type restrictions
+    const validation = validateImageFile(file, isVip);
+    if (!validation.valid) {
+      toast({
+        title: "Invalid file",
+        description: validation.message
+      });
+      return;
+    }
+    
+    const reader = new FileReader();
+    
+    reader.onloadend = async () => {
+      try {
+        const result = reader.result as string;
+        
+        // For now, we'll still pass the data URL to onImageSelected
+        // This maintains compatibility with the existing code
+        onImageSelected(result);
+        
+        // In the background, upload to Firebase Storage
+        if (user?.id) {
+          await uploadDataURLImage(result, isVip, user.id);
+        }
+      } catch (error) {
+        console.error('Error processing image:', error);
+        toast({
+          title: "Upload failed",
+          description: "There was a problem uploading your image. Please try again.",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    reader.readAsDataURL(file);
   };
 
   return (
-    <div>
-      <button
-        type="button"
-        onClick={handleClick}
-        disabled={disabled}
-        className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
-          disabled 
-            ? 'text-gray-400 bg-gray-100 dark:bg-gray-700 cursor-not-allowed'
-            : 'text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700'
-        }`}
-        title={
-          !isVip && imagesRemaining <= 0
-            ? `Image limit reached. Upgrade to VIP for unlimited images.`
-            : `Send an image${!isVip ? ` (${imagesRemaining} remaining)` : ''}`
-        }
-      >
-        <ImageIcon className="h-5 w-5" />
-      </button>
+    <>
       <input
         type="file"
-        accept="image/*"
         ref={fileInputRef}
-        onChange={handleFileChange}
         className="hidden"
+        accept={isVip ? "image/*" : "image/jpeg,image/png,image/webp"}
+        onChange={handleImageUpload}
+        disabled={disabled}
       />
-    </div>
+      
+      <Button 
+        variant="ghost" 
+        size="icon"
+        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" 
+        onClick={handleClickUpload}
+        disabled={disabled}
+        title={
+          isVip 
+            ? "Upload image" 
+            : `Upload image (${imagesRemaining} remaining today)`
+        }
+      >
+        <Image className="h-5 w-5" />
+      </Button>
+    </>
   );
 };
 

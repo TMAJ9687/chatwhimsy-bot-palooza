@@ -1,6 +1,7 @@
+
 import { useEffect, useCallback, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
-import { safeRemoveElement, resetBodyState } from "@/utils/domUtils";
+import { DOMSafetyUtils } from "@/services/dom/DOMSafetyUtils";
 
 /**
  * Hook to listen for DOM errors and trigger cleanup
@@ -10,6 +11,7 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
   const cleanupAttemptedRef = useRef(false);
   const lastCleanupTimeRef = useRef(0);
   const isMountedRef = useRef(true);
+  const safetyUtils = useRef(new DOMSafetyUtils());
   const errorCountRef = useRef(0);
   
   // Track component mounted state
@@ -30,7 +32,10 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
     console.log('[useErrorCleaner] Performing emergency DOM cleanup');
     
     // Reset body state
-    resetBodyState();
+    if (document.body) {
+      document.body.style.overflow = 'auto';
+      document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+    }
     
     // Get all overlay elements - expanded list of selectors
     const selectors = [
@@ -50,7 +55,23 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
       try {
         const elements = document.querySelectorAll(selector);
         elements.forEach(el => {
-          safeRemoveElement(el);
+          try {
+            if (el.parentNode) {
+              // Check if it's actually a child
+              const isChild = Array.from(el.parentNode.childNodes).includes(el);
+              if (isChild) {
+                try {
+                  el.remove();
+                } catch (e) {
+                  if (el.parentNode && el.parentNode.contains(el)) {
+                    el.parentNode.removeChild(el);
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            // Ignore individual element errors
+          }
         });
       } catch (e) {
         console.warn(`[useErrorCleaner] Error in emergency cleanup of ${selector}:`, e);
@@ -75,7 +96,7 @@ export const useErrorCleaner = (cleanupFn: () => void) => {
           requestAnimationFrame(() => {
             try {
               if (document.body.contains(temporaryDiv)) {
-                safeRemoveElement(temporaryDiv);
+                document.body.removeChild(temporaryDiv);
               }
             } catch (e) {
               // Ignore temporary div cleanup errors

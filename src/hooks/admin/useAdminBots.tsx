@@ -1,156 +1,174 @@
+
 import { useState, useCallback } from 'react';
 import { Bot } from '@/types/chat';
-import { toast } from '@/components/ui/use-toast';
-import { supabaseAdmin } from '@/lib/supabase/supabaseAdmin';
+import { useToast } from '@/hooks/use-toast';
+import * as adminService from '@/services/admin/adminService';
 
-export const useAdminBots = () => {
+/**
+ * Custom hook for bot management functionality
+ */
+export const useAdminBots = (isAdmin: boolean) => {
+  const { toast } = useToast();
   const [bots, setBots] = useState<Bot[]>([]);
-  const [loading, setLoading] = useState(false);
-
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Load bots data
   const loadBots = useCallback(async () => {
-    setLoading(true);
+    if (!isAdmin) return;
+    
     try {
-      console.log('Loading bots data...');
-      
-      // Get bots from Supabase
-      const { data, error } = await supabaseAdmin
-        .from('bots')
-        .select('*');
-      
-      if (error) {
-        throw error;
-      }
-      
-      const loadedBots = data || [];
+      const loadedBots = await adminService.getAllBots();
+      setBots(loadedBots);
       console.log(`Loaded ${loadedBots.length} bots`);
-      setBots(loadedBots as Bot[]);
+      return loadedBots;
     } catch (error) {
-      console.error('Error getting all bots:', error);
-      toast({
-        title: "Error loading bots",
-        description: "There was a problem loading the bot data.",
-        variant: "destructive"
-      });
-      // Initialize with empty array on error
-      setBots([]);
-    } finally {
-      setLoading(false);
+      console.error('Error loading bots:', error);
+      return [];
     }
-  }, []);
-
-  const createBot = useCallback(async (newBot: Omit<Bot, 'id'>) => {
+  }, [isAdmin]);
+  
+  // Bot management
+  const createBot = useCallback(async (bot: Omit<Bot, 'id'>) => {
+    if (!isAdmin) return null;
+    
     try {
-      // Add bot to Supabase
-      const { data, error } = await supabaseAdmin
-        .from('bots')
-        .insert([newBot])
-        .select();
+      setIsProcessing(true);
+      console.log('Creating bot:', bot.name);
       
-      if (error) {
-        throw error;
-      }
+      const newBot = await adminService.createBot(bot);
       
-      if (data && data.length > 0) {
-        // Update local state with the new bot that includes the generated ID
-        setBots(prev => [...prev, data[0] as Bot]);
+      if (newBot) {
+        setBots(prev => [...prev, newBot]);
         
         toast({
-          title: "Bot created",
-          description: `${newBot.name} has been created successfully.`
+          title: 'Success',
+          description: `Bot ${newBot.name} created successfully`,
         });
-        
-        return data[0] as Bot;
+        console.log('Bot created successfully:', newBot.id);
       }
       
-      throw new Error('No data returned from bot creation');
+      return newBot;
     } catch (error) {
       console.error('Error creating bot:', error);
       toast({
-        title: "Error creating bot",
-        description: "There was a problem creating the bot.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to create bot',
+        variant: 'destructive',
       });
       return null;
+    } finally {
+      setIsProcessing(false);
     }
-  }, []);
-
-  const updateBot = useCallback(async (botId: string, updates: Partial<Bot>) => {
+  }, [isAdmin, toast]);
+  
+  const updateBot = useCallback(async (id: string, updates: Partial<Bot>) => {
+    if (!isAdmin) return false;
+    
     try {
-      // Update bot in Supabase
-      const { data, error } = await supabaseAdmin
-        .from('bots')
-        .update(updates)
-        .eq('id', botId)
-        .select();
+      setIsProcessing(true);
+      console.log('Updating bot:', id);
       
-      if (error) {
-        throw error;
+      // Optimistic update
+      setBots(prev => prev.map(bot => 
+        bot.id === id ? { ...bot, ...updates } : bot
+      ));
+      
+      const updatedBot = await adminService.updateBot(id, updates);
+      
+      if (!updatedBot) {
+        // Revert on failure
+        const originalBot = await adminService.getBot(id);
+        setBots(prev => prev.map(bot => 
+          bot.id === id && originalBot ? originalBot : bot
+        ));
+        console.error('Bot update failed');
+        return false;
       }
-      
-      if (data && data.length > 0) {
-        // Update local state
-        setBots(prev => 
-          prev.map(bot => bot.id === botId ? { ...bot, ...updates } : bot)
-        );
-        
-        toast({
-          title: "Bot updated",
-          description: `Bot ${updates.name || 'profile'} has been updated successfully.`
-        });
-        
-        return true;
-      }
-      
-      throw new Error('No data returned from bot update');
-    } catch (error) {
-      console.error('Error updating bot:', error);
-      toast({
-        title: "Error updating bot",
-        description: "There was a problem updating the bot.",
-        variant: "destructive"
-      });
-      return false;
-    }
-  }, []);
-
-  const deleteBot = useCallback(async (botId: string) => {
-    try {
-      // Delete bot from Supabase
-      const { error } = await supabaseAdmin
-        .from('bots')
-        .delete()
-        .eq('id', botId);
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Update local state
-      setBots(prev => prev.filter(bot => bot.id !== botId));
       
       toast({
-        title: "Bot deleted",
-        description: "The bot has been deleted successfully."
+        title: 'Success',
+        description: `Bot ${updatedBot.name} updated successfully`,
       });
+      console.log('Bot updated successfully');
       
       return true;
     } catch (error) {
+      console.error('Error updating bot:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update bot',
+        variant: 'destructive',
+      });
+      
+      // Revert on error - fetch fresh data
+      try {
+        const originalBot = await adminService.getBot(id);
+        setBots(prev => prev.map(bot => 
+          bot.id === id && originalBot ? originalBot : bot
+        ));
+      } catch (err) {
+        console.error('Failed to fetch original bot data for revert:', err);
+      }
+      
+      return false;
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [isAdmin, toast]);
+  
+  const deleteBot = useCallback(async (id: string) => {
+    if (!isAdmin) return false;
+    
+    try {
+      setIsProcessing(true);
+      console.log('Deleting bot:', id);
+      
+      // Optimistic update - store the bot for potential rollback
+      const botToDelete = bots.find(bot => bot.id === id);
+      setBots(prev => prev.filter(bot => bot.id !== id));
+      
+      const success = await adminService.deleteBot(id);
+      
+      if (success) {
+        toast({
+          title: 'Success',
+          description: 'Bot deleted successfully',
+        });
+        console.log('Bot deleted successfully');
+      } else {
+        // Rollback if the operation failed
+        if (botToDelete) {
+          setBots(prev => [...prev, botToDelete]);
+        }
+        
+        toast({
+          title: 'Warning',
+          description: 'Could not delete bot',
+          variant: 'destructive',
+        });
+        console.error('Bot deletion failed');
+      }
+      
+      return success;
+    } catch (error) {
       console.error('Error deleting bot:', error);
       toast({
-        title: "Error deleting bot",
-        description: "There was a problem deleting the bot.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to delete bot',
+        variant: 'destructive',
       });
       return false;
+    } finally {
+      setIsProcessing(false);
     }
-  }, []);
-
+  }, [isAdmin, toast, bots]);
+  
   return {
     bots,
-    loading,
     loadBots,
     createBot,
     updateBot,
-    deleteBot
+    deleteBot,
+    isProcessing
   };
 };

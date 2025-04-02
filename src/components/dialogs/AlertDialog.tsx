@@ -1,5 +1,5 @@
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,33 +10,95 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { useDialog } from '@/context/DialogContext';
+import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
+import { useDialogCleanup } from '@/hooks/useDialogCleanup';
+
+// Memoized dialog content component to prevent unnecessary re-renders
+const AlertDialogContent = memo(({
+  title,
+  message,
+  onClose,
+}: {
+  title: string;
+  message: string;
+  onClose: () => void;
+}) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const { registerNode } = useSafeDOMOperations();
+  const mountedRef = useRef(true);
+
+  // Register the content element for tracking
+  useEffect(() => {
+    if (contentRef.current) {
+      registerNode(contentRef.current);
+    }
+    
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [registerNode]);
+
+  return (
+    <DialogContent 
+      ref={contentRef}
+      className="sm:max-w-[425px]" 
+      onEscapeKeyDown={onClose}
+      onInteractOutside={(e) => {
+        // Prevent closing during animations
+        if (!mountedRef.current) {
+          e.preventDefault();
+        }
+      }}
+    >
+      <DialogHeader>
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>{message}</DialogDescription>
+      </DialogHeader>
+      <DialogFooter>
+        <Button onClick={onClose}>OK</Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+});
+
+AlertDialogContent.displayName = 'AlertDialogContent';
 
 const AlertDialogComponent = () => {
   const { state, closeDialog } = useDialog();
+  const { handleDialogClose, isClosingRef } = useDialogCleanup();
   
-  // Check if this dialog is open
   const isOpen = state.isOpen && state.type === 'alert';
   
-  // Destructure data only when dialog is open to avoid undefined values
-  const { title, message } = isOpen ? state.data : { title: '', message: '' };
-
-  // If not open, render nothing
+  // Safer close method using our hook
+  const handleClose = useCallback(() => {
+    handleDialogClose(closeDialog);
+  }, [closeDialog, handleDialogClose]);
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Mark dialog as closing when component unmounts
+      if (isClosingRef) {
+        isClosingRef.current = true;
+      }
+    };
+  }, [isClosingRef]);
+  
   if (!isOpen) return null;
 
-  // Create a unique ID for accessibility
-  const descriptionId = `alert-dialog-description-${Date.now()}`;
+  const { title, message } = state.data;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && closeDialog()}>
-      <DialogContent className="sm:max-w-[425px]" aria-describedby={descriptionId}>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription id={descriptionId}>{message}</DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button onClick={closeDialog}>OK</Button>
-        </DialogFooter>
-      </DialogContent>
+    <Dialog 
+      open={true} 
+      onOpenChange={(open) => !open && handleClose()}
+      modal={true}
+    >
+      <AlertDialogContent
+        title={title}
+        message={message}
+        onClose={handleClose}
+      />
     </Dialog>
   );
 };

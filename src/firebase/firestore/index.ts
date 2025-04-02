@@ -7,18 +7,11 @@ export * from './adminActionCollection';
 export * from './reportCollection';
 export * from './userManagement';
 export * from './dbUtils';
-export * from './userProfiles';
-export * from './chatHistory';
+export * from './userProfiles'; // Add the new module
 
 // Initialize function to ensure all firestore data is properly loaded
 export const initializeFirestoreData = async (): Promise<void> => {
   console.log('Initializing Firestore data');
-  
-  // Import the utils to prevent circular dependencies
-  const { ensureCollectionsExist } = await import('./utils');
-  
-  // Ensure all required collections exist
-  await ensureCollectionsExist();
-  
+  // This function can be expanded to preload essential data or run migrations
   return Promise.resolve();
 };

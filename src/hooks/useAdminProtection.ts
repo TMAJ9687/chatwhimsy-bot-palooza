@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import AdminAuthService from '@/services/admin/adminAuthService';
+import { isAdminLoggedIn } from '@/services/admin/adminService';
 
 /**
  * Hook to protect admin routes and handle redirects
@@ -9,22 +10,21 @@ export const useAdminProtection = (redirectPath: string = '/secretadminportal') 
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(true);
-  const redirectAttemptedRef = useRef(false);
+  const [redirectAttempted, setRedirectAttempted] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Check admin authentication on mount and when location changes
   const checkAdminAuth = useCallback(() => {
     console.log('Checking admin authentication status...');
     console.log('Current path:', location.pathname);
     
-    // IMPORTANT: Don't check admin session status if on the login page
+    // IMPORTANT: Don't check admin logged in status if on the login page
     // to prevent immediate redirects
     const adminLoggedIn = location.pathname === '/secretadminportal' 
       ? false 
-      : AdminAuthService.isAdminSession();
+      : isAdminLoggedIn();
       
-    console.log('Admin logged in:', adminLoggedIn);
+    console.log('Admin logged in (service):', adminLoggedIn);
     setIsAuthenticated(adminLoggedIn);
     
     // If on admin login page, don't redirect regardless of auth state
@@ -51,10 +51,13 @@ export const useAdminProtection = (redirectPath: string = '/secretadminportal') 
     
     // If not logged in as admin and on a protected page, redirect to login
     if (!adminLoggedIn && location.pathname.includes('/admin') && 
-        location.pathname !== '/secretadminportal' && !redirectAttemptedRef.current) {
+        location.pathname !== '/secretadminportal' && !redirectAttempted) {
       console.log('Not authenticated as admin, redirecting to:', redirectPath);
       setIsLoading(false);
-      redirectAttemptedRef.current = true;
+      setRedirectAttempted(true);
+      
+      // Clear any stale admin data
+      localStorage.removeItem('adminEmail');
       
       // Use a timeout to avoid infinite redirect loops
       setTimeout(() => {
@@ -65,36 +68,27 @@ export const useAdminProtection = (redirectPath: string = '/secretadminportal') 
     
     setIsLoading(false);
     console.log('Admin authentication check complete');
-  }, [navigate, redirectPath, location.pathname]);
+  }, [navigate, redirectPath, location.pathname, redirectAttempted]);
   
   // Reset redirect attempts when location changes
   useEffect(() => {
-    if (location.pathname !== '/secretadminportal' && redirectAttemptedRef.current) {
-      redirectAttemptedRef.current = false;
+    if (location.pathname !== '/secretadminportal' && redirectAttempted) {
+      setRedirectAttempted(false);
     }
     
     // Check admin authentication when location changes
     checkAdminAuth();
     
-    // Clean up any existing interval
-    if (checkTimeoutRef.current) {
-      clearInterval(checkTimeoutRef.current);
-    }
-    
     // Set up interval to periodically check admin session
-    // Use a ref to keep track of the interval for cleanup
-    checkTimeoutRef.current = setInterval(() => {
+    const intervalId = setInterval(() => {
       console.log('Periodic admin session check');
       checkAdminAuth();
     }, 60000); // Check every minute
     
     return () => {
-      if (checkTimeoutRef.current) {
-        clearInterval(checkTimeoutRef.current);
-        checkTimeoutRef.current = null;
-      }
+      clearInterval(intervalId);
     };
-  }, [checkAdminAuth, location.pathname]);
+  }, [checkAdminAuth, location.pathname, redirectAttempted]);
 
   return {
     isAuthenticated,
