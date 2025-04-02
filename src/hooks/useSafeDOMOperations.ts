@@ -16,7 +16,7 @@ export const useSafeDOMOperations = () => {
   }, []);
   
   /**
-   * Safely remove a DOM element with validation
+   * Safely remove a DOM element with enhanced validation
    */
   const safeRemoveElement = useCallback((element: Element | null) => {
     if (!element) return false;
@@ -28,18 +28,22 @@ export const useSafeDOMOperations = () => {
       // Check if element is in DOM
       if (!document.contains(element)) return false;
       
-      // Verify parent-child relationship
-      const isRealChild = Array.from(element.parentNode.childNodes).includes(element);
-      if (!isRealChild) return false;
+      // Enhanced check for parent-child relationship using Array.from
+      // This is more reliable than nodeList.contains
+      const parentChildArray = Array.from(element.parentNode.childNodes);
+      if (!parentChildArray.includes(element)) return false;
       
-      // Try removing with element.remove()
+      // Try removing with element.remove() first (modern browsers)
       try {
         element.remove();
         return true;
       } catch (e) {
-        // Fallback to parentNode.removeChild
-        if (element.parentNode && element.parentNode.contains(element)) {
-          element.parentNode.removeChild(element);
+        console.log('element.remove() failed, trying parentNode.removeChild with extra validation');
+        
+        // Final validation before removal attempt
+        const parent = element.parentNode;
+        if (parent && document.contains(element) && Array.from(parent.childNodes).includes(element)) {
+          parent.removeChild(element);
           return true;
         }
       }
@@ -51,7 +55,7 @@ export const useSafeDOMOperations = () => {
   }, []);
   
   /**
-   * Clean up all overlays in the document
+   * Clean up all overlays in the document with extra safeguards
    */
   const cleanupOverlays = useCallback(() => {
     try {
@@ -61,20 +65,33 @@ export const useSafeDOMOperations = () => {
         document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
       }
       
-      // Common overlay selectors
+      // Common overlay selectors - expanded to cover all possible modal overlays
       const selectors = [
         '.fixed.inset-0',
         '[data-radix-dialog-overlay]',
         '[data-radix-alert-dialog-overlay]',
         '.backdrop',
-        '.modal-backdrop'
+        '.modal-backdrop',
+        '[role="dialog"]',
+        '[aria-modal="true"]',
+        '.vaul-overlay'
       ];
       
-      // Try to safely remove each overlay
+      // Process each selector individually to prevent cascading failures
       selectors.forEach(selector => {
-        document.querySelectorAll(selector).forEach(element => {
-          safeRemoveElement(element);
-        });
+        try {
+          // Wrap in a try-catch to prevent one selector failure from affecting others
+          document.querySelectorAll(selector).forEach(element => {
+            // Process each element individually
+            try {
+              safeRemoveElement(element);
+            } catch (elementError) {
+              console.warn(`Failed to safely remove ${selector} element:`, elementError);
+            }
+          });
+        } catch (selectorError) {
+          console.warn(`Error processing selector ${selector}:`, selectorError);
+        }
       });
     } catch (error) {
       console.warn('Error cleaning up overlays:', error);
