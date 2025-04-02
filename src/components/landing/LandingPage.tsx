@@ -7,11 +7,13 @@ import ProfileSetup from '../profile/ProfileSetup';
 import { useUser } from '../../context/UserContext';
 import ThemeToggle from '../shared/ThemeToggle';
 import { useDialog } from '@/context/DialogContext';
+import { DialogType } from '@/context/DialogContext';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { updateUserProfile, user } = useUser();
-  let openDialog = () => console.log('Dialog context not available');
+  let openDialog: (type: DialogType, data?: Record<string, any>) => void = 
+    () => console.log('Dialog context not available');
   
   try {
     const dialogContext = useDialog();
