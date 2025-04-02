@@ -22,7 +22,7 @@ const LogoutConfirmationDialog = () => {
   const { user } = useUser();
   const { isAdmin } = useAdmin();
   
-  // Get dialog cleanup utilities
+  // Get dialog cleanup utilities with error handling
   const { handleDialogClose, isClosingRef } = useDialogCleanup();
   
   // Track if component is mounted to prevent state updates after unmount

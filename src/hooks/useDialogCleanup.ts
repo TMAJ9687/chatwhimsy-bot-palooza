@@ -1,4 +1,3 @@
-
 import { useRef, useCallback, useEffect } from 'react';
 import { useUIState } from '@/context/UIStateContext';
 
@@ -7,7 +6,29 @@ import { useUIState } from '@/context/UIStateContext';
  */
 export const useDialogCleanup = () => {
   const isClosingRef = useRef(false);
-  const { clearOverlays } = useUIState();
+  
+  // Safely access UIState context, handling cases where it might not be available
+  let clearOverlays = () => {
+    // Default no-op if context is not available
+    console.warn('UIStateContext not available, using fallback cleanup');
+    
+    // Fallback: try to reset body state directly
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.style.overflow = 'auto';
+      document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
+    }
+  };
+  
+  // Try to access the UIState context
+  try {
+    const uiState = useUIState();
+    if (uiState && uiState.clearOverlays) {
+      clearOverlays = uiState.clearOverlays;
+    }
+  } catch (error) {
+    console.warn('Error accessing UIStateContext:', error);
+    // Keep using the fallback if context is unavailable
+  }
   
   // Clean up on unmount
   useEffect(() => {

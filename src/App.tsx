@@ -28,6 +28,7 @@ import ErrorHandler from './components/core/ErrorHandler';
 import PerformanceMonitor from './components/core/PerformanceMonitor';
 import useLogoutEffect from './hooks/useLogoutEffect';
 import { UserProvider } from './context/UserContext';
+import { UIStateProvider } from './context/UIStateContext';
 
 // Create QueryClient with proper configuration to reduce re-renders
 const queryClient = new QueryClient({
@@ -80,37 +81,39 @@ const App = () => {
       <TooltipProvider>
         <BrowserRouter>
           <UserProvider>
-            <DialogProvider>
-              <ChatProvider>
-                <MainLayout>
-                  <Toaster />
-                  <Sonner />
-                  <NavigationLock />
-                  <AuthListener />
-                  <PerformanceMonitor />
-                  <ErrorHandler logoutInProgressRef={logoutInProgressRef} />
-                  
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
-                    <Route path="/vip-profile" element={<VipProfileSetup />} />
-                    <Route path="/vip-signup" element={<VipSignup />} />
-                    <Route path="/vip-login" element={<VipLogin />} />
-                    <Route path="/vip-subscription" element={<VipSubscription />} />
-                    <Route path="/vip-payment" element={<VipPayment />} />
-                    <Route path="/vip-confirmation" element={<VipConfirmation />} />
-                    <Route path="/feedback" element={<Feedback />} />
-                    <Route path="/secretadminportal" element={<AdminLogin />} />
-                    <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                    <Route path="/admin" element={<NotFound />} />
-                    <Route path="/admin-login" element={<NotFound />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                  
-                  <DialogContainer />
-                </MainLayout>
-              </ChatProvider>
-            </DialogProvider>
+            <UIStateProvider>
+              <DialogProvider>
+                <ChatProvider>
+                  <MainLayout>
+                    <Toaster />
+                    <Sonner />
+                    <NavigationLock />
+                    <AuthListener />
+                    <PerformanceMonitor />
+                    <ErrorHandler logoutInProgressRef={logoutInProgressRef} />
+                    
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
+                      <Route path="/vip-profile" element={<VipProfileSetup />} />
+                      <Route path="/vip-signup" element={<VipSignup />} />
+                      <Route path="/vip-login" element={<VipLogin />} />
+                      <Route path="/vip-subscription" element={<VipSubscription />} />
+                      <Route path="/vip-payment" element={<VipPayment />} />
+                      <Route path="/vip-confirmation" element={<VipConfirmation />} />
+                      <Route path="/feedback" element={<Feedback />} />
+                      <Route path="/secretadminportal" element={<AdminLogin />} />
+                      <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                      <Route path="/admin" element={<NotFound />} />
+                      <Route path="/admin-login" element={<NotFound />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                    
+                    <DialogContainer />
+                  </MainLayout>
+                </ChatProvider>
+              </DialogProvider>
+            </UIStateProvider>
           </UserProvider>
         </BrowserRouter>
       </TooltipProvider>
