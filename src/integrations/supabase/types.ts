@@ -9,6 +9,71 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_actions: {
+        Row: {
+          action_type: string
+          admin_id: string | null
+          duration: string | null
+          id: string
+          reason: string | null
+          target_id: string | null
+          target_type: string | null
+          timestamp: string | null
+        }
+        Insert: {
+          action_type: string
+          admin_id?: string | null
+          duration?: string | null
+          id?: string
+          reason?: string | null
+          target_id?: string | null
+          target_type?: string | null
+          timestamp?: string | null
+        }
+        Update: {
+          action_type?: string
+          admin_id?: string | null
+          duration?: string | null
+          id?: string
+          reason?: string | null
+          target_id?: string | null
+          target_type?: string | null
+          timestamp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_actions_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_users: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          email: string
+          id: string
+          last_login: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name?: string | null
+          email: string
+          id: string
+          last_login?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string | null
+          email?: string
+          id?: string
+          last_login?: string | null
+        }
+        Relationships: []
+      }
       blocked_users: {
         Row: {
           blocked_id: string
@@ -437,6 +502,12 @@ export type Database = {
           user2_id: string
         }
         Returns: string
+      }
+      is_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
       }
       is_user_blocked: {
         Args: {

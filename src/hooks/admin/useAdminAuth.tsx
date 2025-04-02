@@ -2,8 +2,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useUser } from '@/context/UserContext';
 import { useToast } from '@/hooks/use-toast';
-import { onAuthStateChange, isUserAdmin } from '@/firebase/auth';
-import * as adminService from '@/services/admin/adminService';
+import { supabase } from '@/integrations/supabase/client';
+import * as adminService from '@/services/admin/supabaseAdminAuth';
 
 /**
  * Custom hook for admin authentication logic
@@ -11,53 +11,131 @@ import * as adminService from '@/services/admin/adminService';
 export const useAdminAuth = () => {
   const { user, setUser } = useUser();
   const { toast } = useToast();
-  const [firebaseUser, setFirebaseUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [authUser, setAuthUser] = useState<any>(null);
+  const [adminData, setAdminData] = useState<any>(null);
   
   // Computed properties
   const isAdmin = useMemo(() => {
-    // Check both React state and Firebase auth
-    return (user?.isAdmin === true) || (firebaseUser && isUserAdmin(firebaseUser));
-  }, [user, firebaseUser]);
+    return !!adminData || (user?.isAdmin === true);
+  }, [user, adminData]);
   
-  // Listen for Firebase auth state changes
+  // Listen for Supabase auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChange((fbUser) => {
-      setFirebaseUser(fbUser);
+    let mounted = true;
+    
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event);
+      if (!mounted) return;
       
-      // If Firebase user is admin but user context doesn't have admin flag
-      if (fbUser && isUserAdmin(fbUser) && (!user || !user.isAdmin)) {
-        // Update user context with admin status
-        setUser(prevUser => {
-          if (!prevUser) {
-            // Create new user if none exists
-            return {
-              id: 'admin-user',
-              nickname: 'Admin',
-              email: fbUser.email || 'admin@example.com',
-              gender: 'male',
-              age: 30,
-              country: 'US',
-              interests: ['Administration'],
-              isVip: true,
-              isAdmin: true,
-              subscriptionTier: 'none',
-              imagesRemaining: Infinity,
-              voiceMessagesRemaining: Infinity
-            };
+      setAuthUser(session?.user || null);
+      
+      if (event === 'SIGNED_IN') {
+        if (session?.user) {
+          try {
+            const { data } = await supabase
+              .from('admin_users')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (data) {
+              setAdminData(data);
+              
+              // Update last login
+              await supabase
+                .from('admin_users')
+                .update({ last_login: new Date().toISOString() })
+                .eq('id', session.user.id);
+                
+              // Update user context if needed
+              if (!user?.isAdmin) {
+                setUser(prevUser => ({
+                  ...(prevUser || {
+                    id: 'admin-user',
+                    nickname: 'Admin',
+                    email: session.user.email || 'admin@example.com',
+                    gender: 'male',
+                    age: 30,
+                    country: 'US',
+                    interests: ['Administration'],
+                    isVip: true,
+                    subscriptionTier: 'none',
+                    imagesRemaining: Infinity,
+                    voiceMessagesRemaining: Infinity
+                  }),
+                  isAdmin: true,
+                  email: session.user.email || prevUser?.email || 'admin@example.com'
+                }));
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching admin data:', error);
+          } finally {
+            setLoading(false);
           }
-          
-          // Update existing user
-          return {
-            ...prevUser,
-            isAdmin: true,
-            email: fbUser.email || prevUser.email
-          };
-        });
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setAdminData(null);
+        setLoading(false);
       }
     });
     
+    // Initial session check
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          setAuthUser(session.user);
+          
+          const { data } = await supabase
+            .from('admin_users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (data) {
+            setAdminData(data);
+            
+            // Update user context if needed
+            if (!user?.isAdmin) {
+              setUser(prevUser => ({
+                ...(prevUser || {
+                  id: 'admin-user',
+                  nickname: 'Admin',
+                  email: session.user.email || 'admin@example.com',
+                  gender: 'male',
+                  age: 30,
+                  country: 'US',
+                  interests: ['Administration'],
+                  isVip: true,
+                  subscriptionTier: 'none',
+                  imagesRemaining: Infinity,
+                  voiceMessagesRemaining: Infinity
+                }),
+                isAdmin: true,
+                email: session.user.email || prevUser?.email || 'admin@example.com'
+              }));
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+    
+    checkSession();
+    
     return () => {
-      unsubscribe();
+      mounted = false;
+      subscription.unsubscribe();
     };
   }, [setUser, user]);
   
@@ -84,28 +162,41 @@ export const useAdminAuth = () => {
   }, [toast]);
   
   // Admin settings
-  const changeAdminPassword = useCallback((currentPassword: string, newPassword: string) => {
-    // In a real app, this would call an API to change the password
-    // For this demo, just simulate success if current password matches hardcoded value
-    if (currentPassword !== 'admin123') {
+  const changeAdminPassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      
+      if (error) {
+        console.error('Error changing password:', error);
+        toast({
+          title: 'Error',
+          description: error.message || 'Failed to change password',
+          variant: 'destructive',
+        });
+        return false;
+      }
+      
+      toast({
+        title: 'Success',
+        description: 'Password changed successfully',
+      });
+      return true;
+    } catch (error) {
+      console.error('Error changing password:', error);
       toast({
         title: 'Error',
-        description: 'Current password is incorrect',
+        description: 'Failed to change password',
         variant: 'destructive',
       });
       return false;
     }
-    
-    toast({
-      title: 'Success',
-      description: 'Password changed successfully',
-    });
-    return true;
   }, [toast]);
   
   return {
     isAdmin,
-    firebaseUser,
+    adminData,
+    authUser,
+    loading,
     adminLogout,
     changeAdminPassword
   };

@@ -1,9 +1,10 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Bot } from '@/types/chat';
 import { useToast } from '@/hooks/use-toast';
 import { debouncedAdminAction } from '@/utils/adminUtils';
-import * as adminService from '@/services/admin/adminService';
+import { supabase } from '@/integrations/supabase/client';
+import { adminLogout } from '@/services/admin/supabaseAdminAuth';
 
 // Import all specialized admin hooks
 import { useAdminAuth } from './admin/useAdminAuth';
@@ -20,7 +21,7 @@ export const useAdmin = () => {
   const [bots, setBots] = useState<Bot[]>([]);
   
   // Initialize all admin hooks
-  const { isAdmin, adminLogout, changeAdminPassword } = useAdminAuth();
+  const { isAdmin, adminLogout: authLogout, changeAdminPassword, loading: authLoading } = useAdminAuth();
   const { adminActions, setAdminActions, loadAdminActions } = useAdminActions(isAdmin);
   const { loadBots, createBot, updateBot, deleteBot, isProcessing: isBotsProcessing } = useAdminBots(isAdmin);
   const { 
@@ -45,7 +46,7 @@ export const useAdmin = () => {
   const { saveSiteSettings, getSiteSettings } = useAdminSettings(isAdmin);
   
   // Combine processing states
-  const isProcessing = isBotsProcessing || isUsersProcessing;
+  const isProcessing = isBotsProcessing || isUsersProcessing || authLoading;
   
   // Memoized derived data to prevent unnecessary recalculations
   const vipUsers = useMemo(() => bots.filter(bot => bot.vip), [bots]);
@@ -64,11 +65,6 @@ export const useAdmin = () => {
         setLoading(true);
         console.log('Starting admin data load...');
         console.time('adminDataLoad');
-        
-        // Initialize the admin service first
-        await trackAsyncOperation('initializeAdminService', async () => {
-          await adminService.initializeAdminService();
-        });
         
         // Create a queue of loading tasks
         const loadingTasks = [
@@ -147,6 +143,29 @@ export const useAdmin = () => {
       clearInterval(cleanupInterval);
     };
   }, [isAdmin, toast, loadBots, loadBannedUsers, loadAdminActions, loadReportsAndFeedback, cleanupExpiredReports]);
+
+  // Create a wrapped adminLogout function that combines both auth methods
+  const combinedAdminLogout = useCallback(async () => {
+    try {
+      // First try the specialized admin logout
+      if (authLogout) {
+        const success = await authLogout();
+        if (success) return true;
+      }
+      
+      // Fallback to the imported admin logout
+      await adminLogout();
+      return true;
+    } catch (error) {
+      console.error('Error during logout:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to log out',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [authLogout, toast]);
   
   return {
     // State
@@ -180,7 +199,7 @@ export const useAdmin = () => {
     
     // Admin settings
     changeAdminPassword,
-    adminLogout,
+    adminLogout: combinedAdminLogout,
     
     // Site settings
     saveSiteSettings,

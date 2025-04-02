@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminSession } from '@/hooks/useAdminSession';
-import { verifyAdminCredentials, setAdminLoggedIn } from '@/services/admin/adminService';
+import { verifyAdminCredentials, setAdminLoggedIn } from '@/services/admin/supabaseAdminAuth';
 import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/shared/Logo';
 import ThemeToggle from '@/components/shared/ThemeToggle';
@@ -16,11 +17,12 @@ const AdminLogin: React.FC = () => {
   const { isAuthenticated, checkForDashboardRedirect } = useAdminSession();
   
   useEffect(() => {
-    if (isAuthenticated) {
-      console.log('Admin is already authenticated, redirecting...');
-      checkForDashboardRedirect();
+    // Check if already authenticated and redirect if needed
+    const dashboardPath = checkForDashboardRedirect();
+    if (dashboardPath) {
+      navigate(dashboardPath);
     }
-  }, [isAuthenticated, checkForDashboardRedirect]);
+  }, [isAuthenticated, checkForDashboardRedirect, navigate]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();

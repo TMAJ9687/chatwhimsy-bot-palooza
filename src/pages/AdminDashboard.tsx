@@ -13,34 +13,63 @@ import {
 import Statistics from '@/components/admin/statistics/Statistics';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { signOutUser } from '@/firebase/auth';
+import { adminLogout } from '@/services/admin/supabaseAdminAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminDashboard = () => {
   const { isAuthenticated, user, isLoading: sessionLoading } = useAdminSession();
-  const { adminLogout, isAdmin, loading } = useAdmin();
+  const { adminLogout: hookAdminLogout, isAdmin, loading } = useAdmin();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentTab, setCurrentTab] = useState('overview');
   const [retryCount, setRetryCount] = useState(0);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    vipUsers: 0,
+    activeBans: 0
+  });
   
   useEffect(() => {
     // If not authenticated as admin, redirect to login
     if (!isAuthenticated && !sessionLoading && !loading) {
-      navigate('/admin-login');
+      navigate('/secretadminportal');
     }
   }, [isAuthenticated, navigate, sessionLoading, loading]);
   
+  // Load dashboard stats
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        // Fetch stats from Supabase
+        const [usersResponse, vipResponse, bansResponse] = await Promise.all([
+          supabase.from('profiles').select('id', { count: 'exact' }),
+          supabase.from('vip_subscriptions').select('id', { count: 'exact' }).eq('is_active', true),
+          supabase.from('admin_actions').select('id', { count: 'exact' }).eq('action_type', 'ban')
+        ]);
+        
+        setStats({
+          totalUsers: usersResponse.count || 0,
+          vipUsers: vipResponse.count || 0,
+          activeBans: bansResponse.count || 0
+        });
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    };
+    
+    if (isAuthenticated && !sessionLoading) {
+      loadStats();
+    }
+  }, [isAuthenticated, sessionLoading]);
+  
   const handleLogout = async () => {
     try {
-      // First sign out from Firebase
-      await signOutUser();
-      // Then run app-specific logout
       await adminLogout();
       toast({
         title: "Logged out",
         description: "You have been logged out successfully",
       });
-      navigate('/admin-login');
+      navigate('/secretadminportal');
     } catch (error) {
       console.error('Error logging out:', error);
       toast({
@@ -69,7 +98,7 @@ const AdminDashboard = () => {
               </AlertDescription>
             </Alert>
             <div className="flex justify-center mt-4">
-              <Button onClick={() => navigate('/admin-login')}>Go to Login</Button>
+              <Button onClick={() => navigate('/secretadminportal')}>Go to Login</Button>
             </div>
           </CardContent>
         </Card>
@@ -161,7 +190,7 @@ const AdminDashboard = () => {
                     <CardTitle className="text-sm font-medium">Total Users</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">8,752</div>
+                    <div className="text-2xl font-bold">{stats.totalUsers.toLocaleString()}</div>
                     <p className="text-xs text-muted-foreground">+12% from last month</p>
                   </CardContent>
                 </Card>
@@ -171,7 +200,7 @@ const AdminDashboard = () => {
                     <CardTitle className="text-sm font-medium">VIP Users</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">1,423</div>
+                    <div className="text-2xl font-bold">{stats.vipUsers.toLocaleString()}</div>
                     <p className="text-xs text-muted-foreground">+5% from last month</p>
                   </CardContent>
                 </Card>
@@ -181,7 +210,7 @@ const AdminDashboard = () => {
                     <CardTitle className="text-sm font-medium">Active Bans</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">24</div>
+                    <div className="text-2xl font-bold">{stats.activeBans}</div>
                     <p className="text-xs text-muted-foreground">-2 from last week</p>
                   </CardContent>
                 </Card>
