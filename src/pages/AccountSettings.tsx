@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
 import Button from '@/components/shared/Button';
+import { Gender } from '@/types/user';
 
 const AccountSettings: React.FC = () => {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ const AccountSettings: React.FC = () => {
   const [nickname, setNickname] = useState(user?.nickname || '');
   const [email, setEmail] = useState(user?.email || '');
   const [age, setAge] = useState(user?.age || 0);
-  const [gender, setGender] = useState<'male' | 'female'>(user?.gender || 'male');
+  const [gender, setGender] = useState<Gender>(user?.gender || 'male');
   const [country, setCountry] = useState(user?.country || '');
   const [interests, setInterests] = useState<string[]>(user?.interests || []);
 
@@ -154,7 +155,7 @@ const AccountSettings: React.FC = () => {
                       </label>
                       <select
                         value={gender}
-                        onChange={(e) => setGender(e.target.value)}
+                        onChange={(e) => setGender(e.target.value as Gender)}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                       >
                         <option value="male">Male</option>
