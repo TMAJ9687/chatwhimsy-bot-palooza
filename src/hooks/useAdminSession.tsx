@@ -5,7 +5,6 @@ import { useUser } from '@/context/UserContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import * as adminService from '@/services/admin/supabaseAdminAuth';
-import { adminDb } from '@/integrations/supabase/adminTypes';
 
 /**
  * Hook to manage admin session persistence and protection
@@ -31,12 +30,18 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
         // If authenticated, get the current session
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          const { data, error } = await adminDb.adminUsers().getAdminUser(session.user.id);
-            
-          if (error) {
-            console.error('Error fetching admin user:', error);
-          } else {
-            setAdminUser(data || { email: session.user.email });
+          // Use direct fetch instead of rpc to get admin user details
+          const response = await fetch(`${process.env.SUPABASE_URL || ''}/rest/v1/admin_users?id=eq.${session.user.id}`, {
+            headers: {
+              'apikey': process.env.SUPABASE_ANON_KEY || '',
+              'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY || ''}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setAdminUser(data?.[0] || { email: session.user.email });
           }
         }
       }
@@ -58,36 +63,57 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
   
   // Setup auth state listener
   useEffect(() => {
+    // Prevent multiple listeners
+    let isMounted = true;
+    
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+      
       console.log('Admin auth state changed:', event);
       
       if (event === 'SIGNED_IN') {
         // Don't set authenticated yet - need to check if user is admin
-        checkAuthStatus();
+        if (isMounted) {
+          checkAuthStatus();
+        }
       } else if (event === 'SIGNED_OUT') {
-        setIsAuthenticated(false);
-        setAdminUser(null);
+        if (isMounted) {
+          setIsAuthenticated(false);
+          setAdminUser(null);
+        }
       }
     });
     
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, [checkAuthStatus]);
   
   // Initial auth check
   useEffect(() => {
-    checkAuthStatus();
+    let isMounted = true;
+    
+    const checkAuth = async () => {
+      if (isMounted) {
+        await checkAuthStatus();
+      }
+    };
+    
+    checkAuth();
     
     // Set up interval to periodically check admin session
     const intervalId = setInterval(() => {
-      console.log('Periodic admin session check');
-      checkAuthStatus();
+      if (isMounted) {
+        console.log('Periodic admin session check');
+        checkAuthStatus();
+      }
     }, 60000); // Check every minute
     
     return () => {
+      isMounted = false;
       clearInterval(intervalId);
     };
   }, [checkAuthStatus]);

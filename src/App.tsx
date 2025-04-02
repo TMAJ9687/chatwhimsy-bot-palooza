@@ -43,8 +43,6 @@ const queryClient = new QueryClient({
 
 const App = () => {
   const [hasLoggedOut, setHasLoggedOut] = useState(false);
-  const [userType] = useState<'standard' | 'vip' | null>(null);
-  
   const { logoutInProgressRef } = useLogoutEffect(hasLoggedOut, setHasLoggedOut);
 
   const handleLogout = useCallback(() => {
@@ -57,9 +55,9 @@ const App = () => {
       <TooltipProvider>
         <BrowserRouter>
           <UIStateProvider>
-            <DialogProvider>
-              <ChatProvider>
-                <UserProvider>
+            <UserProvider>
+              <DialogProvider>
+                <ChatProvider>
                   <MainLayout>
                     <Toaster />
                     <Sonner />
@@ -87,9 +85,9 @@ const App = () => {
                     
                     <DialogContainer />
                   </MainLayout>
-                </UserProvider>
-              </ChatProvider>
-            </DialogProvider>
+                </ChatProvider>
+              </DialogProvider>
+            </UserProvider>
           </UIStateProvider>
         </BrowserRouter>
       </TooltipProvider>

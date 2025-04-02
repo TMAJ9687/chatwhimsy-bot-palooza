@@ -1,7 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { AdminAction } from '@/types/admin';
-import { AdminUser, adminDb } from '@/integrations/supabase/adminTypes';
 
 /**
  * Set admin login status in local storage
@@ -32,24 +31,27 @@ export const isAdminLoggedIn = async (): Promise<boolean> => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return false;
     
-    // Check if user is in admin_users table using raw query
-    const { data, error } = await supabase.rpc('is_admin', { user_id: session.user.id });
+    // Check if user is in admin_users table using direct query
+    const response = await fetch(`${process.env.SUPABASE_URL || ''}/rest/v1/rpc/is_admin`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': process.env.SUPABASE_ANON_KEY || '',
+        'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY || ''}`,
+      },
+      body: JSON.stringify({ user_id: session.user.id })
+    });
     
-    if (error) {
-      console.error('Error checking admin status:', error);
-      return false;
-    }
-    
-    const isAdmin = data === true;
+    const isAdmin = await response.json();
     console.log('User is admin:', isAdmin);
     
     // Update localStorage for compatibility
-    if (isAdmin) {
+    if (isAdmin === true) {
       localStorage.setItem('adminEmail', session.user.email || 'admin@example.com');
       localStorage.setItem('adminData', JSON.stringify({ authenticated: true }));
     }
     
-    return isAdmin;
+    return isAdmin === true;
   } catch (error) {
     console.error('Admin auth check error:', error);
     
@@ -100,23 +102,26 @@ export const verifyAdminCredentials = async (email: string, password: string): P
     if (!session) return false;
     
     // Check if user is in admin_users table
-    const { data, error: adminError } = await supabase.rpc('is_admin', { user_id: session.user.id });
+    const response = await fetch(`${process.env.SUPABASE_URL || ''}/rest/v1/rpc/is_admin`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': process.env.SUPABASE_ANON_KEY || '',
+        'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY || ''}`,
+      },
+      body: JSON.stringify({ user_id: session.user.id })
+    });
     
-    if (adminError) {
-      console.error('Error checking admin status:', adminError);
-      return false;
-    }
-    
-    const isAdmin = data === true;
+    const isAdmin = await response.json();
     console.log('Login successful, user is admin:', isAdmin);
     
     // Update localStorage for compatibility
-    if (isAdmin) {
+    if (isAdmin === true) {
       localStorage.setItem('adminEmail', email);
       localStorage.setItem('adminData', JSON.stringify({ authenticated: true }));
     }
     
-    return isAdmin;
+    return isAdmin === true;
   } catch (error) {
     console.error('Verification error:', error);
     return false;
@@ -131,20 +136,30 @@ export const logAdminAction = async (action: Omit<AdminAction, 'id'>): Promise<A
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('No admin session');
     
-    // Use our helper to log the admin action
-    const { data, error } = await adminDb.adminActions().logAction({
-      admin_id: session.user.id,
-      action_type: action.actionType,
-      target_id: action.targetId,
-      target_type: action.targetType,
-      reason: action.reason,
-      duration: action.duration
+    // Use direct fetch to log the admin action
+    const response = await fetch(`${process.env.SUPABASE_URL || ''}/rest/v1/rpc/log_admin_action`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': process.env.SUPABASE_ANON_KEY || '',
+        'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY || ''}`,
+      },
+      body: JSON.stringify({
+        p_admin_id: session.user.id,
+        p_action_type: action.actionType,
+        p_target_id: action.targetId || null,
+        p_target_type: action.targetType || null,
+        p_reason: action.reason || null,
+        p_duration: action.duration || null
+      })
     });
     
-    if (error) {
-      console.error('Error logging admin action:', error);
+    if (!response.ok) {
+      console.error('Error logging admin action:', await response.text());
       return null;
     }
+    
+    const data = await response.json();
     
     // Convert the server response to our application type
     return {
@@ -168,16 +183,25 @@ export const logAdminAction = async (action: Omit<AdminAction, 'id'>): Promise<A
  */
 export const getAdminActions = async (): Promise<AdminAction[]> => {
   try {
-    // Use our helper to get admin actions
-    const { data, error } = await adminDb.adminActions().getAdminActions();
+    // Use direct fetch to get admin actions
+    const response = await fetch(`${process.env.SUPABASE_URL || ''}/rest/v1/rpc/get_admin_actions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': process.env.SUPABASE_ANON_KEY || '',
+        'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY || ''}`,
+      }
+    });
     
-    if (error) {
-      console.error('Error fetching admin actions:', error);
+    if (!response.ok) {
+      console.error('Error fetching admin actions:', await response.text());
       return [];
     }
     
+    const data = await response.json();
+    
     // Map the returned data to our AdminAction type
-    return data.map((item: any) => ({
+    return Array.isArray(data) ? data.map((item: any) => ({
       id: item.id,
       actionType: item.action_type as "kick" | "ban" | "unban" | "edit" | "upgrade" | "downgrade",
       targetId: item.target_id,
@@ -186,7 +210,7 @@ export const getAdminActions = async (): Promise<AdminAction[]> => {
       duration: item.duration,
       timestamp: new Date(item.timestamp),
       adminId: item.admin_id
-    }));
+    })) : [];
   } catch (error) {
     console.error('Error in getAdminActions:', error);
     return [];

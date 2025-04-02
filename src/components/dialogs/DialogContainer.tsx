@@ -41,9 +41,10 @@ const DialogContainer = () => {
   const { state } = useDialog();
   const mountedRef = useRef(true);
   const activeDialogTypeRef = useRef<string | null>(null);
+  const renderAttemptedRef = useRef(false);
   
-  // Use our new body scroll lock hook
-  useBodyScrollLock({
+  // Use body scroll lock hook
+  const { lock, unlock } = useBodyScrollLock({
     lockOnMount: false,
     id: 'dialog-container'
   });
@@ -55,29 +56,39 @@ const DialogContainer = () => {
     return () => {
       mountedRef.current = false;
       activeDialogTypeRef.current = null;
+      
+      // Ensure body is unlocked when component unmounts
+      if (document.body) {
+        document.body.style.overflow = 'auto';
+        document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+      }
     };
   }, []);
   
-  // Track dialog rendering for performance monitoring
+  // Lock/unlock body based on dialog state
   useEffect(() => {
     if (!mountedRef.current) return;
     
-    if (state.isOpen) {
+    if (state.isOpen && !renderAttemptedRef.current) {
+      lock();
+      renderAttemptedRef.current = true;
+      
       // Track the currently active dialog type to help with cleanup
       activeDialogTypeRef.current = state.type;
       trackEvent(`dialog-render-${state.type}`, () => {});
-    } else {
+    } else if (!state.isOpen && renderAttemptedRef.current) {
+      unlock();
+      renderAttemptedRef.current = false;
       activeDialogTypeRef.current = null;
     }
-  }, [state.isOpen, state.type]);
+  }, [state.isOpen, state.type, lock, unlock]);
 
   // Don't render anything if not open or component is unmounting
   if (!state.isOpen || !mountedRef.current) {
     return null;
   }
 
-  // Special case for directly imported dialogs - render without Suspense
-  // and with enhanced error handling
+  // Render without suspense for critical dialogs
   if (state.type === 'siteRules') {
     try {
       return <SiteRulesDialog key="siteRules" />;
@@ -103,7 +114,6 @@ const DialogContainer = () => {
         if (!mountedRef.current) return null;
         
         // Render the appropriate dialog component based on the dialog type
-        // Adding keys to help React better track component identity
         switch (state.type) {
           case 'report':
             return <ReportDialog key="report" />;

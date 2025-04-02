@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -5,35 +6,36 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useUser } from '@/context/UserContext';
 
 const Feedback = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useUser();
   const [rating, setRating] = useState<number>(0);
   const [feedback, setFeedback] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   
   // Enhanced cleanup on component mount
   useEffect(() => {
-    // Ensure final cleanup of all auth-related storage
-    localStorage.removeItem('logoutEvent');
-    localStorage.removeItem('chatUser');
-    localStorage.removeItem('vipProfileComplete');
-    sessionStorage.clear();
+    setIsMounted(true);
     
-    // If we somehow still have a user in context, log it
-    if (user) {
-      console.log('User data still present in Feedback page, cleaning up');
-    }
-  }, [user]);
+    // Ensure cleanup of potentially conflicting state
+    document.body.style.overflow = 'auto';
+    document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+    
+    // For safe cleanup
+    return () => {
+      setIsMounted(false);
+    };
+  }, []);
   
   const handleRatingChange = (newRating: number) => {
+    if (!isMounted) return;
     setRating(newRating);
   };
   
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (!isMounted) return;
     // Limit to 140 characters
     if (e.target.value.length <= 140) {
       setFeedback(e.target.value);
@@ -41,21 +43,25 @@ const Feedback = () => {
   };
   
   const handleSubmit = () => {
+    if (!isMounted) return;
     setIsSubmitting(true);
     
     // Simulate submission with a slight delay
     setTimeout(() => {
-      toast({
-        title: "Feedback Submitted",
-        description: "Thank you for your feedback!",
-      });
-      
-      setIsSubmitting(false);
-      navigate('/');
+      if (isMounted) {
+        toast({
+          title: "Feedback Submitted",
+          description: "Thank you for your feedback!",
+        });
+        
+        setIsSubmitting(false);
+        navigate('/');
+      }
     }, 800);
   };
   
   const handleSkip = () => {
+    if (!isMounted) return;
     navigate('/');
   };
   
