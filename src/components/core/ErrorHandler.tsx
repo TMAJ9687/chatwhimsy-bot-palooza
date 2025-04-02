@@ -1,5 +1,6 @@
 
 import { useEffect, useRef } from 'react';
+import { performDOMCleanup } from '@/utils/errorHandler';
 
 interface ErrorHandlerProps {
   logoutInProgressRef: React.MutableRefObject<boolean>;
@@ -13,6 +14,7 @@ const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
       errorHandlerSetRef.current = true;
       
       const handleError = (event: ErrorEvent) => {
+        // Handle DOM removeChild errors
         if (
           event.message && 
           event.message.includes('removeChild') && 
@@ -21,6 +23,7 @@ const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
           event.preventDefault();
           console.warn('Caught removeChild error during navigation, suppressing');
           
+          // Reset body state
           document.body.style.overflow = 'auto';
           document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
           
@@ -29,32 +32,36 @@ const ErrorHandler = ({ logoutInProgressRef }: ErrorHandlerProps) => {
             document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
           }
           
-          try {
-            document.querySelectorAll('.fixed.inset-0, [data-radix-dialog-overlay], [data-radix-alert-dialog-overlay]')
-              .forEach(el => {
-                try {
-                  if (el.parentNode) {
-                    const isChild = Array.from(el.parentNode.childNodes).includes(el);
-                    if (isChild) {
-                      el.remove();
-                    }
-                  }
-                } catch (e) {
-                  // Silent catch
-                }
-              });
-          } catch (e) {
-            // Silent catch
-          }
+          // Perform full DOM cleanup
+          performDOMCleanup();
           
           return false;
         }
       };
       
+      // Use capture phase to catch errors before they propagate
       window.addEventListener('error', handleError, { capture: true });
+      
+      // Also handle unhandled promise rejections
+      const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+        const errorMessage = event.reason?.message || String(event.reason);
+        
+        if (
+          errorMessage.includes('removeChild') || 
+          errorMessage.includes('appendChild') || 
+          errorMessage.includes('not a child')
+        ) {
+          event.preventDefault();
+          console.warn('Unhandled promise rejection with DOM error:', errorMessage);
+          performDOMCleanup();
+        }
+      };
+      
+      window.addEventListener('unhandledrejection', handleUnhandledRejection, { capture: true });
       
       return () => {
         window.removeEventListener('error', handleError, { capture: true });
+        window.removeEventListener('unhandledrejection', handleUnhandledRejection, { capture: true });
         errorHandlerSetRef.current = false;
       };
     }

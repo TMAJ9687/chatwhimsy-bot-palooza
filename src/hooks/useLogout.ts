@@ -1,7 +1,7 @@
 
 import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
-import { useAdmin } from '@/hooks/useAdmin';
 import { signOutUser } from '@/firebase/auth';
 
 /**
@@ -10,7 +10,7 @@ import { signOutUser } from '@/firebase/auth';
  */
 export const useLogout = () => {
   const { user, clearUser } = useUser();
-  const { adminLogout, isAdmin } = useAdmin();
+  const navigate = useNavigate();
   const isVip = user?.isVip || false;
   
   const performLogout = useCallback(async (callback?: () => void) => {
@@ -26,17 +26,21 @@ export const useLogout = () => {
       
       // Clean up potential overlay elements
       try {
-        document.querySelectorAll('.fixed.inset-0').forEach(el => {
+        const elements = document.querySelectorAll('.fixed.inset-0');
+        elements.forEach(el => {
           try {
-            if (el.parentNode) {
+            // Always verify parent-child relationship before removal
+            if (el.parentNode && Array.from(el.parentNode.childNodes).includes(el)) {
               el.parentNode.removeChild(el);
             }
           } catch (e) {
             // Ignore errors during emergency cleanup
+            console.warn('Error removing overlay element:', e);
           }
         });
       } catch (e) {
         // Ignore any DOM errors during cleanup
+        console.warn('Error during overlay cleanup:', e);
       }
       
       // Clear storage systematically
@@ -44,35 +48,32 @@ export const useLogout = () => {
       localStorage.removeItem('vipProfileComplete');
       localStorage.removeItem('adminEmail'); // Also clear admin email
       
-      // If user is admin, perform admin logout
-      if (isAdmin) {
-        console.log('Admin logout flow initiated');
-        await signOutUser(); // Use the Firebase signOut directly
-        await adminLogout(); // Also run adminLogout for any app-specific cleanup
-        clearUser();
-        
-        // Use window.location for a full page reload to avoid DOM state issues
-        window.location.href = '/secretadminportal';
-        console.log('Admin logged out successfully');
-      } else {
-        console.log('Standard user logout flow initiated');
-        // Clear user data first
-        clearUser();
-        
-        // Run the callback if one was provided
-        if (callback && typeof callback === 'function') {
-          try {
-            callback();
-          } catch (error) {
-            console.error('Error calling callback during logout', error);
-          }
+      // Clear user data first
+      clearUser();
+      
+      // Run the callback if one was provided
+      if (callback && typeof callback === 'function') {
+        try {
+          callback();
+        } catch (error) {
+          console.error('Error calling callback during logout', error);
         }
-        
-        // Force a hard redirect based on user type
-        const destination = isVip ? '/' : '/feedback';
-        window.location.href = destination;
-        console.log(`Standard user logout complete. isVip=${isVip}`);
       }
+      
+      // Attempt to sign out of Firebase
+      try {
+        await signOutUser();
+      } catch (error) {
+        console.error('Firebase signout error:', error);
+      }
+      
+      // Force a hard redirect based on user type
+      const destination = isVip ? '/' : '/feedback';
+      console.log(`Standard user logout complete. isVip=${isVip}`);
+      
+      // Use window.location for a full page reload to avoid DOM state issues
+      window.location.href = destination;
+      
     } catch (error) {
       console.error('Error during logout:', error);
       // Fallback logout approach if the main one fails
@@ -85,7 +86,9 @@ export const useLogout = () => {
         console.error('Fallback logout also failed', e);
       }
     }
-  }, [user, isVip, isAdmin, adminLogout, clearUser]);
+  }, [user, isVip, clearUser, navigate]);
 
   return { performLogout };
 };
+
+export default useLogout;

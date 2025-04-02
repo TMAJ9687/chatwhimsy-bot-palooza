@@ -14,7 +14,7 @@ export const performDOMCleanup = () => {
       document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
     }
     
-    // Remove any problematic overlay elements
+    // Remove any problematic overlay elements with careful validation
     const selectors = [
       '.fixed.inset-0',
       '[data-radix-dialog-overlay]',

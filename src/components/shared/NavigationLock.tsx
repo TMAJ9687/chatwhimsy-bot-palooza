@@ -1,8 +1,10 @@
+
 import React, { useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { useNavigationCleanup } from '@/hooks/useNavigationCleanup';
 import { useErrorCleaner } from '@/hooks/useErrorCleaner';
-import { toast } from '@/hooks/use-toast'; 
+import { performDOMCleanup } from '@/utils/errorHandler';
+import { toast } from '@/hooks/use-toast';
 
 /**
  * This component helps prevent navigation issues by cleaning up any stale state
@@ -20,56 +22,8 @@ const NavigationLock: React.FC = () => {
     cleanupUI();
     cleanupCountRef.current++;
     
-    // Perform additional cleanup for problematic elements
-    try {
-      // Reset body state
-      if (document.body) {
-        document.body.style.overflow = 'auto';
-        document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-      }
-      
-      // Remove any potentially problematic portal elements
-      const portalSelectors = [
-        '[role="dialog"]', 
-        '[aria-modal="true"]',
-        '.fixed.inset-0',
-        '[data-radix-portal]',
-        '.radix-portal'
-      ];
-      
-      portalSelectors.forEach(selector => {
-        try {
-          const elements = document.querySelectorAll(selector);
-          elements.forEach(el => {
-            try {
-              if (el.parentNode) {
-                // Verify it's actually a child before removal
-                const parent = el.parentNode;
-                const isChild = Array.from(parent.childNodes).includes(el);
-                
-                if (isChild) {
-                  // First try the modern remove() method
-                  try {
-                    el.remove();
-                  } catch (e) {
-                    // Fallback to removeChild
-                    if (parent.contains(el)) {
-                      parent.removeChild(el);
-                    }
-                  }
-                }
-              }
-            } catch (e) {
-              // Ignore individual element cleanup errors
-            }
-          });
-        } catch (e) {
-          // Ignore selector errors
-        }
-      });
-    } catch (e) {
-      console.warn('Error during enhanced cleanup:', e);
-    }
+    // Perform advanced DOM cleanup
+    performDOMCleanup();
     
     // Add specific cleanup for chat navigation
     if (location.pathname === '/chat') {
