@@ -18,9 +18,6 @@ export const useSafeDOMOperations = () => {
    * Register a DOM node for tracking
    */
   const registerNode = useCallback((node: Node | null) => {
-    // Simply store a reference to this node
-    // This function mainly exists for consistent API interface
-    // Actual registration happens in DOMRegistry
     if (!node) return;
     
     try {
@@ -32,6 +29,19 @@ export const useSafeDOMOperations = () => {
       console.warn('Error registering node:', error);
     }
   }, []);
+  
+  /**
+   * Check if a node is still valid in the document
+   */
+  const isNodeValid = useCallback((node: Node | null): boolean => {
+    if (!node || !isDOMReady()) return false;
+    
+    try {
+      return document.contains(node) && !!node.parentNode;
+    } catch (error) {
+      return false;
+    }
+  }, [isDOMReady]);
   
   /**
    * Safely remove an element with validation
@@ -50,20 +60,20 @@ export const useSafeDOMOperations = () => {
         return false;
       }
       
-      // Verify the element is actually a child of its parent
-      const isChild = Array.from(element.parentNode.childNodes).includes(element);
-      if (!isChild) {
+      // Verify the element is actually a child of its parent before attempting removal
+      const parent = element.parentNode;
+      if (!parent || !Array.from(parent.childNodes).includes(element)) {
         return false;
       }
       
-      // Remove safely using the modern Element.remove() method first
+      // Use a try-catch for the actual removal
       try {
         element.remove();
         return true;
       } catch (e) {
-        // Fallback to parent.removeChild() with additional checks
-        if (element.parentNode && document.contains(element) && element.parentNode.contains(element)) {
-          element.parentNode.removeChild(element);
+        // Only try removeChild if we've verified parent-child relationship
+        if (parent && document.contains(parent) && Array.from(parent.childNodes).includes(element)) {
+          parent.removeChild(element);
           return true;
         }
       }
@@ -75,60 +85,37 @@ export const useSafeDOMOperations = () => {
   }, [isDOMReady]);
   
   /**
-   * Clean up all overlays in the document by dispatching a cleanup event
-   * This pattern avoids direct DOM manipulation
+   * Clean up all overlays in the document with a safer approach
    */
   const cleanupOverlays = useCallback(() => {
+    if (!isDOMReady()) return;
+    
     try {
-      // Create and dispatch a custom event for overlay cleanup
-      if (typeof document !== 'undefined' && document.body) {
+      // Use a data attribute approach instead of direct DOM manipulation
+      if (document.body) {
         // Signal components to clean up by setting a data attribute
         document.body.setAttribute('data-cleanup-overlays', Date.now().toString());
         
         // Reset body state using classes instead of direct style manipulation
         document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
+        document.body.style.overflow = '';
         
-        // Clear the attribute after a short delay
+        // Clean up attribute after a delay
         setTimeout(() => {
-          document.body.removeAttribute('data-cleanup-overlays');
-        }, 100);
+          if (document.body) {
+            document.body.removeAttribute('data-cleanup-overlays');
+          }
+        }, 200);
       }
     } catch (error) {
       console.warn('Error cleaning up overlays:', error);
     }
-  }, []);
-  
-  /**
-   * Create a cleanup function for specific selectors
-   * Uses class-based approach instead of direct DOM removal
-   */
-  const createCleanupFn = useCallback((selector: string) => {
-    return () => {
-      if (!isDOMReady()) return;
-      
-      try {
-        // Reset body classes
-        if (document.body) {
-          document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
-        }
-        
-        // Signal cleanup via data attribute
-        document.body.setAttribute('data-cleanup-target', selector);
-        
-        // Clear the attribute after a short delay
-        setTimeout(() => {
-          document.body.removeAttribute('data-cleanup-target');
-        }, 100);
-      } catch (error) {
-        console.warn(`Error in cleanup function for ${selector}:`, error);
-      }
-    };
   }, [isDOMReady]);
   
   return {
     isDOMReady,
+    isNodeValid,
     cleanupOverlays,
-    createCleanupFn,
     registerNode,
     safeRemoveElement
   };

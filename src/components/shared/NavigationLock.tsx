@@ -10,6 +10,15 @@ const NavigationLock: React.FC = () => {
   const { cleanupOverlays } = useSafeDOMOperations();
   const lastPathRef = useRef<string>(location.pathname);
   const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
+  
+  // Track mounted state to prevent operations after unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   
   // Clean up UI state on navigation
   useEffect(() => {
@@ -22,7 +31,9 @@ const NavigationLock: React.FC = () => {
     lastPathRef.current = location.pathname;
     
     // Clear any active overlays/modals when route changes
-    clearOverlays();
+    if (isMountedRef.current) {
+      clearOverlays();
+    }
     
     // Clean up any previous timeout
     if (cleanupTimeoutRef.current) {
@@ -30,10 +41,14 @@ const NavigationLock: React.FC = () => {
     }
     
     // Use safe DOM operations as a fallback with a delayed execution
-    cleanupTimeoutRef.current = setTimeout(() => {
-      cleanupOverlays();
-      cleanupTimeoutRef.current = null;
-    }, 100);
+    if (isMountedRef.current) {
+      cleanupTimeoutRef.current = setTimeout(() => {
+        if (isMountedRef.current) {
+          cleanupOverlays();
+        }
+        cleanupTimeoutRef.current = null;
+      }, 150); // Increased timeout to ensure components have time to unmount properly
+    }
     
     return () => {
       if (cleanupTimeoutRef.current) {

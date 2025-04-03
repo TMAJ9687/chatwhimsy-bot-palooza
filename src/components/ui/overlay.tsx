@@ -25,9 +25,20 @@ export const Overlay: React.FC<OverlayProps> = ({
   const { registerNode } = useSafeDOMOperations();
   const isUnmountingRef = useRef(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
+  
+  // Track mounted state
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   
   // Register/unregister overlay with the OverlayContext
   useEffect(() => {
+    if (!isMountedRef.current) return;
+    
     if (isOpen) {
       openOverlay(id);
       setShouldRender(true);
@@ -48,7 +59,7 @@ export const Overlay: React.FC<OverlayProps> = ({
       
       // Use a small delay before unmounting to allow for animations
       timeoutRef.current = setTimeout(() => {
-        if (isUnmountingRef.current) {
+        if (isMountedRef.current && isUnmountingRef.current) {
           setShouldRender(false);
         }
         timeoutRef.current = null;
@@ -56,7 +67,9 @@ export const Overlay: React.FC<OverlayProps> = ({
     }
     
     return () => {
-      closeOverlay(id);
+      if (isMountedRef.current) {
+        closeOverlay(id);
+      }
       
       // Clean up timeout on unmount
       if (timeoutRef.current) {
@@ -68,6 +81,8 @@ export const Overlay: React.FC<OverlayProps> = ({
   
   // Handle ESC key
   useEffect(() => {
+    if (!isOpen || !isMountedRef.current) return;
+    
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
         onClose();
@@ -80,23 +95,22 @@ export const Overlay: React.FC<OverlayProps> = ({
   
   // Handle clicks outside content
   useEffect(() => {
+    if (!isOpen || !isMountedRef.current) return;
+    
     const handleOutsideClick = (e: MouseEvent) => {
       if (overlayRef.current === e.target) {
         onClose();
       }
     };
     
-    if (isOpen) {
-      document.addEventListener('mousedown', handleOutsideClick);
-    }
-    
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [isOpen, onClose]);
   
   // Listen for global cleanup signals
   useEffect(() => {
+    if (!isOpen || !isMountedRef.current) return;
+    
     const handleCleanupSignal = () => {
       if (isOpen) {
         onClose();
@@ -114,7 +128,11 @@ export const Overlay: React.FC<OverlayProps> = ({
     });
     
     if (document.body) {
-      observer.observe(document.body, { attributes: true });
+      try {
+        observer.observe(document.body, { attributes: true });
+      } catch (error) {
+        console.warn('Error setting up MutationObserver:', error);
+      }
     }
     
     return () => {
@@ -122,10 +140,14 @@ export const Overlay: React.FC<OverlayProps> = ({
     };
   }, [isOpen, onClose]);
   
-  if (!shouldRender) return null;
+  // Don't render if we shouldn't or component is unmounting
+  if (!shouldRender || !isMountedRef.current) return null;
+  
+  // Find portal container with fallback
+  const portalContainer = document.getElementById('portal-root') || document.body;
   
   return (
-    <Portal container={document.getElementById('portal-root')}>
+    <Portal container={portalContainer}>
       <div 
         ref={overlayRef}
         className={`fixed inset-0 bg-black/50 flex items-center justify-center z-50 ${

@@ -8,35 +8,56 @@ import { useSafeDOMOperations } from './useSafeDOMOperations';
  */
 export const useDialogCleanup = () => {
   const isClosingRef = useRef(false);
+  const isMountedRef = useRef(true);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { clearOverlays } = useUIState();
-  const { cleanupOverlays } = useSafeDOMOperations();
+  const { cleanupOverlays, isDOMReady } = useSafeDOMOperations();
   
-  // Clean up on unmount with enhanced safety checks
+  // Track component mounted state
   useEffect(() => {
+    isMountedRef.current = true;
+    
+    // Clean up on unmount with enhanced safety checks
     return () => {
+      isMountedRef.current = false;
+      
       // Cleanup any pending timeouts
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
       
-      if (isClosingRef.current) {
+      if (isClosingRef.current && isDOMReady()) {
         // Try both cleanup methods for better reliability
-        clearOverlays();
+        try {
+          clearOverlays();
+        } catch (e) {
+          console.warn('Error during dialog cleanup (clearOverlays):', e);
+        }
         
-        // Use the safe DOM operations for cleanup as a fallback
-        // But don't use setTimeout since this is in cleanup
         try {
           cleanupOverlays();
         } catch (e) {
-          console.warn('Error during dialog cleanup:', e);
+          console.warn('Error during dialog cleanup (cleanupOverlays):', e);
+        }
+        
+        // Reset body styles directly as a last resort
+        try {
+          if (document.body) {
+            document.body.style.overflow = 'auto';
+            document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
+          }
+        } catch (e) {
+          console.warn('Error resetting body styles:', e);
         }
       }
     };
-  }, [clearOverlays, cleanupOverlays]);
+  }, [clearOverlays, cleanupOverlays, isDOMReady]);
   
   const handleDialogClose = useCallback((closeDialog: () => void) => {
+    // Skip if already unmounted
+    if (!isMountedRef.current) return;
+    
     isClosingRef.current = true;
     
     // Clean up any existing timeout
@@ -54,18 +75,31 @@ export const useDialogCleanup = () => {
     }
     
     // Clear overlays after a small delay to ensure smooth animations
-    timeoutRef.current = setTimeout(() => {
-      if (isClosingRef.current) {
-        // First try React-based cleanup
-        clearOverlays();
-        
-        // Then try DOM-based cleanup as fallback
-        timeoutRef.current = setTimeout(() => {
-          cleanupOverlays();
-          timeoutRef.current = null;
-        }, 50);
-      }
-    }, 100);
+    // Only if component is still mounted
+    if (isMountedRef.current) {
+      timeoutRef.current = setTimeout(() => {
+        if (isMountedRef.current && isClosingRef.current) {
+          // First try React-based cleanup
+          try {
+            clearOverlays();
+          } catch (e) {
+            console.warn('Delayed clearOverlays error:', e);
+          }
+          
+          // Then try DOM-based cleanup as fallback
+          timeoutRef.current = setTimeout(() => {
+            if (isMountedRef.current) {
+              try {
+                cleanupOverlays();
+              } catch (e) {
+                console.warn('Delayed cleanupOverlays error:', e);
+              }
+              timeoutRef.current = null;
+            }
+          }, 50);
+        }
+      }, 100);
+    }
     
     // Return cleanup function
     return () => {
@@ -79,7 +113,8 @@ export const useDialogCleanup = () => {
   return {
     handleDialogClose,
     isClosingRef,
-    uiStateAvailable: true // Always available since we're using the hook
+    isMountedRef,
+    uiStateAvailable: true
   };
 };
 
