@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Portal } from '../core/PortalManager';
 import { useOverlay } from '@/context/OverlayContext';
+import { useSafeDOMOperations } from '@/hooks/useSafeDOMOperations';
 
 interface OverlayProps {
   id: string;
@@ -21,12 +22,18 @@ export const Overlay: React.FC<OverlayProps> = ({
   const overlayRef = useRef<HTMLDivElement>(null);
   const { openOverlay, closeOverlay } = useOverlay();
   const [shouldRender, setShouldRender] = useState(isOpen);
+  const { registerNode } = useSafeDOMOperations();
   
   // Register/unregister overlay with the OverlayContext
   useEffect(() => {
     if (isOpen) {
       openOverlay(id);
       setShouldRender(true);
+      
+      // Register the overlay node once it's created
+      if (overlayRef.current) {
+        registerNode(overlayRef.current);
+      }
     } else {
       closeOverlay(id);
       // Use a small delay before unmounting to allow for animations
@@ -39,7 +46,7 @@ export const Overlay: React.FC<OverlayProps> = ({
     return () => {
       closeOverlay(id);
     };
-  }, [id, isOpen, openOverlay, closeOverlay]);
+  }, [id, isOpen, openOverlay, closeOverlay, registerNode]);
   
   // Handle ESC key
   useEffect(() => {

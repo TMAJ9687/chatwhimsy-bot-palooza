@@ -21,7 +21,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const { isVip } = useUser();
   const { endRef } = useScrollToBottom([messages, isTyping]);
-  const isMountedRef = useRef(true);
   const [isFullyMounted, setIsFullyMounted] = useState(false);
   const previousMessagesLengthRef = useRef(0);
   
@@ -37,20 +36,20 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
 
   // Track component mounted state with improved lifecycle management
   useEffect(() => {
-    isMountedRef.current = true;
+    let mounted = true;
     
     // Set fully mounted state in the next frame to ensure DOM is ready
     const frameId = requestAnimationFrame(() => {
-      if (isMountedRef.current) {
+      if (mounted) {
         setIsFullyMounted(true);
       }
     });
     
     return () => {
       // Mark as unmounted before cleanup
-      isMountedRef.current = false;
-      setIsFullyMounted(false);
+      mounted = false;
       cancelAnimationFrame(frameId);
+      setIsFullyMounted(false);
     };
   }, []);
 

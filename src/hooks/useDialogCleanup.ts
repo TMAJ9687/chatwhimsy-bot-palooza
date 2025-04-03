@@ -8,17 +8,23 @@ import { useSafeDOMOperations } from './useSafeDOMOperations';
  */
 export const useDialogCleanup = () => {
   const isClosingRef = useRef(false);
-  const { state, clearOverlays } = useUIState();
+  const { clearOverlays } = useUIState();
+  const { cleanupOverlays } = useSafeDOMOperations();
   
   // Clean up on unmount with enhanced safety checks
   useEffect(() => {
     return () => {
       if (isClosingRef.current) {
-        // Use context-based overlay cleanup
+        // Try both cleanup methods for better reliability
         clearOverlays();
+        
+        // Use the safe DOM operations for cleanup as a fallback
+        setTimeout(() => {
+          cleanupOverlays();
+        }, 50);
       }
     };
-  }, [clearOverlays]);
+  }, [clearOverlays, cleanupOverlays]);
   
   const handleDialogClose = useCallback((closeDialog: () => void) => {
     isClosingRef.current = true;
@@ -36,6 +42,11 @@ export const useDialogCleanup = () => {
     const timeoutId = setTimeout(() => {
       if (isClosingRef.current) {
         clearOverlays();
+        
+        // Fallback to DOM-based cleanup
+        setTimeout(() => {
+          cleanupOverlays();
+        }, 50);
       }
     }, 100);
     
@@ -43,7 +54,7 @@ export const useDialogCleanup = () => {
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [clearOverlays]);
+  }, [clearOverlays, cleanupOverlays]);
   
   return {
     handleDialogClose,

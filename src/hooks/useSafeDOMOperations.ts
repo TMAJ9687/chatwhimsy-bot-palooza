@@ -15,6 +15,66 @@ export const useSafeDOMOperations = () => {
   }, []);
   
   /**
+   * Register a DOM node for tracking
+   */
+  const registerNode = useCallback((node: Node | null) => {
+    // Simply store a reference to this node
+    // This function mainly exists for consistent API interface
+    // Actual registration happens in DOMRegistry
+    if (!node) return;
+    
+    try {
+      // Add a data attribute to mark this node as registered
+      if (node instanceof Element) {
+        node.setAttribute('data-registered', Date.now().toString());
+      }
+    } catch (error) {
+      console.warn('Error registering node:', error);
+    }
+  }, []);
+  
+  /**
+   * Safely remove an element with validation
+   */
+  const safeRemoveElement = useCallback((element: Element | null) => {
+    if (!element || !isDOMReady()) return false;
+    
+    try {
+      // Basic validations before attempting removal
+      if (!element.parentNode) {
+        return false;
+      }
+      
+      // Check that the element is actually in the DOM
+      if (!document.contains(element)) {
+        return false;
+      }
+      
+      // Verify the element is actually a child of its parent
+      const isChild = Array.from(element.parentNode.childNodes).includes(element);
+      if (!isChild) {
+        return false;
+      }
+      
+      // Remove safely using the modern Element.remove() method first
+      try {
+        element.remove();
+        return true;
+      } catch (e) {
+        // Fallback to parent.removeChild() with additional checks
+        if (element.parentNode && document.contains(element) && element.parentNode.contains(element)) {
+          element.parentNode.removeChild(element);
+          return true;
+        }
+      }
+    } catch (error) {
+      console.warn('Error removing element:', error);
+    }
+    
+    return false;
+  }, [isDOMReady]);
+  
+  /**
    * Clean up all overlays in the document by dispatching a cleanup event
    * This pattern avoids direct DOM manipulation
    */
@@ -68,7 +128,9 @@ export const useSafeDOMOperations = () => {
   return {
     isDOMReady,
     cleanupOverlays,
-    createCleanupFn
+    createCleanupFn,
+    registerNode,
+    safeRemoveElement
   };
 };
 
