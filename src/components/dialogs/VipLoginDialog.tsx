@@ -71,10 +71,14 @@ const VipLoginDialog = () => {
           description: "Welcome to VIP access. Enjoy all the premium features!",
         });
         
+        // First close dialog
         closeDialog();
         
-        // Navigate to the profile setup page instead of chat
-        navigate('/vip-profile');
+        // Use a small timeout to ensure dialog is fully closed before navigation
+        setTimeout(() => {
+          // Navigate to the profile setup page instead of chat
+          navigate('/vip-profile');
+        }, 50);
       } else {
         // Failed login
         form.setError('password', { 

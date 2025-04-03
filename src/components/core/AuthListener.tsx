@@ -56,7 +56,7 @@ const AuthListener = () => {
   // Extracted redirect logic for better organization
   const handleNonAuthenticatedRedirect = (currentPath: string) => {
     // Public paths that don't require redirection
-    const publicPaths = ['/', '/vip-login', '/vip-signup', '/secretadminportal', '/feedback'];
+    const publicPaths = ['/', '/vip-login', '/vip-signup', '/secretadminportal', '/feedback', '/vip-profile'];
     
     // Early return for public paths
     if (publicPaths.includes(currentPath) || currentPath.includes('/admin')) {

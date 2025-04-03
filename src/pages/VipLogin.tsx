@@ -59,8 +59,11 @@ const VipLogin = () => {
           description: "Welcome to your VIP account!",
         });
         
-        // Navigate to VIP profile setup instead of chat
-        navigate('/vip-profile');
+        // Use a slight delay for React to process state updates
+        setTimeout(() => {
+          // Navigate to VIP profile setup instead of chat
+          navigate('/vip-profile');
+        }, 50);
         return;
       }
       
@@ -81,8 +84,11 @@ const VipLogin = () => {
           description: "Welcome to your VIP account!",
         });
         
-        // Navigate to VIP profile setup instead of chat
-        navigate('/vip-profile');
+        // Use a slight delay for React to process state updates
+        setTimeout(() => {
+          // Navigate to VIP profile setup instead of chat
+          navigate('/vip-profile');
+        }, 50);
       } else {
         // Failed login
         form.setError('password', { 
