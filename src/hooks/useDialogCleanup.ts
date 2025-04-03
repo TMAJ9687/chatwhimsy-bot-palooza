@@ -8,26 +8,41 @@ import { useSafeDOMOperations } from './useSafeDOMOperations';
  */
 export const useDialogCleanup = () => {
   const isClosingRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { clearOverlays } = useUIState();
   const { cleanupOverlays } = useSafeDOMOperations();
   
   // Clean up on unmount with enhanced safety checks
   useEffect(() => {
     return () => {
+      // Cleanup any pending timeouts
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      
       if (isClosingRef.current) {
         // Try both cleanup methods for better reliability
         clearOverlays();
         
         // Use the safe DOM operations for cleanup as a fallback
-        setTimeout(() => {
+        // But don't use setTimeout since this is in cleanup
+        try {
           cleanupOverlays();
-        }, 50);
+        } catch (e) {
+          console.warn('Error during dialog cleanup:', e);
+        }
       }
     };
   }, [clearOverlays, cleanupOverlays]);
   
   const handleDialogClose = useCallback((closeDialog: () => void) => {
     isClosingRef.current = true;
+    
+    // Clean up any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
     
     // Run the close dialog function
     if (typeof closeDialog === 'function') {
@@ -39,20 +54,25 @@ export const useDialogCleanup = () => {
     }
     
     // Clear overlays after a small delay to ensure smooth animations
-    const timeoutId = setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       if (isClosingRef.current) {
+        // First try React-based cleanup
         clearOverlays();
         
-        // Fallback to DOM-based cleanup
-        setTimeout(() => {
+        // Then try DOM-based cleanup as fallback
+        timeoutRef.current = setTimeout(() => {
           cleanupOverlays();
+          timeoutRef.current = null;
         }, 50);
       }
     }, 100);
     
     // Return cleanup function
     return () => {
-      clearTimeout(timeoutId);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
   }, [clearOverlays, cleanupOverlays]);
   

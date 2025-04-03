@@ -45,8 +45,11 @@ export class DOMSafetyUtils {
       } catch (e) {
         console.log('[DOMSafetyUtils] element.remove() failed, trying parentNode.removeChild');
         
-        // Double check parent relationship before removeChild
-        if (element.parentNode && element.parentNode.contains(element)) {
+        // Double check again right before removal
+        if (element.parentNode && 
+            document.contains(element) && 
+            document.contains(element.parentNode) && 
+            Array.from(element.parentNode.childNodes).includes(element)) {
           element.parentNode.removeChild(element);
           return true;
         } else {
@@ -112,8 +115,11 @@ export class DOMSafetyUtils {
           } catch (err) {
             console.log(`[DOMSafetyUtils] element.remove() failed for selector ${selector}, trying parentNode.removeChild`);
             
-            // Final validation before removal
-            if (el.parentNode && document.contains(el) && el.parentNode.contains(el)) {
+            // Final validation right before removal
+            if (el.parentNode && 
+                document.contains(el) && 
+                document.contains(el.parentNode) && 
+                Array.from(el.parentNode.childNodes).includes(el)) {
               el.parentNode.removeChild(el);
               removedCount++;
             }

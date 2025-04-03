@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useModal } from '@/context/ModalContext';
 import { Overlay } from '@/components/ui/overlay';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -12,6 +12,7 @@ const VipConfirmationModal = () => {
   const { state, closeModal } = useModal();
   const navigate = useNavigate();
   const { user, updateUserProfile } = useUser();
+  const navigatingRef = useRef(false);
   
   const isOpen = state.isOpen && state.type === 'vipConfirmation';
   
@@ -36,24 +37,55 @@ const VipConfirmationModal = () => {
         console.error('Error updating localStorage:', e);
       }
     }
+    
+    // Cleanup function
+    return () => {
+      // If we're navigating away, explicitly set localStorage flag
+      if (navigatingRef.current) {
+        localStorage.removeItem('vipNavigationInProgress');
+      }
+    };
   }, [isOpen, user, updateUserProfile]);
   
   if (!isOpen) return null;
   
   const handleRedirectToChat = () => {
+    // Close modal first
     closeModal();
     
-    // Ensure VIP status is set in localStorage before navigation
-    if (user) {
-      // VIP users should be sent to profile setup first if they haven't completed it
-      if (localStorage.getItem('vipProfileComplete') !== 'true') {
-        navigate('/vip-profile');
+    // Set navigating flag to prevent race conditions
+    navigatingRef.current = true;
+    
+    // Use setTimeout to ensure modal cleanup finishes before navigation
+    setTimeout(() => {
+      // Ensure VIP status is set in localStorage before navigation
+      if (user) {
+        // VIP users should be sent to profile setup first if they haven't completed it
+        const isProfileComplete = localStorage.getItem('vipProfileComplete') === 'true';
+        
+        if (!isProfileComplete) {
+          navigate('/vip-profile');
+        } else {
+          // Double-check user is marked as VIP
+          try {
+            const userData = localStorage.getItem('chatUser');
+            if (userData) {
+              const parsedData = JSON.parse(userData);
+              if (!parsedData.isVip) {
+                parsedData.isVip = true;
+                localStorage.setItem('chatUser', JSON.stringify(parsedData));
+              }
+            }
+          } catch (e) {
+            console.error('Error ensuring VIP status:', e);
+          }
+          
+          navigate('/chat');
+        }
       } else {
         navigate('/chat');
       }
-    } else {
-      navigate('/chat');
-    }
+    }, 50);
   };
 
   return (

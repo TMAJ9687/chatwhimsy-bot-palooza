@@ -23,12 +23,15 @@ export const Overlay: React.FC<OverlayProps> = ({
   const { openOverlay, closeOverlay } = useOverlay();
   const [shouldRender, setShouldRender] = useState(isOpen);
   const { registerNode } = useSafeDOMOperations();
+  const isUnmountingRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Register/unregister overlay with the OverlayContext
   useEffect(() => {
     if (isOpen) {
       openOverlay(id);
       setShouldRender(true);
+      isUnmountingRef.current = false;
       
       // Register the overlay node once it's created
       if (overlayRef.current) {
@@ -36,15 +39,30 @@ export const Overlay: React.FC<OverlayProps> = ({
       }
     } else {
       closeOverlay(id);
+      isUnmountingRef.current = true;
+      
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
       // Use a small delay before unmounting to allow for animations
-      const timeout = setTimeout(() => {
-        setShouldRender(false);
+      timeoutRef.current = setTimeout(() => {
+        if (isUnmountingRef.current) {
+          setShouldRender(false);
+        }
+        timeoutRef.current = null;
       }, 300);
-      return () => clearTimeout(timeout);
     }
     
     return () => {
       closeOverlay(id);
+      
+      // Clean up timeout on unmount
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
   }, [id, isOpen, openOverlay, closeOverlay, registerNode]);
   
@@ -115,6 +133,7 @@ export const Overlay: React.FC<OverlayProps> = ({
         } transition-opacity duration-300 ${className}`}
         role="dialog"
         aria-modal="true"
+        data-overlay-id={id}
       >
         {children}
       </div>
