@@ -17,7 +17,7 @@ const ErrorHandler: React.FC = () => {
     toast = () => console.error('Toast unavailable - would show error');
   }
   
-  // Filter out non-actionable errors
+  // Enhanced filter for non-actionable errors
   const filterNonActionableErrors = (event: ErrorEvent) => {
     const errorText = event.message || '';
     
@@ -31,13 +31,31 @@ const ErrorHandler: React.FC = () => {
     }
     
     // Ignore preload warnings
-    if (errorText.includes('preloaded using link preload but not used')) {
+    if (errorText.includes('preloaded using link preload') || 
+        errorText.includes('net::ERR_BLOCKED_BY_CLIENT')) {
       event.preventDefault();
       return true;
     }
     
-    // Filter out Firebase-related errors as we're migrating away from it
-    if (errorText.includes('firebase') || errorText.includes('Firestore')) {
+    // Filter out any Firebase-related errors completely
+    if (errorText.includes('firebase') || 
+        errorText.includes('Firestore') || 
+        errorText.includes('firestore') ||
+        errorText.includes('BloomFilter error') ||
+        errorText.includes('Failed to load resource: the server responded with a status of 400')) {
+      event.preventDefault();
+      return true;
+    }
+    
+    // Filter out message channel errors
+    if (errorText.includes('message channel closed') ||
+        errorText.includes('asynchronous response')) {
+      event.preventDefault();
+      return true;
+    }
+    
+    // Filter API-related errors
+    if (errorText.includes('401') && errorText.includes('ipgeo')) {
       event.preventDefault();
       return true;
     }
@@ -70,15 +88,20 @@ const ErrorHandler: React.FC = () => {
       }
     };
     
-    // Handle unhandled promise rejections
+    // Handle unhandled promise rejections with enhanced filtering
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const errorMessage = event.reason?.message || 'Promise rejection';
       
       // Skip handling for non-actionable errors
       if (errorMessage.includes('firebase') || 
           errorMessage.includes('Firestore') ||
+          errorMessage.includes('firestore') ||
           errorMessage.includes('contentScript') ||
-          errorMessage.includes('allowedOriginsToCommunicateWith')) {
+          errorMessage.includes('allowedOriginsToCommunicateWith') ||
+          errorMessage.includes('message channel closed') ||
+          errorMessage.includes('asynchronous response') ||
+          errorMessage.includes('API_KEY_HERE') ||
+          (errorMessage.includes('401') && errorMessage.includes('ipgeo'))) {
         event.preventDefault();
         return;
       }
@@ -96,11 +119,6 @@ const ErrorHandler: React.FC = () => {
     
     window.addEventListener('error', handleGlobalError);
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
-    
-    // Cleanup console if needed
-    if (typeof console.clear === 'function' && process.env.NODE_ENV === 'production') {
-      console.clear();
-    }
     
     return () => {
       window.removeEventListener('error', handleGlobalError);

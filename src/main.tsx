@@ -26,10 +26,14 @@ if (process.env.NODE_ENV === 'production') {
     const errorText = args.join(' ');
     if (errorText.includes('firebase') || 
         errorText.includes('Firestore') ||
+        errorText.includes('firestore') ||
         errorText.includes('contentScript.js') ||
         errorText.includes('Unrecognized feature') ||
         errorText.includes('preloaded using link preload') ||
-        errorText.includes('allowedOriginsToCommunicateWith')) {
+        errorText.includes('allowedOriginsToCommunicateWith') ||
+        errorText.includes('Failed to load resource: net::ERR_BLOCKED_BY_CLIENT') ||
+        errorText.includes('BloomFilter error') ||
+        errorText.includes('A listener indicated an asynchronous response')) {
       return;
     }
     originalConsoleError.apply(console, args);
@@ -37,11 +41,13 @@ if (process.env.NODE_ENV === 'production') {
   
   // Filter console warnings
   console.warn = function filterWarning(...args) {
-    // Filter out Firebase-related warnings
+    // Filter out Firebase-related warnings and preload warnings
     const warningText = args.join(' ');
     if (warningText.includes('firebase') || 
         warningText.includes('Firestore') ||
-        warningText.includes('preloaded using link preload')) {
+        warningText.includes('firestore') ||
+        warningText.includes('preloaded using link preload') ||
+        warningText.includes('Unrecognized feature')) {
       return;
     }
     originalConsoleWarn.apply(console, args);
