@@ -24,24 +24,36 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
   const checkAuthStatus = useCallback(async () => {
     try {
       setIsLoading(true);
+      console.log('Checking admin auth status...');
       const authenticated = await adminService.isAdminLoggedIn();
+      console.log('Admin authenticated:', authenticated);
       
       if (authenticated) {
         // If authenticated, get the current session
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          // Use direct fetch instead of rpc to get admin user details
-          const response = await fetch(`${process.env.SUPABASE_URL || ''}/rest/v1/admin_users?id=eq.${session.user.id}`, {
-            headers: {
-              'apikey': process.env.SUPABASE_ANON_KEY || '',
-              'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY || ''}`,
-              'Content-Type': 'application/json'
+          try {
+            // Get admin user details
+            const { data, error } = await supabase
+              .from('admin_users')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (error) {
+              console.warn('Error fetching admin user details:', error.message);
+            } else if (data) {
+              setAdminUser(data);
+              console.log('Admin user details fetched:', data);
+            } else {
+              // Fallback to session user if no admin record found
+              setAdminUser({ email: session.user.email, id: session.user.id });
+              console.log('Using fallback admin details');
             }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            setAdminUser(data?.[0] || { email: session.user.email });
+          } catch (error) {
+            console.error('Error in admin user fetch:', error);
+            // Use session user as fallback
+            setAdminUser({ email: session.user.email, id: session.user.id });
           }
         }
       }

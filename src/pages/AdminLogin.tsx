@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/shared/Logo';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import Button from '@/components/shared/Button';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ const AdminLogin: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { isAuthenticated, checkForDashboardRedirect } = useAdminSession();
   
   useEffect(() => {
@@ -24,17 +26,75 @@ const AdminLogin: React.FC = () => {
     }
   }, [isAuthenticated, checkForDashboardRedirect, navigate]);
 
+  const checkAdminUserExists = async (userId: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_users')
+        .select('id')
+        .eq('id', userId)
+        .single();
+      
+      if (error || !data) {
+        console.error('Admin user check failed:', error?.message || 'User not found');
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error checking admin user:', error);
+      return false;
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
+    setErrorMessage(null);
     
     try {
+      // First try simple auth to see if the user exists at all
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email, password
+      });
+      
+      if (authError) {
+        console.error('Authentication failed:', authError.message);
+        setErrorMessage(`Authentication failed: ${authError.message}`);
+        toast({
+          variant: 'destructive',
+          title: 'Authentication failed',
+          description: authError.message,
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      // User exists in auth system, now check if they're an admin
+      if (authData.user) {
+        const isAdmin = await checkAdminUserExists(authData.user.id);
+        
+        if (!isAdmin) {
+          setErrorMessage(`User exists but is not an admin. User ID: ${authData.user.id}`);
+          toast({
+            variant: 'destructive',
+            title: 'Not an admin',
+            description: 'Your account exists but is not authorized as an admin.',
+          });
+          
+          // Sign out since they're not an admin
+          await supabase.auth.signOut();
+          setIsLoading(false);
+          return;
+        }
+      }
+      
+      // Now try the full admin login which checks both auth and admin status
       const isValid = await adminLogin(email, password);
       
       if (isValid) {
         console.log('Admin login successful');
         toast({
-          title: 'Login successful.',
+          title: 'Login successful',
           description: 'Redirecting to admin dashboard...',
         });
         
@@ -42,17 +102,19 @@ const AdminLogin: React.FC = () => {
         navigate('/admin-dashboard');
       } else {
         console.log('Admin login failed');
+        setErrorMessage('Login failed. Please check console for details.');
         toast({
           variant: 'destructive',
-          title: 'Authentication failed.',
-          description: 'Invalid credentials. Please check your email and password.',
+          title: 'Authentication failed',
+          description: 'Invalid credentials or admin access denied.',
         });
       }
     } catch (error: any) {
       console.error('Admin login error:', error.message);
+      setErrorMessage(`Error: ${error.message}`);
       toast({
         variant: 'destructive',
-        title: 'Login error.',
+        title: 'Login error',
         description: 'Failed to log in. Please try again later.',
       });
     } finally {
@@ -75,6 +137,12 @@ const AdminLogin: React.FC = () => {
               Enter your credentials to access the admin dashboard.
             </p>
           </div>
+
+          {errorMessage && (
+            <div className="bg-destructive/15 text-destructive p-3 rounded-md mb-4">
+              <p>{errorMessage}</p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

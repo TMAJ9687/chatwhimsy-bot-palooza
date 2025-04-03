@@ -14,27 +14,34 @@ export const isAdminLoggedIn = async (): Promise<boolean> => {
       return false;
     }
     
-    // In a real app, you would check admin role via RLS or custom claims
-    // For now, we'll use localStorage as a fallback for demo purposes
-    const isAdmin = localStorage.getItem('adminEmail') === session.user.email;
+    // First, check if the user exists in the admin_users table
+    const { data, error } = await supabase
+      .from('admin_users')
+      .select('id, email')
+      .eq('id', session.user.id)
+      .single();
     
-    if (!isAdmin) {
-      // This would typically check against admin roles in the database
-      const { data, error } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('id', session.user.id)
-        .single();
+    if (error) {
+      console.log('Error checking admin status:', error.message);
       
-      if (error || !data) {
-        console.log('User is not an admin according to database');
-        return false;
+      // As a fallback, check if email matches localStorage admin email
+      // This is for backward compatibility
+      if (localStorage.getItem('adminEmail') === session.user.email) {
+        console.log('Admin verified via localStorage fallback');
+        return true;
       }
       
+      return false;
+    }
+    
+    if (data) {
+      console.log('Admin verified via database');
+      // Store admin email in localStorage for fallback
+      localStorage.setItem('adminEmail', data.email || session.user.email);
       return true;
     }
     
-    return isAdmin;
+    return false;
   } catch (error) {
     console.error('Error checking admin status:', error);
     return false;
@@ -46,6 +53,7 @@ export const isAdminLoggedIn = async (): Promise<boolean> => {
  */
 export const adminLogin = async (email: string, password: string): Promise<boolean> => {
   try {
+    console.log('Attempting admin login for:', email);
     const { data, error } = await supabase.auth.signInWithPassword({ 
       email, 
       password 
@@ -57,11 +65,23 @@ export const adminLogin = async (email: string, password: string): Promise<boole
     }
     
     if (data.user) {
-      // Store admin email in localStorage for demo purposes
-      // In a real app, you would rely on server-side role verification
-      localStorage.setItem('adminEmail', email);
-      localStorage.setItem('adminData', JSON.stringify({ email }));
+      // Check if this user is actually in the admin_users table
+      const { data: adminData, error: adminError } = await supabase
+        .from('admin_users')
+        .select('id, email')
+        .eq('id', data.user.id)
+        .single();
       
+      if (adminError || !adminData) {
+        console.error('User exists but is not an admin:', adminError?.message || 'Not found in admin_users');
+        return false;
+      }
+      
+      // Store admin email in localStorage for fallback and for session persistence
+      localStorage.setItem('adminEmail', email);
+      localStorage.setItem('adminData', JSON.stringify({ email, id: data.user.id }));
+      
+      console.log('Admin login successful');
       return true;
     }
     
