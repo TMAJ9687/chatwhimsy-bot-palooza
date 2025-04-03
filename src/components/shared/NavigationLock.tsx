@@ -12,16 +12,6 @@ const NavigationLock: React.FC = () => {
     // Clear any active overlays/modals when route changes
     clearOverlays();
     
-    // Reset body styles declaratively
-    const resetBodyStyles = () => {
-      // Avoid direct style manipulation - set a class on body instead
-      if (document.body) {
-        document.body.classList.remove('dialog-open', 'modal-open', 'overflow-hidden');
-      }
-    };
-    
-    resetBodyStyles();
-    
     // This effect runs on every navigation change
   }, [location.pathname, clearOverlays]);
   

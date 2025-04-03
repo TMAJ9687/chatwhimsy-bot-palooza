@@ -1,102 +1,10 @@
-import { useCallback, useRef } from 'react';
+
+import { useCallback } from 'react';
 
 /**
  * Hook that provides safe DOM manipulation utilities
  */
 export const useSafeDOMOperations = () => {
-  // Keep track of DOM nodes we've created for safe cleanup
-  const nodesRegistryRef = useRef(new WeakMap());
-  
-  /**
-   * Register a DOM node for future tracking/cleanup
-   */
-  const registerNode = useCallback((node: Element) => {
-    nodesRegistryRef.current.set(node, true);
-  }, []);
-  
-  /**
-   * Safely remove a DOM element with enhanced validation
-   */
-  const safeRemoveElement = useCallback((element: Element | null) => {
-    if (!element) return false;
-    
-    try {
-      // First validate element still exists and has a parent
-      if (!element.parentNode) return false;
-      
-      // Check if element is in DOM
-      if (!document.contains(element)) return false;
-      
-      // Enhanced check for parent-child relationship using Array.from
-      // This is more reliable than nodeList.contains
-      const parentChildArray = Array.from(element.parentNode.childNodes);
-      if (!parentChildArray.includes(element)) return false;
-      
-      // Try removing with element.remove() first (modern browsers)
-      try {
-        element.remove();
-        return true;
-      } catch (e) {
-        console.log('element.remove() failed, trying parentNode.removeChild with extra validation');
-        
-        // Final validation before removal attempt
-        const parent = element.parentNode;
-        if (parent && document.contains(element) && Array.from(parent.childNodes).includes(element)) {
-          parent.removeChild(element);
-          return true;
-        }
-      }
-    } catch (error) {
-      console.warn('Error removing element safely:', error);
-    }
-    
-    return false;
-  }, []);
-  
-  /**
-   * Clean up all overlays in the document with extra safeguards
-   */
-  const cleanupOverlays = useCallback(() => {
-    try {
-      // Reset body state
-      if (document.body) {
-        document.body.style.overflow = 'auto';
-        document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
-      }
-      
-      // Common overlay selectors - expanded to cover all possible modal overlays
-      const selectors = [
-        '.fixed.inset-0',
-        '[data-radix-dialog-overlay]',
-        '[data-radix-alert-dialog-overlay]',
-        '.backdrop',
-        '.modal-backdrop',
-        '[role="dialog"]',
-        '[aria-modal="true"]',
-        '.vaul-overlay'
-      ];
-      
-      // Process each selector individually to prevent cascading failures
-      selectors.forEach(selector => {
-        try {
-          // Wrap in a try-catch to prevent one selector failure from affecting others
-          document.querySelectorAll(selector).forEach(element => {
-            // Process each element individually
-            try {
-              safeRemoveElement(element);
-            } catch (elementError) {
-              console.warn(`Failed to safely remove ${selector} element:`, elementError);
-            }
-          });
-        } catch (selectorError) {
-          console.warn(`Error processing selector ${selector}:`, selectorError);
-        }
-      });
-    } catch (error) {
-      console.warn('Error cleaning up overlays:', error);
-    }
-  }, [safeRemoveElement]);
-  
   /**
    * Check if DOM is ready for operations
    */
@@ -107,34 +15,59 @@ export const useSafeDOMOperations = () => {
   }, []);
   
   /**
-   * Create a cleanup function for specific selectors
+   * Clean up all overlays in the document by dispatching a cleanup event
+   * This pattern avoids direct DOM manipulation
    */
-  const createCleanupFn = useCallback((selectors: string) => {
+  const cleanupOverlays = useCallback(() => {
+    try {
+      // Create and dispatch a custom event for overlay cleanup
+      if (typeof document !== 'undefined' && document.body) {
+        // Signal components to clean up by setting a data attribute
+        document.body.setAttribute('data-cleanup-overlays', Date.now().toString());
+        
+        // Reset body state using classes instead of direct style manipulation
+        document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
+        
+        // Clear the attribute after a short delay
+        setTimeout(() => {
+          document.body.removeAttribute('data-cleanup-overlays');
+        }, 100);
+      }
+    } catch (error) {
+      console.warn('Error cleaning up overlays:', error);
+    }
+  }, []);
+  
+  /**
+   * Create a cleanup function for specific selectors
+   * Uses class-based approach instead of direct DOM removal
+   */
+  const createCleanupFn = useCallback((selector: string) => {
     return () => {
       if (!isDOMReady()) return;
       
       try {
-        // Reset body state
+        // Reset body classes
         if (document.body) {
-          document.body.style.overflow = 'auto';
           document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
         }
         
-        // Try to safely remove elements matching the selectors
-        document.querySelectorAll(selectors).forEach(element => {
-          safeRemoveElement(element);
-        });
+        // Signal cleanup via data attribute
+        document.body.setAttribute('data-cleanup-target', selector);
+        
+        // Clear the attribute after a short delay
+        setTimeout(() => {
+          document.body.removeAttribute('data-cleanup-target');
+        }, 100);
       } catch (error) {
-        console.warn(`Error in cleanup function for ${selectors}:`, error);
+        console.warn(`Error in cleanup function for ${selector}:`, error);
       }
     };
-  }, [safeRemoveElement, isDOMReady]);
+  }, [isDOMReady]);
   
   return {
-    registerNode,
-    safeRemoveElement,
-    cleanupOverlays,
     isDOMReady,
+    cleanupOverlays,
     createCleanupFn
   };
 };

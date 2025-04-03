@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Portal } from '../core/PortalManager';
 import { useOverlay } from '@/context/OverlayContext';
 
@@ -20,13 +20,20 @@ export const Overlay: React.FC<OverlayProps> = ({
 }) => {
   const overlayRef = useRef<HTMLDivElement>(null);
   const { openOverlay, closeOverlay } = useOverlay();
+  const [shouldRender, setShouldRender] = useState(isOpen);
   
   // Register/unregister overlay with the OverlayContext
   useEffect(() => {
     if (isOpen) {
       openOverlay(id);
+      setShouldRender(true);
     } else {
       closeOverlay(id);
+      // Use a small delay before unmounting to allow for animations
+      const timeout = setTimeout(() => {
+        setShouldRender(false);
+      }, 300);
+      return () => clearTimeout(timeout);
     }
     
     return () => {
@@ -63,13 +70,42 @@ export const Overlay: React.FC<OverlayProps> = ({
     };
   }, [isOpen, onClose]);
   
-  if (!isOpen) return null;
+  // Listen for global cleanup signals
+  useEffect(() => {
+    const handleCleanupSignal = () => {
+      if (isOpen) {
+        onClose();
+      }
+    };
+    
+    // Use a MutationObserver to watch for cleanup signals
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'data-cleanup-overlays' || 
+            mutation.attributeName === 'data-cleanup-target') {
+          handleCleanupSignal();
+        }
+      });
+    });
+    
+    if (document.body) {
+      observer.observe(document.body, { attributes: true });
+    }
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, [isOpen, onClose]);
+  
+  if (!shouldRender) return null;
   
   return (
     <Portal container={document.getElementById('portal-root')}>
       <div 
         ref={overlayRef}
-        className={`fixed inset-0 bg-black/50 flex items-center justify-center z-50 ${className}`}
+        className={`fixed inset-0 bg-black/50 flex items-center justify-center z-50 ${
+          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        } transition-opacity duration-300 ${className}`}
         role="dialog"
         aria-modal="true"
       >
