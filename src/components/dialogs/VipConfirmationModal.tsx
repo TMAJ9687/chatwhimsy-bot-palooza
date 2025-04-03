@@ -1,23 +1,59 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useModal } from '@/context/ModalContext';
 import { Overlay } from '@/components/ui/overlay';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { CheckCircle } from 'lucide-react';
+import { useUser } from '@/context/UserContext';
 
 const VipConfirmationModal = () => {
   const { state, closeModal } = useModal();
   const navigate = useNavigate();
+  const { user, updateUserProfile } = useUser();
   
   const isOpen = state.isOpen && state.type === 'vipConfirmation';
+  
+  useEffect(() => {
+    if (isOpen && user) {
+      // Ensure user has isVip flag set
+      if (!user.isVip) {
+        updateUserProfile({ isVip: true });
+      }
+      
+      // Double check localStorage
+      try {
+        const userData = localStorage.getItem('chatUser');
+        if (userData) {
+          const parsedData = JSON.parse(userData);
+          if (!parsedData.isVip) {
+            parsedData.isVip = true;
+            localStorage.setItem('chatUser', JSON.stringify(parsedData));
+          }
+        }
+      } catch (e) {
+        console.error('Error updating localStorage:', e);
+      }
+    }
+  }, [isOpen, user, updateUserProfile]);
   
   if (!isOpen) return null;
   
   const handleRedirectToChat = () => {
     closeModal();
-    navigate('/chat');
+    
+    // Ensure VIP status is set in localStorage before navigation
+    if (user) {
+      // VIP users should be sent to profile setup first if they haven't completed it
+      if (localStorage.getItem('vipProfileComplete') !== 'true') {
+        navigate('/vip-profile');
+      } else {
+        navigate('/chat');
+      }
+    } else {
+      navigate('/chat');
+    }
   };
 
   return (

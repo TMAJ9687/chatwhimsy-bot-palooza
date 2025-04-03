@@ -14,10 +14,11 @@ const AuthListener = () => {
   useEffect(() => {
     console.log('AuthListener initialized, current path:', location.pathname);
     
-    // Don't interfere with admin login/dashboard paths
+    // Don't interfere with admin login/dashboard or VIP profile paths
     if (location.pathname === '/secretadminportal' || 
-        location.pathname.includes('/admin')) {
-      console.log('On admin page, skipping auth redirects');
+        location.pathname.includes('/admin') ||
+        location.pathname === '/vip-profile') {
+      console.log('On admin or VIP profile page, skipping auth redirects');
       return;
     }
     
@@ -73,16 +74,16 @@ const AuthListener = () => {
           const userData = JSON.parse(savedUserData);
           console.log('Found user data in localStorage:', userData.nickname, 'isVip:', userData.isVip);
           
-          // Allow standard users to stay on /chat
-          if (!userData.isVip) {
-            console.log('Allowing standard user access to /chat');
-            return; // Do not redirect standard users with valid profile
+          // Allow standard users and VIP users with valid profile to stay on /chat
+          if (!userData.isVip || (userData.isVip && localStorage.getItem('vipProfileComplete') === 'true')) {
+            console.log('Allowing user access to /chat with valid profile');
+            return; // Keep user on /chat if they have a valid profile
           }
           
-          // VIP users without auth should be redirected to login
-          if (userData.isVip) {
-            console.log('VIP user without auth, redirecting to home');
-            navigate('/');
+          // VIP users without complete profile should be redirected to profile setup
+          if (userData.isVip && localStorage.getItem('vipProfileComplete') !== 'true') {
+            console.log('VIP user without complete profile, redirecting to profile setup');
+            navigate('/vip-profile');
             return;
           }
         } else {

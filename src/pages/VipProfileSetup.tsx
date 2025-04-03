@@ -121,6 +121,24 @@ const VipProfileSetup = () => {
       setTimeout(() => {
         if (!mountedRef.current) return;
         
+        // Ensure VIP state is saved properly before navigation
+        if (isVip && user) {
+          // Explicitly ensure isVip is set in localStorage
+          try {
+            const userData = localStorage.getItem('chatUser');
+            if (userData) {
+              const parsedData = JSON.parse(userData);
+              if (!parsedData.isVip) {
+                parsedData.isVip = true;
+                localStorage.setItem('chatUser', JSON.stringify(parsedData));
+                console.log('Fixed isVip flag in localStorage before navigation');
+              }
+            }
+          } catch (e) {
+            console.error('Error updating localStorage:', e);
+          }
+        }
+        
         navigate(path);
         
         setTimeout(() => {
@@ -134,7 +152,37 @@ const VipProfileSetup = () => {
   };
 
   const handleGoToChat = () => {
-    handleNavigation('/chat');
+    // Ensure VIP profile is marked as complete
+    if (isVip) {
+      localStorage.setItem('vipProfileComplete', 'true');
+      
+      // Update user profile with isVip flag if needed
+      if (user && !user.isVip) {
+        updateUserProfile({ isVip: true });
+      }
+      
+      // Double check the localStorage chatUser data
+      try {
+        const userData = localStorage.getItem('chatUser');
+        if (userData) {
+          const parsedData = JSON.parse(userData);
+          if (!parsedData.isVip) {
+            parsedData.isVip = true;
+            localStorage.setItem('chatUser', JSON.stringify(parsedData));
+            console.log('Fixed isVip flag in localStorage');
+          }
+        }
+      } catch (e) {
+        console.error('Error checking localStorage:', e);
+      }
+      
+      // Use timeout to ensure state updates complete before navigation
+      setTimeout(() => {
+        handleNavigation('/chat');
+      }, 50);
+    } else {
+      handleNavigation('/chat');
+    }
   };
 
   const handleSaveAndNavigate = async () => {
