@@ -10,6 +10,7 @@ export const useSafeDOMOperations = () => {
    */
   const isDOMReady = useCallback(() => {
     return typeof document !== 'undefined' && 
+           document?.readyState !== 'loading' &&
            !!document?.body && 
            !!document?.documentElement;
   }, []);
@@ -37,8 +38,10 @@ export const useSafeDOMOperations = () => {
     if (!node || !isDOMReady()) return false;
     
     try {
+      // Check if the node is still part of the document
       return document.contains(node) && !!node.parentNode;
     } catch (error) {
+      console.warn('Error checking node validity:', error);
       return false;
     }
   }, [isDOMReady]);
@@ -60,21 +63,23 @@ export const useSafeDOMOperations = () => {
         return false;
       }
       
-      // Verify the element is actually a child of its parent before attempting removal
+      // Use a safer approach for element removal
       const parent = element.parentNode;
-      if (!parent || !Array.from(parent.childNodes).includes(element)) {
-        return false;
-      }
       
-      // Use a try-catch for the actual removal
+      // Use a try-catch for the actual removal with multiple safeguards
       try {
+        // First try the modern Element.remove() method
         element.remove();
         return true;
       } catch (e) {
-        // Only try removeChild if we've verified parent-child relationship
-        if (parent && document.contains(parent) && Array.from(parent.childNodes).includes(element)) {
-          parent.removeChild(element);
-          return true;
+        // If remove() fails, try removeChild() as fallback
+        try {
+          if (parent && document.contains(parent)) {
+            parent.removeChild(element);
+            return true;
+          }
+        } catch (innerError) {
+          console.warn('Failed to remove element using both methods:', innerError);
         }
       }
     } catch (error) {
@@ -91,26 +96,40 @@ export const useSafeDOMOperations = () => {
     if (!isDOMReady()) return;
     
     try {
-      // Use a data attribute approach instead of direct DOM manipulation
+      // Use a data attribute approach for safer DOM manipulation
       if (document.body) {
         // Signal components to clean up by setting a data attribute
         document.body.setAttribute('data-cleanup-overlays', Date.now().toString());
         
-        // Reset body state using classes instead of direct style manipulation
+        // Reset body state using classList for better browser compatibility
         document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
+        
+        // Reset overflow style directly
         document.body.style.overflow = '';
         
-        // Clean up attribute after a delay
+        // Remove modal backdrops using a safer approach
+        try {
+          const backdrops = document.querySelectorAll('.fixed.inset-0[role="dialog"],.fixed.inset-0[aria-modal="true"]');
+          backdrops.forEach(backdrop => {
+            if (backdrop && backdrop.parentNode && document.contains(backdrop)) {
+              safeRemoveElement(backdrop as Element);
+            }
+          });
+        } catch (error) {
+          console.warn('Error removing modal backdrops:', error);
+        }
+        
+        // Clean up attribute after a delay to ensure components have time to react
         setTimeout(() => {
           if (document.body) {
             document.body.removeAttribute('data-cleanup-overlays');
           }
-        }, 200);
+        }, 300);
       }
     } catch (error) {
       console.warn('Error cleaning up overlays:', error);
     }
-  }, [isDOMReady]);
+  }, [isDOMReady, safeRemoveElement]);
   
   return {
     isDOMReady,

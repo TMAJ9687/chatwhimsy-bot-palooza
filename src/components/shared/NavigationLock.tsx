@@ -17,6 +17,12 @@ const NavigationLock: React.FC = () => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      
+      // Ensure any pending timeouts are cleared on unmount
+      if (cleanupTimeoutRef.current) {
+        clearTimeout(cleanupTimeoutRef.current);
+        cleanupTimeoutRef.current = null;
+      }
     };
   }, []);
   
@@ -30,26 +36,40 @@ const NavigationLock: React.FC = () => {
     console.log(`Navigation from ${lastPathRef.current} to ${location.pathname}`);
     lastPathRef.current = location.pathname;
     
-    // Clear any active overlays/modals when route changes
-    if (isMountedRef.current) {
-      clearOverlays();
-    }
-    
-    // Clean up any previous timeout
-    if (cleanupTimeoutRef.current) {
-      clearTimeout(cleanupTimeoutRef.current);
-    }
-    
-    // Use safe DOM operations as a fallback with a delayed execution
-    if (isMountedRef.current) {
+    // Use a safe approach to UI cleanup with proper mounted checks
+    const performCleanup = () => {
+      if (!isMountedRef.current) return;
+      
+      // Clear any active overlays/modals when route changes
+      try {
+        clearOverlays();
+      } catch (error) {
+        console.warn('Error in clearOverlays during navigation:', error);
+      }
+      
+      // Clean up any previous timeout
+      if (cleanupTimeoutRef.current) {
+        clearTimeout(cleanupTimeoutRef.current);
+      }
+      
+      // Use safe DOM operations as a fallback with a delayed execution
       cleanupTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current) {
+        if (!isMountedRef.current) return;
+        
+        try {
           cleanupOverlays();
+        } catch (error) {
+          console.warn('Error in cleanupOverlays during navigation:', error);
         }
+        
         cleanupTimeoutRef.current = null;
-      }, 150); // Increased timeout to ensure components have time to unmount properly
-    }
+      }, 200); // Increased timeout for more reliable cleanup
+    };
     
+    // Use requestAnimationFrame for better synchronization with browser rendering
+    requestAnimationFrame(performCleanup);
+    
+    // Cleanup on unmount or when route changes again
     return () => {
       if (cleanupTimeoutRef.current) {
         clearTimeout(cleanupTimeoutRef.current);
