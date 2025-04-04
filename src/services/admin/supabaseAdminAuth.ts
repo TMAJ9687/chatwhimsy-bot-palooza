@@ -14,57 +14,83 @@ export const isAdminLoggedIn = async (): Promise<boolean> => {
       return false;
     }
     
-    // Use RPC to call our security definer function
-    const { data: isAdmin, error: rpcError } = await supabase.rpc(
-      'is_admin',
-      { user_id: session.user.id }
-    );
-    
-    if (rpcError) {
-      console.error('Error checking admin status with RPC:', rpcError.message);
+    // Try RPC first (most secure method)
+    try {
+      const { data: isAdmin, error: rpcError } = await supabase.rpc(
+        'is_admin',
+        { user_id: session.user.id }
+      );
       
-      // Fallback: Direct check if RPC fails
+      if (rpcError) {
+        console.error('Error checking admin status with RPC:', rpcError.message);
+        // Don't return, continue to fallback
+      } else if (isAdmin) {
+        console.log('Admin verified via secure RPC function');
+        
+        // Store email for localStorage fallback
+        try {
+          const { data } = await supabase
+            .from('admin_users')
+            .select('email')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          
+          if (data?.email) {
+            localStorage.setItem('adminEmail', data.email);
+          } else {
+            localStorage.setItem('adminEmail', session.user.email || '');
+          }
+          
+          // Store admin data
+          const adminData = {
+            id: session.user.id,
+            email: data?.email || session.user.email || ''
+          };
+          localStorage.setItem('adminData', JSON.stringify(adminData));
+        } catch (e) {
+          console.warn('Failed to cache admin email');
+          localStorage.setItem('adminEmail', session.user.email || '');
+        }
+        
+        return true;
+      }
+    } catch (error) {
+      console.error('RPC query failed:', error);
+      // Continue to fallback methods
+    }
+    
+    // First fallback: Direct check
+    try {
       const { data, error } = await supabase
         .from('admin_users')
         .select('id, email')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.log('Error checking admin status via direct query:', error.message);
-        
-        // Last resort: check localStorage fallback
-        if (localStorage.getItem('adminEmail') === session.user.email) {
-          console.log('Admin verified via localStorage fallback');
-          return true;
-        }
-        
-        return false;
-      }
-      
-      if (data) {
+        // Continue to localStorage fallback
+      } else if (data) {
         console.log('Admin verified via database fallback');
-        localStorage.setItem('adminEmail', data.email || session.user.email);
+        
+        // Cache for fallback
+        localStorage.setItem('adminEmail', data.email || session.user.email || '');
+        localStorage.setItem('adminData', JSON.stringify({
+          id: session.user.id,
+          email: data.email || session.user.email || ''
+        }));
+        
         return true;
       }
-      
-      return false;
+    } catch (error) {
+      console.error('Direct admin_users query failed:', error);
+      // Continue to localStorage fallback
     }
     
-    if (isAdmin) {
-      console.log('Admin verified via secure RPC function');
-      
-      // Also fetch email for localStorage fallback
-      const { data } = await supabase
-        .from('admin_users')
-        .select('email')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (data?.email) {
-        localStorage.setItem('adminEmail', data.email);
-      }
-      
+    // Last resort: check localStorage fallback
+    const adminEmail = localStorage.getItem('adminEmail');
+    if (adminEmail && adminEmail === session.user.email) {
+      console.log('Admin verified via localStorage fallback');
       return true;
     }
     
@@ -92,46 +118,64 @@ export const adminLogin = async (email: string, password: string): Promise<boole
     }
     
     if (data.user) {
-      // Use RPC to check admin status
-      const { data: isAdmin, error: rpcError } = await supabase.rpc(
-        'is_admin',
-        { user_id: data.user.id }
-      );
-      
-      if (rpcError) {
-        console.error('Error checking admin status with RPC:', rpcError.message);
+      // Try RPC method first
+      try {
+        const { data: isAdmin, error: rpcError } = await supabase.rpc(
+          'is_admin',
+          { user_id: data.user.id }
+        );
         
-        // Fallback: direct check
+        if (rpcError) {
+          console.error('Error checking admin status with RPC:', rpcError.message);
+          // Continue to fallback
+        } else if (isAdmin) {
+          // Store admin info for fallback
+          localStorage.setItem('adminEmail', email);
+          localStorage.setItem('adminData', JSON.stringify({ 
+            email, 
+            id: data.user.id 
+          }));
+          
+          console.log('Admin login successful (RPC check)');
+          return true;
+        } else {
+          console.error('User exists but is not an admin (via RPC check)');
+          return false;
+        }
+      } catch (rpcError) {
+        console.error('RPC check failed:', rpcError);
+        // Continue to fallback
+      }
+      
+      // Fallback: direct check
+      try {
         const { data: adminData, error: adminError } = await supabase
           .from('admin_users')
           .select('id, email')
           .eq('id', data.user.id)
-          .single();
+          .maybeSingle();
         
-        if (adminError || !adminData) {
-          console.error('User exists but is not an admin:', adminError?.message || 'Not found in admin_users');
+        if (adminError) {
+          console.error('Error in admin check fallback:', adminError.message);
+          // Continue to last resort
+        } else if (adminData) {
+          // Store admin info for fallback
+          localStorage.setItem('adminEmail', email);
+          localStorage.setItem('adminData', JSON.stringify({ 
+            email, 
+            id: data.user.id 
+          }));
+          
+          console.log('Admin login successful (fallback check)');
+          return true;
+        } else {
+          console.error('User exists but is not an admin');
           return false;
         }
-        
-        // Store admin info for fallback
-        localStorage.setItem('adminEmail', email);
-        localStorage.setItem('adminData', JSON.stringify({ email, id: data.user.id }));
-        
-        console.log('Admin login successful (fallback check)');
-        return true;
+      } catch (error) {
+        console.error('Direct admin check failed:', error);
+        // Continue to potential last check
       }
-      
-      if (!isAdmin) {
-        console.error('User exists but is not an admin (via RPC check)');
-        return false;
-      }
-      
-      // Store admin info for fallback
-      localStorage.setItem('adminEmail', email);
-      localStorage.setItem('adminData', JSON.stringify({ email, id: data.user.id }));
-      
-      console.log('Admin login successful (RPC check)');
-      return true;
     }
     
     return false;

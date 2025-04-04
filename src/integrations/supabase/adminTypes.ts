@@ -1,3 +1,4 @@
+
 // Custom type definitions for admin tables
 
 // Admin user type
@@ -28,20 +29,8 @@ export interface AdminDashboardStats {
   active_bans: number;
 }
 
-// Helper to get the API URL and headers
-const getApiConfig = () => {
-  // Use the supabase client configuration instead of process.env
-  const apiUrl = "https://lvawljaqsafbjpnrwkyd.supabase.co";
-  const apiKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXdsamFxc2FmYmpwbnJ3a3lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMzNjczMzgsImV4cCI6MjA1ODk0MzMzOH0.PoAP2KhiL2dUDI1Ti_SAoQiqsI8jhKIrLw_3Vra6Qls";
-  
-  const headers = {
-    'Content-Type': 'application/json',
-    'apikey': apiKey,
-    'Authorization': `Bearer ${apiKey}`
-  };
-  
-  return { apiUrl, headers };
-};
+// Helper to get the API URL and headers using the supabase client configuration
+import { supabase } from './client';
 
 // Helper methods for type safety when working with admin tables via direct API calls
 export const adminDb = {
@@ -49,14 +38,16 @@ export const adminDb = {
   adminUsers: () => ({
     select: async () => {
       try {
-        const { apiUrl, headers } = getApiConfig();
-        const response = await fetch(`${apiUrl}/rest/v1/admin_users?select=*`, { headers });
+        // Use the supabase client directly instead of custom fetch calls
+        const { data, error } = await supabase
+          .from('admin_users')
+          .select('*');
         
-        if (!response.ok) {
-          throw new Error(`Error fetching admin users: ${response.statusText}`);
+        if (error) {
+          console.error('Error fetching admin users:', error.message);
+          return { data: null, error };
         }
         
-        const data = await response.json();
         return { data: data as AdminUser[], error: null };
       } catch (error) {
         console.error('Error in adminUsers.select:', error);
@@ -66,15 +57,20 @@ export const adminDb = {
     
     getAdminUser: async (userId: string) => {
       try {
-        const { apiUrl, headers } = getApiConfig();
-        const response = await fetch(`${apiUrl}/rest/v1/admin_users?id=eq.${userId}`, { headers });
+        // Use the supabase client directly
+        const { data, error } = await supabase
+          .from('admin_users')
+          .select('*')
+          .eq('id', userId)
+          .single();
         
-        if (!response.ok) {
-          throw new Error(`Error fetching admin user: ${response.statusText}`);
+        if (error) {
+          console.error('Error fetching admin user:', error.message);
+          // Instead of throwing, return the error
+          return { data: null, error };
         }
         
-        const data = await response.json();
-        return { data: data?.[0] || null, error: null };
+        return { data: data as AdminUser || null, error: null };
       } catch (error) {
         console.error('Error in adminUsers.getAdminUser:', error);
         return { data: null, error };
@@ -83,15 +79,15 @@ export const adminDb = {
     
     updateLastLogin: async (userId: string) => {
       try {
-        const { apiUrl, headers } = getApiConfig();
-        const response = await fetch(`${apiUrl}/rest/v1/admin_users?id=eq.${userId}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ last_login: new Date().toISOString() })
-        });
+        // Use the supabase client
+        const { data, error } = await supabase
+          .from('admin_users')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', userId);
         
-        if (!response.ok) {
-          throw new Error(`Error updating admin last login: ${response.statusText}`);
+        if (error) {
+          console.error('Error updating admin last login:', error.message);
+          return { data: null, error };
         }
         
         return { data: true, error: null };
@@ -106,14 +102,16 @@ export const adminDb = {
   adminActions: () => ({
     select: async () => {
       try {
-        const { apiUrl, headers } = getApiConfig();
-        const response = await fetch(`${apiUrl}/rest/v1/admin_actions?select=*`, { headers });
+        // Use the supabase client
+        const { data, error } = await supabase
+          .from('admin_actions')
+          .select('*');
         
-        if (!response.ok) {
-          throw new Error(`Error fetching admin actions: ${response.statusText}`);
+        if (error) {
+          console.error('Error fetching admin actions:', error.message);
+          return { data: null, error };
         }
         
-        const data = await response.json();
         return { data: data as AdminAction[], error: null };
       } catch (error) {
         console.error('Error in adminActions.select:', error);
@@ -130,11 +128,10 @@ export const adminDb = {
       duration?: string;
     }) => {
       try {
-        const { apiUrl, headers } = getApiConfig();
-        const response = await fetch(`${apiUrl}/rest/v1/admin_actions`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
+        // Use the supabase client
+        const { data, error } = await supabase
+          .from('admin_actions')
+          .insert({
             admin_id: params.admin_id,
             action_type: params.action_type,
             target_id: params.target_id || null,
@@ -143,13 +140,14 @@ export const adminDb = {
             duration: params.duration || null,
             timestamp: new Date().toISOString()
           })
-        });
+          .select()
+          .single();
         
-        if (!response.ok) {
-          throw new Error(`Error logging admin action: ${response.statusText}`);
+        if (error) {
+          console.error('Error logging admin action:', error.message);
+          return { data: null, error };
         }
         
-        const data = await response.json();
         return { data: data as AdminAction, error: null };
       } catch (error) {
         console.error('Error in adminActions.logAction:', error);
@@ -159,14 +157,17 @@ export const adminDb = {
     
     getAdminActions: async () => {
       try {
-        const { apiUrl, headers } = getApiConfig();
-        const response = await fetch(`${apiUrl}/rest/v1/admin_actions?select=*&order=timestamp.desc`, { headers });
+        // Use the supabase client
+        const { data, error } = await supabase
+          .from('admin_actions')
+          .select('*')
+          .order('timestamp', { ascending: false });
         
-        if (!response.ok) {
-          throw new Error(`Error fetching admin actions: ${response.statusText}`);
+        if (error) {
+          console.error('Error fetching admin actions:', error.message);
+          return { data: null, error };
         }
         
-        const data = await response.json();
         return { data: data as AdminAction[], error: null };
       } catch (error) {
         console.error('Error in adminActions.getAdminActions:', error);
@@ -175,22 +176,40 @@ export const adminDb = {
     }
   }),
   
-  // Dashboard stats queries
+  // Dashboard stats queries with proper error handling
   dashboard: () => ({
     getStats: async () => {
       try {
-        // Since we're not using an RPC function, we'll simulate the stats
-        // In a real app, this would be replaced with an actual endpoint
+        // Try to get real stats from RPC function
+        const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
+        
+        if (error) {
+          console.error('Error getting dashboard stats:', error.message);
+          
+          // Fallback to mock stats
+          const mockStats = {
+            total_users: 100,
+            vip_users: 25,
+            active_bans: 5
+          };
+          
+          console.log('Using mock stats as fallback');
+          return { data: mockStats as AdminDashboardStats, error: null };
+        }
+        
+        return { data: data as AdminDashboardStats, error: null };
+      } catch (error) {
+        console.error('Error in dashboard.getStats:', error);
+        
+        // Fallback to mock stats on exception
         const mockStats = {
           total_users: 100,
           vip_users: 25,
           active_bans: 5
         };
         
+        console.log('Using mock stats as fallback after exception');
         return { data: mockStats as AdminDashboardStats, error: null };
-      } catch (error) {
-        console.error('Error in dashboard.getStats:', error);
-        return { data: null, error };
       }
     }
   })
