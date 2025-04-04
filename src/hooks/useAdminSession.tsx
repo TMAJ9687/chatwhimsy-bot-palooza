@@ -21,6 +21,7 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
   const [adminUser, setAdminUser] = useState<any>(null);
   const [error, setError] = useState<Error | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
+  const [retryTimeout, setRetryTimeout] = useState<NodeJS.Timeout | null>(null);
   
   // Check authentication status with retries and better error handling
   const checkAuthStatus = useCallback(async () => {
@@ -93,20 +94,24 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
           setIsAuthenticated(true);
           setIsLoading(false);
           return;
+        } else {
+          console.log('User is not an admin according to is_admin RPC');
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          return;
         }
       } catch (rpcError) {
         console.error('Failed to check admin status with RPC, trying fallback method:', rpcError);
         // Continue to fallback
       }
       
-      // Fallback: direct admin_users table check
+      // Fallback: direct admin_users table check with improved error handling
       try {
-        // Use the admin_users table directly
         const { data, error } = await supabase
           .from('admin_users')
           .select('id, email')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
         
         if (error) {
           console.log('Error checking admin status via direct query:', error.message);
@@ -125,6 +130,11 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
           
           setAdminUser(data);
           setIsAuthenticated(true);
+          setIsLoading(false);
+          return;
+        } else {
+          console.log('User not found in admin_users table');
+          setIsAuthenticated(false);
           setIsLoading(false);
           return;
         }
@@ -155,7 +165,7 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
       // Increment failed attempts for future reference
       setFailedAttempts(prev => prev + 1);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error checking auth status:', error);
       setError(error as Error);
       setIsAuthenticated(false);
@@ -170,8 +180,33 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
           variant: 'destructive',
         });
       }
+      
+      // Schedule a retry with exponential backoff
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
+      
+      const backoffTime = Math.min(1000 * Math.pow(2, failedAttempts), 30000);
+      console.log(`Scheduling retry in ${backoffTime}ms`);
+      
+      const timeoutId = setTimeout(() => {
+        if (failedAttempts < 5) { // Limit retries
+          checkAuthStatus();
+        }
+      }, backoffTime);
+      
+      setRetryTimeout(timeoutId);
     }
-  }, [toast, failedAttempts]);
+  }, [toast, failedAttempts, retryTimeout]);
+  
+  // Clear timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
+    };
+  }, [retryTimeout]);
   
   // Setup auth state listener with better error handling
   useEffect(() => {
@@ -198,6 +233,10 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
           setIsAuthenticated(false);
           setAdminUser(null);
           setIsLoading(false);
+          
+          // Clear any admin data in localStorage
+          localStorage.removeItem('adminEmail');
+          localStorage.removeItem('adminData');
         }
       }
     });
@@ -211,33 +250,14 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
   // Initial auth check with retry logic
   useEffect(() => {
     let isMounted = true;
-    let retryCount = 0;
-    const maxRetries = 3;
     
     const checkAuth = async () => {
       if (isMounted) {
         try {
           await checkAuthStatus();
         } catch (error) {
-          console.error(`Auth check failed (attempt ${retryCount + 1}):`, error);
-          
-          // Retry logic
-          if (retryCount < maxRetries && isMounted) {
-            retryCount++;
-            console.log(`Retrying auth check in ${retryCount * 1000}ms...`);
-            
-            setTimeout(checkAuth, retryCount * 1000);
-          } else if (isMounted) {
-            // Max retries reached
-            setIsLoading(false);
-            setError(new Error('Failed to verify admin status after multiple attempts'));
-            
-            toast({
-              title: 'Authentication Failed',
-              description: 'Could not verify your admin status. Please try again later.',
-              variant: 'destructive',
-            });
-          }
+          console.error(`Auth check failed:`, error);
+          // Retries are handled in checkAuthStatus
         }
       }
     };
@@ -245,19 +265,19 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
     checkAuth();
     
     // Set up interval to periodically check admin session
-    // Use a more reasonable interval - 2 minutes
+    // Use a more reasonable interval - 5 minutes
     const intervalId = setInterval(() => {
       if (isMounted) {
         console.log('Periodic admin session check');
         checkAuthStatus();
       }
-    }, 120000); // Check every 2 minutes
+    }, 300000); // Check every 5 minutes
     
     return () => {
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [checkAuthStatus, toast]);
+  }, [checkAuthStatus]);
   
   // Handle redirect to dashboard if admin is authenticated
   const checkForDashboardRedirect = useCallback(() => {
