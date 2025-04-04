@@ -2,6 +2,7 @@
 import React, { memo, useEffect, Suspense, useRef } from 'react';
 import { useDialog } from '@/context/DialogContext';
 import { trackEvent } from '@/utils/performanceMonitor';
+import LogoutErrorBoundary from '@/components/error/LogoutErrorBoundary'; 
 
 // Import dialogs normally instead of lazy loading for critical ones
 import SiteRulesDialog from './SiteRulesDialog';
@@ -79,21 +80,21 @@ const DialogContainer = () => {
     return null;
   }
 
-  // Render without suspense for critical dialogs
+  // Wrap the logout dialog with our error boundary
+  if (state.type === 'logout') {
+    return (
+      <LogoutErrorBoundary>
+        <LogoutConfirmationDialog key="logout" />
+      </LogoutErrorBoundary>
+    );
+  }
+
+  // Render without suspense for other critical dialogs
   if (state.type === 'siteRules') {
     try {
       return <SiteRulesDialog key="siteRules" />;
     } catch (error) {
       console.error('Error rendering SiteRulesDialog:', error);
-      return null;
-    }
-  }
-  
-  if (state.type === 'logout') {
-    try {
-      return <LogoutConfirmationDialog key="logout" />;
-    } catch (error) {
-      console.error('Error rendering LogoutConfirmationDialog:', error);
       return null;
     }
   }

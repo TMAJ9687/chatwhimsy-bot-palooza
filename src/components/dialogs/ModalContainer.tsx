@@ -1,6 +1,7 @@
 
 import React, { Suspense, lazy } from 'react';
 import { useModal } from '@/context/ModalContext';
+import LogoutErrorBoundary from '@/components/error/LogoutErrorBoundary';
 
 // Import frequently used modals directly
 import SiteRulesModal from './SiteRulesModal';
@@ -40,8 +41,13 @@ const ModalContainer: React.FC = () => {
     return <SiteRulesModal />;
   }
   
+  // Wrap logout modal with our error boundary
   if (state.type === 'logout') {
-    return <LogoutConfirmationModal />;
+    return (
+      <LogoutErrorBoundary>
+        <LogoutConfirmationModal />
+      </LogoutErrorBoundary>
+    );
   }
   
   if (state.type === 'alert') {

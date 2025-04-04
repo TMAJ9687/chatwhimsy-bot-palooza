@@ -20,30 +20,7 @@ export const useLogout = () => {
       // Set logout event to trigger listeners and prevent automatic relogin
       localStorage.setItem('logoutEvent', Date.now().toString());
       
-      // First clear all DOM state and fix any potential issues
-      document.body.style.overflow = 'auto';
-      document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
-      
-      // Clean up potential overlay elements
-      try {
-        const elements = document.querySelectorAll('.fixed.inset-0');
-        elements.forEach(el => {
-          try {
-            // Always verify parent-child relationship before removal
-            if (el.parentNode && Array.from(el.parentNode.childNodes).includes(el)) {
-              el.parentNode.removeChild(el);
-            }
-          } catch (e) {
-            // Ignore errors during emergency cleanup
-            console.warn('Error removing overlay element:', e);
-          }
-        });
-      } catch (e) {
-        // Ignore any DOM errors during cleanup
-        console.warn('Error during overlay cleanup:', e);
-      }
-      
-      // Clear storage systematically
+      // Clean up localStorage items
       localStorage.removeItem('chatUser');
       localStorage.removeItem('vipProfileComplete');
       localStorage.removeItem('adminEmail');
@@ -68,26 +45,22 @@ export const useLogout = () => {
         console.error('Supabase signout error:', error);
       }
       
-      // Always redirect to feedback page after logout for standard users
-      if (!isVip) {
-        console.log('Standard user logout complete, redirecting to feedback page');
-        window.location.href = '/feedback';
-      } else {
-        console.log('VIP user logout complete, redirecting to home page');
-        window.location.href = '/';
-      }
+      // Navigate to the appropriate page based on user type
+      // Use navigate for a cleaner approach instead of window.location
+      const destination = !isVip ? '/feedback' : '/';
+      console.log(`Logout complete, navigating to ${destination}`);
+      
+      // Use navigate with replace to prevent back navigation after logout
+      navigate(destination, { replace: true });
       
     } catch (error) {
       console.error('Error during logout:', error);
       // Fallback logout approach if the main one fails
       try {
-        console.log('Attempting fallback logout approach');
         clearUser();
-        // In case of error, always redirect to feedback page for standard users
-        window.location.href = !isVip ? '/feedback' : '/';
+        navigate(!isVip ? '/feedback' : '/', { replace: true });
       } catch (e) {
         console.error('Fallback logout also failed', e);
-        // Last resort - just reload the page
         window.location.reload();
       }
     }

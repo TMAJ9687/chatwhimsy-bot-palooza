@@ -12,7 +12,7 @@ export const useChatInitialization = () => {
   const [currentBot, setCurrentBot] = useState<Bot>(defaultBot);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [rulesAccepted, setRulesAccepted] = useState(false);
-  const [userCountry, setUserCountry] = useState<string>('');
+  const [userCountry, setUserCountry] = useState<string>('United States');
 
   // Sort bot profiles once and memoize to avoid re-sorting
   const sortedBotProfiles = useMemo(() => sortUsers(botProfiles), []);
@@ -22,12 +22,12 @@ export const useChatInitialization = () => {
     setCurrentBot(user);
   }, []);
 
-  // Set up online users without relying on geolocation
+  // Set up online users without network requests
   useEffect(() => {
     // Simply set all bots as online - no need for geolocation
     setOnlineUsers(new Set(sortedBotProfiles.map(bot => bot.id)));
     
-    // Use a default country instead of trying to fetch it
+    // Set default country
     setUserCountry('United States');
   }, [sortedBotProfiles]);
 

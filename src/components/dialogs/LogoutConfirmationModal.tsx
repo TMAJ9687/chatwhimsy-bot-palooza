@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Overlay } from '@/components/ui/overlay';
 import { useModal } from '@/context/ModalContext';
 import { useLogout } from '@/hooks/useLogout';
+import LogoutErrorBoundary from '@/components/error/LogoutErrorBoundary';
 
 interface ModalContentProps {
   onConfirm: () => void;
@@ -41,35 +42,44 @@ const LogoutConfirmationModal: React.FC = () => {
   const { performLogout } = useLogout();
   
   const handleLogout = useCallback(async () => {
+    if (isLoading) return; // Prevent multiple clicks
+    
     setIsLoading(true);
     try {
       await performLogout();
       // Redirect is handled in the performLogout function
     } catch (error) {
       console.error('Logout error:', error);
-      setIsLoading(false);
-      closeModal();
+    } finally {
+      // No need to call closeModal here as the user will be redirected
+      // If an error occurs, the loading state is reset
+      if (!isLoading) {
+        setIsLoading(false);
+      }
     }
-  }, [closeModal, performLogout]);
+  }, [isLoading, performLogout]);
   
   const handleCancel = useCallback(() => {
+    if (isLoading) return; // Don't allow cancellation during logout
     closeModal();
-  }, [closeModal]);
+  }, [isLoading, closeModal]);
   
   const isOpen = state.isOpen && state.type === 'logout';
   
   return (
-    <Overlay
-      id="logout-modal"
-      isOpen={isOpen}
-      onClose={handleCancel}
-    >
-      <ModalContent
-        onConfirm={handleLogout}
-        onCancel={handleCancel}
-        isLoading={isLoading}
-      />
-    </Overlay>
+    <LogoutErrorBoundary onError={() => console.log('Safely caught logout error')}>
+      <Overlay
+        id="logout-modal"
+        isOpen={isOpen}
+        onClose={handleCancel}
+      >
+        <ModalContent
+          onConfirm={handleLogout}
+          onCancel={handleCancel}
+          isLoading={isLoading}
+        />
+      </Overlay>
+    </LogoutErrorBoundary>
   );
 };
 

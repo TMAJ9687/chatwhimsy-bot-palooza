@@ -1,5 +1,5 @@
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useDialog } from '@/context/DialogContext';
 import {
   AlertDialog,
@@ -13,88 +13,44 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useUser } from '@/context/UserContext';
 import { useAdmin } from '@/hooks/useAdmin';
-import { useDialogCleanup } from '@/hooks/useDialogCleanup';
 import { useLogout } from '@/hooks/useLogout';
 import { LogOut } from 'lucide-react';
+import LogoutErrorBoundary from '@/components/error/LogoutErrorBoundary';
 
 const LogoutConfirmationDialog = () => {
   const { state, closeDialog } = useDialog();
   const { user } = useUser();
   const { isAdmin } = useAdmin();
-  
-  // Get dialog cleanup utilities with improved error handling
-  const { handleDialogClose, isClosingRef } = useDialogCleanup();
-  
-  // Track if component is mounted to prevent state updates after unmount
-  const isMountedRef = useRef(true);
-  
-  // Track if navigation is in progress to prevent race conditions
-  const isNavigatingRef = useRef(false);
-  
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const isVip = user?.isVip || false;
   
   // Get the logout functionality from our centralized hook
   const { performLogout } = useLogout();
 
-  // Track mounted state
-  useEffect(() => {
-    isMountedRef.current = true;
-    
-    // Clear body state manually to avoid UI state issues
-    if (document.body) {
-      document.body.style.overflow = 'auto';
-    }
-    
-    return () => {
-      isMountedRef.current = false;
-      
-      // Reset dialog state on unmount
-      if (isClosingRef.current && document.body) {
-        document.body.style.overflow = 'auto';
-        document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
-      }
-    };
-  }, []);
-
-  // Safe close with direct DOM cleanup as fallback
   const handleSafeClose = useCallback(() => {
-    // Skip if already unmounted
-    if (!isMountedRef.current) return;
-    
-    // Close dialog and clean up
-    handleDialogClose(() => closeDialog());
-    
-    // Additional direct cleanup to ensure modals are removed
-    setTimeout(() => {
-      if (document.body) {
-        document.body.style.overflow = 'auto';
-        document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
-      }
-    }, 150);
-  }, [closeDialog, handleDialogClose]);
+    if (!isLoggingOut) {
+      closeDialog();
+    }
+  }, [closeDialog, isLoggingOut]);
 
   const handleConfirm = useCallback(async () => {
-    // Prevent multiple clicks and skip if unmounted
-    if (isNavigatingRef.current || !isMountedRef.current) return;
-    isNavigatingRef.current = true;
-    
-    // Close the dialog immediately for visual feedback
-    handleSafeClose();
+    // Prevent multiple clicks
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     
     try {
-      // Perform logout without delays
+      // Close the dialog immediately for visual feedback
+      handleSafeClose();
+      
+      // Perform the logout
       await performLogout();
       
-      // No need for further actions as performLogout now handles all cleanup and redirection
+      // Note: Navigation is handled inside performLogout
     } catch (error) {
       console.error('Failed during logout confirmation:', error);
-      
-      // If all else fails, try a direct reload
-      if (isMountedRef.current) {
-        window.location.reload();
-      }
+      setIsLoggingOut(false);
     }
-  }, [handleSafeClose, performLogout]);
+  }, [handleSafeClose, performLogout, isLoggingOut]);
 
   const getFeedbackMessage = () => {
     if (isAdmin) {
@@ -106,32 +62,36 @@ const LogoutConfirmationDialog = () => {
     }
   };
 
+  // Wrap the entire component in our error boundary
   return (
-    <AlertDialog 
-      open={state.isOpen && state.type === 'logout'} 
-      onOpenChange={(open) => !open && handleSafeClose()}
-    >
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
-            <LogOut className="h-5 w-5 text-red-500" />
-            <span>Leaving so soon?</span>
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {getFeedbackMessage()}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>No, Stay</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleConfirm}
-            className="bg-red-500 hover:bg-red-600"
-          >
-            Yes, Logout
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <LogoutErrorBoundary>
+      <AlertDialog 
+        open={state.isOpen && state.type === 'logout'} 
+        onOpenChange={(open) => !open && handleSafeClose()}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <LogOut className="h-5 w-5 text-red-500" />
+              <span>Leaving so soon?</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {getFeedbackMessage()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoggingOut}>No, Stay</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirm}
+              className="bg-red-500 hover:bg-red-600"
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? 'Signing Out...' : 'Yes, Logout'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </LogoutErrorBoundary>
   );
 };
 

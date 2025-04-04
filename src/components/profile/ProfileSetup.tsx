@@ -15,7 +15,7 @@ interface ProfileSetupProps {
     age: number;
     country: string;
     interests: string[];
-    isVip: boolean; // Make isVip explicit
+    isVip: boolean;
   }) => void;
 }
 
@@ -23,46 +23,20 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
   const navigate = useNavigate();
   const [gender, setGender] = useState<string>('');
   const [age, setAge] = useState<number>(25);
-  const [country, setCountry] = useState<string>('');
-  const [countryFlag, setCountryFlag] = useState<string>('');
+  const [country, setCountry] = useState<string>('United States');
+  const [countryFlag, setCountryFlag] = useState<string>('us');
   const [interests, setInterests] = useState<string[]>([]);
   const [ageOptions, setAgeOptions] = useState<number[]>([]);
   const [isInterestsOpen, setIsInterestsOpen] = useState<boolean>(false);
   const [profileSubmitted, setProfileSubmitted] = useState<boolean>(false);
 
+  // Generate age options once on mount
   useEffect(() => {
     const options = [];
     for (let i = 18; i <= 90; i++) {
       options.push(i);
     }
     setAgeOptions(options);
-  }, []);
-
-  useEffect(() => {
-    const detectCountry = async () => {
-      try {
-        const response = await fetch('https://ipapi.co/json/');
-        const data = await response.json();
-        if (data.country_name) {
-          if (data.country_name.toLowerCase() === 'israel') {
-            setCountry('Palestine');
-            setCountryFlag('ps');
-          } else {
-            setCountry(data.country_name);
-            setCountryFlag(data.country_code.toLowerCase());
-          }
-        } else {
-          setCountry('United States');
-          setCountryFlag('us');
-        }
-      } catch (error) {
-        console.error('Error detecting country:', error);
-        setCountry('United States');
-        setCountryFlag('us');
-      }
-    };
-
-    detectCountry();
   }, []);
 
   const handleSubmit = () => {
