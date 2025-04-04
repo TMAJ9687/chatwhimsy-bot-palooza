@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/integrations/supabase/client';
+import { safeLogError } from '@/utils/safeErrorHandler';
 
 /**
  * Hook that provides logout functionality with proper redirection
@@ -20,38 +21,43 @@ export const useLogout = () => {
       // Set logout event to trigger listeners and prevent automatic relogin
       localStorage.setItem('logoutEvent', Date.now().toString());
       
-      // Clean up localStorage items
-      localStorage.removeItem('chatUser');
-      localStorage.removeItem('vipProfileComplete');
-      localStorage.removeItem('adminEmail');
-      localStorage.removeItem('adminData');
-      
-      // Clear user data first
+      // Clear user data first before any async operations
       clearUser();
+      
+      // Clean up localStorage items
+      try {
+        localStorage.removeItem('chatUser');
+        localStorage.removeItem('vipProfileComplete');
+        localStorage.removeItem('adminEmail');
+        localStorage.removeItem('adminData');
+      } catch (error) {
+        console.error('Error clearing localStorage:', error);
+      }
       
       // Run the callback if one was provided
       if (callback && typeof callback === 'function') {
         try {
           callback();
         } catch (error) {
-          console.error('Error calling callback during logout', error);
+          safeLogError(error, 'Error calling callback during logout');
         }
       }
       
-      // Sign out from Supabase
-      try {
-        await supabase.auth.signOut();
-      } catch (error) {
+      // Sign out from Supabase in a non-blocking way
+      const signOutPromise = supabase.auth.signOut().catch(error => {
         console.error('Supabase signout error:', error);
-      }
+      });
       
-      // Navigate to the appropriate page based on user type
-      // Use navigate for a cleaner approach instead of window.location
+      // Determine the destination based on user type
       const destination = !isVip ? '/feedback' : '/';
-      console.log(`Logout complete, navigating to ${destination}`);
+      console.log(`Logging out, navigating to ${destination}`);
       
       // Use navigate with replace to prevent back navigation after logout
+      // Don't wait for Supabase signOut to complete to prevent hanging
       navigate(destination, { replace: true });
+      
+      // Complete the Supabase signOut in the background
+      await signOutPromise;
       
     } catch (error) {
       console.error('Error during logout:', error);
@@ -61,7 +67,7 @@ export const useLogout = () => {
         navigate(!isVip ? '/feedback' : '/', { replace: true });
       } catch (e) {
         console.error('Fallback logout also failed', e);
-        window.location.reload();
+        window.location.href = '/';
       }
     }
   }, [user, isVip, clearUser, navigate]);

@@ -36,16 +36,21 @@ const LogoutConfirmationDialog = () => {
   const handleConfirm = useCallback(async () => {
     // Prevent multiple clicks
     if (isLoggingOut) return;
-    setIsLoggingOut(true);
     
     try {
+      setIsLoggingOut(true);
+      
       // Close the dialog immediately for visual feedback
       handleSafeClose();
       
-      // Perform the logout
-      await performLogout();
+      // Use a timeout to ensure the dialog is closed before logout executes
+      setTimeout(() => {
+        // Perform the logout
+        performLogout(() => {
+          console.log('Logout callback executed');
+        });
+      }, 50);
       
-      // Note: Navigation is handled inside performLogout
     } catch (error) {
       console.error('Failed during logout confirmation:', error);
       setIsLoggingOut(false);
