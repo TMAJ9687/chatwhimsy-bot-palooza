@@ -16,7 +16,7 @@ export const isAdminLoggedIn = async (): Promise<boolean> => {
     
     // Use RPC to call our security definer function
     const { data: isAdmin, error: rpcError } = await supabase.rpc(
-      'check_admin_status',
+      'is_admin',
       { user_id: session.user.id }
     );
     
@@ -94,7 +94,7 @@ export const adminLogin = async (email: string, password: string): Promise<boole
     if (data.user) {
       // Use RPC to check admin status
       const { data: isAdmin, error: rpcError } = await supabase.rpc(
-        'check_admin_status',
+        'is_admin',
         { user_id: data.user.id }
       );
       
