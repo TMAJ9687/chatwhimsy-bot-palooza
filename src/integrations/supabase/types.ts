@@ -486,6 +486,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_admin_status: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
       check_nickname_availability: {
         Args: {
           nickname_to_check: string

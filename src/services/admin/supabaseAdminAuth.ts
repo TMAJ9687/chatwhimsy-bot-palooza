@@ -14,30 +14,57 @@ export const isAdminLoggedIn = async (): Promise<boolean> => {
       return false;
     }
     
-    // First, check if the user exists in the admin_users table
-    const { data, error } = await supabase
-      .from('admin_users')
-      .select('id, email')
-      .eq('id', session.user.id)
-      .single();
+    // Use RPC to call our security definer function
+    const { data: isAdmin, error: rpcError } = await supabase.rpc(
+      'check_admin_status',
+      { user_id: session.user.id }
+    );
     
-    if (error) {
-      console.log('Error checking admin status:', error.message);
+    if (rpcError) {
+      console.error('Error checking admin status with RPC:', rpcError.message);
       
-      // As a fallback, check if email matches localStorage admin email
-      // This is for backward compatibility
-      if (localStorage.getItem('adminEmail') === session.user.email) {
-        console.log('Admin verified via localStorage fallback');
+      // Fallback: Direct check if RPC fails
+      const { data, error } = await supabase
+        .from('admin_users')
+        .select('id, email')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (error) {
+        console.log('Error checking admin status via direct query:', error.message);
+        
+        // Last resort: check localStorage fallback
+        if (localStorage.getItem('adminEmail') === session.user.email) {
+          console.log('Admin verified via localStorage fallback');
+          return true;
+        }
+        
+        return false;
+      }
+      
+      if (data) {
+        console.log('Admin verified via database fallback');
+        localStorage.setItem('adminEmail', data.email || session.user.email);
         return true;
       }
       
       return false;
     }
     
-    if (data) {
-      console.log('Admin verified via database');
-      // Store admin email in localStorage for fallback
-      localStorage.setItem('adminEmail', data.email || session.user.email);
+    if (isAdmin) {
+      console.log('Admin verified via secure RPC function');
+      
+      // Also fetch email for localStorage fallback
+      const { data } = await supabase
+        .from('admin_users')
+        .select('email')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (data?.email) {
+        localStorage.setItem('adminEmail', data.email);
+      }
+      
       return true;
     }
     
@@ -65,23 +92,45 @@ export const adminLogin = async (email: string, password: string): Promise<boole
     }
     
     if (data.user) {
-      // Check if this user is actually in the admin_users table
-      const { data: adminData, error: adminError } = await supabase
-        .from('admin_users')
-        .select('id, email')
-        .eq('id', data.user.id)
-        .single();
+      // Use RPC to check admin status
+      const { data: isAdmin, error: rpcError } = await supabase.rpc(
+        'check_admin_status',
+        { user_id: data.user.id }
+      );
       
-      if (adminError || !adminData) {
-        console.error('User exists but is not an admin:', adminError?.message || 'Not found in admin_users');
+      if (rpcError) {
+        console.error('Error checking admin status with RPC:', rpcError.message);
+        
+        // Fallback: direct check
+        const { data: adminData, error: adminError } = await supabase
+          .from('admin_users')
+          .select('id, email')
+          .eq('id', data.user.id)
+          .single();
+        
+        if (adminError || !adminData) {
+          console.error('User exists but is not an admin:', adminError?.message || 'Not found in admin_users');
+          return false;
+        }
+        
+        // Store admin info for fallback
+        localStorage.setItem('adminEmail', email);
+        localStorage.setItem('adminData', JSON.stringify({ email, id: data.user.id }));
+        
+        console.log('Admin login successful (fallback check)');
+        return true;
+      }
+      
+      if (!isAdmin) {
+        console.error('User exists but is not an admin (via RPC check)');
         return false;
       }
       
-      // Store admin email in localStorage for fallback and for session persistence
+      // Store admin info for fallback
       localStorage.setItem('adminEmail', email);
       localStorage.setItem('adminData', JSON.stringify({ email, id: data.user.id }));
       
-      console.log('Admin login successful');
+      console.log('Admin login successful (RPC check)');
       return true;
     }
     
