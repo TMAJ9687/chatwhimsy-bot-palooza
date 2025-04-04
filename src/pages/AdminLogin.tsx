@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminSession } from '@/hooks/useAdminSession';
@@ -20,6 +21,9 @@ const AdminLogin: React.FC = () => {
   const [loginAttempts, setLoginAttempts] = useState(0);
   const { isAuthenticated, checkForDashboardRedirect, error: sessionError, isLoading: sessionLoading, failedAttempts } = useAdminSession();
   
+  // Define dashboardPath - it should be a redirect path from checkForDashboardRedirect or default to admin-dashboard
+  const dashboardPath = checkForDashboardRedirect() || '/admin-dashboard';
+  
   useEffect(() => {
     if (failedAttempts && failedAttempts > 2) {
       console.debug('Multiple authentication check failures detected');
@@ -28,11 +32,11 @@ const AdminLogin: React.FC = () => {
   }, [failedAttempts]);
   
   useEffect(() => {
-    if (dashboardPath) {
+    if (isAuthenticated && dashboardPath) {
       console.log('Redirecting to dashboard - already authenticated');
       navigate(dashboardPath);
     }
-  }, [isAuthenticated, checkForDashboardRedirect, navigate]);
+  }, [isAuthenticated, navigate, dashboardPath]);
 
   useEffect(() => {
     if (sessionError) {

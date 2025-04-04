@@ -20,11 +20,14 @@ const AdminErrorHandler: React.FC<ErrorHandlerProps> = ({ children }) => {
     const handleAdminError = (event: ErrorEvent) => {
       const errorText = event.message || '';
       
-      // Only handle admin-related errors
-      if (errorText.includes('admin_users') || 
+      // Only handle admin-related errors and ignore CORS/external API errors
+      if ((errorText.includes('admin_users') || 
           errorText.includes('admin_actions') ||
           errorText.includes('admin') ||
-          errorText.includes('dashboard')) {
+          errorText.includes('dashboard')) && 
+          !errorText.includes('CORS') && 
+          !errorText.includes('ipapi.co') && 
+          !errorText.includes('429')) {
         
         // Prevent default handling
         event.preventDefault();
@@ -54,13 +57,16 @@ const AdminErrorHandler: React.FC<ErrorHandlerProps> = ({ children }) => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const errorMessage = event.reason?.message || 'Unknown admin error';
       
-      // Only handle admin-related errors
-      if (errorMessage.includes('admin_users') || 
+      // Only handle admin-related errors and ignore CORS/external API errors
+      if ((errorMessage.includes('admin_users') || 
           errorMessage.includes('admin_actions') ||
           errorMessage.includes('admin') ||
           errorMessage.includes('is_admin') ||
           errorMessage.includes('500') ||
-          errorMessage.includes('dashboard')) {
+          errorMessage.includes('dashboard')) && 
+          !errorMessage.includes('CORS') && 
+          !errorMessage.includes('ipapi.co') && 
+          !errorMessage.includes('429')) {
         
         // Prevent default handling
         event.preventDefault();
