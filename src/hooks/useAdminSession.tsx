@@ -19,41 +19,51 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [adminUser, setAdminUser] = useState<any>(null);
+  const [error, setError] = useState<Error | null>(null);
   
   // Check authentication status
   const checkAuthStatus = useCallback(async () => {
     try {
       setIsLoading(true);
+      setError(null);
       console.log('Checking admin auth status...');
+      
+      // First check if we have a session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('No session found, admin not authenticated');
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Use the is_admin function to check admin status
       const authenticated = await adminService.isAdminLoggedIn();
       console.log('Admin authenticated:', authenticated);
       
       if (authenticated) {
-        // If authenticated, get the current session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          try {
-            // Get admin user details
-            const { data, error } = await supabase
-              .from('admin_users')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (error) {
-              console.warn('Error fetching admin user details:', error.message);
-            } else if (data) {
-              setAdminUser(data);
-              console.log('Admin user details fetched:', data);
-            } else {
-              // Fallback to session user if no admin record found
-              setAdminUser({ email: session.user.email, id: session.user.id });
-              console.log('Using fallback admin details');
-            }
-          } catch (error) {
-            console.error('Error in admin user fetch:', error);
-            // Use session user as fallback
-            setAdminUser({ email: session.user.email, id: session.user.id });
+        // If authenticated, get user details from localStorage or session
+        try {
+          // Try to get admin details from local storage first
+          const adminDataString = localStorage.getItem('adminData');
+          if (adminDataString) {
+            const adminData = JSON.parse(adminDataString);
+            setAdminUser(adminData);
+          } else if (session?.user) {
+            // Fallback to session user
+            setAdminUser({ 
+              email: session.user.email, 
+              id: session.user.id 
+            });
+          }
+        } catch (error) {
+          console.error('Error parsing admin data:', error);
+          // Use session user as fallback
+          if (session?.user) {
+            setAdminUser({ 
+              email: session.user.email, 
+              id: session.user.id 
+            });
           }
         }
       }
@@ -62,6 +72,7 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
       setIsLoading(false);
     } catch (error) {
       console.error('Error checking auth status:', error);
+      setError(error as Error);
       setIsAuthenticated(false);
       setIsLoading(false);
       
@@ -152,6 +163,7 @@ export const useAdminSession = (redirectPath: string = '/secretadminportal') => 
     isAuthenticated,
     isLoading,
     user: adminUser || user,
+    error,
     refreshSession: checkAuthStatus,
     checkForDashboardRedirect
   };

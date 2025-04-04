@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminSession } from '@/hooks/useAdminSession';
@@ -6,6 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/shared/Logo';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import Button from '@/components/shared/Button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -14,7 +17,7 @@ const AdminLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { isAuthenticated, checkForDashboardRedirect } = useAdminSession();
+  const { isAuthenticated, checkForDashboardRedirect, error: sessionError } = useAdminSession();
   
   useEffect(() => {
     // Check if already authenticated and redirect if needed
@@ -23,6 +26,13 @@ const AdminLogin: React.FC = () => {
       navigate(dashboardPath);
     }
   }, [isAuthenticated, checkForDashboardRedirect, navigate]);
+
+  useEffect(() => {
+    // Show error message if there's a session error
+    if (sessionError) {
+      setErrorMessage(`Authentication error: ${sessionError.message}`);
+    }
+  }, [sessionError]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -40,8 +50,10 @@ const AdminLogin: React.FC = () => {
           description: 'Redirecting to admin dashboard...',
         });
         
-        // Redirect to admin dashboard after successful login
-        navigate('/admin-dashboard');
+        // Wait a moment before redirecting to let session initialize
+        setTimeout(() => {
+          navigate('/admin-dashboard');
+        }, 500);
       } else {
         console.log('Admin login failed');
         setErrorMessage('Login failed. Please check your credentials and ensure you have admin access.');
@@ -81,9 +93,10 @@ const AdminLogin: React.FC = () => {
           </div>
 
           {errorMessage && (
-            <div className="bg-destructive/15 text-destructive p-3 rounded-md mb-4">
-              <p>{errorMessage}</p>
-            </div>
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -97,10 +110,11 @@ const AdminLogin: React.FC = () => {
               <input
                 type="email"
                 id="email"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary dark:bg-gray-800 dark:border-gray-700 dark:text-white p-2"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             <div>
@@ -113,10 +127,11 @@ const AdminLogin: React.FC = () => {
               <input
                 type="password"
                 id="password"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary dark:bg-gray-800 dark:border-gray-700 dark:text-white p-2"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             <Button
@@ -125,6 +140,7 @@ const AdminLogin: React.FC = () => {
               size="lg"
               className="bg-secondary text-white font-semibold py-3 rounded-lg w-full"
               disabled={isLoading}
+              type="submit"
             >
               {isLoading ? 'Logging in...' : 'Login'}
             </Button>

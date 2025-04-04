@@ -1,4 +1,3 @@
-
 // Custom type definitions for admin tables
 
 // Admin user type
@@ -31,8 +30,9 @@ export interface AdminDashboardStats {
 
 // Helper to get the API URL and headers
 const getApiConfig = () => {
-  const apiUrl = process.env.SUPABASE_URL || '';
-  const apiKey = process.env.SUPABASE_ANON_KEY || '';
+  // Use the supabase client configuration instead of process.env
+  const apiUrl = "https://lvawljaqsafbjpnrwkyd.supabase.co";
+  const apiKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2YXdsamFxc2FmYmpwbnJ3a3lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMzNjczMzgsImV4cCI6MjA1ODk0MzMzOH0.PoAP2KhiL2dUDI1Ti_SAoQiqsI8jhKIrLw_3Vra6Qls";
   
   const headers = {
     'Content-Type': 'application/json',
@@ -179,8 +179,6 @@ export const adminDb = {
   dashboard: () => ({
     getStats: async () => {
       try {
-        const { apiUrl, headers } = getApiConfig();
-        
         // Since we're not using an RPC function, we'll simulate the stats
         // In a real app, this would be replaced with an actual endpoint
         const mockStats = {
