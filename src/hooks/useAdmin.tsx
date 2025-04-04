@@ -14,16 +14,26 @@ import { useAdminReports } from './admin/useAdminReports';
 import { useAdminSettings } from './admin/useAdminSettings';
 import { useAdminActions } from './admin/useAdminActions';
 import { trackAsyncOperation } from '@/utils/performanceMonitor';
+import { useChatInitialization } from './useChatInitialization';
 
 export const useAdmin = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [bots, setBots] = useState<Bot[]>([]);
+  const { onlineUsers: chatUsers } = useChatInitialization();
   
   // Initialize all admin hooks
   const { isAdmin, adminLogout: authLogout, changeAdminPassword, loading: authLoading } = useAdminAuth();
   const { adminActions, setAdminActions, loadAdminActions } = useAdminActions(isAdmin);
-  const { loadBots, createBot, updateBot, deleteBot, isProcessing: isBotsProcessing } = useAdminBots(isAdmin);
+  const { 
+    loadBots, 
+    createBot, 
+    updateBot, 
+    deleteBot, 
+    onlineUsers,
+    trackUserOnlineStatus,
+    isProcessing: isBotsProcessing 
+  } = useAdminBots(isAdmin);
   const { 
     bannedUsers, 
     loadBannedUsers, 
@@ -47,6 +57,17 @@ export const useAdmin = () => {
   
   // Combine processing states
   const isProcessing = isBotsProcessing || isUsersProcessing || authLoading;
+  
+  // Track chat users to update admin dashboard
+  useEffect(() => {
+    if (!isAdmin) return;
+    
+    // When chat users change, update their status in admin tracking
+    chatUsers.forEach(user => {
+      trackUserOnlineStatus(user.id, true); // Mark all chat users as online
+    });
+    
+  }, [isAdmin, chatUsers, trackUserOnlineStatus]);
   
   // Memoized derived data to prevent unnecessary recalculations
   const vipUsers = useMemo(() => bots.filter(bot => bot.vip), [bots]);
@@ -173,6 +194,7 @@ export const useAdmin = () => {
     loading,
     isProcessing,
     bots,
+    onlineUsers,
     vipUsers,
     standardUsers,
     bannedUsers,
@@ -183,6 +205,7 @@ export const useAdmin = () => {
     createBot,
     updateBot,
     deleteBot,
+    trackUserOnlineStatus,
     
     // User actions
     kickUser,

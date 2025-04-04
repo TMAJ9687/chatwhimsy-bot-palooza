@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { AdminAction, ReportFeedback, BanRecord } from '@/types/admin';
 import { Bot } from '@/types/chat';
+import { botProfiles } from '@/data/botProfiles';
 
 /**
  * Check if admin is logged in
@@ -130,34 +131,16 @@ export const getAdminActions = async (): Promise<AdminAction[]> => {
  */
 export const getAllBots = async (): Promise<Bot[]> => {
   try {
-    // In a real implementation, this would fetch from the bots table
-    // For now, return mock data
-    return [
-      {
-        id: "bot-1",
-        name: "Alex",
-        age: 25,
-        gender: "male",
-        country: "United States",
-        countryCode: "US",
-        vip: false,
-        interests: ["sports", "movies"],
-        avatar: "/avatars/bot1.png",
-        responses: []
-      },
-      {
-        id: "bot-2",
-        name: "Emma",
-        age: 28,
-        gender: "female",
-        country: "Canada",
-        countryCode: "CA",
-        vip: true,
-        interests: ["music", "travel"],
-        avatar: "/avatars/bot2.png",
-        responses: []
-      }
-    ];
+    // Use the bot profiles from chat data instead of mock data
+    // This connects the admin dashboard with the actual bots in the chat
+    const bots = [...botProfiles];
+    
+    // Add online status to the bots (for demo, we'll set some as online)
+    return bots.map((bot, index) => ({
+      ...bot,
+      // Set every other bot as online for demonstration
+      isOnline: index % 2 === 0
+    }));
   } catch (error) {
     console.error('Error getting bots:', error);
     return [];
@@ -226,6 +209,29 @@ export const deleteBot = async (id: string): Promise<boolean> => {
     console.error('Error deleting bot:', error);
     return false;
   }
+};
+
+// Track online users
+let onlineUsers: Set<string> = new Set();
+
+/**
+ * User tracking functions for admin dashboard
+ */
+export const trackUserActivity = (userId: string, isOnline: boolean): void => {
+  if (isOnline) {
+    onlineUsers.add(userId);
+  } else {
+    onlineUsers.delete(userId);
+  }
+  console.log(`User ${userId} is now ${isOnline ? 'online' : 'offline'}. Total online:`, onlineUsers.size);
+};
+
+export const getOnlineUserCount = (): number => {
+  return onlineUsers.size;
+};
+
+export const getOnlineUserIds = (): string[] => {
+  return Array.from(onlineUsers);
 };
 
 /**

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Bot } from '@/types/chat';
 import { botProfiles } from '@/data/botProfiles';
 import { sortUsers } from '@/utils/botUtils';
+import * as adminService from '@/services/admin/adminService';
 
 export const useChatInitialization = () => {
   // Default bot from profiles
@@ -25,7 +26,8 @@ export const useChatInitialization = () => {
   // Set up online users without network requests
   useEffect(() => {
     // Simply set all bots as online - no need for geolocation
-    setOnlineUsers(new Set(sortedBotProfiles.map(bot => bot.id)));
+    const onlineIds = new Set(sortedBotProfiles.map(bot => bot.id));
+    setOnlineUsers(onlineIds);
     
     // Set default country
     setUserCountry('United States');
@@ -35,6 +37,21 @@ export const useChatInitialization = () => {
     if (hasAcceptedRules) {
       setRulesAccepted(true);
     }
+    
+    // Register online bots with admin service
+    sortedBotProfiles.forEach((bot, index) => {
+      // Only mark some bots as online for demonstration
+      if (index % 2 === 0) {
+        adminService.trackUserActivity(bot.id, true);
+      }
+    });
+    
+    // Cleanup function to mark bots as offline when leaving
+    return () => {
+      sortedBotProfiles.forEach(bot => {
+        adminService.trackUserActivity(bot.id, false);
+      });
+    };
   }, [sortedBotProfiles]);
 
   // Save rules acceptance to localStorage when it changes

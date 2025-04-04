@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Bot } from '@/types/chat';
 import { useToast } from '@/hooks/use-toast';
 import * as adminService from '@/services/admin/adminService';
@@ -10,6 +10,7 @@ import * as adminService from '@/services/admin/adminService';
 export const useAdminBots = (isAdmin: boolean) => {
   const { toast } = useToast();
   const [bots, setBots] = useState<Bot[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   
   // Load bots data
@@ -20,11 +21,29 @@ export const useAdminBots = (isAdmin: boolean) => {
       const loadedBots = await adminService.getAllBots();
       setBots(loadedBots);
       console.log(`Loaded ${loadedBots.length} bots`);
+      
+      // Get online users
+      const onlineIds = adminService.getOnlineUserIds();
+      setOnlineUsers(onlineIds);
+      console.log(`Loaded ${onlineIds.length} online users`);
+      
       return loadedBots;
     } catch (error) {
       console.error('Error loading bots:', error);
       return [];
     }
+  }, [isAdmin]);
+  
+  // Bot monitoring - periodically update online status
+  useEffect(() => {
+    if (!isAdmin) return;
+    
+    const intervalId = setInterval(async () => {
+      const onlineIds = adminService.getOnlineUserIds();
+      setOnlineUsers(onlineIds);
+    }, 10000); // Check every 10 seconds
+    
+    return () => clearInterval(intervalId);
   }, [isAdmin]);
   
   // Bot management
@@ -162,13 +181,24 @@ export const useAdminBots = (isAdmin: boolean) => {
       setIsProcessing(false);
     }
   }, [isAdmin, toast, bots]);
+
+  // Track a user's online status
+  const trackUserOnlineStatus = useCallback((userId: string, isOnline: boolean) => {
+    if (!isAdmin) return;
+    
+    adminService.trackUserActivity(userId, isOnline);
+    // Update our local list of online users
+    setOnlineUsers(adminService.getOnlineUserIds());
+  }, [isAdmin]);
   
   return {
     bots,
+    onlineUsers,
     loadBots,
     createBot,
     updateBot,
     deleteBot,
+    trackUserOnlineStatus,
     isProcessing
   };
 };

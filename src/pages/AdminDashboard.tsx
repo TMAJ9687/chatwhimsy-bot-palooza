@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAdminSession from '@/hooks/useAdminSession';
@@ -5,9 +6,11 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   Users, Settings, UserPlus, ShieldAlert, MessageSquare, 
-  LogOut, BarChart4, User, Ban, Activity, RefreshCw
+  LogOut, BarChart4, User, Ban, Activity, RefreshCw, 
+  Circle, CheckCircle2
 } from 'lucide-react';
 import Statistics from '@/components/admin/statistics/Statistics';
 import { useToast } from '@/hooks/use-toast';
@@ -15,10 +18,11 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { adminLogout } from '@/services/admin/supabaseAdminAuth';
 import { adminDb } from '@/integrations/supabase/adminTypes';
 import AdminErrorHandler from '@/components/admin/ErrorHandler';
+import { Bot } from '@/types/chat';
 
 const AdminDashboard = () => {
   const { isAuthenticated, user, isLoading: sessionLoading, refreshSession } = useAdminSession();
-  const { adminLogout: hookAdminLogout, isAdmin, loading } = useAdmin();
+  const { adminLogout: hookAdminLogout, isAdmin, loading, bots, onlineUsers } = useAdmin();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentTab, setCurrentTab] = useState('overview');
@@ -63,8 +67,8 @@ const AdminDashboard = () => {
       
       if (data) {
         setStats({
-          totalUsers: data.total_users || 0,
-          vipUsers: data.vip_users || 0,
+          totalUsers: data.total_users || bots.length || 0,
+          vipUsers: data.vip_users || bots.filter(bot => bot.vip).length || 0,
           activeBans: data.active_bans || 0
         });
         console.log('Dashboard stats loaded successfully');
@@ -79,7 +83,7 @@ const AdminDashboard = () => {
     } finally {
       setDataLoading(false);
     }
-  }, [toast]);
+  }, [toast, bots]);
   
   useEffect(() => {
     if (isAuthenticated && !sessionLoading) {
@@ -114,6 +118,11 @@ const AdminDashboard = () => {
       title: "Refreshing",
       description: "Refreshing admin dashboard data...",
     });
+  };
+  
+  // Helper function to check if a bot is online
+  const isBotOnline = (botId: string) => {
+    return onlineUsers && onlineUsers.includes(botId);
   };
   
   if (!isAuthenticated && !sessionLoading) {
@@ -258,11 +267,11 @@ const AdminDashboard = () => {
                     
                     <Card>
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">Active Bans</CardTitle>
+                        <CardTitle className="text-sm font-medium">Online Users</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold">{stats.activeBans}</div>
-                        <p className="text-xs text-muted-foreground">-2 from last week</p>
+                        <div className="text-2xl font-bold">{onlineUsers?.length || 0}</div>
+                        <p className="text-xs text-muted-foreground">Active now</p>
                       </CardContent>
                     </Card>
                   </div>
@@ -303,10 +312,61 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <p className="mb-4">Manage user accounts, permissions, and status.</p>
-                {/* User management content would go here */}
-                <div className="border rounded-md p-8 flex items-center justify-center">
-                  <p className="text-muted-foreground">User management interface will appear here</p>
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Country</TableHead>
+                      <TableHead>VIP</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bots.slice(0, 5).map((bot: Bot) => (
+                      <TableRow key={bot.id}>
+                        <TableCell className="font-medium flex items-center">
+                          <span className="mr-2">{bot.avatar}</span>
+                          {bot.name}
+                        </TableCell>
+                        <TableCell>
+                          {isBotOnline(bot.id) ? (
+                            <span className="flex items-center">
+                              <Circle className="h-3 w-3 fill-green-500 text-green-500 mr-1" />
+                              Online
+                            </span>
+                          ) : (
+                            <span className="flex items-center">
+                              <Circle className="h-3 w-3 fill-gray-300 text-gray-300 mr-1" />
+                              Offline
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>{bot.country}</TableCell>
+                        <TableCell>
+                          {bot.vip ? (
+                            <span className="flex items-center">
+                              <CheckCircle2 className="h-4 w-4 text-green-500 mr-1" />
+                              Yes
+                            </span>
+                          ) : (
+                            <span className="text-gray-500">No</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="outline" size="sm">View</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {bots.length > 5 && (
+                  <div className="flex justify-center mt-4">
+                    <Button variant="outline" onClick={() => setCurrentTab('bots')}>
+                      View All Users
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -333,9 +393,65 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <p className="mb-4">Manage AI chat bots, customize their profiles and responses.</p>
-                {/* Bot management content would go here */}
-                <div className="border rounded-md p-8 flex items-center justify-center">
-                  <p className="text-muted-foreground">Bot management interface will appear here</p>
+                
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Avatar</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Age</TableHead>
+                      <TableHead>Gender</TableHead>
+                      <TableHead>Country</TableHead>
+                      <TableHead>VIP</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bots.map((bot: Bot) => (
+                      <TableRow key={bot.id}>
+                        <TableCell>{bot.avatar}</TableCell>
+                        <TableCell className="font-medium">{bot.name}</TableCell>
+                        <TableCell>
+                          {isBotOnline(bot.id) ? (
+                            <span className="flex items-center">
+                              <Circle className="h-3 w-3 fill-green-500 text-green-500 mr-1" />
+                              Online
+                            </span>
+                          ) : (
+                            <span className="flex items-center">
+                              <Circle className="h-3 w-3 fill-gray-300 text-gray-300 mr-1" />
+                              Offline
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>{bot.age}</TableCell>
+                        <TableCell>{bot.gender}</TableCell>
+                        <TableCell>{bot.country}</TableCell>
+                        <TableCell>
+                          {bot.vip ? (
+                            <span className="flex items-center">
+                              <CheckCircle2 className="h-4 w-4 text-green-500 mr-1" />
+                              Yes
+                            </span>
+                          ) : (
+                            <span className="text-gray-500">No</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="outline" size="sm" className="mr-2">Edit</Button>
+                          <Button variant="outline" size="sm" className="text-red-500">Delete</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                
+                <div className="flex justify-end mt-4">
+                  <Button>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add New Bot
+                  </Button>
                 </div>
               </CardContent>
             </Card>

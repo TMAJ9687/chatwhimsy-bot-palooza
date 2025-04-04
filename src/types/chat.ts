@@ -1,4 +1,3 @@
-
 export interface Bot {
   id: string;
   name: string;
@@ -10,6 +9,7 @@ export interface Bot {
   interests: string[];
   avatar: string;
   responses: string[];
+  isOnline?: boolean; // Added for admin dashboard
 }
 
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read';
@@ -27,7 +27,6 @@ export interface Message {
     language: string;
     content: string;
   }>;
-  // New fields for VIP features
   replyTo?: string; // ID of message being replied to
   reactions?: Array<{
     emoji: string;

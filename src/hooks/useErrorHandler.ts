@@ -2,6 +2,7 @@
 import { useCallback } from 'react';
 import { useToast } from './use-toast';
 import { handleError } from '@/utils/errorHandler';
+import { isNonActionableError } from '@/utils/safeErrorHandler';
 
 /**
  * A hook to provide error handling functionality with enhanced filter
@@ -11,15 +12,8 @@ export const useErrorHandler = () => {
   const { toast } = useToast();
   
   const showError = useCallback((message: string) => {
-    // Filter out non-actionable errors related to external APIs and React warnings
-    if (message.includes('CORS') || 
-        message.includes('ipapi.co') || 
-        message.includes('ipgeolocation.io') ||
-        message.includes('429') ||  // Too Many Requests
-        message.includes('API_KEY_HERE') ||
-        message.includes('Support for defaultProps will be removed') ||
-        message.includes('YAxis: Support for defaultProps') ||
-        message.includes('XAxis: Support for defaultProps')) {
+    // Use the centralized non-actionable error filter
+    if (isNonActionableError(message)) {
       console.debug('Filtered non-actionable error:', message);
       return;
     }
@@ -33,20 +27,9 @@ export const useErrorHandler = () => {
   
   const captureError = useCallback((error: unknown, context?: string) => {
     // Skip handling for non-actionable errors
-    if (error instanceof Error) {
-      const errorMessage = error.message;
-      
-      if (errorMessage.includes('CORS') || 
-          errorMessage.includes('ipapi.co') || 
-          errorMessage.includes('ipgeolocation.io') ||
-          errorMessage.includes('429') ||  // Too Many Requests
-          errorMessage.includes('API_KEY_HERE') ||
-          errorMessage.includes('Support for defaultProps will be removed') ||
-          errorMessage.includes('YAxis: Support for defaultProps') ||
-          errorMessage.includes('XAxis: Support for defaultProps')) {
-        console.debug('Filtered non-actionable error in captureError:', errorMessage);
-        return;
-      }
+    if (error instanceof Error && isNonActionableError(error)) {
+      console.debug('Filtered non-actionable error in captureError:', error.message);
+      return;
     }
     
     if (error instanceof Error) {

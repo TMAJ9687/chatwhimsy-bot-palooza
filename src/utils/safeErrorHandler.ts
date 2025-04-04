@@ -25,10 +25,13 @@ export const isNonActionableError = (error: Error | string): boolean => {
     errorMessage.includes('unmounted component') ||
     errorMessage.includes('Cannot update a component') ||
     
-    // React warnings
+    // React warnings for Recharts
     errorMessage.includes('Support for defaultProps will be removed') ||
     errorMessage.includes('YAxis: Support for defaultProps') ||
     errorMessage.includes('XAxis: Support for defaultProps') ||
+    errorMessage.includes('CartesianAxis: Support for defaultProps') ||
+    errorMessage.includes('Legend: Support for defaultProps') ||
+    errorMessage.includes('Tooltip: Support for defaultProps') ||
     
     // Browser extensions
     errorMessage.includes('extension') ||
