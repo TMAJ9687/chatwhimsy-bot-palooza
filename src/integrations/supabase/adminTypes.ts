@@ -62,7 +62,7 @@ export const adminDb = {
           .from('admin_users')
           .select('*')
           .eq('id', userId)
-          .single();
+          .maybeSingle();
         
         if (error) {
           console.error('Error fetching admin user:', error.message);
@@ -180,44 +180,49 @@ export const adminDb = {
   dashboard: () => ({
     getStats: async () => {
       try {
-        // Try to get real stats using a custom query instead of RPC
-        const { data, error } = await supabase
-          .from('admin_users')
-          .select('count(*)', { count: 'exact' });
+        // Use direct count queries instead of relying on count property
+        let totalUsers = 0;
+        let vipUsers = 0;
+        let activeBans = 0;
         
-        if (error) {
-          console.error('Error getting admin count:', error.message);
-          
-          // Fallback to mock stats
-          const mockStats: AdminDashboardStats = {
-            total_users: 100,
-            vip_users: 25,
-            active_bans: 5
-          };
-          
-          console.log('Using mock stats as fallback');
-          return { data: mockStats, error: null };
+        // Get total users count
+        const usersResult = await supabase
+          .from('admin_users')
+          .select('*', { count: 'exact', head: true });
+        
+        if (!usersResult.error && usersResult.count !== null) {
+          totalUsers = usersResult.count;
         }
         
-        // Get additional stats
-        const { data: vipData, error: vipError } = await supabase
+        // Get VIP users count
+        const vipResult = await supabase
           .from('vip_subscriptions')
-          .select('count(*)', { count: 'exact' })
+          .select('*', { count: 'exact', head: true })
           .eq('is_active', true);
           
-        const { data: banData, error: banError } = await supabase
+        if (!vipResult.error && vipResult.count !== null) {
+          vipUsers = vipResult.count;
+        }
+        
+        // Get ban count
+        const banResult = await supabase
           .from('admin_actions')
-          .select('count(*)', { count: 'exact' })
+          .select('*', { count: 'exact', head: true })
           .eq('action_type', 'ban');
           
-        // Compile stats from queries
+        if (!banResult.error && banResult.count !== null) {
+          activeBans = banResult.count;
+        }
+        
+        // Compile stats
         const stats: AdminDashboardStats = {
-          total_users: data?.count || 100,
-          vip_users: vipError ? 25 : (vipData?.count || 0),
-          active_bans: banError ? 5 : (banData?.count || 0)
+          total_users: totalUsers,
+          vip_users: vipUsers,
+          active_bans: activeBans
         };
         
         return { data: stats, error: null };
+        
       } catch (error) {
         console.error('Error in dashboard.getStats:', error);
         

@@ -21,8 +21,8 @@ const AdminLogin: React.FC = () => {
   const [loginAttempts, setLoginAttempts] = useState(0);
   const { isAuthenticated, checkForDashboardRedirect, error: sessionError, isLoading: sessionLoading, failedAttempts } = useAdminSession();
   
-  // Define dashboardPath - it should be a redirect path from checkForDashboardRedirect or default to admin-dashboard
-  const dashboardPath = checkForDashboardRedirect() || '/admin-dashboard';
+  // Define dashboardPath properly
+  const dashboardPath = '/admin-dashboard';
   
   useEffect(() => {
     if (failedAttempts && failedAttempts > 2) {
@@ -32,11 +32,14 @@ const AdminLogin: React.FC = () => {
   }, [failedAttempts]);
   
   useEffect(() => {
-    if (isAuthenticated && dashboardPath) {
+    // Get proper redirection path
+    const redirectPath = checkForDashboardRedirect() || dashboardPath;
+    
+    if (isAuthenticated && redirectPath) {
       console.log('Redirecting to dashboard - already authenticated');
-      navigate(dashboardPath);
+      navigate(redirectPath);
     }
-  }, [isAuthenticated, navigate, dashboardPath]);
+  }, [isAuthenticated, navigate, checkForDashboardRedirect]);
 
   useEffect(() => {
     if (sessionError) {
