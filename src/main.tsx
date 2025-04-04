@@ -33,7 +33,10 @@ if (process.env.NODE_ENV === 'production') {
         errorText.includes('allowedOriginsToCommunicateWith') ||
         errorText.includes('Failed to load resource: net::ERR_BLOCKED_BY_CLIENT') ||
         errorText.includes('BloomFilter error') ||
-        errorText.includes('A listener indicated an asynchronous response')) {
+        errorText.includes('A listener indicated an asynchronous response') ||
+        errorText.includes('ipapi.co') ||
+        errorText.includes('ipgeolocation.io') ||
+        errorText.includes('API_KEY_HERE')) {
       return;
     }
     originalConsoleError.apply(console, args);
@@ -47,7 +50,10 @@ if (process.env.NODE_ENV === 'production') {
         warningText.includes('Firestore') ||
         warningText.includes('firestore') ||
         warningText.includes('preloaded using link preload') ||
-        warningText.includes('Unrecognized feature')) {
+        warningText.includes('Unrecognized feature') ||
+        warningText.includes('ipapi.co') ||
+        warningText.includes('ipgeolocation.io') ||
+        warningText.includes('API_KEY_HERE')) {
       return;
     }
     originalConsoleWarn.apply(console, args);

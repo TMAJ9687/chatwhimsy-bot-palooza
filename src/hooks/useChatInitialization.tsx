@@ -22,41 +22,14 @@ export const useChatInitialization = () => {
     setCurrentBot(user);
   }, []);
 
-  // Fetch user country on mount
+  // Set up online users without relying on geolocation
   useEffect(() => {
-    const fetchUserCountry = async () => {
-      try {
-        const response = await fetch('https://api.ipgeolocation.io/ipgeo?apiKey=API_KEY_HERE');
-        if (!response.ok) {
-          const fallbackResponse = await fetch('https://ipapi.co/json/');
-          const data = await fallbackResponse.json();
-          setUserCountry(data.country_name || '');
-        } else {
-          const data = await response.json();
-          setUserCountry(data.country_name || '');
-        }
-      } catch (error) {
-        console.error('Error fetching user country:', error);
-        try {
-          const fallbackResponse = await fetch('https://ipapi.co/json/');
-          const data = await fallbackResponse.json();
-          setUserCountry(data.country_name || '');
-        } catch (fallbackError) {
-          console.error('Error with fallback country fetch:', fallbackError);
-        }
-      }
-    };
-
-    fetchUserCountry();
-  }, []);
-
-  // Update online users when user country changes - only once
-  useEffect(() => {
-    if (userCountry) {
-      // Remove the console.log to reduce noise
-      setOnlineUsers(new Set(sortedBotProfiles.map(bot => bot.id)));
-    }
-  }, [userCountry, sortedBotProfiles]);
+    // Simply set all bots as online - no need for geolocation
+    setOnlineUsers(new Set(sortedBotProfiles.map(bot => bot.id)));
+    
+    // Use a default country instead of trying to fetch it
+    setUserCountry('United States');
+  }, [sortedBotProfiles]);
 
   return {
     currentBot,

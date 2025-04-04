@@ -24,10 +24,12 @@ export const handleError = (error: Error, additionalInfo?: Record<string, any>) 
     return;
   }
   
-  // Filter API key errors
-  if ((error.message.includes('401') && error.message.includes('ipgeo')) ||
-      error.message.includes('API_KEY_HERE')) {
-    console.debug('Ignoring API key error:', error.message);
+  // Filter out IP and geolocation related errors
+  if (error.message.includes('ipapi.co') ||
+      error.message.includes('ipgeolocation.io') ||
+      error.message.includes('API_KEY_HERE') ||
+      (error.message.includes('401') && error.message.includes('ipgeo'))) {
+    console.debug('Ignoring geolocation API error:', error.message);
     return;
   }
   
@@ -122,6 +124,15 @@ export const setupGlobalErrorHandling = () => {
       return;
     }
     
+    // Filter geolocation errors
+    if (event.reason?.message?.includes('ipapi.co') ||
+        event.reason?.message?.includes('ipgeolocation.io') ||
+        event.reason?.message?.includes('API_KEY_HERE') ||
+        (event.reason?.message?.includes('401') && event.reason?.message?.includes('ipgeo'))) {
+      event.preventDefault();
+      return;
+    }
+    
     handleError(
       new Error(`Unhandled promise rejection: ${event.reason || 'Unknown error'}`),
       { source: 'unhandledrejection' }
@@ -137,6 +148,15 @@ export const setupGlobalErrorHandling = () => {
         event.message?.includes('contentScript') ||
         event.message?.includes('Unrecognized feature') ||
         event.message?.includes('preloaded using link preload')) {
+      event.preventDefault();
+      return;
+    }
+    
+    // Filter geolocation errors
+    if (event.message?.includes('ipapi.co') ||
+        event.message?.includes('ipgeolocation.io') ||
+        event.message?.includes('API_KEY_HERE') ||
+        (event.message?.includes('401') && event.message?.includes('ipgeo'))) {
       event.preventDefault();
       return;
     }

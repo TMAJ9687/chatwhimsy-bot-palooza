@@ -47,6 +47,7 @@ export const useLogout = () => {
       localStorage.removeItem('chatUser');
       localStorage.removeItem('vipProfileComplete');
       localStorage.removeItem('adminEmail');
+      localStorage.removeItem('adminData');
       
       // Clear user data first
       clearUser();
@@ -67,12 +68,14 @@ export const useLogout = () => {
         console.error('Supabase signout error:', error);
       }
       
-      // Force a hard redirect based on user type
-      const destination = isVip ? '/' : '/feedback';
-      console.log(`Standard user logout complete. isVip=${isVip}`);
-      
-      // Use window.location for a full page reload to avoid DOM state issues
-      window.location.href = destination;
+      // Always redirect to feedback page after logout for standard users
+      if (!isVip) {
+        console.log('Standard user logout complete, redirecting to feedback page');
+        window.location.href = '/feedback';
+      } else {
+        console.log('VIP user logout complete, redirecting to home page');
+        window.location.href = '/';
+      }
       
     } catch (error) {
       console.error('Error during logout:', error);
@@ -80,10 +83,12 @@ export const useLogout = () => {
       try {
         console.log('Attempting fallback logout approach');
         clearUser();
-        // In case of error, always redirect to home
-        window.location.href = '/';
+        // In case of error, always redirect to feedback page for standard users
+        window.location.href = !isVip ? '/feedback' : '/';
       } catch (e) {
         console.error('Fallback logout also failed', e);
+        // Last resort - just reload the page
+        window.location.reload();
       }
     }
   }, [user, isVip, clearUser, navigate]);

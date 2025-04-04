@@ -37,6 +37,16 @@ const ErrorHandler: React.FC = () => {
       return true;
     }
     
+    // Filter out IP geolocation errors
+    if (errorText.includes('ipapi.co') ||
+        errorText.includes('ipgeolocation.io') ||
+        errorText.includes('401') ||
+        errorText.includes('API_KEY_HERE') ||
+        errorText.includes('429')) {
+      event.preventDefault();
+      return true;
+    }
+    
     // Filter out any Firebase-related errors completely
     if (errorText.includes('firebase') || 
         errorText.includes('Firestore') || 
@@ -50,12 +60,6 @@ const ErrorHandler: React.FC = () => {
     // Filter out message channel errors
     if (errorText.includes('message channel closed') ||
         errorText.includes('asynchronous response')) {
-      event.preventDefault();
-      return true;
-    }
-    
-    // Filter API-related errors
-    if (errorText.includes('401') && errorText.includes('ipgeo')) {
       event.preventDefault();
       return true;
     }
@@ -101,6 +105,8 @@ const ErrorHandler: React.FC = () => {
           errorMessage.includes('message channel closed') ||
           errorMessage.includes('asynchronous response') ||
           errorMessage.includes('API_KEY_HERE') ||
+          errorMessage.includes('ipapi.co') ||
+          errorMessage.includes('ipgeolocation.io') ||
           (errorMessage.includes('401') && errorMessage.includes('ipgeo'))) {
         event.preventDefault();
         return;

@@ -3,7 +3,7 @@ import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Overlay } from '@/components/ui/overlay';
 import { useModal } from '@/context/ModalContext';
-import { signOutUser } from '@/services/auth/supabaseAuth'; // Changed from any Firebase references
+import { useLogout } from '@/hooks/useLogout';
 
 interface ModalContentProps {
   onConfirm: () => void;
@@ -38,19 +38,19 @@ const ModalContent: React.FC<ModalContentProps> = ({ onConfirm, onCancel, isLoad
 const LogoutConfirmationModal: React.FC = () => {
   const { state, closeModal } = useModal();
   const [isLoading, setIsLoading] = useState(false);
+  const { performLogout } = useLogout();
   
   const handleLogout = useCallback(async () => {
     setIsLoading(true);
     try {
-      await signOutUser();
-      window.location.href = '/';
+      await performLogout();
+      // Redirect is handled in the performLogout function
     } catch (error) {
       console.error('Logout error:', error);
-    } finally {
       setIsLoading(false);
       closeModal();
     }
-  }, [closeModal]);
+  }, [closeModal, performLogout]);
   
   const handleCancel = useCallback(() => {
     closeModal();

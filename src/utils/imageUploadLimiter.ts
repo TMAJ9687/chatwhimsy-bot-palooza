@@ -20,10 +20,8 @@ const getTodayDateString = (): string => {
 // Initialize or get the tracker from localStorage
 const getTracker = async (): Promise<ImageUploadTracker> => {
   try {
-    // Try to get IP address
-    const response = await fetch('https://ipapi.co/json/');
-    const data = await response.json();
-    const ip = data.ip || 'unknown';
+    // Use a consistent identifier instead of trying to get IP
+    const ip = 'local-user';
     
     const storedTrackerJson = localStorage.getItem(`image-upload-tracker-${ip}`);
     
@@ -47,10 +45,10 @@ const getTracker = async (): Promise<ImageUploadTracker> => {
       lastResetDate: getTodayDateString()
     };
   } catch (error) {
-    console.error('Error fetching IP or initializing tracker:', error);
+    console.error('Error initializing tracker:', error);
     // Fallback
     return {
-      ip: 'unknown',
+      ip: 'local-user',
       dailyUploads: 0,
       lastResetDate: getTodayDateString()
     };
