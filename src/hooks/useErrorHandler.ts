@@ -18,7 +18,8 @@ export const useErrorHandler = () => {
         message.includes('429') ||  // Too Many Requests
         message.includes('API_KEY_HERE') ||
         message.includes('Support for defaultProps will be removed') ||
-        message.includes('YAxis: Support for defaultProps')) {
+        message.includes('YAxis: Support for defaultProps') ||
+        message.includes('XAxis: Support for defaultProps')) {
       console.debug('Filtered non-actionable error:', message);
       return;
     }
@@ -41,7 +42,8 @@ export const useErrorHandler = () => {
           errorMessage.includes('429') ||  // Too Many Requests
           errorMessage.includes('API_KEY_HERE') ||
           errorMessage.includes('Support for defaultProps will be removed') ||
-          errorMessage.includes('YAxis: Support for defaultProps')) {
+          errorMessage.includes('YAxis: Support for defaultProps') ||
+          errorMessage.includes('XAxis: Support for defaultProps')) {
         console.debug('Filtered non-actionable error in captureError:', errorMessage);
         return;
       }

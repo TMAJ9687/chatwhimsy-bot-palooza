@@ -1,21 +1,19 @@
 
 import React from 'react';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend
-} from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateRandomLineData, formatLargeNumber } from '@/utils/chartUtils';
 import { StatisticTimeRange } from '@/utils/adminUtils';
+import { 
+  ChartWrapper, 
+  Line, 
+  Pie,
+  Cell,
+  CartesianGrid, 
+  XAxis, 
+  YAxis,
+  Tooltip,
+  Legend
+} from '@/components/ui/ChartWrapper';
 
 // Define props interface
 interface UserStatsProps {
@@ -82,33 +80,28 @@ const UserStats: React.FC<UserStatsProps> = ({ timeRange }) => {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={userData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis tickFormatter={formatLargeNumber} />
-                  <Tooltip />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="newUsers" 
-                    name="New Users"
-                    stroke="#8884d8" 
-                    strokeWidth={2}
-                    activeDot={{ r: 8 }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="activeUsers" 
-                    name="Active Users"
-                    stroke="#82ca9d" 
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <ChartWrapper type="line" data={userData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={formatLargeNumber} />
+                <Tooltip />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="newUsers" 
+                  name="New Users"
+                  stroke="#8884d8" 
+                  strokeWidth={2}
+                  activeDot={{ r: 8 }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="activeUsers" 
+                  name="Active Users"
+                  stroke="#82ca9d" 
+                  strokeWidth={2}
+                />
+              </ChartWrapper>
             </div>
           </CardContent>
         </Card>
@@ -120,26 +113,24 @@ const UserStats: React.FC<UserStatsProps> = ({ timeRange }) => {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={userTypes}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {userTypes.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [formatLargeNumber(value as number), 'Users']} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              <ChartWrapper type="pie" data={userTypes}>
+                <Pie
+                  data={userTypes}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                >
+                  {userTypes.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => [formatLargeNumber(value as number), 'Users']} />
+                <Legend />
+              </ChartWrapper>
             </div>
           </CardContent>
         </Card>
@@ -152,38 +143,36 @@ const UserStats: React.FC<UserStatsProps> = ({ timeRange }) => {
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={[
-                  { month: 'Month 1', retention: 100 },
-                  { month: 'Month 2', retention: 85 },
-                  { month: 'Month 3', retention: 70 },
-                  { month: 'Month 4', retention: 62 },
-                  { month: 'Month 5', retention: 56 },
-                  { month: 'Month 6', retention: 52 },
-                  { month: 'Month 7', retention: 48 },
-                  { month: 'Month 8', retention: 45 },
-                  { month: 'Month 9', retention: 42 },
-                  { month: 'Month 10', retention: 40 },
-                  { month: 'Month 11', retention: 38 },
-                  { month: 'Month 12', retention: 36 },
-                ]}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
-                <Tooltip formatter={(value) => [`${value}%`, 'Retention Rate']} />
-                <Line 
-                  type="monotone" 
-                  dataKey="retention" 
-                  name="Retention Rate"
-                  stroke="#ff7300" 
-                  strokeWidth={2}
-                  activeDot={{ r: 8 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <ChartWrapper 
+              type="line"
+              data={[
+                { month: 'Month 1', retention: 100 },
+                { month: 'Month 2', retention: 85 },
+                { month: 'Month 3', retention: 70 },
+                { month: 'Month 4', retention: 62 },
+                { month: 'Month 5', retention: 56 },
+                { month: 'Month 6', retention: 52 },
+                { month: 'Month 7', retention: 48 },
+                { month: 'Month 8', retention: 45 },
+                { month: 'Month 9', retention: 42 },
+                { month: 'Month 10', retention: 40 },
+                { month: 'Month 11', retention: 38 },
+                { month: 'Month 12', retention: 36 },
+              ]}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
+              <Tooltip formatter={(value) => [`${value}%`, 'Retention Rate']} />
+              <Line 
+                type="monotone" 
+                dataKey="retention" 
+                name="Retention Rate"
+                stroke="#ff7300" 
+                strokeWidth={2}
+                activeDot={{ r: 8 }}
+              />
+            </ChartWrapper>
           </div>
         </CardContent>
       </Card>

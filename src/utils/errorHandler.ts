@@ -17,6 +17,7 @@ export const handleError = (error: Error, additionalInfo?: Record<string, any>) 
       // React warning about defaultProps (from Recharts)
       error.message.includes('Support for defaultProps will be removed') ||
       error.message.includes('YAxis: Support for defaultProps') ||
+      error.message.includes('XAxis: Support for defaultProps') ||
       
       // IP and geolocation related errors
       error.message.includes('ipapi.co') ||
@@ -105,7 +106,8 @@ export const setupGlobalErrorHandling = () => {
         event.reason?.message?.includes('asynchronous response') ||
         event.reason?.message?.includes('message channel closed') ||
         event.reason?.message?.includes('Support for defaultProps will be removed') ||
-        event.reason?.message?.includes('YAxis: Support for defaultProps')) {
+        event.reason?.message?.includes('YAxis: Support for defaultProps') ||
+        event.reason?.message?.includes('XAxis: Support for defaultProps')) {
       event.preventDefault();
       return;
     }
@@ -132,7 +134,8 @@ export const setupGlobalErrorHandling = () => {
         event.message?.includes('Unrecognized feature') ||
         event.message?.includes('preloaded using link preload') ||
         event.message?.includes('Support for defaultProps will be removed') ||
-        event.message?.includes('YAxis: Support for defaultProps')) {
+        event.message?.includes('YAxis: Support for defaultProps') ||
+        event.message?.includes('XAxis: Support for defaultProps')) {
       event.preventDefault();
       return;
     }

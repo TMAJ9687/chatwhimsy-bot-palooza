@@ -2,12 +2,13 @@
 import React from 'react';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, AreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  XAxis as RechartsXAxis, YAxis as RechartsYAxis, 
+  CartesianGrid, Tooltip, ResponsiveContainer, 
   Legend, Cell, Surface
 } from 'recharts';
 
-// This component acts as a wrapper to suppress the YAxis defaultProps warning
-// by providing a custom YAxis component that doesn't use defaultProps
+// This component acts as a wrapper to suppress the YAxis and XAxis defaultProps warnings
+// by providing custom components that don't use defaultProps
 
 type CommonChartProps = {
   data: any[];
@@ -39,31 +40,47 @@ type ChartWrapperProps =
   | PieChartWrapperProps
   | AreaChartWrapperProps;
 
-// Custom YAxis wrapper that doesn't trigger the warning
-const CustomYAxis = (props: any) => <YAxis {...props} />;
+// Custom axis components that don't trigger the defaultProps warning
+const CustomYAxis = (props: any) => <RechartsYAxis {...props} />;
+const CustomXAxis = (props: any) => <RechartsXAxis {...props} />;
 
 // Main Chart Wrapper component
 export const ChartWrapper: React.FC<ChartWrapperProps> = (props) => {
   const { data, height = 300, width = '100%', margin = { top: 10, right: 30, left: 0, bottom: 0 }, type, children } = props;
+  
+  // Filter children to replace YAxis and XAxis with custom components
+  const enhancedChildren = React.Children.map(children, child => {
+    if (!React.isValidElement(child)) return child;
+    
+    if (child.type === RechartsYAxis || (typeof child.type === 'function' && child.type.name === 'YAxis')) {
+      return <CustomYAxis {...child.props} />;
+    }
+
+    if (child.type === RechartsXAxis || (typeof child.type === 'function' && child.type.name === 'XAxis')) {
+      return <CustomXAxis {...child.props} />;
+    }
+
+    return child;
+  });
   
   // Return appropriate chart type
   return (
     <ResponsiveContainer width={width} height={height}>
       {type === 'line' ? (
         <LineChart data={data} margin={margin}>
-          {children}
+          {enhancedChildren}
         </LineChart>
       ) : type === 'bar' ? (
         <BarChart data={data} margin={margin}>
-          {children}
+          {enhancedChildren}
         </BarChart>
       ) : type === 'pie' ? (
         <PieChart margin={margin}>
-          {children}
+          {enhancedChildren}
         </PieChart>
       ) : (
         <AreaChart data={data} margin={margin}>
-          {children}
+          {enhancedChildren}
         </AreaChart>
       )}
     </ResponsiveContainer>
@@ -73,7 +90,8 @@ export const ChartWrapper: React.FC<ChartWrapperProps> = (props) => {
 // Export other Recharts components to be used alongside the wrapper
 export { 
   Line, Bar, Pie, Area, CartesianGrid, 
-  Tooltip, Legend, Cell, XAxis,
+  Tooltip, Legend, Cell,
+  CustomXAxis as XAxis, 
   CustomYAxis as YAxis
 };
 

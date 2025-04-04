@@ -1,21 +1,19 @@
 
 import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { generateRandomLineData, formatLargeNumber } from '@/utils/chartUtils';
+import { StatisticTimeRange } from '@/utils/adminUtils';
 import { 
-  AreaChart, 
+  ChartWrapper, 
   Area, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer,
-  BarChart,
   Bar,
   Legend
-} from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { generateRandomLineData, formatLargeNumber } from '@/utils/chartUtils';
-import { StatisticTimeRange } from '@/utils/adminUtils';
+} from '@/components/ui/ChartWrapper';
 
 // Define props interface
 interface TrafficStatsProps {
@@ -48,44 +46,39 @@ const TrafficStats: React.FC<TrafficStatsProps> = ({ timeRange }) => {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={visitData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="colorPageViews" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorUniqueVisitors" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#82ca9d" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="name" />
-                  <YAxis tickFormatter={formatLargeNumber} />
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <Tooltip />
-                  <Legend />
-                  <Area 
-                    type="monotone" 
-                    dataKey="pageViews" 
-                    name="Page Views"
-                    stroke="#8884d8" 
-                    fillOpacity={1} 
-                    fill="url(#colorPageViews)" 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="uniqueVisitors" 
-                    name="Unique Visitors"
-                    stroke="#82ca9d" 
-                    fillOpacity={1} 
-                    fill="url(#colorUniqueVisitors)" 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              <ChartWrapper type="area" data={visitData}>
+                <defs>
+                  <linearGradient id="colorPageViews" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorUniqueVisitors" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#82ca9d" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={formatLargeNumber} />
+                <CartesianGrid strokeDasharray="3 3" />
+                <Tooltip />
+                <Legend />
+                <Area 
+                  type="monotone" 
+                  dataKey="pageViews" 
+                  name="Page Views"
+                  stroke="#8884d8" 
+                  fillOpacity={1} 
+                  fill="url(#colorPageViews)" 
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="uniqueVisitors" 
+                  name="Unique Visitors"
+                  stroke="#82ca9d" 
+                  fillOpacity={1} 
+                  fill="url(#colorUniqueVisitors)" 
+                />
+              </ChartWrapper>
             </div>
           </CardContent>
         </Card>
@@ -97,15 +90,13 @@ const TrafficStats: React.FC<TrafficStatsProps> = ({ timeRange }) => {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={bounceRateData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis tickFormatter={(value) => `${value}%`} />
-                  <Tooltip formatter={(value) => [`${value}%`, 'Bounce Rate']} />
-                  <Bar dataKey="value" fill="#8884d8" name="Bounce Rate" />
-                </BarChart>
-              </ResponsiveContainer>
+              <ChartWrapper type="bar" data={bounceRateData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={(value) => `${value}%`} />
+                <Tooltip formatter={(value) => [`${value}%`, 'Bounce Rate']} />
+                <Bar dataKey="value" fill="#8884d8" name="Bounce Rate" />
+              </ChartWrapper>
             </div>
           </CardContent>
         </Card>
@@ -124,64 +115,58 @@ const TrafficStats: React.FC<TrafficStatsProps> = ({ timeRange }) => {
               <TabsTrigger value="social">Social Media</TabsTrigger>
             </TabsList>
             <TabsContent value="overview" className="h-[300px] pt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={[
-                    { name: 'Direct', value: 45 },
-                    { name: 'Search', value: 25 },
-                    { name: 'Social', value: 15 },
-                    { name: 'Referral', value: 10 },
-                    { name: 'Email', value: 5 },
-                  ]}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis tickFormatter={(value) => `${value}%`} />
-                  <Tooltip formatter={(value) => [`${value}%`, 'Percentage']} />
-                  <Bar dataKey="value" fill="#82ca9d" />
-                </BarChart>
-              </ResponsiveContainer>
+              <ChartWrapper
+                type="bar"
+                data={[
+                  { name: 'Direct', value: 45 },
+                  { name: 'Search', value: 25 },
+                  { name: 'Social', value: 15 },
+                  { name: 'Referral', value: 10 },
+                  { name: 'Email', value: 5 },
+                ]}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={(value) => `${value}%`} />
+                <Tooltip formatter={(value) => [`${value}%`, 'Percentage']} />
+                <Bar dataKey="value" fill="#82ca9d" />
+              </ChartWrapper>
             </TabsContent>
             <TabsContent value="referrers" className="h-[300px] pt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={[
-                    { name: 'Google', value: 60 },
-                    { name: 'Bing', value: 15 },
-                    { name: 'Yahoo', value: 10 },
-                    { name: 'DuckDuckGo', value: 8 },
-                    { name: 'Other', value: 7 },
-                  ]}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis tickFormatter={(value) => `${value}%`} />
-                  <Tooltip formatter={(value) => [`${value}%`, 'Percentage']} />
-                  <Bar dataKey="value" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
+              <ChartWrapper
+                type="bar"
+                data={[
+                  { name: 'Google', value: 60 },
+                  { name: 'Bing', value: 15 },
+                  { name: 'Yahoo', value: 10 },
+                  { name: 'DuckDuckGo', value: 8 },
+                  { name: 'Other', value: 7 },
+                ]}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={(value) => `${value}%`} />
+                <Tooltip formatter={(value) => [`${value}%`, 'Percentage']} />
+                <Bar dataKey="value" fill="#8884d8" />
+              </ChartWrapper>
             </TabsContent>
             <TabsContent value="social" className="h-[300px] pt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={[
-                    { name: 'Facebook', value: 40 },
-                    { name: 'Twitter', value: 30 },
-                    { name: 'Instagram', value: 15 },
-                    { name: 'LinkedIn', value: 10 },
-                    { name: 'Other', value: 5 },
-                  ]}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis tickFormatter={(value) => `${value}%`} />
-                  <Tooltip formatter={(value) => [`${value}%`, 'Percentage']} />
-                  <Bar dataKey="value" fill="#6366f1" />
-                </BarChart>
-              </ResponsiveContainer>
+              <ChartWrapper
+                type="bar"
+                data={[
+                  { name: 'Facebook', value: 40 },
+                  { name: 'Twitter', value: 30 },
+                  { name: 'Instagram', value: 15 },
+                  { name: 'LinkedIn', value: 10 },
+                  { name: 'Other', value: 5 },
+                ]}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={(value) => `${value}%`} />
+                <Tooltip formatter={(value) => [`${value}%`, 'Percentage']} />
+                <Bar dataKey="value" fill="#6366f1" />
+              </ChartWrapper>
             </TabsContent>
           </Tabs>
         </CardContent>

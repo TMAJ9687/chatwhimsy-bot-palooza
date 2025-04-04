@@ -28,6 +28,7 @@ export const isNonActionableError = (error: Error | string): boolean => {
     // React warnings
     errorMessage.includes('Support for defaultProps will be removed') ||
     errorMessage.includes('YAxis: Support for defaultProps') ||
+    errorMessage.includes('XAxis: Support for defaultProps') ||
     
     // Browser extensions
     errorMessage.includes('extension') ||
