@@ -22,12 +22,9 @@ if (process.env.NODE_ENV === 'production') {
   
   // Filter console errors
   console.error = function filterError(...args) {
-    // Filter out Firebase-related errors and browser extension errors
+    // Filter out browser extension errors and other non-actionable warnings
     const errorText = args.join(' ');
-    if (errorText.includes('firebase') || 
-        errorText.includes('Firestore') ||
-        errorText.includes('firestore') ||
-        errorText.includes('contentScript.js') ||
+    if (errorText.includes('contentScript.js') || 
         errorText.includes('Unrecognized feature') ||
         errorText.includes('preloaded using link preload') ||
         errorText.includes('allowedOriginsToCommunicateWith') ||
@@ -36,7 +33,10 @@ if (process.env.NODE_ENV === 'production') {
         errorText.includes('A listener indicated an asynchronous response') ||
         errorText.includes('ipapi.co') ||
         errorText.includes('ipgeolocation.io') ||
-        errorText.includes('API_KEY_HERE')) {
+        errorText.includes('API_KEY_HERE') ||
+        // Filter out Recharts YAxis warnings
+        errorText.includes('Support for defaultProps will be removed') ||
+        errorText.includes('YAxis: Support for defaultProps')) {
       return;
     }
     originalConsoleError.apply(console, args);
@@ -44,16 +44,16 @@ if (process.env.NODE_ENV === 'production') {
   
   // Filter console warnings
   console.warn = function filterWarning(...args) {
-    // Filter out Firebase-related warnings and preload warnings
+    // Filter out preload warnings and other non-actionable warnings
     const warningText = args.join(' ');
-    if (warningText.includes('firebase') || 
-        warningText.includes('Firestore') ||
-        warningText.includes('firestore') ||
-        warningText.includes('preloaded using link preload') ||
+    if (warningText.includes('preloaded using link preload') ||
         warningText.includes('Unrecognized feature') ||
         warningText.includes('ipapi.co') ||
         warningText.includes('ipgeolocation.io') ||
-        warningText.includes('API_KEY_HERE')) {
+        warningText.includes('API_KEY_HERE') ||
+        // Filter out Recharts YAxis warnings
+        warningText.includes('Support for defaultProps will be removed') ||
+        warningText.includes('YAxis: Support for defaultProps')) {
       return;
     }
     originalConsoleWarn.apply(console, args);

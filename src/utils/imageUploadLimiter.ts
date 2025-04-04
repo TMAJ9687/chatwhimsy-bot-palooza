@@ -1,7 +1,6 @@
 
 // Simple utility to track image upload limits by IP
 // This relies on localStorage for persistence between sessions
-// In a real app, this would be tracked on the server
 
 interface ImageUploadTracker {
   ip: string;
@@ -57,7 +56,11 @@ const getTracker = async (): Promise<ImageUploadTracker> => {
 
 // Save the tracker to localStorage
 const saveTracker = (tracker: ImageUploadTracker): void => {
-  localStorage.setItem(`image-upload-tracker-${tracker.ip}`, JSON.stringify(tracker));
+  try {
+    localStorage.setItem(`image-upload-tracker-${tracker.ip}`, JSON.stringify(tracker));
+  } catch (error) {
+    console.error('Error saving tracker:', error);
+  }
 };
 
 // Check if the user has reached their daily limit

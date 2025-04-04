@@ -5,31 +5,25 @@ import { toast } from "@/hooks/use-toast";
  * Function to handle application errors
  */
 export const handleError = (error: Error, additionalInfo?: Record<string, any>) => {
-  // Filter out Firebase-related errors
-  if (error.message.includes('firebase') || 
-      error.message.includes('Firestore') || 
-      error.message.includes('firestore') ||
-      error.message.includes('BloomFilter')) {
-    console.debug('Ignoring Firebase-related error:', error.message);
-    return;
-  }
-  
-  // Filter out browser extension and preload errors
-  if (error.message.includes('contentScript.js') ||
+  // Filter out non-actionable errors
+  if (
+      // Browser extension and preload errors
+      error.message.includes('contentScript.js') ||
       error.message.includes('Unrecognized feature') ||
       error.message.includes('preloaded using link preload') ||
       error.message.includes('allowedOriginsToCommunicateWith') ||
-      error.message.includes('net::ERR_BLOCKED_BY_CLIENT')) {
-    console.debug('Ignoring non-actionable error:', error.message);
-    return;
-  }
-  
-  // Filter out IP and geolocation related errors
-  if (error.message.includes('ipapi.co') ||
+      error.message.includes('net::ERR_BLOCKED_BY_CLIENT') ||
+      
+      // React warning about defaultProps (from Recharts)
+      error.message.includes('Support for defaultProps will be removed') ||
+      error.message.includes('YAxis: Support for defaultProps') ||
+      
+      // IP and geolocation related errors
+      error.message.includes('ipapi.co') ||
       error.message.includes('ipgeolocation.io') ||
       error.message.includes('API_KEY_HERE') ||
       (error.message.includes('401') && error.message.includes('ipgeo'))) {
-    console.debug('Ignoring geolocation API error:', error.message);
+    console.debug('Ignoring non-actionable error:', error.message);
     return;
   }
   
@@ -58,7 +52,7 @@ export const getErrorMessage = (error: unknown): string => {
       return 'Network connection issue. Please check your internet connection.';
     }
     
-    // Generic message for likely Firebase-related errors
+    // Generic message for permission errors
     if (error.message.includes('permission_denied') || error.message.includes('PERMISSION_DENIED')) {
       return 'You do not have permission to perform this action.';
     }
@@ -73,13 +67,6 @@ export const getErrorMessage = (error: unknown): string => {
  * Track error for monitoring
  */
 const trackError = (error: Error, additionalInfo?: Record<string, any>) => {
-  // Filter out Firebase-related errors from tracking too
-  if (error.message.includes('firebase') || 
-      error.message.includes('Firestore') ||
-      error.message.includes('firestore')) {
-    return;
-  }
-  
   // This could be connected to an error monitoring service
   const errorData = {
     message: error.message,
@@ -112,14 +99,13 @@ export const performDOMCleanup = () => {
 export const setupGlobalErrorHandling = () => {
   // Handle unhandled promise rejections
   window.addEventListener('unhandledrejection', (event) => {
-    // Filter Firebase and browser extension related errors
-    if (event.reason?.message?.includes('firebase') || 
-        event.reason?.message?.includes('Firestore') ||
-        event.reason?.message?.includes('firestore') ||
-        event.reason?.message?.includes('contentScript') ||
+    // Filter non-actionable errors
+    if (event.reason?.message?.includes('contentScript') || 
         event.reason?.message?.includes('allowedOriginsToCommunicateWith') ||
         event.reason?.message?.includes('asynchronous response') ||
-        event.reason?.message?.includes('message channel closed')) {
+        event.reason?.message?.includes('message channel closed') ||
+        event.reason?.message?.includes('Support for defaultProps will be removed') ||
+        event.reason?.message?.includes('YAxis: Support for defaultProps')) {
       event.preventDefault();
       return;
     }
@@ -141,13 +127,12 @@ export const setupGlobalErrorHandling = () => {
   
   // Handle runtime errors
   window.addEventListener('error', (event) => {
-    // Filter Firebase and browser extension related errors
-    if (event.message?.includes('firebase') || 
-        event.message?.includes('Firestore') ||
-        event.message?.includes('firestore') ||
-        event.message?.includes('contentScript') ||
+    // Filter non-actionable errors
+    if (event.message?.includes('contentScript') || 
         event.message?.includes('Unrecognized feature') ||
-        event.message?.includes('preloaded using link preload')) {
+        event.message?.includes('preloaded using link preload') ||
+        event.message?.includes('Support for defaultProps will be removed') ||
+        event.message?.includes('YAxis: Support for defaultProps')) {
       event.preventDefault();
       return;
     }

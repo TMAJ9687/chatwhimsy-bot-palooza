@@ -1,20 +1,18 @@
 
 import React from 'react';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  Legend
-} from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateRandomLineData } from '@/utils/chartUtils';
 import { StatisticTimeRange } from '@/utils/adminUtils';
+import { 
+  ChartWrapper, 
+  Line, 
+  Area,
+  CartesianGrid, 
+  XAxis, 
+  YAxis,
+  Tooltip,
+  Legend
+} from '@/components/ui/ChartWrapper';
 
 // Define props interface
 interface SystemStatsProps {
@@ -91,40 +89,35 @@ const SystemStats: React.FC<SystemStatsProps> = ({ timeRange }) => {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={serverData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis tickFormatter={(value) => `${value}%`} domain={[0, 100]} />
-                  <Tooltip formatter={(value) => [`${value}%`, 'Usage']} />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="cpu" 
-                    name="CPU"
-                    stroke="#8884d8" 
-                    strokeWidth={2}
-                    activeDot={{ r: 8 }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="memory" 
-                    name="Memory"
-                    stroke="#82ca9d" 
-                    strokeWidth={2}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="network" 
-                    name="Network"
-                    stroke="#ffc658" 
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <ChartWrapper type="line" data={serverData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={(value) => `${value}%`} domain={[0, 100]} />
+                <Tooltip formatter={(value) => [`${value}%`, 'Usage']} />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="cpu" 
+                  name="CPU"
+                  stroke="#8884d8" 
+                  strokeWidth={2}
+                  activeDot={{ r: 8 }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="memory" 
+                  name="Memory"
+                  stroke="#82ca9d" 
+                  strokeWidth={2}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="network" 
+                  name="Network"
+                  stroke="#ffc658" 
+                  strokeWidth={2}
+                />
+              </ChartWrapper>
             </div>
           </CardContent>
         </Card>
@@ -136,25 +129,20 @@ const SystemStats: React.FC<SystemStatsProps> = ({ timeRange }) => {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={errorData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="time" />
-                  <YAxis />
-                  <Tooltip />
-                  <Area 
-                    type="monotone" 
-                    dataKey="errors" 
-                    name="Errors"
-                    stroke="#ff7300" 
-                    fill="#ff7300" 
-                    fillOpacity={0.3}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              <ChartWrapper type="area" data={errorData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="time" />
+                <YAxis />
+                <Tooltip />
+                <Area 
+                  type="monotone" 
+                  dataKey="errors" 
+                  name="Errors"
+                  stroke="#ff7300" 
+                  fill="#ff7300" 
+                  fillOpacity={0.3}
+                />
+              </ChartWrapper>
             </div>
           </CardContent>
         </Card>
@@ -167,25 +155,20 @@ const SystemStats: React.FC<SystemStatsProps> = ({ timeRange }) => {
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={responseTimeData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis unit="ms" />
-                <Tooltip formatter={(value) => [`${value}ms`, 'Response Time']} />
-                <Line 
-                  type="monotone" 
-                  dataKey="responseTime" 
-                  name="Response Time"
-                  stroke="#8884d8" 
-                  strokeWidth={2}
-                  activeDot={{ r: 8 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <ChartWrapper type="line" data={responseTimeData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis unit="ms" />
+              <Tooltip formatter={(value) => [`${value}ms`, 'Response Time']} />
+              <Line 
+                type="monotone" 
+                dataKey="responseTime" 
+                name="Response Time"
+                stroke="#8884d8" 
+                strokeWidth={2}
+                activeDot={{ r: 8 }}
+              />
+            </ChartWrapper>
           </div>
         </CardContent>
       </Card>

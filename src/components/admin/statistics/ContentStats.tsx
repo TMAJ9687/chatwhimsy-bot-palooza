@@ -1,21 +1,19 @@
 
 import React from 'react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend
-} from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatLargeNumber } from '@/utils/chartUtils';
 import { StatisticTimeRange } from '@/utils/adminUtils';
+import { 
+  ChartWrapper, 
+  Bar, 
+  Pie, 
+  Cell, 
+  CartesianGrid, 
+  XAxis, 
+  YAxis,
+  Tooltip,
+  Legend
+} from '@/components/ui/ChartWrapper';
 
 // Define props interface
 interface ContentStatsProps {
@@ -89,18 +87,13 @@ const ContentStats: React.FC<ContentStatsProps> = ({ timeRange }) => {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={messageActivityData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" />
-                  <YAxis tickFormatter={formatLargeNumber} />
-                  <Tooltip formatter={(value) => [formatLargeNumber(value as number), 'Messages']} />
-                  <Bar dataKey="messages" fill="#8884d8" name="Messages" />
-                </BarChart>
-              </ResponsiveContainer>
+              <ChartWrapper type="bar" data={messageActivityData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="day" />
+                <YAxis tickFormatter={formatLargeNumber} />
+                <Tooltip formatter={(value) => [formatLargeNumber(value as number), 'Messages']} />
+                <Bar dataKey="messages" fill="#8884d8" name="Messages" />
+              </ChartWrapper>
             </div>
           </CardContent>
         </Card>
@@ -112,26 +105,24 @@ const ContentStats: React.FC<ContentStatsProps> = ({ timeRange }) => {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={contentTypeData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {contentTypeData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [`${value}%`, 'Percentage']} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              <ChartWrapper type="pie" data={contentTypeData}>
+                <Pie
+                  data={contentTypeData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                >
+                  {contentTypeData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => [`${value}%`, 'Percentage']} />
+                <Legend />
+              </ChartWrapper>
             </div>
           </CardContent>
         </Card>
@@ -144,27 +135,25 @@ const ContentStats: React.FC<ContentStatsProps> = ({ timeRange }) => {
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={[
-                  { hour: '12am', messages: 300 },
-                  { hour: '3am', messages: 150 },
-                  { hour: '6am', messages: 200 },
-                  { hour: '9am', messages: 800 },
-                  { hour: '12pm', messages: 1500 },
-                  { hour: '3pm', messages: 2000 },
-                  { hour: '6pm', messages: 2500 },
-                  { hour: '9pm', messages: 1800 },
-                ]}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="hour" />
-                <YAxis tickFormatter={formatLargeNumber} />
-                <Tooltip formatter={(value) => [formatLargeNumber(value as number), 'Messages']} />
-                <Bar dataKey="messages" fill="#82ca9d" name="Messages" />
-              </BarChart>
-            </ResponsiveContainer>
+            <ChartWrapper
+              type="bar"
+              data={[
+                { hour: '12am', messages: 300 },
+                { hour: '3am', messages: 150 },
+                { hour: '6am', messages: 200 },
+                { hour: '9am', messages: 800 },
+                { hour: '12pm', messages: 1500 },
+                { hour: '3pm', messages: 2000 },
+                { hour: '6pm', messages: 2500 },
+                { hour: '9pm', messages: 1800 },
+              ]}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="hour" />
+              <YAxis tickFormatter={formatLargeNumber} />
+              <Tooltip formatter={(value) => [formatLargeNumber(value as number), 'Messages']} />
+              <Bar dataKey="messages" fill="#82ca9d" name="Messages" />
+            </ChartWrapper>
           </div>
         </CardContent>
       </Card>

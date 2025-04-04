@@ -24,7 +24,9 @@ const ErrorHandler: React.FC = () => {
     
     const handleGlobalError = (event: ErrorEvent) => {
       // Skip handling for non-actionable errors
-      if (isNonActionableError(event.message)) {
+      if (isNonActionableError(event.message) || 
+          event.message.includes('Support for defaultProps will be removed') ||
+          event.message.includes('YAxis: Support for defaultProps')) {
         event.preventDefault();
         return;
       }
@@ -49,7 +51,9 @@ const ErrorHandler: React.FC = () => {
       const errorMessage = event.reason?.message || 'Promise rejection';
       
       // Skip handling for non-actionable errors
-      if (isNonActionableError(errorMessage)) {
+      if (isNonActionableError(errorMessage) ||
+          errorMessage.includes('Support for defaultProps will be removed') ||
+          errorMessage.includes('YAxis: Support for defaultProps')) {
         event.preventDefault();
         return;
       }

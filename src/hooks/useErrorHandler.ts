@@ -11,12 +11,14 @@ export const useErrorHandler = () => {
   const { toast } = useToast();
   
   const showError = useCallback((message: string) => {
-    // Filter out non-actionable errors related to external APIs
+    // Filter out non-actionable errors related to external APIs and React warnings
     if (message.includes('CORS') || 
         message.includes('ipapi.co') || 
         message.includes('ipgeolocation.io') ||
         message.includes('429') ||  // Too Many Requests
-        message.includes('API_KEY_HERE')) {
+        message.includes('API_KEY_HERE') ||
+        message.includes('Support for defaultProps will be removed') ||
+        message.includes('YAxis: Support for defaultProps')) {
       console.debug('Filtered non-actionable error:', message);
       return;
     }
@@ -37,7 +39,9 @@ export const useErrorHandler = () => {
           errorMessage.includes('ipapi.co') || 
           errorMessage.includes('ipgeolocation.io') ||
           errorMessage.includes('429') ||  // Too Many Requests
-          errorMessage.includes('API_KEY_HERE')) {
+          errorMessage.includes('API_KEY_HERE') ||
+          errorMessage.includes('Support for defaultProps will be removed') ||
+          errorMessage.includes('YAxis: Support for defaultProps')) {
         console.debug('Filtered non-actionable error in captureError:', errorMessage);
         return;
       }

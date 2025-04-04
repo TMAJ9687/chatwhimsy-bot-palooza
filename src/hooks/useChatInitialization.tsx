@@ -29,7 +29,20 @@ export const useChatInitialization = () => {
     
     // Set default country
     setUserCountry('United States');
+    
+    // Check for rules acceptance in localStorage to persist state
+    const hasAcceptedRules = localStorage.getItem('rulesAccepted') === 'true';
+    if (hasAcceptedRules) {
+      setRulesAccepted(true);
+    }
   }, [sortedBotProfiles]);
+
+  // Save rules acceptance to localStorage when it changes
+  useEffect(() => {
+    if (rulesAccepted) {
+      localStorage.setItem('rulesAccepted', 'true');
+    }
+  }, [rulesAccepted]);
 
   return {
     currentBot,
