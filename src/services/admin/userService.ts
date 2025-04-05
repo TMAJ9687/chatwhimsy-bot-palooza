@@ -1,20 +1,49 @@
-
 import { BanRecord, AdminAction } from '@/types/admin';
 import { supabase } from '@/integrations/supabase/client';
 
-// Track online users
-let onlineUsers: Set<string> = new Set();
+// Track online users with better memory management
+const onlineUsers = new Set<string>();
+const userTimeouts = new Map<string, NodeJS.Timeout>();
 
 /**
  * User tracking functions for admin dashboard
  */
 export const trackUserActivity = (userId: string, isOnline: boolean): void => {
+  // Clear existing timeout if any
+  if (userTimeouts.has(userId)) {
+    clearTimeout(userTimeouts.get(userId));
+    userTimeouts.delete(userId);
+  }
+  
   if (isOnline) {
     onlineUsers.add(userId);
+    
+    // Set a timeout to automatically set user offline after inactivity
+    const timeout = setTimeout(() => {
+      onlineUsers.delete(userId);
+      userTimeouts.delete(userId);
+      console.log(`User ${userId} automatically marked offline due to inactivity`);
+    }, 15 * 60 * 1000); // 15 minutes timeout
+    
+    userTimeouts.set(userId, timeout);
   } else {
     onlineUsers.delete(userId);
   }
-  console.log(`User ${userId} is now ${isOnline ? 'online' : 'offline'}. Total online:`, onlineUsers.size);
+  
+  // Limit logging to reduce console spam
+  if (onlineUsers.size % 10 === 0 || onlineUsers.size < 10) {
+    console.log(`User tracking: ${userId} is now ${isOnline ? 'online' : 'offline'}. Total online: ${onlineUsers.size}`);
+  }
+};
+
+// Clean up all timeouts - important for preventing memory leaks
+export const cleanupUserTracking = (): void => {
+  userTimeouts.forEach((timeout) => {
+    clearTimeout(timeout);
+  });
+  userTimeouts.clear();
+  onlineUsers.clear();
+  console.log("User tracking cleaned up");
 };
 
 export const getOnlineUserCount = (): number => {

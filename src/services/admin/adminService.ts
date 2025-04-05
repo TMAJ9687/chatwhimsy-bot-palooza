@@ -1,8 +1,11 @@
 
 import { isAdminLoggedIn as checkAdminStatus } from './supabaseAdminAuth';
 
+// Export the cleanup function 
+export { cleanupUserTracking } from './userService';
+
 // Re-export functions from other service files
-export * from './userAdminService';
+export * from './userService';
 export * from './vipAdminService';
 export * from './reportAdminService';
 export * from './adminActionService';

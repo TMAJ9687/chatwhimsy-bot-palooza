@@ -14,6 +14,9 @@ export const useChatInitialization = () => {
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [rulesAccepted, setRulesAccepted] = useState(false);
   const [userCountry, setUserCountry] = useState<string>('United States');
+  
+  // Track which bots we've already registered to avoid duplicate tracking
+  const [registeredBots, setRegisteredBots] = useState<Set<string>>(new Set());
 
   // Sort bot profiles once and memoize to avoid re-sorting
   const sortedBotProfiles = useMemo(() => sortUsers(botProfiles), []);
@@ -21,12 +24,9 @@ export const useChatInitialization = () => {
   // Select a user to chat with
   const selectUser = useCallback((user: Bot) => {
     setCurrentBot(user);
-    
-    // Update bot's online status in admin tracking
-    adminService.trackUserActivity(user.id, true);
   }, []);
 
-  // Set up online users without network requests
+  // Set up online users without network requests - with memory leak prevention
   useEffect(() => {
     // Simply set all bots as online - no need for geolocation
     const onlineIds = new Set(sortedBotProfiles.map(bot => bot.id));
@@ -41,21 +41,34 @@ export const useChatInitialization = () => {
       setRulesAccepted(true);
     }
     
-    // Register online bots with admin service
+    // Register online bots with admin service - but only once and only some bots
+    // to prevent memory leaks
+    const botsToRegister = new Set<string>();
+    
     sortedBotProfiles.forEach((bot, index) => {
-      // Mark some bots as online for demonstration
-      if (index % 2 === 0) {
-        adminService.trackUserActivity(bot.id, true);
+      // Mark only some bots as online for demonstration (every other bot)
+      if (index % 2 === 0 && !registeredBots.has(bot.id)) {
+        botsToRegister.add(bot.id);
       }
     });
     
-    // Cleanup function to mark bots as offline when leaving
-    return () => {
-      sortedBotProfiles.forEach(bot => {
-        adminService.trackUserActivity(bot.id, false);
+    // Only register bots we haven't registered yet
+    if (botsToRegister.size > 0) {
+      botsToRegister.forEach(botId => {
+        adminService.trackUserActivity(botId, true);
       });
-    };
-  }, [sortedBotProfiles]);
+      
+      // Remember which bots we've registered
+      setRegisteredBots(prev => {
+        const updated = new Set(prev);
+        botsToRegister.forEach(id => updated.add(id));
+        return updated;
+      });
+    }
+    
+    // No cleanup function needed - the admin components will handle cleanup
+    // This prevents double cleanup and potential memory leaks
+  }, [sortedBotProfiles, registeredBots]);
 
   // Save rules acceptance to localStorage when it changes
   useEffect(() => {

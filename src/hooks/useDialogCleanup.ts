@@ -61,7 +61,12 @@ export const useDialogCleanup = () => {
         };
         
         // Use requestAnimationFrame for better reliability
-        requestAnimationFrame(performFinalCleanup);
+        // but wrapped in a zero-timeout to ensure it runs after the current execution context
+        setTimeout(() => {
+          if (isDOMReady()) {
+            requestAnimationFrame(performFinalCleanup);
+          }
+        }, 0);
       }
     };
   }, [clearOverlays, cleanupOverlays, isDOMReady]);
@@ -88,44 +93,52 @@ export const useDialogCleanup = () => {
     }
     
     // Clear overlays after a small delay to ensure smooth animations
-    // Only if component is still mounted
-    if (isMountedRef.current && !cleanupInProgressRef.current) {
+    // Only if component is still mounted and with better cleanup logic
+    if (!cleanupInProgressRef.current) {
       cleanupInProgressRef.current = true;
       
       // Use requestAnimationFrame for better sync with rendering cycle
-      requestAnimationFrame(() => {
-        timeoutRef.current = setTimeout(() => {
-          if (!isMountedRef.current) {
-            cleanupInProgressRef.current = false;
-            return;
-          }
-          
-          if (isClosingRef.current) {
-            // First try React-based cleanup
-            try {
-              clearOverlays();
-            } catch (e) {
-              console.warn('Delayed clearOverlays error:', e);
+      // but wrapped in a zero-timeout to avoid blocking current execution
+      setTimeout(() => {
+        if (!isMountedRef.current) {
+          cleanupInProgressRef.current = false;
+          return;
+        }
+        
+        requestAnimationFrame(() => {
+          timeoutRef.current = setTimeout(() => {
+            if (!isMountedRef.current) {
+              cleanupInProgressRef.current = false;
+              return;
             }
             
-            // Then try DOM-based cleanup as fallback
-            timeoutRef.current = setTimeout(() => {
-              if (isMountedRef.current) {
-                try {
-                  cleanupOverlays();
-                } catch (e) {
-                  console.warn('Delayed cleanupOverlays error:', e);
-                }
-                
-                cleanupInProgressRef.current = false;
-                timeoutRef.current = null;
+            if (isClosingRef.current) {
+              // First try React-based cleanup
+              try {
+                clearOverlays();
+              } catch (e) {
+                console.warn('Delayed clearOverlays error:', e);
               }
-            }, 100);
-          } else {
-            cleanupInProgressRef.current = false;
-          }
-        }, 150);
-      });
+              
+              // Then try DOM-based cleanup as fallback with shorter delay
+              timeoutRef.current = setTimeout(() => {
+                if (isMountedRef.current) {
+                  try {
+                    cleanupOverlays();
+                  } catch (e) {
+                    console.warn('Delayed cleanupOverlays error:', e);
+                  }
+                  
+                  cleanupInProgressRef.current = false;
+                  timeoutRef.current = null;
+                }
+              }, 50); // Shorter timeout to ensure cleanup happens promptly
+            } else {
+              cleanupInProgressRef.current = false;
+            }
+          }, 100); // Short delay after animation frame
+        });
+      }, 0);
     }
     
     // Return cleanup function

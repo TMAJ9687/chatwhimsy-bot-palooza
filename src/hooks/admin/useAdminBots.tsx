@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { Bot } from '@/types/chat';
 import { useToast } from '@/hooks/use-toast';
@@ -42,7 +41,7 @@ export const useAdminBots = (isAdmin: boolean) => {
     }
   }, [isAdmin, logError]);
   
-  // Bot monitoring - periodically update online status
+  // Bot monitoring - periodically update online status with cleanup
   useEffect(() => {
     if (!isAdmin) return;
     
@@ -54,10 +53,14 @@ export const useAdminBots = (isAdmin: boolean) => {
     // Update immediately
     updateOnlineStatus();
     
-    // Then set interval
+    // Then set interval with a reasonable update frequency
     const intervalId = setInterval(updateOnlineStatus, 10000); // Check every 10 seconds
     
-    return () => clearInterval(intervalId);
+    // Cleanup function to prevent memory leaks
+    return () => {
+      clearInterval(intervalId);
+      // Don't call cleanupUserTracking here - we'll do it in the main useAdmin hook
+    };
   }, [isAdmin]);
   
   // Bot management
@@ -198,13 +201,23 @@ export const useAdminBots = (isAdmin: boolean) => {
     }
   }, [isAdmin, toast, bots, logError]);
 
-  // Track a user's online status
+  // Track a user's online status with safeguards to prevent duplicate tracking
   const trackUserOnlineStatus = useCallback((userId: string, isOnline: boolean) => {
-    if (!isAdmin) return;
+    if (!isAdmin || !userId) return;
     
-    adminService.trackUserActivity(userId, isOnline);
-    // Update our local list of online users
-    setOnlineUsers(adminService.getOnlineUserIds());
+    // Add a simple rate limiting to prevent too frequent updates
+    const userTrackingKey = `${userId}-${isOnline ? 'online' : 'offline'}`;
+    const lastTracked = parseInt(sessionStorage.getItem(userTrackingKey) || '0');
+    const now = Date.now();
+    
+    // Only update if it's been more than 5 seconds since last update of the same type
+    if (now - lastTracked > 5000) {
+      adminService.trackUserActivity(userId, isOnline);
+      sessionStorage.setItem(userTrackingKey, now.toString());
+      
+      // Only update our local list if we're still mounted
+      setOnlineUsers(adminService.getOnlineUserIds());
+    }
   }, [isAdmin]);
   
   return {

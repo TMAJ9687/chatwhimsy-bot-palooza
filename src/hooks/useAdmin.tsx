@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useChatInitialization } from './useChatInitialization';
 import { useAdminAuth } from './admin/useAdminAuth';
@@ -12,6 +12,7 @@ import { useAdminLogout } from './admin/useAdminLogout';
 import { useAdminStatsHook } from './admin/useAdminStatsHook';
 import { useDashboardLoader } from './admin/useDashboardLoader';
 import { Bot } from '@/types/chat';
+import * as adminService from '@/services/admin/adminService';
 
 export const useAdmin = () => {
   const [bots, setBots] = useState<Bot[]>([]);
@@ -101,15 +102,60 @@ export const useAdmin = () => {
   }, [isAdmin, loadDashboardData]);
   
   // Track chat users to update admin dashboard
+  // Modified to prevent memory leaks with a seen users set
+  const seenUsers = new Set<string>();
+  
   useEffect(() => {
     if (!isAdmin) return;
     
-    // When chat users change, update their status in admin tracking
-    chatUsers.forEach(user => {
-      trackUserOnlineStatus(user.id, true); // Mark all chat users as online
-    });
+    // Use a throttled approach to prevent excessive updates
+    const updateBatch = () => {
+      // Create a batch of users to update
+      const batchToUpdate: string[] = [];
+      
+      // When chat users change, update their status in admin tracking
+      chatUsers.forEach(user => {
+        if (!seenUsers.has(user.id)) {
+          seenUsers.add(user.id);
+          batchToUpdate.push(user.id);
+        }
+      });
+      
+      // Only update in small batches to prevent performance issues
+      if (batchToUpdate.length > 0) {
+        console.log(`Updating status for ${batchToUpdate.length} users`);
+        
+        // Process in smaller batches with delay between
+        const processBatch = (index: number) => {
+          if (index >= batchToUpdate.length) return;
+          
+          const userId = batchToUpdate[index];
+          trackUserOnlineStatus(userId, true);
+          
+          // Schedule next batch with setTimeout to prevent UI freezing
+          setTimeout(() => processBatch(index + 1), 50);
+        };
+        
+        // Start the batch processing
+        processBatch(0);
+      }
+    };
     
-  }, [isAdmin, chatUsers, trackUserOnlineStatus]);
+    // Run once on mount
+    updateBatch();
+    
+  }, [isAdmin, trackUserOnlineStatus]);
+  
+  // Add cleanup function to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (isAdmin) {
+        console.log("Admin component unmounting - cleaning up user tracking");
+        // Clean up all user tracking to prevent memory leaks
+        adminService.cleanupUserTracking();
+      }
+    };
+  }, [isAdmin]);
   
   return {
     // State
