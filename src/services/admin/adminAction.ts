@@ -1,10 +1,9 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { AdminAction } from '@/types/admin';
-import * as adminAuth from '@/services/admin/adminAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Get all admin actions
+ * Get admin actions
  */
 export const getAdminActions = async (): Promise<AdminAction[]> => {
   try {
@@ -18,8 +17,8 @@ export const getAdminActions = async (): Promise<AdminAction[]> => {
       return [];
     }
     
-    // Transform the raw data to match our AdminAction type
-    const mappedActions: AdminAction[] = (data || []).map(item => ({
+    // Map the database fields to our typed fields
+    return (data || []).map(item => ({
       id: item.id,
       actionType: item.action_type,
       targetId: item.target_id,
@@ -29,44 +28,8 @@ export const getAdminActions = async (): Promise<AdminAction[]> => {
       timestamp: new Date(item.timestamp),
       adminId: item.admin_id
     }));
-    
-    return mappedActions;
   } catch (error) {
     console.error('Error in getAdminActions:', error);
     return [];
-  }
-};
-
-/**
- * Log admin action
- */
-export const logAdminAction = async (
-  actionType: string,
-  targetId: string,
-  targetType: string,
-  reason?: string,
-  duration?: string
-): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('admin_actions')
-      .insert({
-        action_type: actionType,
-        target_id: targetId,
-        target_type: targetType,
-        reason,
-        duration,
-        timestamp: new Date().toISOString()
-      });
-    
-    if (error) {
-      console.error('Error logging admin action:', error);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error in logAdminAction:', error);
-    return false;
   }
 };

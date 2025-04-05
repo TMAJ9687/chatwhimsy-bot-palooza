@@ -27,7 +27,8 @@ import NavigationLock from './components/shared/NavigationLock';
 import AuthListener from './components/core/AuthListener';
 import { UserProvider } from './context/UserContext';
 import { UIStateProvider } from './context/UIStateContext';
-import { DialogProvider } from './context/DialogContext';
+import { DialogProvider as ContextDialogProvider } from './context/DialogContext';
+import { DialogProvider } from './components/providers/DialogProvider';
 import DialogContainer from './components/dialogs/DialogContainer';
 import ErrorHandler from './components/core/ErrorHandler';
 
@@ -55,42 +56,44 @@ const App = () => {
         <BrowserRouter>
           <UserProvider>
             <UIStateProvider>
-              <DialogProvider>
-                <OverlayProvider>
-                  <ModalProvider>
-                    <ChatProvider>
-                      <PortalManager />
-                      <MainLayout>
-                        <Toaster />
-                        <Sonner />
-                        <NavigationLock />
-                        <AuthListener />
-                        <ErrorHandler />
-                        
-                        <Routes>
-                          <Route path="/" element={<Index />} />
-                          <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
-                          <Route path="/vip-profile" element={<VipProfileSetup />} />
-                          <Route path="/vip-signup" element={<VipSignup />} />
-                          <Route path="/vip-login" element={<VipLogin />} />
-                          <Route path="/vip-subscription" element={<VipSubscription />} />
-                          <Route path="/vip-payment" element={<VipPayment />} />
-                          <Route path="/vip-confirmation" element={<VipConfirmation />} />
-                          <Route path="/feedback" element={<Feedback />} />
-                          <Route path="/secretadminportal" element={<AdminLogin />} />
-                          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                          <Route path="/admin" element={<NotFound />} />
-                          <Route path="/admin-login" element={<NotFound />} />
-                          <Route path="*" element={<NotFound />} />
-                        </Routes>
-                        
-                        <ModalContainer />
-                        <DialogContainer />
-                      </MainLayout>
-                    </ChatProvider>
-                  </ModalProvider>
-                </OverlayProvider>
-              </DialogProvider>
+              <ContextDialogProvider>
+                <DialogProvider>
+                  <OverlayProvider>
+                    <ModalProvider>
+                      <ChatProvider>
+                        <PortalManager />
+                        <MainLayout>
+                          <Toaster />
+                          <Sonner />
+                          <NavigationLock />
+                          <AuthListener />
+                          <ErrorHandler />
+                          
+                          <Routes>
+                            <Route path="/" element={<Index />} />
+                            <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
+                            <Route path="/vip-profile" element={<VipProfileSetup />} />
+                            <Route path="/vip-signup" element={<VipSignup />} />
+                            <Route path="/vip-login" element={<VipLogin />} />
+                            <Route path="/vip-subscription" element={<VipSubscription />} />
+                            <Route path="/vip-payment" element={<VipPayment />} />
+                            <Route path="/vip-confirmation" element={<VipConfirmation />} />
+                            <Route path="/feedback" element={<Feedback />} />
+                            <Route path="/secretadminportal" element={<AdminLogin />} />
+                            <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                            <Route path="/admin" element={<NotFound />} />
+                            <Route path="/admin-login" element={<NotFound />} />
+                            <Route path="*" element={<NotFound />} />
+                          </Routes>
+                          
+                          <ModalContainer />
+                          <DialogContainer />
+                        </MainLayout>
+                      </ChatProvider>
+                    </ModalProvider>
+                  </OverlayProvider>
+                </DialogProvider>
+              </ContextDialogProvider>
             </UIStateProvider>
           </UserProvider>
         </BrowserRouter>

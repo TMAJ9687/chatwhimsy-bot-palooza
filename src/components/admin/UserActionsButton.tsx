@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useAdmin } from '@/hooks/useAdmin';
 import { Bot } from '@/types/chat';
-import { useDialog } from '@/hooks/use-dialog';
+import { useDialog } from '@/context/DialogContext';
 import { VipDuration } from '@/types/admin';
 
 interface UserActionsButtonProps {

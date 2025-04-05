@@ -1,11 +1,11 @@
 
 import React from 'react';
-import { DialogProvider as InternalDialogProvider } from '@/hooks/use-dialog';
+import { DialogProvider as ContextDialogProvider } from '@/context/DialogContext';
 
 export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ 
   children 
 }) => {
-  return <InternalDialogProvider>{children}</InternalDialogProvider>;
+  return <ContextDialogProvider>{children}</ContextDialogProvider>;
 };
 
 export default DialogProvider;
