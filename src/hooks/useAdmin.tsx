@@ -57,7 +57,18 @@ export const useAdmin = () => {
   
   const { saveSiteSettings, getSiteSettings } = useAdminSettings(isAdmin);
   
-  // Initialize the dashboard loader
+  // Fix: Update the cleanupExpiredReports function to return a boolean
+  const wrappedCleanupReports = async (): Promise<boolean> => {
+    try {
+      await cleanupExpiredReports();
+      return true;
+    } catch (error) {
+      console.error('Error cleaning up reports:', error);
+      return false;
+    }
+  };
+  
+  // Initialize the dashboard loader with the fixed cleanupExpiredReports function
   const { loadDashboardData } = useDashboardLoader(
     isAdmin,
     setBots,
@@ -66,7 +77,7 @@ export const useAdmin = () => {
     loadBannedUsers,
     loadAdminActions,
     loadReportsAndFeedback,
-    cleanupExpiredReports
+    wrappedCleanupReports
   );
   
   // Initialize the admin logout functionality
