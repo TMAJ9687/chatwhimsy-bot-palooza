@@ -29,7 +29,7 @@ export const useAdminUsers = (
   
   // Load banned users data
   const loadBannedUsers = useCallback(async () => {
-    if (!isAdmin) return;
+    if (!isAdmin) return [];
     
     try {
       console.log('Loading banned users...');

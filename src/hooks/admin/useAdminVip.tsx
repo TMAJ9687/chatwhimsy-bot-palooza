@@ -5,6 +5,7 @@ import { VipDuration, AdminAction } from '@/types/admin';
 import { Bot } from '@/types/chat';
 import * as adminService from '@/services/admin/adminService';
 import { calculateExpiryDate } from '@/utils/admin/vipUtils';
+import { useVipConfirmation } from './useVipConfirmation';
 
 /**
  * Custom hook for VIP management functionality in the admin dashboard
@@ -17,14 +18,16 @@ export const useAdminVip = (
 ) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const { showVipConfirmation, showVipDowngradeConfirmation, showVipDurationSelect } = useVipConfirmation();
   
-  const upgradeToVIP = useCallback(async (userId: string, duration: VipDuration) => {
+  // Process VIP upgrade after confirmation
+  const processVipUpgrade = useCallback(async (userId: string, duration: VipDuration) => {
     if (!isAdmin || !user) return false;
     
     try {
       setIsProcessing(true);
       
-      // Get expiry date based on duration
+      // Get expiry date based on duration for toast information
       const expiryDate = calculateExpiryDate(duration);
       const expiryText = expiryDate ? 
         ` (expires on ${expiryDate.toLocaleDateString()})` : 
@@ -69,7 +72,7 @@ export const useAdminVip = (
         return false;
       }
     } catch (error) {
-      console.error('Error upgrading user:', error);
+      console.error('Error upgrading user to VIP:', error);
       toast({
         title: 'Error',
         description: 'Failed to upgrade user',
@@ -81,7 +84,8 @@ export const useAdminVip = (
     }
   }, [isAdmin, user, toast, setBots, setAdminActions]);
   
-  const downgradeToStandard = useCallback(async (userId: string) => {
+  // Process VIP downgrade after confirmation
+  const processVipDowngrade = useCallback(async (userId: string) => {
     if (!isAdmin || !user) return false;
     
     try {
@@ -110,6 +114,12 @@ export const useAdminVip = (
           bot.id === userId ? { ...bot, vip: true } : bot
         ));
         
+        toast({
+          title: 'Error',
+          description: 'Failed to downgrade user',
+          variant: 'destructive',
+        });
+        
         return false;
       }
     } catch (error) {
@@ -124,6 +134,18 @@ export const useAdminVip = (
       setIsProcessing(false);
     }
   }, [isAdmin, user, toast, setBots, setAdminActions]);
+  
+  // Upgrade to VIP with duration selection and confirmation
+  const upgradeToVIP = useCallback((userId: string, username?: string) => {
+    showVipDurationSelect(userId, username, (userId, duration) => {
+      showVipConfirmation(userId, username, duration, processVipUpgrade);
+    });
+  }, [showVipDurationSelect, showVipConfirmation, processVipUpgrade]);
+  
+  // Downgrade from VIP with confirmation
+  const downgradeToStandard = useCallback((userId: string, username?: string) => {
+    showVipDowngradeConfirmation(userId, username, processVipDowngrade);
+  }, [showVipDowngradeConfirmation, processVipDowngrade]);
 
   return {
     upgradeToVIP,

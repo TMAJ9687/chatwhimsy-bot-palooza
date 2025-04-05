@@ -1,7 +1,6 @@
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { trackAsyncOperation } from '@/utils/performanceMonitor';
 import { useChatInitialization } from './useChatInitialization';
 import { useAdminAuth } from './admin/useAdminAuth';
 import { useAdminBots } from './admin/useAdminBots';
@@ -9,12 +8,12 @@ import { useAdminUsers } from './admin/useAdminUsers';
 import { useAdminReports } from './admin/useAdminReports';
 import { useAdminSettings } from './admin/useAdminSettings';
 import { useAdminActions } from './admin/useAdminActions';
-import { adminLogout } from '@/services/admin/supabaseAdminAuth';
+import { useAdminDashboard } from './admin/useAdminDashboard';
+import { useAdminLogout } from './admin/useAdminLogout';
+import { useAdminStats } from './admin/useAdminStats';
 import { Bot } from '@/types/chat';
 
 export const useAdmin = () => {
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
   const [bots, setBots] = useState<Bot[]>([]);
   const { onlineUsers: chatUsers } = useChatInitialization();
   
@@ -58,6 +57,24 @@ export const useAdmin = () => {
   
   const { saveSiteSettings, getSiteSettings } = useAdminSettings(isAdmin);
   
+  // Initialize the dashboard loader
+  const { loading } = useAdminDashboard(
+    isAdmin,
+    setBots,
+    setAdminActions,
+    loadBots,
+    loadBannedUsers,
+    loadAdminActions,
+    loadReportsAndFeedback,
+    cleanupExpiredReports
+  );
+  
+  // Initialize the admin logout functionality
+  const { adminLogout } = useAdminLogout(authLogout);
+  
+  // Get calculated stats
+  const { vipUsers, standardUsers } = useAdminStats(bots);
+  
   // Combine processing states
   const isProcessing = isBotsProcessing || isUsersProcessing || authLoading;
   
@@ -71,123 +88,6 @@ export const useAdmin = () => {
     });
     
   }, [isAdmin, chatUsers, trackUserOnlineStatus]);
-  
-  // Memoized derived data to prevent unnecessary recalculations
-  const vipUsers = useMemo(() => bots.filter(bot => bot.vip), [bots]);
-  const standardUsers = useMemo(() => bots.filter(bot => !bot.vip), [bots]);
-  
-  // Load data optimized with requestAnimationFrame and chunking
-  useEffect(() => {
-    if (!isAdmin) return;
-    
-    let isMounted = true;
-    
-    const loadAdminData = async () => {
-      if (!isMounted) return;
-      
-      try {
-        setLoading(true);
-        console.log('Starting admin data load...');
-        
-        // Create a queue of loading tasks
-        const loadingTasks = [
-          {
-            name: 'bots',
-            loadFn: async () => {
-              console.log('Loading bots data...');
-              const loadedBots = await loadBots();
-              if (isMounted) {
-                setBots(loadedBots || []);
-              }
-            }
-          },
-          {
-            name: 'bannedUsers',
-            loadFn: async () => {
-              console.log('Loading banned users data...');
-              await loadBannedUsers();
-            }
-          },
-          {
-            name: 'adminActions',
-            loadFn: async () => {
-              console.log('Loading admin actions data...');
-              await loadAdminActions();
-            }
-          },
-          {
-            name: 'reportsFeedback',
-            loadFn: async () => {
-              console.log('Loading reports & feedback data...');
-              await loadReportsAndFeedback();
-            }
-          }
-        ];
-        
-        // Process loading tasks in parallel with limits
-        await Promise.all(
-          loadingTasks.map(task => 
-            trackAsyncOperation(`load_${task.name}`, task.loadFn)
-          )
-        );
-        
-        if (isMounted) {
-          setLoading(false);
-          console.log('Admin data loading complete!');
-        }
-      } catch (error) {
-        console.error('Error loading admin data:', error);
-        if (isMounted) {
-          toast({
-            title: 'Error',
-            description: 'Failed to load admin data',
-            variant: 'destructive',
-          });
-          setLoading(false);
-        }
-      }
-    };
-    
-    // Use requestAnimationFrame to avoid blocking the main thread
-    requestAnimationFrame(() => {
-      loadAdminData();
-    });
-    
-    // Set up interval to periodically clean up expired reports/feedback
-    const cleanupInterval = setInterval(async () => {
-      if (isAdmin && isMounted) {
-        await cleanupExpiredReports();
-      }
-    }, 60000); // Check every minute
-    
-    return () => {
-      isMounted = false;
-      clearInterval(cleanupInterval);
-    };
-  }, [isAdmin, toast, loadBots, loadBannedUsers, loadAdminActions, loadReportsAndFeedback, cleanupExpiredReports]);
-
-  // Create a wrapped adminLogout function that combines both auth methods
-  const combinedAdminLogout = useCallback(async () => {
-    try {
-      // First try the specialized admin logout
-      if (authLogout) {
-        const success = await authLogout();
-        if (success) return true;
-      }
-      
-      // Fallback to the imported admin logout
-      await adminLogout();
-      return true;
-    } catch (error) {
-      console.error('Error during logout:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to log out',
-        variant: 'destructive',
-      });
-      return false;
-    }
-  }, [authLogout, toast]);
   
   return {
     // State
@@ -223,7 +123,7 @@ export const useAdmin = () => {
     
     // Admin settings
     changeAdminPassword,
-    adminLogout: combinedAdminLogout,
+    adminLogout,
     
     // Site settings
     saveSiteSettings,
