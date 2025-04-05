@@ -23,21 +23,23 @@ import {
 // Dialog types
 type DialogType = 'alert' | 'confirm' | 'prompt' | 'select' | 'report' | 'block';
 
-// Common props
+// Common props - making onConfirm optional and generic to fix the extension errors
 interface DialogBaseProps {
   title: string;
   message: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  onConfirm?: () => void;
+  onConfirm?: (...args: any[]) => void; // Use generic args to allow different signatures
   onCancel?: () => void;
 }
 
 // Props for different dialog types
-interface AlertDialogProps extends DialogBaseProps {}
+interface AlertDialogProps extends DialogBaseProps {
+  // Alert dialog doesn't need extra props
+}
 
 interface ConfirmDialogProps extends DialogBaseProps {
-  onConfirm: () => void;
+  onConfirm: () => void; // Confirm requires onConfirm
 }
 
 interface PromptDialogProps extends DialogBaseProps {
@@ -119,9 +121,14 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       ? BlockDialogProps
       : never
   ) => {
-    // Reset state
-    setInputValue(props.defaultValue || '');
-    setSelectValue((props as any).defaultValue || '');
+    // Reset state - safely handle defaultValue access
+    if ('defaultValue' in props) {
+      setInputValue(props.defaultValue || '');
+      setSelectValue(props.defaultValue || '');
+    } else {
+      setInputValue('');
+      setSelectValue('');
+    }
     setDialogConfig({ type, props } as DialogProps);
     setOpen(true);
   };
@@ -142,13 +149,13 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         dialogConfig.props.onConfirm();
         break;
       case 'prompt':
-        dialogConfig.props.onConfirm(inputValue);
+        (dialogConfig.props.onConfirm as (value: string) => void)(inputValue);
         break;
       case 'select':
-        dialogConfig.props.onConfirm(selectValue);
+        (dialogConfig.props.onConfirm as (value: string) => void)(selectValue);
         break;
       case 'report':
-        (dialogConfig.props.onConfirm as any)?.(inputValue);
+        (dialogConfig.props.onConfirm as (reason: string) => void)?.(inputValue);
         break;
       case 'block':
         dialogConfig.props.onBlockUser(dialogConfig.props.userId);
@@ -174,7 +181,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             <Input
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder={dialogConfig.props.placeholder}
+              placeholder={(dialogConfig.props as PromptDialogProps).placeholder}
               className="mt-2"
             />
           )}

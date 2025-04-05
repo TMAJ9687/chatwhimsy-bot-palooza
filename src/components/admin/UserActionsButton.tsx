@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { useAdmin } from '@/hooks/useAdmin';
 import { Bot } from '@/types/chat';
 import { useDialog } from '@/hooks/use-dialog';
+import { VipDuration } from '@/types/admin';
 
 interface UserActionsButtonProps {
   user: Bot;
@@ -91,7 +92,9 @@ const UserActionsButton = ({ user }: UserActionsButtonProps) => {
       cancelLabel: 'Cancel',
       onConfirm: async (duration) => {
         if (duration) {
-          const success = await upgradeToVIP(user.id, duration);
+          // Convert the string to VipDuration type to match the function signature
+          const typedDuration = duration as VipDuration;
+          const success = await upgradeToVIP(user.id, typedDuration);
           if (success) {
             openDialog('alert', {
               title: 'User Upgraded',

@@ -19,6 +19,7 @@ import { adminDb } from '@/integrations/supabase/adminTypes';
 import AdminErrorHandler from '@/components/admin/ErrorHandler';
 import { Bot } from '@/types/chat';
 import UserTable from '@/components/admin/UserTable';
+import UserActionsButton from '@/components/admin/UserActionsButton';
 
 const AdminDashboard = () => {
   const { isAuthenticated, user, isLoading: sessionLoading, refreshSession } = useAdminSession();
