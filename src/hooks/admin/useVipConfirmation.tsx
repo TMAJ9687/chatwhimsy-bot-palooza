@@ -1,6 +1,6 @@
 
 import { useCallback } from 'react';
-import { useDialog } from '@/hooks/use-dialog';
+import { useDialog } from '@/context/DialogContext';
 import { VipDuration } from '@/types/admin';
 import { calculateExpiryDate } from '@/utils/admin/vipUtils';
 

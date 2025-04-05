@@ -27,7 +27,7 @@ import NavigationLock from './components/shared/NavigationLock';
 import AuthListener from './components/core/AuthListener';
 import { UserProvider } from './context/UserContext';
 import { UIStateProvider } from './context/UIStateContext';
-import { DialogProvider } from './context/DialogContext';
+import { DialogProvider } from './components/providers/DialogProvider';
 import DialogContainer from './components/dialogs/DialogContainer';
 import ErrorHandler from './components/core/ErrorHandler';
 
