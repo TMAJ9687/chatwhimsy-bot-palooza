@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/select';
 
 // Dialog types
-type DialogType = 'alert' | 'confirm' | 'prompt' | 'select' | 'report' | 'block';
+export type DialogType = 'alert' | 'confirm' | 'prompt' | 'select' | 'report' | 'block';
 
 // Common props - making onConfirm optional and generic to fix the extension errors
 interface DialogBaseProps {

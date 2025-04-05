@@ -4,7 +4,7 @@ import React, { createContext, useContext, useReducer, ReactNode, useMemo, useCa
 // Define dialog types
 export type DialogType = 'report' | 'block' | 'siteRules' | 'logout' | 'vipLogin' | 'vipSignup' 
   | 'vipSubscription' | 'vipPayment' | 'vipConfirmation' | 'accountDeletion' | 'vipSelect' 
-  | 'confirm' | 'alert' | null;
+  | 'confirm' | 'alert' | 'prompt' | 'select' | null;
 
 // Define dialog state
 interface DialogState {
