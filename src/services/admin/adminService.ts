@@ -1,8 +1,10 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { AdminAction, ReportFeedback, BanRecord } from '@/types/admin';
 import { Bot } from '@/types/chat';
 import { botProfiles } from '@/data/botProfiles';
+
+// Track online users
+let onlineUsers: Set<string> = new Set();
 
 /**
  * Check if admin is logged in
@@ -135,11 +137,11 @@ export const getAllBots = async (): Promise<Bot[]> => {
     // This connects the admin dashboard with the actual bots in the chat
     const bots = [...botProfiles];
     
-    // Add online status to the bots (for demo, we'll set some as online)
-    return bots.map((bot, index) => ({
+    // Add online status to the bots
+    return bots.map(bot => ({
       ...bot,
-      // Set every other bot as online for demonstration
-      isOnline: index % 2 === 0
+      // Check if this bot is in our online users set
+      isOnline: onlineUsers.has(bot.id)
     }));
   } catch (error) {
     console.error('Error getting bots:', error);
@@ -210,9 +212,6 @@ export const deleteBot = async (id: string): Promise<boolean> => {
     return false;
   }
 };
-
-// Track online users
-let onlineUsers: Set<string> = new Set();
 
 /**
  * User tracking functions for admin dashboard

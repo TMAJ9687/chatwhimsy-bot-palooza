@@ -2,23 +2,31 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Bot } from '@/types/chat';
 import { useToast } from '@/hooks/use-toast';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 import * as adminService from '@/services/admin/adminService';
+import { safeHandleError } from '@/utils/safeErrorHandler';
 
 /**
- * Custom hook for bot management functionality
+ * Custom hook for bot management functionality in the admin dashboard
  */
 export const useAdminBots = (isAdmin: boolean) => {
   const { toast } = useToast();
+  const { logError } = useErrorHandler();
   const [bots, setBots] = useState<Bot[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Load bots data
+  // Load bots data with error handling
   const loadBots = useCallback(async () => {
-    if (!isAdmin) return;
+    if (!isAdmin) return [];
     
     try {
-      const loadedBots = await adminService.getAllBots();
+      const loadedBots = await safeHandleError(
+        adminService.getAllBots(),
+        [] as Bot[],
+        'loadBots'
+      );
+      
       setBots(loadedBots);
       console.log(`Loaded ${loadedBots.length} bots`);
       
@@ -29,19 +37,25 @@ export const useAdminBots = (isAdmin: boolean) => {
       
       return loadedBots;
     } catch (error) {
-      console.error('Error loading bots:', error);
+      logError(error, 'loadBots');
       return [];
     }
-  }, [isAdmin]);
+  }, [isAdmin, logError]);
   
   // Bot monitoring - periodically update online status
   useEffect(() => {
     if (!isAdmin) return;
     
-    const intervalId = setInterval(async () => {
+    const updateOnlineStatus = () => {
       const onlineIds = adminService.getOnlineUserIds();
       setOnlineUsers(onlineIds);
-    }, 10000); // Check every 10 seconds
+    };
+    
+    // Update immediately
+    updateOnlineStatus();
+    
+    // Then set interval
+    const intervalId = setInterval(updateOnlineStatus, 10000); // Check every 10 seconds
     
     return () => clearInterval(intervalId);
   }, [isAdmin]);
@@ -68,7 +82,7 @@ export const useAdminBots = (isAdmin: boolean) => {
       
       return newBot;
     } catch (error) {
-      console.error('Error creating bot:', error);
+      logError(error, 'createBot');
       toast({
         title: 'Error',
         description: 'Failed to create bot',
@@ -78,8 +92,9 @@ export const useAdminBots = (isAdmin: boolean) => {
     } finally {
       setIsProcessing(false);
     }
-  }, [isAdmin, toast]);
+  }, [isAdmin, toast, logError]);
   
+  // Update bot with optimistic updates
   const updateBot = useCallback(async (id: string, updates: Partial<Bot>) => {
     if (!isAdmin) return false;
     
@@ -112,7 +127,7 @@ export const useAdminBots = (isAdmin: boolean) => {
       
       return true;
     } catch (error) {
-      console.error('Error updating bot:', error);
+      logError(error, 'updateBot');
       toast({
         title: 'Error',
         description: 'Failed to update bot',
@@ -126,15 +141,16 @@ export const useAdminBots = (isAdmin: boolean) => {
           bot.id === id && originalBot ? originalBot : bot
         ));
       } catch (err) {
-        console.error('Failed to fetch original bot data for revert:', err);
+        logError(err, 'revertUpdateBot');
       }
       
       return false;
     } finally {
       setIsProcessing(false);
     }
-  }, [isAdmin, toast]);
+  }, [isAdmin, toast, logError]);
   
+  // Delete bot with optimistic update
   const deleteBot = useCallback(async (id: string) => {
     if (!isAdmin) return false;
     
@@ -170,7 +186,7 @@ export const useAdminBots = (isAdmin: boolean) => {
       
       return success;
     } catch (error) {
-      console.error('Error deleting bot:', error);
+      logError(error, 'deleteBot');
       toast({
         title: 'Error',
         description: 'Failed to delete bot',
@@ -180,7 +196,7 @@ export const useAdminBots = (isAdmin: boolean) => {
     } finally {
       setIsProcessing(false);
     }
-  }, [isAdmin, toast, bots]);
+  }, [isAdmin, toast, bots, logError]);
 
   // Track a user's online status
   const trackUserOnlineStatus = useCallback((userId: string, isOnline: boolean) => {

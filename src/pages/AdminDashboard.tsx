@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAdminSession from '@/hooks/useAdminSession';
@@ -19,6 +18,7 @@ import { adminLogout } from '@/services/admin/supabaseAdminAuth';
 import { adminDb } from '@/integrations/supabase/adminTypes';
 import AdminErrorHandler from '@/components/admin/ErrorHandler';
 import { Bot } from '@/types/chat';
+import UserTable from '@/components/admin/UserTable';
 
 const AdminDashboard = () => {
   const { isAuthenticated, user, isLoading: sessionLoading, refreshSession } = useAdminSession();
@@ -39,20 +39,17 @@ const AdminDashboard = () => {
   }, [navigate]);
   
   useEffect(() => {
-    // If not authenticated as admin, redirect to login
     if (!isAuthenticated && !sessionLoading && !loading) {
       console.log('Not authenticated, redirecting to login');
       redirectToLogin();
     }
   }, [isAuthenticated, redirectToLogin, sessionLoading, loading]);
   
-  // Load dashboard stats with retry logic
   const loadStats = useCallback(async () => {
     try {
       setDataLoading(true);
       console.log('Loading dashboard stats...');
       
-      // Fetch stats using our helper function
       const { data, error } = await adminDb.dashboard().getStats();
       
       if (error) {
@@ -111,7 +108,6 @@ const AdminDashboard = () => {
   
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
-    // Refresh both session and stats
     refreshSession();
     loadStats();
     toast({
@@ -119,12 +115,7 @@ const AdminDashboard = () => {
       description: "Refreshing admin dashboard data...",
     });
   };
-  
-  // Helper function to check if a bot is online
-  const isBotOnline = (botId: string) => {
-    return onlineUsers && onlineUsers.includes(botId);
-  };
-  
+
   if (!isAuthenticated && !sessionLoading) {
     return (
       <AdminErrorHandler>
@@ -312,61 +303,11 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <p className="mb-4">Manage user accounts, permissions, and status.</p>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Country</TableHead>
-                      <TableHead>VIP</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {bots.slice(0, 5).map((bot: Bot) => (
-                      <TableRow key={bot.id}>
-                        <TableCell className="font-medium flex items-center">
-                          <span className="mr-2">{bot.avatar}</span>
-                          {bot.name}
-                        </TableCell>
-                        <TableCell>
-                          {isBotOnline(bot.id) ? (
-                            <span className="flex items-center">
-                              <Circle className="h-3 w-3 fill-green-500 text-green-500 mr-1" />
-                              Online
-                            </span>
-                          ) : (
-                            <span className="flex items-center">
-                              <Circle className="h-3 w-3 fill-gray-300 text-gray-300 mr-1" />
-                              Offline
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell>{bot.country}</TableCell>
-                        <TableCell>
-                          {bot.vip ? (
-                            <span className="flex items-center">
-                              <CheckCircle2 className="h-4 w-4 text-green-500 mr-1" />
-                              Yes
-                            </span>
-                          ) : (
-                            <span className="text-gray-500">No</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="outline" size="sm">View</Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                {bots.length > 5 && (
-                  <div className="flex justify-center mt-4">
-                    <Button variant="outline" onClick={() => setCurrentTab('bots')}>
-                      View All Users
-                    </Button>
-                  </div>
-                )}
+                <UserTable 
+                  users={bots} 
+                  onlineUsers={onlineUsers || []} 
+                  onViewAll={() => setCurrentTab('bots')} 
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -378,7 +319,6 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <p className="mb-4">Review and manage banned users, reports, and moderation actions.</p>
-                {/* Moderation content would go here */}
                 <div className="border rounded-md p-8 flex items-center justify-center">
                   <p className="text-muted-foreground">Moderation tools will appear here</p>
                 </div>
@@ -413,7 +353,7 @@ const AdminDashboard = () => {
                         <TableCell>{bot.avatar}</TableCell>
                         <TableCell className="font-medium">{bot.name}</TableCell>
                         <TableCell>
-                          {isBotOnline(bot.id) ? (
+                          {onlineUsers && onlineUsers.includes(bot.id) ? (
                             <span className="flex items-center">
                               <Circle className="h-3 w-3 fill-green-500 text-green-500 mr-1" />
                               Online
@@ -439,8 +379,10 @@ const AdminDashboard = () => {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="outline" size="sm" className="mr-2">Edit</Button>
-                          <Button variant="outline" size="sm" className="text-red-500">Delete</Button>
+                          <div className="flex justify-end items-center space-x-2">
+                            <Button variant="outline" size="sm">Edit</Button>
+                            <UserActionsButton user={bot} />
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -464,7 +406,6 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <p className="mb-4">Review and resolve user-submitted reports and feedback.</p>
-                {/* Reports content would go here */}
                 <div className="border rounded-md p-8 flex items-center justify-center">
                   <p className="text-muted-foreground">Reports dashboard will appear here</p>
                 </div>

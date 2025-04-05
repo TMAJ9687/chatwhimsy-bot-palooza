@@ -2,7 +2,7 @@
 import { useCallback } from 'react';
 import { useToast } from './use-toast';
 import { handleError } from '@/utils/errorHandler';
-import { isNonActionableError } from '@/utils/safeErrorHandler';
+import { isNonActionableError, safeLogError } from '@/utils/safeErrorHandler';
 
 /**
  * A hook to provide error handling functionality with enhanced filter
@@ -11,8 +11,9 @@ import { isNonActionableError } from '@/utils/safeErrorHandler';
 export const useErrorHandler = () => {
   const { toast } = useToast();
   
+  // Display user-friendly error message
   const showError = useCallback((message: string) => {
-    // Use the centralized non-actionable error filter
+    // Skip non-actionable errors
     if (isNonActionableError(message)) {
       console.debug('Filtered non-actionable error:', message);
       return;
@@ -25,6 +26,7 @@ export const useErrorHandler = () => {
     });
   }, [toast]);
   
+  // Capture and log error with context
   const captureError = useCallback((error: unknown, context?: string) => {
     // Skip handling for non-actionable errors
     if (error instanceof Error && isNonActionableError(error)) {
@@ -32,16 +34,23 @@ export const useErrorHandler = () => {
       return;
     }
     
-    if (error instanceof Error) {
-      handleError(error, { context });
-    } else {
-      handleError(new Error(String(error)), { context });
-    }
+    // Use the centralized error handler
+    const errorObj = error instanceof Error 
+      ? error 
+      : new Error(String(error));
+    
+    handleError(errorObj, { context });
+  }, []);
+  
+  // Log but don't show to user
+  const logError = useCallback((error: unknown, context?: string) => {
+    safeLogError(error, context);
   }, []);
   
   return {
     showError,
-    captureError
+    captureError,
+    logError
   };
 };
 

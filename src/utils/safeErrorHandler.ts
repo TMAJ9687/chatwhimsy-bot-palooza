@@ -3,39 +3,31 @@
  * A utility for safely handling errors without crashing the application
  */
 
+// List of patterns for non-actionable errors
+const NON_ACTIONABLE_ERROR_PATTERNS = [
+  // API and network errors
+  'ipapi.co', 'ipgeolocation', 'API_KEY_HERE', '429', 'Failed to fetch', 'CORS',
+  // DOM errors
+  'removeChild', 'is not a child of this node', 'Failed to execute',
+  // React-specific errors
+  'unmounted component', 'Cannot update a component',
+  // React warnings for Recharts
+  'Support for defaultProps will be removed',
+  'YAxis: Support for defaultProps',
+  'XAxis: Support for defaultProps',
+  'CartesianAxis: Support for defaultProps',
+  'Legend: Support for defaultProps',
+  'Tooltip: Support for defaultProps',
+  // Browser extensions
+  'extension', 'contentScript'
+];
+
 // Filter out common non-actionable errors that shouldn't crash the app
 export const isNonActionableError = (error: Error | string): boolean => {
   const errorMessage = typeof error === 'string' ? error : error.message;
   
-  return (
-    // API and network errors
-    errorMessage.includes('ipapi.co') ||
-    errorMessage.includes('ipgeolocation') ||
-    errorMessage.includes('API_KEY_HERE') ||
-    errorMessage.includes('429') ||
-    errorMessage.includes('Failed to fetch') ||
-    errorMessage.includes('CORS') ||
-    
-    // DOM errors
-    errorMessage.includes('removeChild') ||
-    errorMessage.includes('is not a child of this node') ||
-    errorMessage.includes('Failed to execute') ||
-    
-    // React-specific errors during mount/unmount
-    errorMessage.includes('unmounted component') ||
-    errorMessage.includes('Cannot update a component') ||
-    
-    // React warnings for Recharts
-    errorMessage.includes('Support for defaultProps will be removed') ||
-    errorMessage.includes('YAxis: Support for defaultProps') ||
-    errorMessage.includes('XAxis: Support for defaultProps') ||
-    errorMessage.includes('CartesianAxis: Support for defaultProps') ||
-    errorMessage.includes('Legend: Support for defaultProps') ||
-    errorMessage.includes('Tooltip: Support for defaultProps') ||
-    
-    // Browser extensions
-    errorMessage.includes('extension') ||
-    errorMessage.includes('contentScript')
+  return NON_ACTIONABLE_ERROR_PATTERNS.some(pattern => 
+    errorMessage.includes(pattern)
   );
 };
 

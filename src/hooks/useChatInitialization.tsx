@@ -21,6 +21,9 @@ export const useChatInitialization = () => {
   // Select a user to chat with
   const selectUser = useCallback((user: Bot) => {
     setCurrentBot(user);
+    
+    // Update bot's online status in admin tracking
+    adminService.trackUserActivity(user.id, true);
   }, []);
 
   // Set up online users without network requests
@@ -40,7 +43,7 @@ export const useChatInitialization = () => {
     
     // Register online bots with admin service
     sortedBotProfiles.forEach((bot, index) => {
-      // Only mark some bots as online for demonstration
+      // Mark some bots as online for demonstration
       if (index % 2 === 0) {
         adminService.trackUserActivity(bot.id, true);
       }
