@@ -56,9 +56,9 @@ const UserActionsButton: React.FC<UserActionsButtonProps> = ({
   // Handler for VIP upgrade - opens duration selection dialog first
   const handleUpgradeToVIP = () => {
     if (onUpgradeToVIP) {
-      showVipDurationSelect(user.id, user.username, (userId, duration) => {
+      showVipDurationSelect(user.id, user.name, (userId, duration) => {
         // After duration is selected, show confirmation dialog
-        showVipConfirmation(userId, user.username, duration, onUpgradeToVIP);
+        showVipConfirmation(userId, user.name, duration, onUpgradeToVIP);
       });
     }
   };
@@ -66,7 +66,7 @@ const UserActionsButton: React.FC<UserActionsButtonProps> = ({
   // Handler for VIP downgrade - shows confirmation directly
   const handleDowngradeFromVIP = () => {
     if (onDowngradeToStandard) {
-      showVipDowngradeConfirmation(user.id, user.username, onDowngradeToStandard);
+      showVipDowngradeConfirmation(user.id, user.name, onDowngradeToStandard);
     }
   };
 
@@ -86,7 +86,7 @@ const UserActionsButton: React.FC<UserActionsButtonProps> = ({
       <DropdownMenuContent align="end" className="w-48">
         {/* Account Status Actions */}
         <DropdownMenuSeparator />
-        {user.banned ? (
+        {user.isOnline === false ? (
           <DropdownMenuItem 
             onClick={() => onUnbanUser && onUnbanUser(user.id)}
             disabled={!onUnbanUser || disabled}
