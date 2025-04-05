@@ -1,11 +1,10 @@
 
 import { useState, useCallback } from 'react';
-import { useUser } from '@/context/UserContext';
 import { useToast } from '@/hooks/use-toast';
 import { BanRecord, AdminAction } from '@/types/admin';
-import { VipDuration } from '@/types/admin';
 import { Bot } from '@/types/chat';
 import * as adminService from '@/services/admin/adminService';
+import { useAdminVip } from './useAdminVip';
 
 /**
  * Custom hook for user management functionality
@@ -14,12 +13,19 @@ export const useAdminUsers = (
   isAdmin: boolean, 
   bots: Bot[], 
   setBots: React.Dispatch<React.SetStateAction<Bot[]>>,
-  setAdminActions: React.Dispatch<React.SetStateAction<AdminAction[]>>
+  setAdminActions: React.Dispatch<React.SetStateAction<AdminAction[]>>,
+  user: { id: string } | null
 ) => {
-  const { user } = useUser();
   const { toast } = useToast();
   const [bannedUsers, setBannedUsers] = useState<BanRecord[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isUserProcessing, setIsUserProcessing] = useState(false);
+  
+  // Import VIP management from separate hook
+  const { 
+    upgradeToVIP, 
+    downgradeToStandard, 
+    isProcessing: isVipProcessing 
+  } = useAdminVip(isAdmin, user, setBots, setAdminActions);
   
   // Load banned users data
   const loadBannedUsers = useCallback(async () => {
@@ -40,10 +46,10 @@ export const useAdminUsers = (
   // User actions
   const kickUser = useCallback(async (userId: string) => {
     if (!isAdmin || !user) return false;
-    if (isProcessing) return false;
+    if (isUserProcessing) return false;
     
     try {
-      setIsProcessing(true);
+      setIsUserProcessing(true);
       console.log('Kicking user:', userId);
       
       // Optimistic update
@@ -86,9 +92,9 @@ export const useAdminUsers = (
       });
       return false;
     } finally {
-      setIsProcessing(false);
+      setIsUserProcessing(false);
     }
-  }, [isAdmin, user, toast, isProcessing, setAdminActions]);
+  }, [isAdmin, user, toast, isUserProcessing, setAdminActions]);
   
   const banUser = useCallback(async (
     identifier: string,
@@ -97,10 +103,10 @@ export const useAdminUsers = (
     duration: string
   ) => {
     if (!isAdmin || !user) return null;
-    if (isProcessing) return null;
+    if (isUserProcessing) return null;
     
     try {
-      setIsProcessing(true);
+      setIsUserProcessing(true);
       
       const banRecord = await adminService.banUser({
         identifier,
@@ -133,15 +139,15 @@ export const useAdminUsers = (
       });
       return null;
     } finally {
-      setIsProcessing(false);
+      setIsUserProcessing(false);
     }
-  }, [isAdmin, user, toast, isProcessing, setAdminActions]);
+  }, [isAdmin, user, toast, isUserProcessing, setAdminActions]);
   
   const unbanUser = useCallback(async (id: string) => {
     if (!isAdmin || !user) return false;
     
     try {
-      setIsProcessing(true);
+      setIsUserProcessing(true);
       
       // Optimistic update
       setBannedUsers(prev => prev.filter(ban => ban.id !== id));
@@ -179,97 +185,11 @@ export const useAdminUsers = (
       });
       return false;
     } finally {
-      setIsProcessing(false);
+      setIsUserProcessing(false);
     }
   }, [isAdmin, user, toast, setAdminActions]);
   
-  const upgradeToVIP = useCallback(async (userId: string, duration: VipDuration) => {
-    if (!isAdmin || !user) return false;
-    
-    try {
-      setIsProcessing(true);
-      
-      // Update bot's VIP status immediately for better UX
-      setBots(prev => prev.map(bot => 
-        bot.id === userId ? { ...bot, vip: true } : bot
-      ));
-      
-      const action = await adminService.upgradeToVIP(userId, user.id, duration);
-      
-      if (action) {
-        // Update admin actions list
-        setAdminActions(prev => [...prev, action]);
-        
-        toast({
-          title: 'Success',
-          description: `User upgraded to VIP successfully for ${duration}`,
-        });
-        
-        return true;
-      } else {
-        // Rollback if failed
-        setBots(prev => prev.map(bot => 
-          bot.id === userId ? { ...bot, vip: false } : bot
-        ));
-        
-        return false;
-      }
-    } catch (error) {
-      console.error('Error upgrading user:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to upgrade user',
-        variant: 'destructive',
-      });
-      return false;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [isAdmin, user, toast, setBots, setAdminActions]);
-  
-  const downgradeToStandard = useCallback(async (userId: string) => {
-    if (!isAdmin || !user) return false;
-    
-    try {
-      setIsProcessing(true);
-      
-      // Update bot's VIP status immediately for better UX
-      setBots(prev => prev.map(bot => 
-        bot.id === userId ? { ...bot, vip: false } : bot
-      ));
-      
-      const action = await adminService.downgradeToStandard(userId, user.id);
-      
-      if (action) {
-        // Update admin actions list
-        setAdminActions(prev => [...prev, action]);
-        
-        toast({
-          title: 'Success',
-          description: 'User downgraded to standard successfully',
-        });
-        
-        return true;
-      } else {
-        // Rollback if failed
-        setBots(prev => prev.map(bot => 
-          bot.id === userId ? { ...bot, vip: true } : bot
-        ));
-        
-        return false;
-      }
-    } catch (error) {
-      console.error('Error downgrading user:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to downgrade user',
-        variant: 'destructive',
-      });
-      return false;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [isAdmin, user, toast, setBots, setAdminActions]);
+  const isProcessing = isUserProcessing || isVipProcessing;
   
   return {
     bannedUsers,

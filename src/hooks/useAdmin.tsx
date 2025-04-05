@@ -1,20 +1,16 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Bot } from '@/types/chat';
 import { useToast } from '@/hooks/use-toast';
-import { debouncedAdminAction } from '@/utils/adminUtils';
-import { supabase } from '@/integrations/supabase/client';
-import { adminLogout } from '@/services/admin/supabaseAdminAuth';
-
-// Import all specialized admin hooks
+import { trackAsyncOperation } from '@/utils/performanceMonitor';
+import { useChatInitialization } from './useChatInitialization';
 import { useAdminAuth } from './admin/useAdminAuth';
 import { useAdminBots } from './admin/useAdminBots';
 import { useAdminUsers } from './admin/useAdminUsers';
 import { useAdminReports } from './admin/useAdminReports';
 import { useAdminSettings } from './admin/useAdminSettings';
 import { useAdminActions } from './admin/useAdminActions';
-import { trackAsyncOperation } from '@/utils/performanceMonitor';
-import { useChatInitialization } from './useChatInitialization';
+import { adminLogout } from '@/services/admin/supabaseAdminAuth';
+import { Bot } from '@/types/chat';
 
 export const useAdmin = () => {
   const { toast } = useToast();
@@ -34,6 +30,11 @@ export const useAdmin = () => {
     trackUserOnlineStatus,
     isProcessing: isBotsProcessing 
   } = useAdminBots(isAdmin);
+
+  // Pass current user from authentication hooks
+  const { user } = useAdminAuth();
+  
+  // Initialize users management with both standard user management and VIP methods
   const { 
     bannedUsers, 
     loadBannedUsers, 
@@ -43,7 +44,8 @@ export const useAdmin = () => {
     upgradeToVIP, 
     downgradeToStandard, 
     isProcessing: isUsersProcessing 
-  } = useAdminUsers(isAdmin, bots, setBots, setAdminActions);
+  } = useAdminUsers(isAdmin, bots, setBots, setAdminActions, user);
+  
   const { 
     reportsFeedback, 
     loadReportsAndFeedback, 
@@ -53,6 +55,7 @@ export const useAdmin = () => {
     resolveReportFeedback, 
     deleteReportFeedback 
   } = useAdminReports(isAdmin);
+  
   const { saveSiteSettings, getSiteSettings } = useAdminSettings(isAdmin);
   
   // Combine processing states
@@ -85,7 +88,6 @@ export const useAdmin = () => {
       try {
         setLoading(true);
         console.log('Starting admin data load...');
-        console.time('adminDataLoad');
         
         // Create a queue of loading tasks
         const loadingTasks = [
@@ -131,7 +133,6 @@ export const useAdmin = () => {
         
         if (isMounted) {
           setLoading(false);
-          console.timeEnd('adminDataLoad');
           console.log('Admin data loading complete!');
         }
       } catch (error) {

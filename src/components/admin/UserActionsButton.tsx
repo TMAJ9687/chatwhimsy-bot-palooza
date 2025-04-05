@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   MoreHorizontal, Ban, ShieldAlert, Crown, UserX, CheckCircle 
 } from 'lucide-react';
@@ -16,6 +16,7 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { Bot } from '@/types/chat';
 import { useDialog } from '@/context/DialogContext';
 import { VipDuration } from '@/types/admin';
+import { getVipDurationDisplay } from '@/utils/admin/vipUtils';
 
 interface UserActionsButtonProps {
   user: Bot;
@@ -75,7 +76,7 @@ const UserActionsButton = ({ user }: UserActionsButtonProps) => {
     });
   };
 
-  // Handle VIP upgrade
+  // Handle VIP upgrade with a confirmation dialog showing duration details
   const handleUpgradeToVIP = () => {
     openDialog('select', {
       title: 'Upgrade to VIP',
@@ -88,25 +89,35 @@ const UserActionsButton = ({ user }: UserActionsButtonProps) => {
         { label: 'Lifetime', value: 'Lifetime' },
       ],
       defaultValue: '1 Month',
-      confirmLabel: 'Upgrade',
+      confirmLabel: 'Continue',
       cancelLabel: 'Cancel',
       onConfirm: async (duration) => {
         if (duration) {
-          // Convert the string to VipDuration type to match the function signature
-          const typedDuration = duration as VipDuration;
-          const success = await upgradeToVIP(user.id, typedDuration);
-          if (success) {
-            openDialog('alert', {
-              title: 'User Upgraded',
-              message: `${user.name} has been upgraded to VIP for ${duration}.`
-            });
-          }
+          // Show confirmation dialog with details
+          openDialog('confirm', {
+            title: 'Confirm VIP Upgrade',
+            message: `Are you sure you want to upgrade ${user.name} to VIP for ${getVipDurationDisplay(duration as VipDuration)}?`,
+            confirmLabel: 'Upgrade',
+            cancelLabel: 'Cancel',
+            onConfirm: async () => {
+              // Convert the string to VipDuration type to match the function signature
+              const typedDuration = duration as VipDuration;
+              const success = await upgradeToVIP(user.id, typedDuration);
+              
+              if (success) {
+                openDialog('alert', {
+                  title: 'VIP Status Added',
+                  message: `${user.name} has been upgraded to VIP for ${getVipDurationDisplay(typedDuration)}.`
+                });
+              }
+            }
+          });
         }
       }
     });
   };
 
-  // Handle VIP downgrade
+  // Handle VIP downgrade with confirmation
   const handleDowngradeVIP = () => {
     openDialog('confirm', {
       title: 'Remove VIP Status',
@@ -163,8 +174,6 @@ const UserActionsButton = ({ user }: UserActionsButtonProps) => {
             <span>Upgrade to VIP</span>
           </DropdownMenuItem>
         )}
-        
-        {/* More options can be added here */}
       </DropdownMenuContent>
     </DropdownMenu>
   );

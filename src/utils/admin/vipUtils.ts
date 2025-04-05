@@ -16,20 +16,7 @@ export const VIP_DURATION_OPTIONS: VipDuration[] = [
  * Get display text for a VIP duration
  */
 export const getVipDurationDisplay = (duration: VipDuration): string => {
-  switch (duration) {
-    case '1 Day':
-      return '1 Day';
-    case '1 Week':
-      return '1 Week';
-    case '1 Month':
-      return '1 Month';
-    case '1 Year':
-      return '1 Year';
-    case 'Lifetime':
-      return 'Lifetime';
-    default:
-      return duration;
-  }
+  return duration;
 };
 
 /**
