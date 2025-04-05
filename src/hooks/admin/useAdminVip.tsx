@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { VipDuration, AdminAction } from '@/types/admin';
 import { Bot } from '@/types/chat';
-import * as adminService from '@/services/admin/adminService';
+import { upgradeToVIP, downgradeToStandard } from '@/services/admin/vipAdminService';
 import { calculateExpiryDate } from '@/utils/admin/vipUtils';
 import { useVipConfirmation } from './useVipConfirmation';
 
@@ -45,7 +45,7 @@ export const useAdminVip = (
       ));
       
       // Process the upgrade with the service
-      const action = await adminService.upgradeToVIP(userId, user.id, duration);
+      const action = await upgradeToVIP(userId, user.id, duration);
       
       if (action) {
         // Update admin actions list
@@ -96,7 +96,7 @@ export const useAdminVip = (
         bot.id === userId ? { ...bot, vip: false } : bot
       ));
       
-      const action = await adminService.downgradeToStandard(userId, user.id);
+      const action = await downgradeToStandard(userId, user.id);
       
       if (action) {
         // Update admin actions list
@@ -135,21 +135,20 @@ export const useAdminVip = (
     }
   }, [isAdmin, user, toast, setBots, setAdminActions]);
   
-  // Upgrade to VIP with duration selection and confirmation
-  const upgradeToVIP = useCallback((userId: string, username?: string) => {
+  // Public methods for the hook
+  const handleUpgradeToVIP = useCallback((userId: string, username?: string) => {
     showVipDurationSelect(userId, username, (userId, duration) => {
       showVipConfirmation(userId, username, duration, processVipUpgrade);
     });
   }, [showVipDurationSelect, showVipConfirmation, processVipUpgrade]);
   
-  // Downgrade from VIP with confirmation
-  const downgradeToStandard = useCallback((userId: string, username?: string) => {
+  const handleDowngradeToStandard = useCallback((userId: string, username?: string) => {
     showVipDowngradeConfirmation(userId, username, processVipDowngrade);
   }, [showVipDowngradeConfirmation, processVipDowngrade]);
 
   return {
-    upgradeToVIP,
-    downgradeToStandard,
+    upgradeToVIP: handleUpgradeToVIP,
+    downgradeToStandard: handleDowngradeToStandard,
     isProcessing
   };
 };

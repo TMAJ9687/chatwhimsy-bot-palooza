@@ -8,9 +8,9 @@ import { useAdminUsers } from './admin/useAdminUsers';
 import { useAdminReports } from './admin/useAdminReports';
 import { useAdminSettings } from './admin/useAdminSettings';
 import { useAdminActions } from './admin/useAdminActions';
-import { useAdminDashboard } from './admin/useAdminDashboard';
 import { useAdminLogout } from './admin/useAdminLogout';
-import { useAdminStats } from './admin/useAdminStats';
+import { useAdminStatsHook } from './admin/useAdminStatsHook';
+import { useDashboardLoader } from './admin/useDashboardLoader';
 import { Bot } from '@/types/chat';
 
 export const useAdmin = () => {
@@ -58,7 +58,7 @@ export const useAdmin = () => {
   const { saveSiteSettings, getSiteSettings } = useAdminSettings(isAdmin);
   
   // Initialize the dashboard loader
-  const { loading } = useAdminDashboard(
+  const { loadDashboardData } = useDashboardLoader(
     isAdmin,
     setBots,
     setAdminActions,
@@ -73,10 +73,21 @@ export const useAdmin = () => {
   const { adminLogout } = useAdminLogout(authLogout);
   
   // Get calculated stats
-  const { vipUsers, standardUsers } = useAdminStats(bots);
+  const { vipUsers, standardUsers } = useAdminStatsHook(bots, onlineUsers || []);
   
   // Combine processing states
   const isProcessing = isBotsProcessing || isUsersProcessing || authLoading;
+
+  // Dashboard loading state
+  const [loading, setLoading] = useState(true);
+  
+  // Load dashboard data when admin status changes
+  useEffect(() => {
+    if (isAdmin) {
+      setLoading(true);
+      loadDashboardData().finally(() => setLoading(false));
+    }
+  }, [isAdmin, loadDashboardData]);
   
   // Track chat users to update admin dashboard
   useEffect(() => {

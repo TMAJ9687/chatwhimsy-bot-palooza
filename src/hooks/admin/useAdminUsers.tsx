@@ -3,7 +3,8 @@ import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { BanRecord, AdminAction } from '@/types/admin';
 import { Bot } from '@/types/chat';
-import * as adminService from '@/services/admin/adminService';
+import { getBannedUsers, kickUser, banUser, unbanUser } from '@/services/admin/userAdminService';
+import { getAdminActions } from '@/services/admin/adminActionService';
 import { useAdminVip } from './useAdminVip';
 
 /**
@@ -33,7 +34,7 @@ export const useAdminUsers = (
     
     try {
       console.log('Loading banned users...');
-      const loadedBanned = await adminService.getBannedUsers();
+      const loadedBanned = await getBannedUsers();
       setBannedUsers(loadedBanned);
       console.log(`Loaded ${loadedBanned.length} banned users`);
       return loadedBanned;
@@ -43,8 +44,8 @@ export const useAdminUsers = (
     }
   }, [isAdmin]);
   
-  // User actions
-  const kickUser = useCallback(async (userId: string) => {
+  // User action: kick
+  const handleKickUser = useCallback(async (userId: string) => {
     if (!isAdmin || !user) return false;
     if (isUserProcessing) return false;
     
@@ -64,7 +65,7 @@ export const useAdminUsers = (
       
       setAdminActions(prev => [...prev, tempAction]);
       
-      const action = await adminService.kickUser(userId, user.id);
+      const action = await kickUser(userId, user.id);
       
       if (action) {
         // Replace temporary action with the real one
@@ -96,7 +97,8 @@ export const useAdminUsers = (
     }
   }, [isAdmin, user, toast, isUserProcessing, setAdminActions]);
   
-  const banUser = useCallback(async (
+  // User action: ban
+  const handleBanUser = useCallback(async (
     identifier: string,
     identifierType: 'user' | 'ip',
     reason: string,
@@ -108,7 +110,7 @@ export const useAdminUsers = (
     try {
       setIsUserProcessing(true);
       
-      const banRecord = await adminService.banUser({
+      const banRecord = await banUser({
         identifier,
         identifierType,
         reason,
@@ -120,7 +122,7 @@ export const useAdminUsers = (
         setBannedUsers(prev => [...prev, banRecord]);
         
         // Refresh admin actions
-        const updatedActions = await adminService.getAdminActions();
+        const updatedActions = await getAdminActions();
         setAdminActions(updatedActions);
         
         toast({
@@ -143,7 +145,8 @@ export const useAdminUsers = (
     }
   }, [isAdmin, user, toast, isUserProcessing, setAdminActions]);
   
-  const unbanUser = useCallback(async (id: string) => {
+  // User action: unban
+  const handleUnbanUser = useCallback(async (id: string) => {
     if (!isAdmin || !user) return false;
     
     try {
@@ -152,11 +155,11 @@ export const useAdminUsers = (
       // Optimistic update
       setBannedUsers(prev => prev.filter(ban => ban.id !== id));
       
-      const success = await adminService.unbanUser(id, user.id);
+      const success = await unbanUser(id, user.id);
       
       if (success) {
         // Refresh admin actions
-        const updatedActions = await adminService.getAdminActions();
+        const updatedActions = await getAdminActions();
         setAdminActions(updatedActions);
         
         toast({
@@ -165,7 +168,7 @@ export const useAdminUsers = (
         });
       } else {
         // Revert on failure
-        const allBannedUsers = await adminService.getBannedUsers();
+        const allBannedUsers = await getBannedUsers();
         setBannedUsers(allBannedUsers);
         
         toast({
@@ -194,9 +197,9 @@ export const useAdminUsers = (
   return {
     bannedUsers,
     loadBannedUsers,
-    kickUser,
-    banUser,
-    unbanUser,
+    kickUser: handleKickUser,
+    banUser: handleBanUser,
+    unbanUser: handleUnbanUser,
     upgradeToVIP,
     downgradeToStandard,
     isProcessing
