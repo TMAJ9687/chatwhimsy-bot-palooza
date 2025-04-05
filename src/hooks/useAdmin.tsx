@@ -19,7 +19,7 @@ export const useAdmin = () => {
   const { onlineUsers: chatUsers } = useChatInitialization();
   
   // Initialize all admin hooks
-  const { isAdmin, adminLogout: authLogout, changeAdminPassword, loading: authLoading } = useAdminAuth();
+  const { isAdmin, adminLogout: authLogout, changeAdminPassword, loading: authLoading, adminData } = useAdminAuth();
   const { adminActions, setAdminActions, loadAdminActions } = useAdminActions(isAdmin);
   const { 
     loadBots, 
@@ -31,8 +31,8 @@ export const useAdmin = () => {
     isProcessing: isBotsProcessing 
   } = useAdminBots(isAdmin);
 
-  // Pass current user from authentication hooks
-  const { user } = useAdminAuth();
+  // Pass current user from authentication data
+  const currentUser = adminData;
   
   // Initialize users management with both standard user management and VIP methods
   const { 
@@ -44,7 +44,7 @@ export const useAdmin = () => {
     upgradeToVIP, 
     downgradeToStandard, 
     isProcessing: isUsersProcessing 
-  } = useAdminUsers(isAdmin, bots, setBots, setAdminActions, user);
+  } = useAdminUsers(isAdmin, bots, setBots, setAdminActions, currentUser);
   
   const { 
     reportsFeedback, 
