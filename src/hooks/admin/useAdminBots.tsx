@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Bot } from '@/types/chat';
 import { useToast } from '@/hooks/use-toast';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
@@ -14,6 +14,8 @@ export const useAdminBots = (isAdmin: boolean) => {
   const [bots, setBots] = useState<Bot[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const trackedUsersRef = useRef(new Set<string>());
+  const onlineUpdateTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Load bots data with error handling
   const loadBots = useCallback(async () => {
@@ -45,23 +47,30 @@ export const useAdminBots = (isAdmin: boolean) => {
   useEffect(() => {
     if (!isAdmin) return;
     
+    // Set up a less frequent update interval to prevent excessive renders
     const updateOnlineStatus = () => {
       const onlineIds = adminService.getOnlineUserIds();
-      setOnlineUsers(onlineIds);
+      // Only update state if the list has actually changed
+      if (JSON.stringify(onlineIds.sort()) !== JSON.stringify(onlineUsers.sort())) {
+        setOnlineUsers(onlineIds);
+      }
     };
     
-    // Update immediately
+    // Update immediately on first load only
     updateOnlineStatus();
     
     // Then set interval with a reasonable update frequency
-    const intervalId = setInterval(updateOnlineStatus, 10000); // Check every 10 seconds
+    // Store the timer reference so we can clean it up properly
+    onlineUpdateTimerRef.current = setInterval(updateOnlineStatus, 30000); // Check every 30 seconds
     
     // Cleanup function to prevent memory leaks
     return () => {
-      clearInterval(intervalId);
-      // Don't call cleanupUserTracking here - we'll do it in the main useAdmin hook
+      if (onlineUpdateTimerRef.current) {
+        clearInterval(onlineUpdateTimerRef.current);
+        onlineUpdateTimerRef.current = null;
+      }
     };
-  }, [isAdmin]);
+  }, [isAdmin]); // Remove onlineUsers from the dependency array to prevent re-renders
   
   // Bot management
   const createBot = useCallback(async (bot: Omit<Bot, 'id'>) => {
@@ -205,18 +214,13 @@ export const useAdminBots = (isAdmin: boolean) => {
   const trackUserOnlineStatus = useCallback((userId: string, isOnline: boolean) => {
     if (!isAdmin || !userId) return;
     
-    // Add a simple rate limiting to prevent too frequent updates
-    const userTrackingKey = `${userId}-${isOnline ? 'online' : 'offline'}`;
-    const lastTracked = parseInt(sessionStorage.getItem(userTrackingKey) || '0');
-    const now = Date.now();
-    
-    // Only update if it's been more than 5 seconds since last update of the same type
-    if (now - lastTracked > 5000) {
+    // Only track users we haven't tracked yet
+    if (!trackedUsersRef.current.has(userId)) {
+      trackedUsersRef.current.add(userId);
       adminService.trackUserActivity(userId, isOnline);
-      sessionStorage.setItem(userTrackingKey, now.toString());
       
-      // Only update our local list if we're still mounted
-      setOnlineUsers(adminService.getOnlineUserIds());
+      // Avoid excessive state updates - don't update the onlineUsers state here
+      // as it will be updated by the interval timer
     }
   }, [isAdmin]);
   

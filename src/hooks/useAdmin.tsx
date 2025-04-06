@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useChatInitialization } from './useChatInitialization';
 import { useAdminAuth } from './admin/useAdminAuth';
@@ -17,6 +17,8 @@ import * as adminService from '@/services/admin/adminService';
 export const useAdmin = () => {
   const [bots, setBots] = useState<Bot[]>([]);
   const { onlineUsers: chatUsers } = useChatInitialization();
+  const processedUsersRef = useRef(new Set<string>());
+  const isProcessingRef = useRef(false);
   
   // Initialize all admin hooks
   const { isAdmin, adminLogout: authLogout, changeAdminPassword, loading: authLoading, adminData } = useAdminAuth();
@@ -93,58 +95,52 @@ export const useAdmin = () => {
   // Dashboard loading state
   const [loading, setLoading] = useState(true);
   
-  // Load dashboard data when admin status changes
+  // Load dashboard data when admin status changes - with proper cleanup
   useEffect(() => {
+    let isMounted = true;
+    
     if (isAdmin) {
       setLoading(true);
-      loadDashboardData().finally(() => setLoading(false));
-    }
-  }, [isAdmin, loadDashboardData]);
-  
-  // Track chat users to update admin dashboard
-  // Modified to prevent memory leaks with a seen users set
-  const seenUsers = new Set<string>();
-  
-  useEffect(() => {
-    if (!isAdmin) return;
-    
-    // Use a throttled approach to prevent excessive updates
-    const updateBatch = () => {
-      // Create a batch of users to update
-      const batchToUpdate: string[] = [];
-      
-      // When chat users change, update their status in admin tracking
-      chatUsers.forEach(user => {
-        if (!seenUsers.has(user.id)) {
-          seenUsers.add(user.id);
-          batchToUpdate.push(user.id);
+      loadDashboardData().finally(() => {
+        if (isMounted) {
+          setLoading(false);
         }
       });
-      
-      // Only update in small batches to prevent performance issues
-      if (batchToUpdate.length > 0) {
-        console.log(`Updating status for ${batchToUpdate.length} users`);
-        
-        // Process in smaller batches with delay between
-        const processBatch = (index: number) => {
-          if (index >= batchToUpdate.length) return;
-          
-          const userId = batchToUpdate[index];
-          trackUserOnlineStatus(userId, true);
-          
-          // Schedule next batch with setTimeout to prevent UI freezing
-          setTimeout(() => processBatch(index + 1), 50);
-        };
-        
-        // Start the batch processing
-        processBatch(0);
-      }
+    }
+    
+    return () => {
+      isMounted = false;
     };
+  }, [isAdmin, loadDashboardData]);
+  
+  // Track chat users to update admin dashboard - but only process each user once
+  // and prevent memory leaks with proper tracking
+  useEffect(() => {
+    if (!isAdmin || isProcessingRef.current) return;
     
-    // Run once on mount
-    updateBatch();
+    // Limited batch update for chat users
+    const MAX_USERS_TO_PROCESS = 5; // Hard limit on number of users to process
+    let processedCount = 0;
     
-  }, [isAdmin, trackUserOnlineStatus]);
+    const chatUserIds = chatUsers.map(user => user.id);
+    const newUsers = chatUserIds.filter(id => !processedUsersRef.current.has(id));
+    
+    if (newUsers.length === 0) return; // No new users to process
+    
+    isProcessingRef.current = true;
+    console.log(`Found ${newUsers.length} new users to track`);
+    
+    // Process a limited batch of users
+    for (let i = 0; i < newUsers.length && processedCount < MAX_USERS_TO_PROCESS; i++) {
+      const userId = newUsers[i];
+      trackUserOnlineStatus(userId, true);
+      processedUsersRef.current.add(userId);
+      processedCount++;
+    }
+    
+    isProcessingRef.current = false;
+    
+  }, [isAdmin, trackUserOnlineStatus, chatUsers]);
   
   // Add cleanup function to prevent memory leaks
   useEffect(() => {

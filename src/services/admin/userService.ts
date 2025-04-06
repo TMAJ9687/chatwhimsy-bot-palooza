@@ -1,9 +1,11 @@
+
 import { BanRecord, AdminAction } from '@/types/admin';
 import { supabase } from '@/integrations/supabase/client';
 
 // Track online users with better memory management
 const onlineUsers = new Set<string>();
 const userTimeouts = new Map<string, NodeJS.Timeout>();
+const MAX_ONLINE_USERS = 100; // Set a reasonable limit for tracking
 
 /**
  * User tracking functions for admin dashboard
@@ -16,6 +18,17 @@ export const trackUserActivity = (userId: string, isOnline: boolean): void => {
   }
   
   if (isOnline) {
+    // Limit the total number of tracked users to prevent memory leaks
+    if (onlineUsers.size >= MAX_ONLINE_USERS && !onlineUsers.has(userId)) {
+      // If we're at capacity and trying to add a new user,
+      // remove the oldest user (first in the set)
+      const oldestUser = onlineUsers.values().next().value;
+      if (oldestUser) {
+        onlineUsers.delete(oldestUser);
+        console.log(`User tracking limit reached. Removing oldest tracked user: ${oldestUser}`);
+      }
+    }
+    
     onlineUsers.add(userId);
     
     // Set a timeout to automatically set user offline after inactivity
