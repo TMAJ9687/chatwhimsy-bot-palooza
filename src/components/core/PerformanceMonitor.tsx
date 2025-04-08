@@ -3,6 +3,11 @@ import { useEffect, useRef } from 'react';
 import { initPerformanceMonitoring, clearPerformanceMarks } from '@/utils/performanceMonitor';
 import { initConsoleFilter, restoreConsole } from '@/utils/consoleFilter';
 
+/**
+ * PerformanceMonitor component that handles performance monitoring and console filtering
+ * This component initializes console filters by default and optionally enables performance
+ * monitoring if explicitly configured in localStorage
+ */
 const PerformanceMonitor = () => {
   // Use ref to track initialization status
   const isInitialized = useRef(false);
