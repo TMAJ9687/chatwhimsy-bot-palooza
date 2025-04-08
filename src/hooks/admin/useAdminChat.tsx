@@ -1,6 +1,5 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import useBodyScrollLock from '@/hooks/useBodyScrollLock';
 import { useUIState } from '@/context/UIStateContext';
 
 /**

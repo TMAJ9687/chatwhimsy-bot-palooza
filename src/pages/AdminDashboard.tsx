@@ -21,8 +21,8 @@ import ModerationTab from '@/components/admin/dashboard/ModerationTab';
 import BotsTab from '@/components/admin/dashboard/BotsTab';
 import ReportsTab from '@/components/admin/dashboard/ReportsTab';
 
-// Import admin chat components
-import AdminChat from '@/components/admin/chat/AdminChat';
+// Import admin chat components - using the manager instead of direct component
+import AdminChatManager from '@/components/admin/chat/AdminChatManager';
 
 const AdminDashboard = () => {
   const { isAuthenticated, user, isLoading: sessionLoading, refreshSession } = useAdminSession();
@@ -45,23 +45,20 @@ const AdminDashboard = () => {
   
   useEffect(() => {
     if (!isAuthenticated && !sessionLoading && !loading) {
-      console.log('Not authenticated, redirecting to login');
       redirectToLogin();
     }
   }, [isAuthenticated, redirectToLogin, sessionLoading, loading]);
   
-  // Throttle load stats to prevent excessive API calls
+  // Heavily throttled stats loading - once per minute maximum
   const loadStats = useCallback(async () => {
-    // Prevent multiple loads within a short time period
+    // Prevent multiple loads within a minute
     const now = Date.now();
-    if (now - loadTimestamp < 10000) {
-      console.log('Stats loaded recently, skipping');
+    if (now - loadTimestamp < 60000) {
       return;
     }
     
     try {
       setDataLoading(true);
-      console.log('Loading dashboard stats...');
       setLoadTimestamp(now);
       
       const { data, error } = await adminDb.dashboard().getStats();
@@ -82,7 +79,6 @@ const AdminDashboard = () => {
           vipUsers: data.vip_users || bots.filter(bot => bot.vip).length || 0,
           activeBans: data.active_bans || 0
         });
-        console.log('Dashboard stats loaded successfully');
       }
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -96,11 +92,12 @@ const AdminDashboard = () => {
     }
   }, [toast, bots, loadTimestamp]);
   
+  // Only load stats on initial mount and when specifically requested
   useEffect(() => {
     if (isAuthenticated && !sessionLoading) {
       loadStats();
     }
-  }, [isAuthenticated, sessionLoading, loadStats]);
+  }, [isAuthenticated, sessionLoading]); // Removed loadStats from dependencies
   
   const handleLogout = async () => {
     try {
@@ -160,8 +157,8 @@ const AdminDashboard = () => {
       <div className="container mx-auto p-6">
         {memoizedHeader}
         
-        {/* Add admin chat component */}
-        <AdminChat />
+        {/* Use the optimized chat manager */}
+        <AdminChatManager />
         
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-6">

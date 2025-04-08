@@ -19,7 +19,13 @@ const NON_ACTIONABLE_ERROR_PATTERNS = [
   'Legend: Support for defaultProps',
   'Tooltip: Support for defaultProps',
   // Browser extensions
-  'extension', 'contentScript'
+  'extension', 'contentScript',
+  // Admin tracking
+  'user tracking', 'User already tracked',
+  // Socket
+  'socket.io', 'WebSocket', 'Connection',
+  // Admin-specific warnings
+  'AdminChat', 'tracking user', 'user tracking', 'not found in tracking'
 ];
 
 // Filter out common non-actionable errors that shouldn't crash the app
@@ -36,7 +42,7 @@ export const safeLogError = (error: unknown, context?: string): void => {
   try {
     if (error instanceof Error) {
       if (isNonActionableError(error)) {
-        console.debug(`[Filtered Error${context ? ` - ${context}` : ''}]:`, error.message);
+        // Don't even log debug messages for these patterns
         return;
       }
       console.error(`[Error${context ? ` - ${context}` : ''}]:`, error.message, error.stack);

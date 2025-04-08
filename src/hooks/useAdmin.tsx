@@ -114,13 +114,13 @@ export const useAdmin = () => {
     };
   }, [isAdmin, loadDashboardData]);
   
-  // Track chat users to update admin dashboard with aggressive throttling
+  // Heavily throttled user tracking - only check once per 15 seconds and limit to 3 users max
   useEffect(() => {
     if (!isAdmin || isProcessingRef.current) return;
     
-    // Throttle updates to once per 5 seconds maximum
+    // Aggressively throttle updates to once per 15 seconds maximum
     const now = Date.now();
-    if (now - lastTrackingUpdateRef.current < 5000) {
+    if (now - lastTrackingUpdateRef.current < 15000) {
       return;
     }
     
@@ -128,44 +128,31 @@ export const useAdmin = () => {
     isProcessingRef.current = true;
     lastTrackingUpdateRef.current = now;
     
-    // Limited batch update for chat users
-    const BATCH_SIZE = 5; // Process users in small batches
-    const MAX_TRACKED_USERS = 100; // Hard limit on tracked users
+    // Process a small number of users
+    const MAX_TRACKING_USERS = 3; // Only track up to 3 users
     
     // Get new users that haven't been processed yet
-    const chatUserIds = chatUsers.map(user => user.id);
+    const chatUserIds = chatUsers.map(user => user.id).slice(0, MAX_TRACKING_USERS);
     const newUsers = chatUserIds.filter(id => !processedUsersRef.current.has(id));
     
-    try {
-      if (newUsers.length > 0) {
-        // Limited tracking for new users
-        const usersToProcess = newUsers.slice(0, BATCH_SIZE);
-        
-        // Only log when actually tracking new users
-        if (usersToProcess.length > 0) {
-          console.log(`Tracking ${usersToProcess.length} new users (out of ${newUsers.length} untracked)`);
-        }
-        
-        // Process a small batch at a time
-        usersToProcess.forEach(userId => {
-          // Check if we haven't exceeded the maximum tracked users
-          if (processedUsersRef.current.size < MAX_TRACKED_USERS) {
-            trackUserOnlineStatus(userId, true);
-            processedUsersRef.current.add(userId);
-          }
-        });
-      }
-    } finally {
-      // Always ensure we release the processing lock
-      isProcessingRef.current = false;
+    if (newUsers.length > 0) {
+      // Only track up to the limit
+      const userToTrack = newUsers[0]; // Just track one user at a time
+      trackUserOnlineStatus(userToTrack, true);
+      processedUsersRef.current.add(userToTrack);
     }
+    
+    // Always ensure processing flag is reset
+    setTimeout(() => {
+      isProcessingRef.current = false;
+    }, 1000);
+    
   }, [isAdmin, trackUserOnlineStatus, chatUsers]);
   
   // Add cleanup function to prevent memory leaks
   useEffect(() => {
     return () => {
       if (isAdmin) {
-        console.log("Admin component unmounting - cleaning up user tracking");
         // Clean up all user tracking to prevent memory leaks
         adminService.cleanupUserTracking();
         

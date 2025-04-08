@@ -45,22 +45,14 @@ export const useChatInitialization = () => {
       setRulesAccepted(true);
     }
     
-    // Register only SOME bots with admin service - just a limited sample
-    // to prevent memory leaks
-    const MAX_BOTS_TO_REGISTER = 3; // Significantly limit how many bots we register
-    let registeredCount = 0;
-    
-    // Only register a limited number of bots
-    for (let i = 0; i < sortedBotProfiles.length && registeredCount < MAX_BOTS_TO_REGISTER; i++) {
-      const bot = sortedBotProfiles[i];
-      if (!registeredBotsRef.current.has(bot.id)) {
-        adminService.trackUserActivity(bot.id, true);
-        registeredBotsRef.current.add(bot.id);
-        registeredCount++;
-      }
+    // Only register a single bot with admin service - just to ensure
+    // the connection works but prevent memory leaks and excessive tracking
+    if (sortedBotProfiles.length > 0 && !registeredBotsRef.current.has(sortedBotProfiles[0].id)) {
+      adminService.trackUserActivity(sortedBotProfiles[0].id, true);
+      registeredBotsRef.current.add(sortedBotProfiles[0].id);
     }
     
-    // No need for cleanup as we're no longer tracking anything here - the admin component will handle its own cleanup
+    // No need for cleanup as we're no longer tracking anything here
   }, []); // Empty dependencies to run once
 
   // Save rules acceptance to localStorage when it changes
