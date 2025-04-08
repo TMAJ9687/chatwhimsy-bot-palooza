@@ -1,127 +1,126 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { ThumbsUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import Button from '@/components/shared/Button';
+import Logo from '@/components/shared/Logo';
 
 const FeedbackPage: React.FC = () => {
-  const [rating, setRating] = useState<string>('');
-  const [feedback, setFeedback] = useState<string>('');
-  const [submitted, setSubmitted] = useState<boolean>(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  
-  const handleSubmit = (e: React.FormEvent) => {
+  const [feedbackText, setFeedbackText] = useState('');
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // In a real app, send feedback to server
-    console.log({ rating, feedback });
+    if (!feedbackText.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter your feedback',
+        variant: 'destructive',
+      });
+      return;
+    }
     
-    // Show success message
-    toast({
-      title: "Feedback submitted",
-      description: "Thank you for your feedback!",
-      duration: 3000
-    });
+    setIsSubmitting(true);
     
-    setSubmitted(true);
+    try {
+      // Here you would normally send the feedback to your backend
+      console.log('Feedback submitted:', { feedbackText, email });
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast({
+        title: 'Thank you!',
+        description: 'Your feedback has been submitted successfully.',
+      });
+      
+      setFeedbackText('');
+      setEmail('');
+      
+      // Redirect after a short delay
+      setTimeout(() => navigate('/'), 2000);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to submit feedback. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-  
-  const handleGoHome = () => {
-    navigate('/');
-  };
-  
-  if (submitted) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900 mb-4">
-              <ThumbsUp className="h-6 w-6 text-green-600 dark:text-green-400" />
-            </div>
-            <CardTitle className="text-xl">Thank You!</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-muted-foreground">
-              Your feedback has been submitted successfully.
-            </p>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <Button onClick={handleGoHome}>Return to Home</Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-  
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-xl">Session Ended</CardTitle>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="mb-4">
-                Your session has expired due to inactivity. We'd appreciate your feedback about your experience.
-              </p>
-            </div>
-            
-            <div className="space-y-3">
-              <div>
-                <p className="font-medium mb-2">How would you rate your experience?</p>
-                <RadioGroup 
-                  value={rating} 
-                  onValueChange={setRating}
-                  className="flex space-x-4"
-                >
-                  {['Poor', 'Fair', 'Good', 'Excellent'].map((option) => (
-                    <div key={option} className="flex items-center space-x-2">
-                      <RadioGroupItem value={option} id={option.toLowerCase()} />
-                      <Label htmlFor={option.toLowerCase()}>{option}</Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
-              
-              <div>
-                <Label htmlFor="feedback" className="font-medium">Additional feedback (optional)</Label>
-                <Textarea 
-                  id="feedback"
-                  placeholder="Tell us about your experience..."
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  className="mt-2"
-                  rows={4}
-                />
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col sm:flex-row gap-3">
-            <Button 
-              type="submit" 
-              className="flex-1"
-              disabled={!rating}
-            >
-              Submit Feedback
-            </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={handleGoHome}
-              className="flex-1"
-            >
-              Skip & Return Home
-            </Button>
-          </CardFooter>
+    <div className="flex flex-col min-h-screen">
+      <header className="py-6 px-8 flex justify-between items-center">
+        <Logo variant="image" />
+        <Button 
+          variant="outline" 
+          onClick={() => navigate('/')}
+        >
+          Back to Home
+        </Button>
+      </header>
+
+      <main className="flex-1 container mx-auto px-4 py-8 max-w-2xl">
+        <h1 className="text-3xl font-bold mb-6">Send Feedback</h1>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="feedback" className="block text-sm font-medium mb-2">
+              Your Feedback
+            </label>
+            <textarea
+              id="feedback"
+              rows={6}
+              className="w-full p-3 border rounded-md focus:ring-2 focus:ring-primary"
+              placeholder="Tell us what you think about chatwii..."
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium mb-2">
+              Email (optional)
+            </label>
+            <input
+              type="email"
+              id="email"
+              className="w-full p-3 border rounded-md focus:ring-2 focus:ring-primary"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <p className="mt-1 text-sm text-muted-foreground">
+              Leave your email if you'd like us to follow up with you.
+            </p>
+          </div>
+          
+          <Button
+            type="submit"
+            variant="primary"
+            className="w-full"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+          </Button>
         </form>
-      </Card>
+      </main>
+
+      <footer className="py-6 px-8 text-center text-sm text-muted-foreground border-t border-border">
+        <div className="flex justify-center gap-6">
+          <a href="/terms" className="hover:underline">Terms of Service</a>
+          <a href="/privacy" className="hover:underline">Privacy Policy</a>
+          <a href="/feedback" className="hover:underline">Feedback</a>
+        </div>
+        <p className="mt-2">&copy; {new Date().getFullYear()} chatwii. All rights reserved.</p>
+      </footer>
     </div>
   );
 };

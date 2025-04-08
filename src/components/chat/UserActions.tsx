@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useRef, useMemo } from 'react';
-import { MoreVertical, Ban, Flag, Trash2, Share, Globe, X, UserMinus, Shield, Award } from 'lucide-react';
+import { MoreVertical, Ban, Flag, Trash2, Share, Globe, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,8 +35,8 @@ const UserActions = ({
 }: UserActionsProps) => {
   // Properly defined hooks at the top level
   const { openDialog } = useDialog();
-  const { isVip, isAdmin } = useUser();
-  const { userChats, getSharedMedia, handleDeleteConversation, handleTranslateMessage, isAdmin: chatIsAdmin } = useChat();
+  const { isVip } = useUser();
+  const { userChats, getSharedMedia, handleDeleteConversation, handleTranslateMessage } = useChat();
   
   const [showSharedMediaDialog, setShowSharedMediaDialog] = useState(false);
   const [showTranslateDialog, setShowTranslateDialog] = useState(false);
@@ -120,83 +120,6 @@ const UserActions = ({
     });
   }, [userId, userName, handleDeleteConversation, openDialog]);
   
-  // Admin actions
-  const handleKickUser = useCallback(() => {
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-    
-    animationFrameRef.current = requestAnimationFrame(() => {
-      animationFrameRef.current = null;
-      openDialog('confirm', {
-        title: 'Kick User',
-        message: `Are you sure you want to kick ${userName}?`,
-        onConfirm: () => {
-          console.log(`Admin kicked user: ${userId}`);
-          // In a real app, this would call an API to kick the user
-        },
-      });
-    });
-  }, [userId, userName, openDialog]);
-  
-  const handleBanUser = useCallback(() => {
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-    
-    animationFrameRef.current = requestAnimationFrame(() => {
-      animationFrameRef.current = null;
-      openDialog('confirm', {
-        title: 'Ban User',
-        message: `Are you sure you want to ban ${userName}?`,
-        onConfirm: () => {
-          console.log(`Admin banned user: ${userId}`);
-          // In a real app, this would call an API to ban the user
-        },
-      });
-    });
-  }, [userId, userName, openDialog]);
-  
-  const handleUpgradeToVIP = useCallback(() => {
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-    
-    animationFrameRef.current = requestAnimationFrame(() => {
-      animationFrameRef.current = null;
-      openDialog('prompt', {
-        title: 'Upgrade to VIP',
-        message: `Select the duration for ${userName}'s VIP status:`,
-        placeholder: 'Select duration',
-        options: ['1 Day', '1 Week', '1 Month', '1 Year', 'Lifetime'],
-        defaultValue: '1 Month',
-        confirmLabel: 'Upgrade',
-        onConfirm: (duration: string) => {
-          console.log(`Admin upgraded user ${userId} to VIP for ${duration}`);
-          // In a real app, this would call an API to upgrade the user
-        },
-      });
-    });
-  }, [userId, userName, openDialog]);
-  
-  const handleDowngradeFromVIP = useCallback(() => {
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-    
-    animationFrameRef.current = requestAnimationFrame(() => {
-      animationFrameRef.current = null;
-      openDialog('confirm', {
-        title: 'Remove VIP Status',
-        message: `Are you sure you want to remove VIP status from ${userName}?`,
-        onConfirm: () => {
-          console.log(`Admin downgraded user ${userId} from VIP`);
-          // In a real app, this would call an API to downgrade the user
-        },
-      });
-    });
-  }, [userId, userName, openDialog]);
-
   const handleOpenSharedMedia = useCallback(() => {
     // Only fetch media when opening the dialog
     if (animationFrameRef.current !== null) {
@@ -309,106 +232,60 @@ const UserActions = ({
   }, []);
 
   // Memoize dropdown items to prevent unnecessary re-renders
-  const dropdownItems = useMemo(() => {
-    // Determine if the user is a VIP from the chat state
-    const messages = userChats[userId] || [];
-    const userProfile = messages.length > 0 ? 
-      (messages[0].senderProfile || { vip: false }) : 
-      { vip: false };
-    const isUserVip = userProfile.vip || false;
-
-    return (
-      <>
-        <DropdownMenuLabel>Chat Actions</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        
-        {isBlocked ? (
-          <DropdownMenuItem onClick={handleUnblock}>
-            <Ban className="h-4 w-4 mr-2 text-green-500" />
-            <span>Unblock User</span>
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem onClick={handleBlock}>
-            <Ban className="h-4 w-4 mr-2 text-red-500" />
-            <span>Block User</span>
-          </DropdownMenuItem>
-        )}
-        
-        <DropdownMenuItem onClick={handleReport}>
-          <Flag className="h-4 w-4 mr-2 text-amber-500" />
-          <span>Report User</span>
+  const dropdownItems = useMemo(() => (
+    <>
+      <DropdownMenuLabel>Chat Actions</DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      
+      {isBlocked ? (
+        <DropdownMenuItem onClick={handleUnblock}>
+          <Ban className="h-4 w-4 mr-2 text-green-500" />
+          <span>Unblock User</span>
         </DropdownMenuItem>
-        
-        {/* VIP-only options */}
-        {isVip && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>VIP Options</DropdownMenuLabel>
-            
-            <DropdownMenuItem onClick={handleOpenSharedMedia}>
-              <Share className="h-4 w-4 mr-2 text-blue-500" />
-              <span>Shared Media</span>
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem onClick={handleOpenTranslateDialog}>
-              <Globe className="h-4 w-4 mr-2 text-indigo-500" />
-              <span>Translate Last Message</span>
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem onClick={handleDeleteChat}>
-              <Trash2 className="h-4 w-4 mr-2 text-red-500" />
-              <span>Delete Conversation</span>
-            </DropdownMenuItem>
-          </>
-        )}
-        
-        {/* Admin-only options */}
-        {isAdmin && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Admin Actions</DropdownMenuLabel>
-            
-            <DropdownMenuItem onClick={handleKickUser}>
-              <UserMinus className="h-4 w-4 mr-2 text-orange-500" />
-              <span>Kick User</span>
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem onClick={handleBanUser}>
-              <Shield className="h-4 w-4 mr-2 text-red-500" />
-              <span>Ban User</span>
-            </DropdownMenuItem>
-            
-            {isUserVip ? (
-              <DropdownMenuItem onClick={handleDowngradeFromVIP}>
-                <Award className="h-4 w-4 mr-2 text-purple-500" />
-                <span>Remove VIP Status</span>
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem onClick={handleUpgradeToVIP}>
-                <Award className="h-4 w-4 mr-2 text-amber-500" />
-                <span>Upgrade to VIP</span>
-              </DropdownMenuItem>
-            )}
-          </>
-        )}
-      </>
-    );
-  }, [
+      ) : (
+        <DropdownMenuItem onClick={handleBlock}>
+          <Ban className="h-4 w-4 mr-2 text-red-500" />
+          <span>Block User</span>
+        </DropdownMenuItem>
+      )}
+      
+      <DropdownMenuItem onClick={handleReport}>
+        <Flag className="h-4 w-4 mr-2 text-amber-500" />
+        <span>Report User</span>
+      </DropdownMenuItem>
+      
+      {/* VIP-only options */}
+      {isVip && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel>VIP Options</DropdownMenuLabel>
+          
+          <DropdownMenuItem onClick={handleOpenSharedMedia}>
+            <Share className="h-4 w-4 mr-2 text-blue-500" />
+            <span>Shared Media</span>
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem onClick={handleOpenTranslateDialog}>
+            <Globe className="h-4 w-4 mr-2 text-indigo-500" />
+            <span>Translate Last Message</span>
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem onClick={handleDeleteChat}>
+            <Trash2 className="h-4 w-4 mr-2 text-red-500" />
+            <span>Delete Conversation</span>
+          </DropdownMenuItem>
+        </>
+      )}
+    </>
+  ), [
     isBlocked, 
-    isVip,
-    isAdmin,
-    userId,
-    userChats,
+    isVip, 
     handleUnblock, 
     handleBlock, 
     handleReport, 
     handleOpenSharedMedia,
     handleOpenTranslateDialog,
-    handleDeleteChat,
-    handleKickUser,
-    handleBanUser,
-    handleUpgradeToVIP,
-    handleDowngradeFromVIP
+    handleDeleteChat
   ]);
 
   return (

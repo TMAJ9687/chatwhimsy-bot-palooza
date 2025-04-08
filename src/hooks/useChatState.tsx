@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useState } from 'react';
 import { Bot, Message, Notification } from '@/types/chat';
 import { useChatInitialization } from './useChatInitialization';
@@ -14,7 +15,7 @@ interface Translation {
   content: string;
 }
 
-export const useChatState = (isVip: boolean, isAdmin: boolean = false) => {
+export const useChatState = (isVip: boolean) => {
   // Only allow replying to messages for VIP users
   const [replyingToMessage, setReplyingToMessage] = useState<Message | null>(null);
   
@@ -127,29 +128,14 @@ export const useChatState = (isVip: boolean, isAdmin: boolean = false) => {
     }
   }, [onlineUsers, selectUser, initializeChat, setShowInbox, setShowHistory]);
 
-  // Modified block user function that prevents blocking of admins
   const handleBlockUser = useCallback((userId: string) => {
-    // Check if the user is an admin bot
-    const targetUser = onlineUsers.find(user => user.id === userId);
-    
-    // Prevent blocking admins
-    if (targetUser?.isAdmin) {
-      toast({
-        title: "Cannot Block Admin",
-        description: "Administrator accounts cannot be blocked.",
-        variant: "destructive",
-        duration: 3000
-      });
-      return;
-    }
-    
     blockUser(userId);
     
     if (userId === currentBot.id && filteredUsers.length > 1) {
       const newUser = filteredUsers.find(user => user.id !== userId && !blockedUsers.has(user.id));
       if (newUser) selectUser(newUser);
     }
-  }, [onlineUsers, currentBot.id, filteredUsers, blockedUsers, blockUser, selectUser, toast]);
+  }, [currentBot.id, filteredUsers, blockedUsers, blockUser, selectUser]);
 
   const handleCloseChat = useCallback(() => {
     if (filteredUsers.length > 1) {
@@ -592,7 +578,6 @@ export const useChatState = (isVip: boolean, isAdmin: boolean = false) => {
     filteredUsers,
     unreadCount,
     isVip,
-    isAdmin,
     setSearchTerm,
     setFilters,
     setShowInbox,

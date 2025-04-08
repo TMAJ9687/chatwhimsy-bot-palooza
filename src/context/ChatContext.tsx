@@ -13,8 +13,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Ensure admins always have VIP benefits in chat
   const isVip = userIsVip || isAdmin;
   
-  // Use our custom hook for all chat state, passing the admin status
-  const chatState = useChatState(isVip || false, isAdmin || false);
+  // Use our custom hook for all chat state
+  const chatState = useChatState(isVip || false);
 
   return (
     <ChatContext.Provider value={chatState}>

@@ -1,74 +1,102 @@
 
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
-import { ThemeProvider } from '@/components/ThemeProvider';
-import { UserProvider } from '@/context/UserContext';
-import { DialogProvider } from '@/context/DialogContext';
-import ChatPage from '@/pages/ChatPage';
-import LoginPage from '@/pages/LoginPage';
-import RegisterPage from '@/pages/RegisterPage';
-import ProfilePage from '@/pages/ProfilePage';
-import VipProfilePage from '@/pages/VipProfilePage';
-import AdminDashboard from '@/pages/AdminDashboard';
-import AdminLogin from '@/pages/AdminLogin';
-import RequireAuth from '@/components/auth/RequireAuth';
-import RequireAdminAuth from '@/components/auth/RequireAdminAuth';
-import PrivacyPolicy from '@/pages/PrivacyPolicy';
-import TermsOfService from '@/pages/TermsOfService';
-import ReconnectPage from '@/pages/ReconnectPage';
-import FeedbackPage from '@/pages/FeedbackPage';
+import { Toaster as Sonner } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import MainLayout from './components/layout/MainLayout';
+import Index from './pages/Index';
+import NotFound from './pages/NotFound';
+import ChatInterface from './components/chat/ChatInterface';
+import VipProfileSetup from './pages/VipProfileSetup';
+import VipSignup from './pages/VipSignup';
+import VipLogin from './pages/VipLogin';
+import VipSubscription from './pages/VipSubscription';
+import VipPayment from './pages/VipPayment';
+import VipConfirmation from './pages/VipConfirmation';
+import Feedback from './pages/Feedback';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
+import { OverlayProvider } from './context/OverlayContext';
+import { ModalProvider } from './context/ModalContext';
+import ModalContainer from './components/dialogs/ModalContainer';
+import PortalManager from './components/core/PortalManager';
+import { ChatProvider } from './context/ChatContext';
+import NavigationLock from './components/shared/NavigationLock';
+import AuthListener from './components/core/AuthListener';
+import { UserProvider } from './context/UserContext';
+import { UIStateProvider } from './context/UIStateContext';
+import { DialogProvider } from './components/providers/DialogProvider';
+import DialogContainer from './components/dialogs/DialogContainer';
+import ErrorHandler from './components/core/ErrorHandler';
 
-function App() {
+// Create QueryClient with proper configuration to reduce re-renders
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 30000,
+      refetchOnWindowFocus: false,
+      structuralSharing: true,
+      gcTime: 5 * 60 * 1000,
+    },
+  },
+});
+
+const App = () => {
+  const handleLogout = React.useCallback(() => {
+    // This will now be handled by the ModalContext
+  }, []);
+
   return (
-    <ThemeProvider defaultTheme="system" storageKey="ui-theme">
-      <UserProvider>
-        <DialogProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/secretadminportal" element={<AdminLogin />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/terms" element={<TermsOfService />} />
-            
-            {/* Protected routes */}
-            <Route path="/" element={
-              <RequireAuth>
-                <ChatPage />
-              </RequireAuth>
-            } />
-            <Route path="/profile" element={
-              <RequireAuth>
-                <ProfilePage />
-              </RequireAuth>
-            } />
-            <Route path="/vip-profile" element={
-              <RequireAuth>
-                <VipProfilePage />
-              </RequireAuth>
-            } />
-            
-            {/* Admin routes */}
-            <Route path="/admin" element={
-              <RequireAdminAuth>
-                <AdminDashboard />
-              </RequireAdminAuth>
-            } />
-            
-            {/* Session management routes */}
-            <Route path="/reconnect" element={<ReconnectPage />} />
-            <Route path="/feedback" element={<FeedbackPage />} />
-            
-            {/* Default redirect */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          
-          <Toaster />
-        </DialogProvider>
-      </UserProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <BrowserRouter>
+          <UserProvider>
+            <UIStateProvider>
+              <DialogProvider>
+                <OverlayProvider>
+                  <ModalProvider>
+                    <ChatProvider>
+                      <PortalManager />
+                      <MainLayout>
+                        <Toaster />
+                        <Sonner />
+                        <NavigationLock />
+                        <AuthListener />
+                        <ErrorHandler />
+                        
+                        <Routes>
+                          <Route path="/" element={<Index />} />
+                          <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
+                          <Route path="/vip-profile" element={<VipProfileSetup />} />
+                          <Route path="/vip-signup" element={<VipSignup />} />
+                          <Route path="/vip-login" element={<VipLogin />} />
+                          <Route path="/vip-subscription" element={<VipSubscription />} />
+                          <Route path="/vip-payment" element={<VipPayment />} />
+                          <Route path="/vip-confirmation" element={<VipConfirmation />} />
+                          <Route path="/feedback" element={<Feedback />} />
+                          <Route path="/secretadminportal" element={<AdminLogin />} />
+                          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                          <Route path="/admin" element={<NotFound />} />
+                          <Route path="/admin-login" element={<NotFound />} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                        
+                        <ModalContainer />
+                        <DialogContainer />
+                      </MainLayout>
+                    </ChatProvider>
+                  </ModalProvider>
+                </OverlayProvider>
+              </DialogProvider>
+            </UIStateProvider>
+          </UserProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
-}
+};
 
 export default App;
