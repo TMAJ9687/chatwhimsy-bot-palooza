@@ -1,126 +1,128 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import Button from '@/components/shared/Button';
-import Logo from '@/components/shared/Logo';
 
-const FeedbackPage: React.FC = () => {
+const FeedbackPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [feedbackText, setFeedbackText] = useState('');
-  const [email, setEmail] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [feedback, setFeedback] = useState('');
+  const [rating, setRating] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!feedbackText.trim()) {
-      toast({
-        title: 'Error',
-        description: 'Please enter your feedback',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    setIsSubmitting(true);
+    setSubmitting(true);
     
     try {
-      // Here you would normally send the feedback to your backend
-      console.log('Feedback submitted:', { feedbackText, email });
+      // In a real app, this would send the feedback to your server
+      console.log('Submitting feedback:', { rating, feedback });
       
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast({
-        title: 'Thank you!',
-        description: 'Your feedback has been submitted successfully.',
+        title: "Thank you for your feedback!",
+        description: "Your feedback helps us improve our service.",
       });
       
-      setFeedbackText('');
-      setEmail('');
-      
-      // Redirect after a short delay
-      setTimeout(() => navigate('/'), 2000);
+      // Redirect to login after successful submission
+      setTimeout(() => {
+        navigate('/login');
+      }, 1500);
     } catch (error) {
+      console.error('Error submitting feedback:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to submit feedback. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: "There was an error submitting your feedback. Please try again.",
+        variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
-
+  
+  const handleSkip = () => {
+    navigate('/login');
+  };
+  
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="py-6 px-8 flex justify-between items-center">
-        <Logo variant="image" />
-        <Button 
-          variant="outline" 
-          onClick={() => navigate('/')}
-        >
-          Back to Home
-        </Button>
-      </header>
-
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-2xl">
-        <h1 className="text-3xl font-bold mb-6">Send Feedback</h1>
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="feedback" className="block text-sm font-medium mb-2">
-              Your Feedback
-            </label>
-            <textarea
-              id="feedback"
-              rows={6}
-              className="w-full p-3 border rounded-md focus:ring-2 focus:ring-primary"
-              placeholder="Tell us what you think about chatwii..."
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-              required
-            />
-          </div>
-          
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-2">
-              Email (optional)
-            </label>
-            <input
-              type="email"
-              id="email"
-              className="w-full p-3 border rounded-md focus:ring-2 focus:ring-primary"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <p className="mt-1 text-sm text-muted-foreground">
-              Leave your email if you'd like us to follow up with you.
-            </p>
-          </div>
-          
-          <Button
-            type="submit"
-            variant="primary"
-            className="w-full"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
-          </Button>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Session Expired</CardTitle>
+          <CardDescription>
+            Your session has expired due to inactivity. Before you go, would you like to share your feedback?
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">How would you rate your experience?</h3>
+              <RadioGroup 
+                value={rating || ''} 
+                onValueChange={setRating}
+                className="flex justify-between"
+              >
+                {[1, 2, 3, 4, 5].map(value => (
+                  <div key={value} className="flex flex-col items-center">
+                    <RadioGroupItem 
+                      value={value.toString()} 
+                      id={`rating-${value}`} 
+                      className="peer sr-only" 
+                    />
+                    <Label 
+                      htmlFor={`rating-${value}`}
+                      className="cursor-pointer flex flex-col items-center p-2 rounded-md peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
+                    >
+                      <span className="text-2xl">{value}</span>
+                      <span className="text-xs mt-1">
+                        {value === 1 ? 'Poor' : 
+                         value === 2 ? 'Fair' : 
+                         value === 3 ? 'Good' : 
+                         value === 4 ? 'Great' : 'Excellent'}
+                      </span>
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="feedback">Any additional comments?</Label>
+              <Textarea 
+                id="feedback"
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                placeholder="Share your thoughts with us..."
+                rows={4}
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-2">
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={submitting}
+            >
+              {submitting ? 'Submitting...' : 'Submit Feedback'}
+            </Button>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              onClick={handleSkip}
+              className="w-full"
+            >
+              Skip
+            </Button>
+          </CardFooter>
         </form>
-      </main>
-
-      <footer className="py-6 px-8 text-center text-sm text-muted-foreground border-t border-border">
-        <div className="flex justify-center gap-6">
-          <a href="/terms" className="hover:underline">Terms of Service</a>
-          <a href="/privacy" className="hover:underline">Privacy Policy</a>
-          <a href="/feedback" className="hover:underline">Feedback</a>
-        </div>
-        <p className="mt-2">&copy; {new Date().getFullYear()} chatwii. All rights reserved.</p>
-      </footer>
+      </Card>
     </div>
   );
 };
