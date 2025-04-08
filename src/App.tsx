@@ -10,14 +10,14 @@ import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import ProfilePage from '@/pages/ProfilePage';
 import VipProfilePage from '@/pages/VipProfilePage';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from '@/pages/AdminDashboard';
+import AdminLogin from '@/pages/AdminLogin';
 import RequireAuth from '@/components/auth/RequireAuth';
 import RequireAdminAuth from '@/components/auth/RequireAdminAuth';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import TermsOfService from '@/pages/TermsOfService';
-import ReconnectPage from './pages/ReconnectPage';
-import FeedbackPage from './pages/FeedbackPage';
+import ReconnectPage from '@/pages/ReconnectPage';
+import FeedbackPage from '@/pages/FeedbackPage';
 
 function App() {
   return (

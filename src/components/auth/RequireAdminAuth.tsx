@@ -8,19 +8,14 @@ interface RequireAdminAuthProps {
 }
 
 const RequireAdminAuth: React.FC<RequireAdminAuthProps> = ({ children }) => {
-  const { user, isAdmin } = useUser();
+  const { user } = useUser();
 
-  if (!user) {
-    // Redirect to login if no user is authenticated
-    return <Navigate to="/login" replace />;
+  if (!user || !user.isAdmin) {
+    // Redirect to admin login if not admin
+    return <Navigate to="/secretadminportal" replace />;
   }
 
-  if (!isAdmin) {
-    // Redirect to home if user is not an admin
-    return <Navigate to="/" replace />;
-  }
-
-  // User is authenticated and is an admin, render the children
+  // Admin user is authenticated, render the children
   return <>{children}</>;
 };
 

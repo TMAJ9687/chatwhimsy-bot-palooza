@@ -1,57 +1,54 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const TermsOfService: React.FC = () => {
   return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl">
-      <h1 className="text-3xl font-bold mb-6">Terms of Service</h1>
-      
-      <div className="prose dark:prose-invert max-w-none">
-        <p className="mb-4">
-          Please read these Terms of Service carefully before using our Service.
-        </p>
-        
-        <h2 className="text-2xl font-bold mt-6 mb-3">1. Acceptance of Terms</h2>
-        <p className="mb-4">
-          By accessing or using the Service, you agree to be bound by these Terms. If you disagree
-          with any part of the terms, then you may not access the Service.
-        </p>
-        
-        <h2 className="text-2xl font-bold mt-6 mb-3">2. User Accounts</h2>
-        <p className="mb-4">
-          When you create an account with us, you must provide information that is accurate,
-          complete, and current at all times. Failure to do so constitutes a breach of the Terms,
-          which may result in immediate termination of your account on our Service.
-        </p>
-        
-        <h2 className="text-2xl font-bold mt-6 mb-3">3. Prohibited Activities</h2>
-        <p className="mb-4">
-          You agree not to use the Service for any purpose that is illegal or prohibited by
-          these Terms, or to solicit the performance of any illegal activity or other activity
-          which infringes the rights of our service or others.
-        </p>
-        
-        <h2 className="text-2xl font-bold mt-6 mb-3">4. Intellectual Property</h2>
-        <p className="mb-4">
-          The Service and its original content, features, and functionality are and will remain
-          the exclusive property of our service and its licensors. The Service is protected by
-          copyright, trademark, and other laws.
-        </p>
-        
-        <h2 className="text-2xl font-bold mt-6 mb-3">5. Termination</h2>
-        <p className="mb-4">
-          We may terminate or suspend your account immediately, without prior notice or liability,
-          for any reason whatsoever, including without limitation if you breach the Terms.
-        </p>
-      </div>
-      
-      <div className="mt-8 flex justify-center">
-        <Link to="/">
-          <Button>Back to Home</Button>
-        </Link>
-      </div>
+    <div className="flex justify-center p-4 min-h-screen bg-gray-100 dark:bg-gray-900">
+      <Card className="w-full max-w-4xl">
+        <CardHeader>
+          <CardTitle className="text-2xl">Terms of Service</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <h2 className="text-xl font-semibold">1. Acceptance of Terms</h2>
+          <p>
+            By accessing or using our service, you agree to be bound by these Terms of Service.
+            If you do not agree to these terms, please do not use our service.
+          </p>
+
+          <h2 className="text-xl font-semibold">2. User Accounts</h2>
+          <p>
+            You are responsible for maintaining the confidentiality of your account and password.
+            You agree to accept responsibility for all activities that occur under your account.
+          </p>
+
+          <h2 className="text-xl font-semibold">3. User Conduct</h2>
+          <p>
+            You agree not to use our service to engage in any prohibited behaviors, including
+            harassment, impersonation of others, sharing illegal or harmful content, or
+            attempting to interfere with the proper functioning of the service.
+          </p>
+
+          <h2 className="text-xl font-semibold">4. Content Ownership</h2>
+          <p>
+            Users retain all ownership rights to content they create and share through our service.
+            However, by posting content, you grant us a license to use, store, and display that content
+            in connection with providing the service.
+          </p>
+
+          <h2 className="text-xl font-semibold">5. Modifications to Terms</h2>
+          <p>
+            We reserve the right to modify these terms at any time. We will provide notice
+            of significant changes by updating the "Last Updated" date at the bottom of this page.
+            Your continued use of the service after such modifications constitutes your acceptance
+            of the revised terms.
+          </p>
+          
+          <div className="pt-4 text-sm text-muted-foreground">
+            Last Updated: April 8, 2025
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
