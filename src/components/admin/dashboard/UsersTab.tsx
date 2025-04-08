@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import UserTable from '@/components/admin/UserTable';
 import { Bot } from '@/types/chat';
+import { cn } from '@/lib/utils';
 
 interface UsersTabProps {
   bots: Bot[];
@@ -12,7 +13,7 @@ interface UsersTabProps {
 
 const UsersTab: React.FC<UsersTabProps> = ({ bots, onlineUsers, onViewAll }) => {
   return (
-    <Card>
+    <Card className={cn("admin-effect")}>
       <CardHeader>
         <CardTitle>User Management</CardTitle>
       </CardHeader>
