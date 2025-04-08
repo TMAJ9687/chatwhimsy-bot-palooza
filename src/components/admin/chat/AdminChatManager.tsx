@@ -2,20 +2,16 @@
 import React, { memo, useRef, useEffect } from 'react';
 import { useAdminChatVisibility } from '@/hooks/admin/useAdminChatVisibility';
 
-// Load AdminChat component only when needed using dynamic import
-// Fixed import to handle module resolution correctly with TypeScript
-const AdminChat = React.lazy(() => {
-  return new Promise((resolve) => {
-    // Use timeout for performance optimization
+// Correctly define the lazy-loaded component using React.lazy
+// The simplest approach is to use the standard React.lazy pattern
+const AdminChat = React.lazy(() => 
+  // Add timeout for performance optimization without complex promise chaining
+  new Promise(resolve => {
     setTimeout(() => {
-      // Properly resolve the module with correct typing
-      import('./AdminChat').then((module) => {
-        // This correctly handles the module type
-        resolve({ default: module.default });
-      });
+      import('./AdminChat').then(moduleExports => resolve(moduleExports));
     }, 2000);
-  });
-});
+  }) as Promise<typeof import('./AdminChat')>
+);
 
 /**
  * Managing component for AdminChat that prevents unnecessary rerenders
