@@ -28,12 +28,35 @@ const SUPPRESSED_PATTERNS = [
   'Support for defaultProps',
   'authenticat',
   'initializing',
-  'Loading dashboard'
+  'Loading dashboard',
+  'Auth state changed',
+  'checking admin status',
+  'Check auth',
+  'admin auth',
+  'Admin verified',
+  'auth listener',
+  'Checking auth',
+  'verified via',
+  'No session found',
+  'localStorage',
+  'admin data load',
+  'performance',
+  'Performance',
+  'failed attempts',
+  'setAdminData',
+  'session check',
+  'info loading',
+  'periodic',
+  'Periodic'
 ];
 
 // Only allow 1 message per key in the specified timeframe (in ms)
 const THROTTLED_MESSAGES: Record<string, number> = {};
-const THROTTLE_INTERVAL = 10000; // 10 seconds
+const THROTTLE_INTERVAL = 30000; // Increased to 30 seconds
+
+// Track total counts of suppressed messages for debugging
+let suppressedCount = 0;
+let throttledCount = 0;
 
 /**
  * Checks if a message should be suppressed based on patterns
@@ -45,7 +68,17 @@ function shouldSuppressMessage(args: any[]): boolean {
   const firstArg = typeof args[0] === 'string' ? args[0] : 
     (args[0] && typeof args[0].toString === 'function') ? args[0].toString() : '';
   
-  return SUPPRESSED_PATTERNS.some(pattern => firstArg.includes(pattern));
+  const shouldSuppress = SUPPRESSED_PATTERNS.some(pattern => firstArg.includes(pattern));
+  
+  if (shouldSuppress) {
+    suppressedCount++;
+    // Occasionally log stats about suppressed messages
+    if (suppressedCount % 100 === 0) {
+      originalConsole.debug(`[Console Filter] Suppressed ${suppressedCount} messages, throttled ${throttledCount}`);
+    }
+  }
+  
+  return shouldSuppress;
 }
 
 /**
@@ -67,6 +100,7 @@ function shouldThrottleMessage(args: any[]): boolean {
     return false; // Don't throttle
   }
   
+  throttledCount++;
   return true; // Throttle the message
 }
 
@@ -74,6 +108,10 @@ function shouldThrottleMessage(args: any[]): boolean {
  * Initialize the console filter
  */
 export function initConsoleFilter() {
+  // Reset counters
+  suppressedCount = 0;
+  throttledCount = 0;
+  
   // Override console methods to filter out noisy logs
   console.log = function(...args: any[]) {
     if (shouldSuppressMessage(args) || shouldThrottleMessage(args)) return;
@@ -96,6 +134,14 @@ export function initConsoleFilter() {
   };
   
   // We leave console.error unchanged for important error reporting
+  // But still apply pattern filtering for known noise
+  console.error = function(...args: any[]) {
+    if (shouldSuppressMessage(args)) return;
+    originalConsole.error(...args);
+  };
+  
+  // Occasionally log that the filter is active
+  originalConsole.log('[Console Filter] Initialized and active');
 }
 
 /**
@@ -107,4 +153,7 @@ export function restoreConsole() {
   console.error = originalConsole.error;
   console.info = originalConsole.info;
   console.debug = originalConsole.debug;
+  
+  // Log stats about what was filtered
+  originalConsole.log(`[Console Filter] Deactivated. Suppressed ${suppressedCount} messages, throttled ${throttledCount}`);
 }

@@ -8,7 +8,7 @@ import { useUIState } from '@/context/UIStateContext';
 export const useAdminChat = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const { lockBody, unlockBody } = useUIState();
-  const chatStateRef = useRef({ isOpen: false });
+  const chatStateRef = useRef({ isOpen: false, lockApplied: false });
   
   // Use useEffect to manage body scroll locking and prevent excessive logging
   useEffect(() => {
@@ -16,27 +16,34 @@ export const useAdminChat = () => {
     if (chatStateRef.current.isOpen !== isChatOpen) {
       chatStateRef.current.isOpen = isChatOpen;
       
-      if (isChatOpen) {
+      if (isChatOpen && !chatStateRef.current.lockApplied) {
         lockBody();
-      } else {
+        chatStateRef.current.lockApplied = true;
+      } else if (!isChatOpen && chatStateRef.current.lockApplied) {
         unlockBody();
+        chatStateRef.current.lockApplied = false;
       }
     }
     
     // Clean up on unmount - ensure body scroll is restored
     return () => {
-      if (chatStateRef.current.isOpen) {
+      if (chatStateRef.current.lockApplied) {
         unlockBody();
+        chatStateRef.current.lockApplied = false;
       }
     };
   }, [isChatOpen, lockBody, unlockBody]);
   
   const openChat = useCallback(() => {
-    setIsChatOpen(true);
+    if (!chatStateRef.current.isOpen) {
+      setIsChatOpen(true);
+    }
   }, []);
   
   const closeChat = useCallback(() => {
-    setIsChatOpen(false);
+    if (chatStateRef.current.isOpen) {
+      setIsChatOpen(false);
+    }
   }, []);
   
   const toggleChat = useCallback(() => {

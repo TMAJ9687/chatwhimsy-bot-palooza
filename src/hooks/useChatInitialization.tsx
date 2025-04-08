@@ -18,6 +18,7 @@ export const useChatInitialization = () => {
   // Track which bots we've already registered to avoid duplicate tracking
   const registeredBotsRef = useRef<Set<string>>(new Set());
   const isInitializedRef = useRef(false);
+  const trackingAttemptedRef = useRef(false);
 
   // Sort bot profiles once and memoize to avoid re-sorting
   const sortedBotProfiles = useMemo(() => sortUsers(botProfiles), []);
@@ -45,14 +46,35 @@ export const useChatInitialization = () => {
       setRulesAccepted(true);
     }
     
-    // Only register a single bot with admin service - just to ensure
-    // the connection works but prevent memory leaks and excessive tracking
-    if (sortedBotProfiles.length > 0 && !registeredBotsRef.current.has(sortedBotProfiles[0].id)) {
-      adminService.trackUserActivity(sortedBotProfiles[0].id, true);
-      registeredBotsRef.current.add(sortedBotProfiles[0].id);
+    // Only register a bot with admin service if we haven't already tried
+    // This prevents excessive tracking attempts
+    if (!trackingAttemptedRef.current && sortedBotProfiles.length > 0) {
+      trackingAttemptedRef.current = true;
+      
+      // Randomly select one bot to track (to distribute tracking load)
+      const botIndex = Math.floor(Math.random() * sortedBotProfiles.length);
+      const botToTrack = sortedBotProfiles[botIndex];
+      
+      if (botToTrack && !registeredBotsRef.current.has(botToTrack.id)) {
+        // Use timeout to delay this non-critical operation
+        setTimeout(() => {
+          try {
+            adminService.trackUserActivity(botToTrack.id, true);
+            registeredBotsRef.current.add(botToTrack.id);
+          } catch (e) {
+            // Silently fail - this is just tracking
+          }
+        }, 2000);
+      }
     }
     
-    // No need for cleanup as we're no longer tracking anything here
+    // Return cleanup function
+    return () => {
+      // Clear local state on unmount
+      registeredBotsRef.current.clear();
+      isInitializedRef.current = false;
+      trackingAttemptedRef.current = false;
+    };
   }, []); // Empty dependencies to run once
 
   // Save rules acceptance to localStorage when it changes
