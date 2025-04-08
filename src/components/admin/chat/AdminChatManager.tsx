@@ -3,12 +3,16 @@ import React, { memo, useRef, useEffect } from 'react';
 import { useAdminChatVisibility } from '@/hooks/admin/useAdminChatVisibility';
 
 // Load AdminChat component only when needed using dynamic import
-// The issue was in the promise chain structure - simplified it while maintaining the delay
+// Fixed import to handle module resolution correctly with TypeScript
 const AdminChat = React.lazy(() => {
   return new Promise((resolve) => {
-    // Still use a timeout for performance reasons, but fix the promise chain
+    // Use timeout for performance optimization
     setTimeout(() => {
-      import('./AdminChat').then(module => resolve(module));
+      // Properly resolve the module with correct typing
+      import('./AdminChat').then((module) => {
+        // This correctly handles the module type
+        resolve({ default: module.default });
+      });
     }, 2000);
   });
 });
