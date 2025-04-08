@@ -2,36 +2,28 @@
 import { useEffect } from 'react';
 
 /**
- * Hook to lock/unlock body scroll in a React-friendly way
- * Replaces direct DOM manipulation with proper React effects
+ * Hook to manage body scroll locking with improved performance
+ * @param isLocked Whether the body scroll should be locked
  */
-export const useBodyScrollLock = (locked: boolean) => {
+const useBodyScrollLock = (isLocked: boolean): void => {
   useEffect(() => {
-    if (!document || !document.body) return;
-    
-    // Store original body style
-    const originalOverflow = document.body.style.overflow;
-    const originalPaddingRight = document.body.style.paddingRight;
-    
-    if (locked) {
-      // Calculate scrollbar width to prevent layout shift
-      const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
-      
-      // Apply styles in a batch to minimize reflows
+    // DOM elements and styles are only modified when needed
+    if (isLocked) {
+      // Cache the original body style
+      const originalStyle = window.getComputedStyle(document.body).overflow;
+      // Apply the lock
       document.body.style.overflow = 'hidden';
-      document.body.style.paddingRight = `${scrollBarWidth}px`;
-    } else {
-      // Reset styles
-      document.body.style.overflow = originalOverflow;
-      document.body.style.paddingRight = originalPaddingRight;
+      document.body.classList.add('dialog-open');
+      
+      // Cleanup function to restore original style
+      return () => {
+        document.body.style.overflow = originalStyle;
+        document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
+      };
     }
-    
-    // Cleanup function to reset styles on unmount or when dependency changes
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      document.body.style.paddingRight = originalPaddingRight;
-    };
-  }, [locked]); // Only re-run when locked state changes
+    // No need to do anything if not locked
+    return undefined;
+  }, [isLocked]); // Only re-run if locked state changes
 };
 
 export default useBodyScrollLock;

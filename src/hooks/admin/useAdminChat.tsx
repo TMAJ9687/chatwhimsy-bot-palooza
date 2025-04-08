@@ -1,15 +1,36 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import useBodyScrollLock from '@/hooks/useBodyScrollLock';
+import { useUIState } from '@/context/UIStateContext';
 
 /**
- * Hook to manage admin chat state
+ * Hook to manage admin chat state with improved performance
  */
 export const useAdminChat = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const { lockBody, unlockBody } = useUIState();
+  const chatStateRef = useRef({ isOpen: false });
   
-  // Use our hook to properly manage body scroll locking when chat is open
-  useBodyScrollLock(isChatOpen);
+  // Use useEffect to manage body scroll locking and prevent excessive logging
+  useEffect(() => {
+    // Only make DOM changes when chat state actually changes
+    if (chatStateRef.current.isOpen !== isChatOpen) {
+      chatStateRef.current.isOpen = isChatOpen;
+      
+      if (isChatOpen) {
+        lockBody();
+      } else {
+        unlockBody();
+      }
+    }
+    
+    // Clean up on unmount - ensure body scroll is restored
+    return () => {
+      if (chatStateRef.current.isOpen) {
+        unlockBody();
+      }
+    };
+  }, [isChatOpen, lockBody, unlockBody]);
   
   const openChat = useCallback(() => {
     setIsChatOpen(true);

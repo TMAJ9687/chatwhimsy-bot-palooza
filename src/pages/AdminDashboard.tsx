@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAdminSession from '@/hooks/useAdminSession';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -37,6 +37,7 @@ const AdminDashboard = () => {
     vipUsers: 0,
     activeBans: 0
   });
+  const [loadTimestamp, setLoadTimestamp] = useState(0);
   
   const redirectToLogin = useCallback(() => {
     navigate('/secretadminportal');
@@ -49,10 +50,19 @@ const AdminDashboard = () => {
     }
   }, [isAuthenticated, redirectToLogin, sessionLoading, loading]);
   
+  // Throttle load stats to prevent excessive API calls
   const loadStats = useCallback(async () => {
+    // Prevent multiple loads within a short time period
+    const now = Date.now();
+    if (now - loadTimestamp < 10000) {
+      console.log('Stats loaded recently, skipping');
+      return;
+    }
+    
     try {
       setDataLoading(true);
       console.log('Loading dashboard stats...');
+      setLoadTimestamp(now);
       
       const { data, error } = await adminDb.dashboard().getStats();
       
@@ -84,7 +94,7 @@ const AdminDashboard = () => {
     } finally {
       setDataLoading(false);
     }
-  }, [toast, bots]);
+  }, [toast, bots, loadTimestamp]);
   
   useEffect(() => {
     if (isAuthenticated && !sessionLoading) {
@@ -120,30 +130,35 @@ const AdminDashboard = () => {
     });
   };
 
-  // Show loader if not authenticated or still loading
-  const loader = (
-    <DashboardLoader
-      isAuthenticated={isAuthenticated}
-      sessionLoading={sessionLoading}
-      loading={loading}
-      retryCount={retryCount}
-      handleRetry={handleRetry}
-      redirectToLogin={redirectToLogin}
+  // Memoize components to prevent unnecessary rerenders
+  const memoizedHeader = useMemo(() => (
+    <DashboardHeader 
+      email={user?.email} 
+      handleLogout={handleLogout} 
+      handleRetry={handleRetry} 
     />
-  );
-  
+  ), [user?.email]);
+
+  // Show loader if not authenticated or still loading
   if (!isAuthenticated && !sessionLoading || sessionLoading || loading) {
-    return <AdminErrorHandler>{loader}</AdminErrorHandler>;
+    return (
+      <AdminErrorHandler>
+        <DashboardLoader
+          isAuthenticated={isAuthenticated}
+          sessionLoading={sessionLoading}
+          loading={loading}
+          retryCount={retryCount}
+          handleRetry={handleRetry}
+          redirectToLogin={redirectToLogin}
+        />
+      </AdminErrorHandler>
+    );
   }
   
   return (
     <AdminErrorHandler>
       <div className="container mx-auto p-6">
-        <DashboardHeader 
-          email={user?.email} 
-          handleLogout={handleLogout} 
-          handleRetry={handleRetry} 
-        />
+        {memoizedHeader}
         
         {/* Add admin chat component */}
         <AdminChat />
@@ -185,29 +200,40 @@ const AdminDashboard = () => {
             />
           </TabsContent>
           
-          <TabsContent value="users" className="space-y-4">
-            <UsersTab 
-              bots={bots} 
-              onlineUsers={onlineUsers || []} 
-              onViewAll={() => setCurrentTab('bots')} 
-            />
-          </TabsContent>
+          {/* Only render the active tab content to improve performance */}
+          {currentTab === 'users' && (
+            <TabsContent value="users" className="space-y-4">
+              <UsersTab 
+                bots={bots} 
+                onlineUsers={onlineUsers || []} 
+                onViewAll={() => setCurrentTab('bots')} 
+              />
+            </TabsContent>
+          )}
           
-          <TabsContent value="moderation" className="space-y-4">
-            <ModerationTab />
-          </TabsContent>
+          {currentTab === 'moderation' && (
+            <TabsContent value="moderation" className="space-y-4">
+              <ModerationTab />
+            </TabsContent>
+          )}
           
-          <TabsContent value="bots" className="space-y-4">
-            <BotsTab bots={bots} onlineUsers={onlineUsers || []} />
-          </TabsContent>
+          {currentTab === 'bots' && (
+            <TabsContent value="bots" className="space-y-4">
+              <BotsTab bots={bots} onlineUsers={onlineUsers || []} />
+            </TabsContent>
+          )}
           
-          <TabsContent value="reports" className="space-y-4">
-            <ReportsTab />
-          </TabsContent>
+          {currentTab === 'reports' && (
+            <TabsContent value="reports" className="space-y-4">
+              <ReportsTab />
+            </TabsContent>
+          )}
           
-          <TabsContent value="statistics" className="space-y-4">
-            <Statistics />
-          </TabsContent>
+          {currentTab === 'statistics' && (
+            <TabsContent value="statistics" className="space-y-4">
+              <Statistics />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </AdminErrorHandler>
