@@ -2,8 +2,15 @@
 import React, { memo, useRef, useEffect } from 'react';
 import { useAdminChatVisibility } from '@/hooks/admin/useAdminChatVisibility';
 
-// Load AdminChat component only when needed using dynamic import
-const AdminChat = React.lazy(() => import('./AdminChat'));
+// Load AdminChat component only when needed using dynamic import with a much longer timeout
+const AdminChat = React.lazy(() => 
+  new Promise(resolve => 
+    setTimeout(() => 
+      import('./AdminChat').then(resolve), 
+      2000
+    )
+  )
+);
 
 /**
  * Managing component for AdminChat that prevents unnecessary rerenders

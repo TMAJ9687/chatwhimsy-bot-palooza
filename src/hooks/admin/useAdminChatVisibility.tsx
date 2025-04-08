@@ -13,21 +13,20 @@ const PERFORMANCE_SENSITIVE_ROUTES = [
  * Optimized to reduce re-renders and state changes
  */
 export const useAdminChatVisibility = () => {
-  // Start with true and calculate once on mount
+  // Start with null and calculate once on mount
   const [isVisible, setIsVisible] = useState<boolean>(true);
   const currentPathRef = useRef<string>(window.location.pathname);
   const initialized = useRef(false);
-  
-  // Memoize the check for performance-sensitive routes
-  const shouldHideChat = useMemo(() => {
-    const currentPath = currentPathRef.current;
-    return PERFORMANCE_SENSITIVE_ROUTES.some(route => currentPath.includes(route));
-  }, [currentPathRef.current]);
   
   useEffect(() => {
     // Only run this effect once on mount
     if (!initialized.current) {
       initialized.current = true;
+      
+      // Memoize the check for performance-sensitive routes
+      const shouldHideChat = PERFORMANCE_SENSITIVE_ROUTES.some(route => 
+        currentPathRef.current.includes(route)
+      );
       
       // Set initial visibility state based on route
       setIsVisible(!shouldHideChat);

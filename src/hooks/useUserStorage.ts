@@ -10,6 +10,7 @@ export const useUserStorage = (
   const profileUpdateInProgressRef = useRef(false);
   const profileUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const userLoadAttemptedRef = useRef(false);
+  const preventReloadCycleRef = useRef(false);
 
   // Enhanced profile loading from localStorage with better logging
   useEffect(() => {
@@ -20,12 +21,14 @@ export const useUserStorage = (
     
     // Check if logout event is present and handle accordingly
     if(localStorage.getItem('logoutEvent')) {
-      console.log('Logout event detected, skipping user loading');
       localStorage.removeItem('logoutEvent');
       localStorage.removeItem('chatUser');
       localStorage.removeItem('vipProfileComplete');
       return;
     }
+    
+    // Set a flag to prevent reload cycles
+    preventReloadCycleRef.current = true;
     
     // Try to load user from localStorage if not already loaded
     if (!user) {
@@ -41,7 +44,6 @@ export const useUserStorage = (
             parsedUser.isVip = false;
           }
           
-          console.log('Loaded user from localStorage:', parsedUser.nickname, 'isVip:', parsedUser.isVip);
           setUser(parsedUser);
         } catch (error) {
           console.error('Error parsing user data from localStorage:', error);
@@ -68,8 +70,6 @@ export const useUserStorage = (
             country: prev.country || 'us'
           };
         });
-        
-        console.log('Profile data synchronized from localStorage');
       }
     }
 
@@ -85,14 +85,12 @@ export const useUserStorage = (
   const updateUserProfile = useCallback((profile: Partial<UserProfile>) => {
     // Prevent concurrent updates with a safer approach
     if (profileUpdateInProgressRef.current) {
-      console.warn('Profile update already in progress, queuing update');
       // Queue the update for after the current one completes
       setTimeout(() => updateUserProfile(profile), 100);
       return;
     }
     
     profileUpdateInProgressRef.current = true;
-    console.log('Updating user profile:', profile);
     
     // Clean up any existing timeout to prevent memory leaks
     if (profileUpdateTimeoutRef.current) {
@@ -109,7 +107,6 @@ export const useUserStorage = (
         } as UserProfile;
         
         // Save to localStorage
-        console.log('Creating new user profile in localStorage:', newUser.nickname, 'isVip:', newUser.isVip);
         localStorage.setItem('chatUser', JSON.stringify(newUser));
         
         return newUser;
@@ -136,7 +133,6 @@ export const useUserStorage = (
       }
       
       // Save updated user to localStorage
-      console.log('Saving updated user to localStorage:', updatedUser.nickname, 'isVip:', updatedUser.isVip);
       localStorage.setItem('chatUser', JSON.stringify(updatedUser));
       
       // Use setTimeout to allow state updates to complete before releasing lock

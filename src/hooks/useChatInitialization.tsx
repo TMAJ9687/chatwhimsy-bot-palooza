@@ -49,28 +49,6 @@ export const useChatInitialization = () => {
       setRulesAccepted(true);
     }
     
-    // Only register a bot with admin service if we haven't already tried
-    // This prevents excessive tracking attempts
-    if (!trackingAttemptedRef.current && sortedBotProfiles.length > 0) {
-      trackingAttemptedRef.current = true;
-      
-      // Instead of random selection, always pick the first bot to make behavior consistent
-      const botToTrack = sortedBotProfiles[0];
-      
-      if (botToTrack && !registeredBotsRef.current.has(botToTrack.id)) {
-        // Use timeout to delay this non-critical operation
-        setTimeout(() => {
-          try {
-            adminService.trackUserActivity(botToTrack.id, true);
-            registeredBotsRef.current.add(botToTrack.id);
-          } catch (e) {
-            // Silently fail - this is just tracking
-          }
-        }, 2000);
-      }
-    }
-    
-    // Return cleanup function
     return () => {
       // Clear local state on unmount
       registeredBotsRef.current.clear();

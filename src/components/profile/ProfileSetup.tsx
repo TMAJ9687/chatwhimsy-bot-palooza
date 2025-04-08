@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import Button from '../shared/Button';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +29,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
   const [ageOptions, setAgeOptions] = useState<number[]>([]);
   const [isInterestsOpen, setIsInterestsOpen] = useState<boolean>(false);
   const [profileSubmitted, setProfileSubmitted] = useState<boolean>(false);
+  const onCompleteCalled = useRef(false);
 
   // Generate age options once on mount
   useEffect(() => {
@@ -40,9 +41,9 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
   }, []);
 
   const handleSubmit = () => {
-    if (gender && age && country && !profileSubmitted) {
-      console.log('Saving profile data for standard user');
+    if (gender && age && country && !profileSubmitted && !onCompleteCalled.current) {
       setProfileSubmitted(true);
+      onCompleteCalled.current = true;
       
       // Save profile data with explicit isVip=false for standard users
       onComplete({
@@ -52,11 +53,6 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ nickname, onComplete }) => 
         interests,
         isVip: false // Explicitly mark as non-VIP
       });
-      
-      // For standard users, navigation is now handled ONLY in the onComplete callback
-      // Don't navigate here to prevent double navigation
-    } else {
-      console.log('Profile data invalid or already submitted, not navigating');
     }
   };
 

@@ -1,3 +1,4 @@
+
 /**
  * Utility to reduce console logs in production and filter noisy debug messages
  * This helps reduce the console noise in the admin dashboard
@@ -60,9 +61,9 @@ const SUPPRESSED_PATTERNS = [
   'function waitUntil'
 ];
 
-// Only allow 1 message per key in the specified timeframe (in ms)
+// Severely throttle messages - only allow 1 per key per much longer interval
 const THROTTLED_MESSAGES: Record<string, number> = {};
-const THROTTLE_INTERVAL = 60000; // Increased to 60 seconds
+const THROTTLE_INTERVAL = 300000; // 5 minutes (increased from 60 seconds)
 
 // Track total counts of suppressed messages for debugging
 let suppressedCount = 0;
@@ -77,11 +78,14 @@ let isInitialized = false;
 function shouldSuppressMessage(args: any[]): boolean {
   if (args.length === 0) return false;
   
-  // Convert the first argument to string if possible
-  const firstArg = typeof args[0] === 'string' ? args[0] : 
-    (args[0] && typeof args[0].toString === 'function') ? args[0].toString() : '';
+  // Convert all arguments to a single string for pattern matching
+  const messageString = args.map(arg => 
+    typeof arg === 'string' ? arg : 
+    (arg && typeof arg.toString === 'function') ? arg.toString() : 
+    JSON.stringify(arg)
+  ).join(' ');
   
-  const shouldSuppress = SUPPRESSED_PATTERNS.some(pattern => firstArg.includes(pattern));
+  const shouldSuppress = SUPPRESSED_PATTERNS.some(pattern => messageString.includes(pattern));
   
   if (shouldSuppress) {
     suppressedCount++;
@@ -92,15 +96,17 @@ function shouldSuppressMessage(args: any[]): boolean {
 }
 
 /**
- * Checks if a message should be throttled and returns true if it should be displayed
+ * Checks if a message should be throttled and returns true if it should be suppressed
  */
 function shouldThrottleMessage(args: any[]): boolean {
   if (args.length === 0) return false;
   
-  // Create a key from the first argument
-  const key = typeof args[0] === 'string' ? args[0] :
-    (args[0] && typeof args[0].toString === 'function') ? args[0].toString() : 
-    'unknown';
+  // Create a key from all arguments
+  const key = args.map(arg => 
+    typeof arg === 'string' ? arg : 
+    (arg && typeof arg.toString === 'function') ? arg.toString() : 
+    JSON.stringify(arg)
+  ).join('|').substring(0, 100); // Limit key length
     
   const now = Date.now();
   
@@ -132,6 +138,7 @@ export function initConsoleFilter() {
   
   // Override console methods to filter out noisy logs
   console.log = function(...args: any[]) {
+    // More aggressive filtering - suppress or throttle almost everything in patterns
     if (shouldSuppressMessage(args) || shouldThrottleMessage(args)) return;
     originalConsole.log(...args);
   };
@@ -147,6 +154,7 @@ export function initConsoleFilter() {
   };
   
   console.debug = function(...args: any[]) {
+    // Almost always suppress debug logs
     if (shouldSuppressMessage(args) || shouldThrottleMessage(args)) return;
     originalConsole.debug(...args);
   };
@@ -178,6 +186,4 @@ export function restoreConsole() {
   console.debug = originalConsole.debug;
   
   isInitialized = false;
-  
-  // No need to log stats when restoring - it can cause console spam during hot reloads
 }
