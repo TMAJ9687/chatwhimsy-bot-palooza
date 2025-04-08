@@ -1,4 +1,3 @@
-
 import React, { useCallback } from 'react';
 import { Bot } from '@/types/chat';
 import ChatHeader from './ChatHeader';
@@ -9,6 +8,7 @@ import MobileUserList from './MobileUserList';
 import VipUpgradeSection from './VipUpgradeSection';
 import NotificationSidebar from './NotificationSidebar';
 import EmptyChatState from './EmptyChatState';
+import ChatAppHeader from './ChatAppHeader';
 
 interface RegularChatViewProps {
   currentBot: Bot;
