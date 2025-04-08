@@ -19,8 +19,8 @@ export const initPerformanceMonitoring = (): (() => void) => {
     return () => {}; // Return empty cleanup if already initialized
   }
   
-  // Only initialize in development mode or if explicitly enabled
-  if (process.env.NODE_ENV !== 'development' && !window.localStorage.getItem('enablePerfMonitoring')) {
+  // Only initialize if explicitly enabled
+  if (!window.localStorage.getItem('enablePerfMonitoring')) {
     return () => {}; // Return empty cleanup function
   }
   
@@ -30,9 +30,9 @@ export const initPerformanceMonitoring = (): (() => void) => {
     // Create observer for long tasks with higher threshold to reduce noise
     longTaskObserver = new PerformanceObserver((list) => {
       list.getEntries().forEach((entry) => {
-        // Only log tasks longer than 150ms (increased threshold significantly)
-        if (entry.duration > 150) {
-          console.warn('Long task detected:', {
+        // Only log tasks longer than 500ms (increased threshold drastically)
+        if (entry.duration > 500) {
+          console.warn('Critical long task detected:', {
             duration: Math.round(entry.duration),
             startTime: Math.round(entry.startTime)
           });
@@ -43,31 +43,7 @@ export const initPerformanceMonitoring = (): (() => void) => {
     // Register observer for long tasks
     longTaskObserver.observe({ entryTypes: ['longtask'] });
 
-    // Create observer for custom performance measures - with severe limiting
-    let measureCount = 0;
-    measureObserver = new PerformanceObserver((list) => {
-      // Only log every 10th measure to drastically reduce noise
-      measureCount++;
-      if (measureCount % 10 === 0) {
-        const entries = list.getEntries();
-        // Only log the last entry to reduce console spam
-        if (entries.length > 0) {
-          const entry = entries[entries.length - 1];
-          // Only log measures over 100ms to reduce noise
-          if (entry.duration > 100) {
-            console.info(`Performance measure: ${entry.name}`, {
-              duration: Math.round(entry.duration)
-            });
-          }
-        }
-      }
-    });
-
-    // Register observer for measures
-    measureObserver.observe({ entryTypes: ['measure'] });
-
-    // Skip frame monitoring completely - it generates too much noise
-    // Instead just return the cleanup function
+    // Skip measure observer entirely - it generates too much noise
 
     // Return cleanup function
     return () => {
@@ -93,42 +69,17 @@ export const initPerformanceMonitoring = (): (() => void) => {
   }
 };
 
-// Track event timing - now with async support
+// Track event timing - NOOP implementation to avoid errors
 export const trackEvent = (eventName: string, callback: () => void): void => {
-  performance.mark(`${eventName}_start`);
-  callback();
-  performance.mark(`${eventName}_end`);
-  performance.measure(
-    `Event: ${eventName}`,
-    `${eventName}_start`,
-    `${eventName}_end`
-  );
+  callback(); // Just call the callback without any performance tracking
 };
 
-// Track async operations with proper error handling
+// Track async operations - NOOP implementation to avoid errors
 export const trackAsyncOperation = async <T>(
   operationName: string, 
   asyncCallback: () => Promise<T>
 ): Promise<T> => {
-  performance.mark(`${operationName}_start`);
-  try {
-    const result = await asyncCallback();
-    performance.mark(`${operationName}_end`);
-    performance.measure(
-      `Async: ${operationName}`,
-      `${operationName}_start`,
-      `${operationName}_end`
-    );
-    return result;
-  } catch (error) {
-    performance.mark(`${operationName}_error`);
-    performance.measure(
-      `Async Error: ${operationName}`,
-      `${operationName}_start`,
-      `${operationName}_error`
-    );
-    throw error;
-  }
+  return asyncCallback(); // Just call the callback without any performance tracking
 };
 
 // Debounce function to prevent excessive operations
@@ -164,25 +115,17 @@ export const memoize = <T extends (...args: any[]) => any>(
   };
 };
 
-// Safely measure rendering time
+// Safely measure rendering time - NOOP implementation
 export const measureRender = (componentName: string): () => void => {
-  const markName = `render_${componentName}_${Date.now()}`;
-  performance.mark(markName);
-  
-  return () => {
-    // Call this function in useEffect to measure render completion
-    const endMarkName = `${markName}_end`;
-    performance.mark(endMarkName);
-    performance.measure(
-      `Render: ${componentName}`,
-      markName,
-      endMarkName
-    );
-  };
+  return () => {}; // Do nothing to avoid unnecessary tracking
 };
 
 // Clear all performance marks and measures
 export const clearPerformanceMarks = (): void => {
-  performance.clearMarks();
-  performance.clearMeasures();
+  try {
+    performance.clearMarks();
+    performance.clearMeasures();
+  } catch (e) {
+    // Ignore errors
+  }
 };

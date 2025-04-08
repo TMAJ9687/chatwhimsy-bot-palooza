@@ -11,7 +11,8 @@ interface UsersTabProps {
   onViewAll: () => void;
 }
 
-const UsersTab: React.FC<UsersTabProps> = ({ bots, onlineUsers, onViewAll }) => {
+// Use React.memo to prevent unnecessary re-renders
+const UsersTab: React.FC<UsersTabProps> = React.memo(({ bots, onlineUsers, onViewAll }) => {
   return (
     <Card className={cn("admin-effect")}>
       <CardHeader>
@@ -27,6 +28,9 @@ const UsersTab: React.FC<UsersTabProps> = ({ bots, onlineUsers, onViewAll }) => 
       </CardContent>
     </Card>
   );
-};
+});
+
+// Set display name for React DevTools
+UsersTab.displayName = 'UsersTab';
 
 export default UsersTab;

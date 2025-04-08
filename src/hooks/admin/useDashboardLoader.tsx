@@ -20,26 +20,20 @@ export const useDashboardLoader = (
   const lastLoadTimeRef = useRef(0);
   const isLoadingRef = useRef(false);
   
-  // Combined loader for all dashboard data with throttling
+  // Combined loader for all dashboard data with extreme throttling
   const loadDashboardData = useCallback(async () => {
-    if (!isAdmin) return false;
-    
-    // Prevent multiple simultaneous loads
-    if (isLoadingRef.current) {
-      console.log('Dashboard data load already in progress, skipping');
+    if (!isAdmin || isLoadingRef.current) {
       return false;
     }
     
-    // Throttle loading to once per 10 seconds maximum
+    // Extremely aggressive throttling - once per 30 seconds maximum
     const now = Date.now();
-    if (now - lastLoadTimeRef.current < 10000) {
-      console.log('Dashboard data loaded recently, skipping');
+    if (now - lastLoadTimeRef.current < 30000) {
       return false;
     }
     
     try {
       isLoadingRef.current = true;
-      console.log('Loading dashboard data...');
       lastLoadTimeRef.current = now;
       
       // Load bots first
@@ -47,16 +41,19 @@ export const useDashboardLoader = (
       setBots(loadedBots);
       
       // Load other data in sequence (not parallel) to reduce contention
-      const bannedUsers = await loadBannedUsers();
+      await loadBannedUsers();
       const actions = await loadAdminActions();
       setAdminActions(actions);
-      await loadReportsAndFeedback();
-      await cleanupExpiredReports();
       
-      console.log('Dashboard data loaded successfully');
+      // These operations are less important, so we'll skip them if they've been run recently
+      if (now - lastLoadTimeRef.current > 60000) { // Only run once per minute at most
+        await loadReportsAndFeedback();
+        await cleanupExpiredReports();
+      }
+      
       return true;
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      // We'll just return false on error without rethrowing
       return false;
     } finally {
       isLoadingRef.current = false;

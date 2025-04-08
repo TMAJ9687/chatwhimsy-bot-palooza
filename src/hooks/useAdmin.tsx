@@ -14,6 +14,9 @@ import { useDashboardLoader } from './admin/useDashboardLoader';
 import { Bot } from '@/types/chat';
 import * as adminService from '@/services/admin/adminService';
 
+// Use a constant flag to completely disable user tracking
+const DISABLE_USER_TRACKING = true;
+
 export const useAdmin = () => {
   const [bots, setBots] = useState<Bot[]>([]);
   const { onlineUsers: chatUsers } = useChatInitialization();
@@ -62,15 +65,14 @@ export const useAdmin = () => {
   const { saveSiteSettings, getSiteSettings } = useAdminSettings(isAdmin);
   
   // Fix: Update the cleanupExpiredReports function to return a boolean
-  const wrappedCleanupReports = async (): Promise<boolean> => {
+  const wrappedCleanupReports = useCallback(async (): Promise<boolean> => {
     try {
       await cleanupExpiredReports();
       return true;
     } catch (error) {
-      console.error('Error cleaning up reports:', error);
       return false;
     }
-  };
+  }, [cleanupExpiredReports]);
   
   // Initialize the dashboard loader with the fixed cleanupExpiredReports function
   const { loadDashboardData } = useDashboardLoader(
@@ -114,13 +116,13 @@ export const useAdmin = () => {
     };
   }, [isAdmin, loadDashboardData]);
   
-  // Heavily throttled user tracking - only check once per 15 seconds and limit to 3 users max
+  // Completely disable user tracking or throttle extremely aggressively
   useEffect(() => {
-    if (!isAdmin || isProcessingRef.current) return;
+    if (DISABLE_USER_TRACKING || !isAdmin || isProcessingRef.current) return;
     
-    // Aggressively throttle updates to once per 15 seconds maximum
+    // Extremely throttle updates to once per 30 seconds maximum
     const now = Date.now();
-    if (now - lastTrackingUpdateRef.current < 15000) {
+    if (now - lastTrackingUpdateRef.current < 30000) {
       return;
     }
     
@@ -128,16 +130,13 @@ export const useAdmin = () => {
     isProcessingRef.current = true;
     lastTrackingUpdateRef.current = now;
     
-    // Process a small number of users
-    const MAX_TRACKING_USERS = 3; // Only track up to 3 users
-    
-    // Get new users that haven't been processed yet
-    const chatUserIds = chatUsers.map(user => user.id).slice(0, MAX_TRACKING_USERS);
+    // Process only one user at a time maximum
+    const chatUserIds = chatUsers.map(user => user.id);
     const newUsers = chatUserIds.filter(id => !processedUsersRef.current.has(id));
     
     if (newUsers.length > 0) {
-      // Only track up to the limit
-      const userToTrack = newUsers[0]; // Just track one user at a time
+      // Just track one user at a time
+      const userToTrack = newUsers[0];
       trackUserOnlineStatus(userToTrack, true);
       processedUsersRef.current.add(userToTrack);
     }
@@ -149,7 +148,7 @@ export const useAdmin = () => {
     
   }, [isAdmin, trackUserOnlineStatus, chatUsers]);
   
-  // Add cleanup function to prevent memory leaks
+  // Clean up all tracking
   useEffect(() => {
     return () => {
       if (isAdmin) {

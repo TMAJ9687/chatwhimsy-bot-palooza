@@ -6,16 +6,16 @@ export { cleanupUserTracking } from './userService';
 
 // Re-export functions from other service files, avoiding duplicate exports
 export * from './userService';
-// Only export functions from vipAdminService that aren't already exported from userService
-// We're commenting out this export since it causes conflicts
-// export * from './vipAdminService';
 export * from './reportAdminService';
 export * from './adminActionService';
 export * from './botService';
 
-// Global tracking flag to prevent duplicate initialization
+// Global tracking flag to prevent duplicate initialization and disable tracking
 let adminTrackingInitialized = false;
 const trackedUsers = new Set<string>();
+
+// Set this to true to completely disable admin tracking
+const DISABLE_ADMIN_TRACKING = true;
 
 /**
  * Check if admin is logged in
@@ -26,6 +26,9 @@ export const isAdminLoggedIn = checkAdminStatus;
  * Initialize admin tracking only once
  */
 export const initAdminTracking = (): boolean => {
+  // If tracking is disabled, always return false
+  if (DISABLE_ADMIN_TRACKING) return false;
+  
   if (adminTrackingInitialized) {
     return false;
   }
@@ -37,6 +40,8 @@ export const initAdminTracking = (): boolean => {
  * Check if admin tracking is already initialized
  */
 export const isAdminTrackingInitialized = (): boolean => {
+  // If tracking is disabled, always return false
+  if (DISABLE_ADMIN_TRACKING) return false;
   return adminTrackingInitialized;
 };
 
@@ -46,6 +51,9 @@ export const isAdminTrackingInitialized = (): boolean => {
  * @param isBot Whether the user is a bot
  */
 export const trackUserActivity = (userId: string, isBot: boolean = false): boolean => {
+  // If tracking is disabled, always return false
+  if (DISABLE_ADMIN_TRACKING) return false;
+  
   // Skip if already tracking this user
   if (trackedUsers.has(userId)) {
     return false;
@@ -60,6 +68,8 @@ export const trackUserActivity = (userId: string, isBot: boolean = false): boole
  * Check if a user is already being tracked
  */
 export const isUserTracked = (userId: string): boolean => {
+  // If tracking is disabled, always return false
+  if (DISABLE_ADMIN_TRACKING) return false;
   return trackedUsers.has(userId);
 };
 

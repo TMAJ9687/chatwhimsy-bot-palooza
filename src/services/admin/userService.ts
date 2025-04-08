@@ -1,16 +1,21 @@
-
 import { BanRecord, AdminAction } from '@/types/admin';
 import { supabase } from '@/integrations/supabase/client';
 
 // Track online users with better memory management
 const onlineUsers = new Set<string>();
 const userTimeouts = new Map<string, NodeJS.Timeout>();
-const MAX_ONLINE_USERS = 100; // Set a reasonable limit for tracking
+const MAX_ONLINE_USERS = 50; // Reduce the limit for tracking
+
+// Disable tracking flag - set to true to completely disable tracking
+const DISABLE_TRACKING = true;
 
 /**
  * User tracking functions for admin dashboard
  */
 export const trackUserActivity = (userId: string, isOnline: boolean): void => {
+  // If tracking is disabled, do nothing
+  if (DISABLE_TRACKING) return;
+  
   // Clear existing timeout if any
   if (userTimeouts.has(userId)) {
     clearTimeout(userTimeouts.get(userId));
@@ -25,7 +30,6 @@ export const trackUserActivity = (userId: string, isOnline: boolean): void => {
       const oldestUser = onlineUsers.values().next().value;
       if (oldestUser) {
         onlineUsers.delete(oldestUser);
-        console.log(`User tracking limit reached. Removing oldest tracked user: ${oldestUser}`);
       }
     }
     
@@ -35,17 +39,11 @@ export const trackUserActivity = (userId: string, isOnline: boolean): void => {
     const timeout = setTimeout(() => {
       onlineUsers.delete(userId);
       userTimeouts.delete(userId);
-      console.log(`User ${userId} automatically marked offline due to inactivity`);
     }, 15 * 60 * 1000); // 15 minutes timeout
     
     userTimeouts.set(userId, timeout);
   } else {
     onlineUsers.delete(userId);
-  }
-  
-  // Limit logging to reduce console spam
-  if (onlineUsers.size % 10 === 0 || onlineUsers.size < 10) {
-    console.log(`User tracking: ${userId} is now ${isOnline ? 'online' : 'offline'}. Total online: ${onlineUsers.size}`);
   }
 };
 
@@ -56,14 +54,17 @@ export const cleanupUserTracking = (): void => {
   });
   userTimeouts.clear();
   onlineUsers.clear();
-  console.log("User tracking cleaned up");
 };
 
 export const getOnlineUserCount = (): number => {
+  // If tracking is disabled, always return 0
+  if (DISABLE_TRACKING) return 0;
   return onlineUsers.size;
 };
 
 export const getOnlineUserIds = (): string[] => {
+  // If tracking is disabled, always return empty array
+  if (DISABLE_TRACKING) return [];
   return Array.from(onlineUsers);
 };
 

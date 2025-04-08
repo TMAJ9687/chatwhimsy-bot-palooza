@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAdminSession from '@/hooks/useAdminSession';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -7,22 +7,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Activity, Users, Settings, UserPlus, ShieldAlert, MessageSquare, BarChart4
 } from 'lucide-react';
-import Statistics from '@/components/admin/statistics/Statistics';
 import { useToast } from '@/hooks/use-toast';
 import { adminDb } from '@/integrations/supabase/adminTypes';
 import AdminErrorHandler from '@/components/admin/ErrorHandler';
 
-// Import refactored components
+// Import header and loader components
 import DashboardHeader from '@/components/admin/dashboard/DashboardHeader';
 import DashboardLoader from '@/components/admin/dashboard/DashboardLoader';
-import OverviewTab from '@/components/admin/dashboard/OverviewTab';
-import UsersTab from '@/components/admin/dashboard/UsersTab';
-import ModerationTab from '@/components/admin/dashboard/ModerationTab';
-import BotsTab from '@/components/admin/dashboard/BotsTab';
-import ReportsTab from '@/components/admin/dashboard/ReportsTab';
 
-// Import admin chat components - using the manager instead of direct component
-import AdminChatManager from '@/components/admin/chat/AdminChatManager';
+// Lazy load tab components
+const OverviewTab = lazy(() => import('@/components/admin/dashboard/OverviewTab'));
+const UsersTab = lazy(() => import('@/components/admin/dashboard/UsersTab'));
+const ModerationTab = lazy(() => import('@/components/admin/dashboard/ModerationTab'));
+const BotsTab = lazy(() => import('@/components/admin/dashboard/BotsTab'));
+const ReportsTab = lazy(() => import('@/components/admin/dashboard/ReportsTab'));
+const Statistics = lazy(() => import('@/components/admin/statistics/Statistics'));
+
+// Lazy load chat manager
+const AdminChatManager = lazy(() => import('@/components/admin/chat/AdminChatManager'));
+
+// TabLoader component
+const TabLoader = () => (
+  <div className="flex items-center justify-center w-full h-32">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+);
 
 const AdminDashboard = () => {
   const { isAuthenticated, user, isLoading: sessionLoading, refreshSession } = useAdminSession();
@@ -43,17 +52,18 @@ const AdminDashboard = () => {
     navigate('/secretadminportal');
   }, [navigate]);
   
+  // Check authentication and redirect if needed
   useEffect(() => {
     if (!isAuthenticated && !sessionLoading && !loading) {
       redirectToLogin();
     }
   }, [isAuthenticated, redirectToLogin, sessionLoading, loading]);
   
-  // Heavily throttled stats loading - once per minute maximum
+  // Extreme throttling for stats loading - once per 2 minutes maximum
   const loadStats = useCallback(async () => {
-    // Prevent multiple loads within a minute
+    // Prevent multiple loads within 2 minutes
     const now = Date.now();
-    if (now - loadTimestamp < 60000) {
+    if (now - loadTimestamp < 120000) {
       return;
     }
     
@@ -63,17 +73,7 @@ const AdminDashboard = () => {
       
       const { data, error } = await adminDb.dashboard().getStats();
       
-      if (error) {
-        console.error('Error loading stats:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load admin dashboard stats',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
-      if (data) {
+      if (!error && data) {
         setStats({
           totalUsers: data.total_users || bots.length || 0,
           vipUsers: data.vip_users || bots.filter(bot => bot.vip).length || 0,
@@ -81,23 +81,18 @@ const AdminDashboard = () => {
         });
       }
     } catch (error) {
-      console.error('Error loading stats:', error);
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred while loading stats',
-        variant: 'destructive',
-      });
+      // Silent failure
     } finally {
       setDataLoading(false);
     }
-  }, [toast, bots, loadTimestamp]);
+  }, [bots, loadTimestamp]);
   
-  // Only load stats on initial mount and when specifically requested
+  // Only load stats on initial mount - removed from dependencies
   useEffect(() => {
     if (isAuthenticated && !sessionLoading) {
       loadStats();
     }
-  }, [isAuthenticated, sessionLoading]); // Removed loadStats from dependencies
+  }, [isAuthenticated, sessionLoading]); // Removed loadStats dependency
   
   const handleLogout = async () => {
     try {
@@ -108,12 +103,7 @@ const AdminDashboard = () => {
       });
       redirectToLogin();
     } catch (error) {
-      console.error('Error logging out:', error);
-      toast({
-        title: "Error",
-        description: "Failed to log out. Please try again.",
-        variant: "destructive"
-      });
+      // Ignore errors
     }
   };
   
@@ -127,14 +117,67 @@ const AdminDashboard = () => {
     });
   };
 
-  // Memoize components to prevent unnecessary rerenders
+  // Memoize header to prevent re-renders
   const memoizedHeader = useMemo(() => (
     <DashboardHeader 
       email={user?.email} 
       handleLogout={handleLogout} 
       handleRetry={handleRetry} 
     />
-  ), [user?.email]);
+  ), [user?.email, handleLogout, handleRetry]);
+  
+  // Memoize tab content to improve performance
+  const tabContent = useMemo(() => {
+    switch(currentTab) {
+      case 'overview':
+        return (
+          <Suspense fallback={<TabLoader />}>
+            <OverviewTab 
+              dataLoading={dataLoading} 
+              stats={stats} 
+              onlineUsersCount={onlineUsers?.length || 0} 
+              setCurrentTab={setCurrentTab} 
+            />
+          </Suspense>
+        );
+      case 'users':
+        return (
+          <Suspense fallback={<TabLoader />}>
+            <UsersTab 
+              bots={bots} 
+              onlineUsers={onlineUsers || []} 
+              onViewAll={() => setCurrentTab('bots')} 
+            />
+          </Suspense>
+        );
+      case 'moderation':
+        return (
+          <Suspense fallback={<TabLoader />}>
+            <ModerationTab />
+          </Suspense>
+        );
+      case 'bots':
+        return (
+          <Suspense fallback={<TabLoader />}>
+            <BotsTab bots={bots} onlineUsers={onlineUsers || []} />
+          </Suspense>
+        );
+      case 'reports':
+        return (
+          <Suspense fallback={<TabLoader />}>
+            <ReportsTab />
+          </Suspense>
+        );
+      case 'statistics':
+        return (
+          <Suspense fallback={<TabLoader />}>
+            <Statistics />
+          </Suspense>
+        );
+      default:
+        return null;
+    }
+  }, [currentTab, bots, onlineUsers, dataLoading, stats, setCurrentTab]);
 
   // Show loader if not authenticated or still loading
   if (!isAuthenticated && !sessionLoading || sessionLoading || loading) {
@@ -157,8 +200,10 @@ const AdminDashboard = () => {
       <div className="container mx-auto p-6">
         {memoizedHeader}
         
-        {/* Use the optimized chat manager */}
-        <AdminChatManager />
+        {/* Lazy load chat manager */}
+        <Suspense fallback={null}>
+          <AdminChatManager />
+        </Suspense>
         
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-6">
@@ -188,49 +233,9 @@ const AdminDashboard = () => {
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="overview" className="space-y-4">
-            <OverviewTab 
-              dataLoading={dataLoading} 
-              stats={stats} 
-              onlineUsersCount={onlineUsers?.length || 0} 
-              setCurrentTab={setCurrentTab} 
-            />
+          <TabsContent value={currentTab} className="space-y-4">
+            {tabContent}
           </TabsContent>
-          
-          {/* Only render the active tab content to improve performance */}
-          {currentTab === 'users' && (
-            <TabsContent value="users" className="space-y-4">
-              <UsersTab 
-                bots={bots} 
-                onlineUsers={onlineUsers || []} 
-                onViewAll={() => setCurrentTab('bots')} 
-              />
-            </TabsContent>
-          )}
-          
-          {currentTab === 'moderation' && (
-            <TabsContent value="moderation" className="space-y-4">
-              <ModerationTab />
-            </TabsContent>
-          )}
-          
-          {currentTab === 'bots' && (
-            <TabsContent value="bots" className="space-y-4">
-              <BotsTab bots={bots} onlineUsers={onlineUsers || []} />
-            </TabsContent>
-          )}
-          
-          {currentTab === 'reports' && (
-            <TabsContent value="reports" className="space-y-4">
-              <ReportsTab />
-            </TabsContent>
-          )}
-          
-          {currentTab === 'statistics' && (
-            <TabsContent value="statistics" className="space-y-4">
-              <Statistics />
-            </TabsContent>
-          )}
         </Tabs>
       </div>
     </AdminErrorHandler>

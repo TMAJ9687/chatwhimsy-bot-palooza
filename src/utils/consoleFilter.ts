@@ -15,7 +15,7 @@ const originalConsole = {
 
 // Patterns to completely suppress
 const SUPPRESSED_PATTERNS = [
-  // Add more admin dashboard related patterns
+  // Admin dashboard specific patterns
   'user tracking',
   'already tracked',
   '[Tracking]',
@@ -59,12 +59,100 @@ const SUPPRESSED_PATTERNS = [
   'useEffect cleanup',
   'User is on path',
   'No active session',
-  'function waitUntil'
+  'function waitUntil',
+  // Additional patterns to suppress
+  'Dashboard data load',
+  'dashboard render',
+  'useAdmin',
+  'useAdminBots',
+  'loading bots',
+  'admin data',
+  'initialized',
+  'checking if',
+  'auth.onAuth',
+  'tracking user',
+  'online status',
+  'tab change',
+  'switched to tab',
+  'effect ran',
+  'firing effect',
+  'rerender',
+  'useCallback called',
+  'ref update',
+  'addEventListener',
+  'removeEventListener',
+  'useEffect cleanup',
+  'subscription',
+  'refresh token',
+  'state update',
+  'ref current',
+  'tabsContent',
+  'rendered',
+  'component mounted',
+  'component updated',
+  'data fetched',
+  'dependency changed',
+  'loadDashboardData',
+  'loadBots',
+  'loadingRef',
+  'already processing',
+  'throttled',
+  'already in progress',
+  'Skip loading',
+  'skipping update',
+  'user online',
+  'admin tracking',
+  'User tracking',
+  'Total online',
+  'Dashboard',
+  'admin hook',
+  'mounted',
+  'unmounted',
+  'timeout',
+  'interval',
+  'loading state',
+  'update state',
+  'effect fired',
+  'toggle',
+  'cleanup',
+  'trigger',
+  'load data',
+  'Getting',
+  'starting',
+  'processing',
+  'finished',
+  'started',
+  'completed',
+  'supabase',
+  'auth state',
+  'session',
+  'render cycle',
+  'state changed',
+  'current state',
+  'updating state',
+  'render update',
+  'memo',
+  'callback',
+  'useRef',
+  'Dependencies',
+  'setInterval',
+  'clearInterval',
+  'setTimeout',
+  'clearTimeout',
+  'Starting admin',
+  'Ending admin',
+  'Starting load',
+  'Ending load',
+  'Start process',
+  'End process'
 ];
 
 // Severely throttle messages - only allow 1 per key per much longer interval
 const THROTTLED_MESSAGES: Record<string, number> = {};
 const THROTTLE_INTERVAL = 300000; // 5 minutes (increased from 60 seconds)
+
+// Ultra-high throttling for certain patterns - only allow once per session
+const SEEN_MESSAGES = new Set<string>();
 
 // Track total counts of suppressed messages for debugging
 let suppressedCount = 0;
@@ -86,7 +174,7 @@ function shouldSuppressMessage(args: any[]): boolean {
     JSON.stringify(arg)
   ).join(' ');
   
-  const shouldSuppress = SUPPRESSED_PATTERNS.some(pattern => messageString.includes(pattern));
+  const shouldSuppress = SUPPRESSED_PATTERNS.some(pattern => messageString.toLowerCase().includes(pattern.toLowerCase()));
   
   if (shouldSuppress) {
     suppressedCount++;
@@ -108,17 +196,48 @@ function shouldThrottleMessage(args: any[]): boolean {
     (arg && typeof arg.toString === 'function') ? arg.toString() : 
     JSON.stringify(arg)
   ).join('|').substring(0, 100); // Limit key length
+  
+  // Check if we've seen this exact message before - if so, suppress completely
+  if (SEEN_MESSAGES.has(key)) {
+    return true;
+  }
     
   const now = Date.now();
   
   // If we haven't seen this message before or the throttle interval has passed
   if (!THROTTLED_MESSAGES[key] || now - THROTTLED_MESSAGES[key] > THROTTLE_INTERVAL) {
     THROTTLED_MESSAGES[key] = now;
+    
+    // Add to seen messages if it contains certain keywords
+    if (key.includes('admin') || key.includes('track') || key.includes('user') || 
+        key.includes('load') || key.includes('dashboard')) {
+      SEEN_MESSAGES.add(key);
+    }
+    
     return false; // Don't throttle
   }
   
   throttledCount++;
   return true; // Throttle the message
+}
+
+/**
+ * Ultra-aggressive filtering that only lets through critical errors
+ */
+function isCriticalMessage(args: any[]): boolean {
+  if (args.length === 0) return false;
+  
+  const messageString = args.map(arg => 
+    typeof arg === 'string' ? arg : 
+    (arg && typeof arg.toString === 'function') ? arg.toString() : 
+    JSON.stringify(arg)
+  ).join(' ');
+  
+  // Only let through actual errors and critical issues
+  return messageString.includes('critical') || 
+         messageString.includes('fatal') ||
+         messageString.includes('crash') ||
+         messageString.includes('FATAL');
 }
 
 /**
@@ -136,10 +255,11 @@ export function initConsoleFilter() {
   // Reset counters
   suppressedCount = 0;
   throttledCount = 0;
+  SEEN_MESSAGES.clear();
   
   // Override console methods to filter out noisy logs
   console.log = function(...args: any[]) {
-    // More aggressive filtering - suppress or throttle almost everything in patterns
+    // Ultra-aggressive filtering - suppress almost everything
     if (shouldSuppressMessage(args) || shouldThrottleMessage(args)) return;
     originalConsole.log(...args);
   };
@@ -155,20 +275,18 @@ export function initConsoleFilter() {
   };
   
   console.debug = function(...args: any[]) {
-    // Almost always suppress debug logs
-    if (shouldSuppressMessage(args) || shouldThrottleMessage(args)) return;
-    originalConsole.debug(...args);
+    // Always suppress debug logs - they're too noisy
+    return;
   };
   
-  // We leave console.error unchanged for important error reporting
-  // But still apply pattern filtering for known noise
+  // Only let through critical errors
   console.error = function(...args: any[]) {
-    if (shouldSuppressMessage(args)) return;
+    if (shouldSuppressMessage(args) && !isCriticalMessage(args)) return;
     originalConsole.error(...args);
   };
   
   // Log once that the filter is active - useful for debugging
-  originalConsole.log('[Console Filter] Initialized and active');
+  originalConsole.log('[Console Filter] Initialized and active with ultra-aggressive filtering');
 }
 
 /**
