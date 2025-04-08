@@ -4,46 +4,53 @@ import { initPerformanceMonitoring } from '@/utils/performanceMonitor';
 import { initConsoleFilter, restoreConsole } from '@/utils/consoleFilter';
 
 const PerformanceMonitor = () => {
-  // Use ref to track filter initialization status
-  const filterInitialized = useRef(false);
+  // Use ref to track initialization status
+  const isInitialized = useRef(false);
   
   useEffect(() => {
-    // Initialize console filters to reduce noise - but only do it once
-    if (!filterInitialized.current) {
+    // Only initialize once during the component's lifetime
+    if (!isInitialized.current) {
+      // Initialize console filters first
       initConsoleFilter();
-      filterInitialized.current = true;
+      
+      // Then performance monitoring
+      const cleanup = initPerformanceMonitoring();
+      
+      // Mark as initialized
+      isInitialized.current = true;
+      
+      // Set up visibility change tracking
+      const handleVisibilityChange = () => {
+        performance.mark(`visibility_${document.visibilityState}`);
+      };
+      
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Track initial load time
+      performance.mark('app_load_start');
+      window.addEventListener('load', () => {
+        performance.mark('app_load_end');
+        performance.measure('App Load Time', 'app_load_start', 'app_load_end');
+      });
+      
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        
+        // Only attempt cleanup if we initialized
+        if (isInitialized.current) {
+          restoreConsole();
+          isInitialized.current = false;
+        }
+        
+        // Call any cleanup from performance monitoring
+        if (cleanup && typeof cleanup === 'function') {
+          cleanup();
+        }
+      };
     }
     
-    // Initialize performance monitoring
-    const cleanup = initPerformanceMonitoring();
-    
-    const handleVisibilityChange = () => {
-      performance.mark(`visibility_${document.visibilityState}`);
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    performance.mark('app_load_start');
-    window.addEventListener('load', () => {
-      performance.mark('app_load_end');
-      performance.measure('App Load Time', 'app_load_start', 'app_load_end');
-    });
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      
-      // Only restore console when component is truly unmounting
-      // This prevents console flood during hot reloads
-      if (filterInitialized.current) {
-        restoreConsole();
-        filterInitialized.current = false;
-      }
-      
-      // Call any cleanup from performance monitoring
-      if (cleanup && typeof cleanup === 'function') {
-        cleanup();
-      }
-    };
+    // Empty return for cases when we've already initialized
+    return () => {};
   }, []);
   
   return null;

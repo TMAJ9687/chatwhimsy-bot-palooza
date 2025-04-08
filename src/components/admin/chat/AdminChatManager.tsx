@@ -1,28 +1,37 @@
 
 import React, { memo, useRef, useEffect } from 'react';
-import AdminChat from './AdminChat';
 import { useAdminChatVisibility } from '@/hooks/admin/useAdminChatVisibility';
+
+// Load AdminChat component only when needed using dynamic import
+const AdminChat = React.lazy(() => import('./AdminChat'));
 
 /**
  * Managing component for AdminChat that prevents unnecessary rerenders
- * Enhanced with render tracking to prevent unnecessary init/cleanup cycles
+ * Uses React.lazy for code splitting to improve initial load time
  */
 const AdminChatManager: React.FC = () => {
   const { isVisible } = useAdminChatVisibility();
-  const wasVisible = useRef<boolean | null>(null);
+  const previousVisibility = useRef(isVisible);
   
-  // Log once when visibility changes to track component lifecycle
+  // Only log when visibility truly changes to avoid console spam
   useEffect(() => {
-    if (wasVisible.current !== isVisible) {
-      wasVisible.current = isVisible;
+    if (previousVisibility.current !== isVisible) {
+      previousVisibility.current = isVisible;
     }
   }, [isVisible]);
   
-  // Don't render if visibility is explicitly disabled
+  // Don't render anything if visibility is explicitly disabled
   if (isVisible === false) return null;
   
-  return <AdminChat />;
+  return (
+    <React.Suspense fallback={null}>
+      <AdminChat />
+    </React.Suspense>
+  );
 };
 
-// Use React.memo to prevent unnecessary re-renders
-export default memo(AdminChatManager);
+// Use React.memo to prevent unnecessary re-renders with deep comparison
+export default memo(AdminChatManager, (prevProps, nextProps) => {
+  // Always return true since this component has no props
+  return true;
+});

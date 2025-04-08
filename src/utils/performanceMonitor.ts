@@ -1,7 +1,6 @@
-
 /**
  * Performance monitoring utility
- * Used to track UI freezes and long operations
+ * Used to track UI freezes and long operations with minimal logging
  */
 
 // Observer references for cleanup
@@ -9,23 +8,32 @@ let longTaskObserver: PerformanceObserver | null = null;
 let measureObserver: PerformanceObserver | null = null;
 let frameObserver: PerformanceObserver | null = null;
 
+// Prevent multiple initializations
+let isInitialized = false;
+
 // Initialize performance observer
 export const initPerformanceMonitoring = (): (() => void) => {
+  // Only initialize once
+  if (isInitialized) {
+    return () => {}; // Return empty cleanup if already initialized
+  }
+  
   // Only initialize in development mode or if explicitly enabled
   if (process.env.NODE_ENV !== 'development' && !window.localStorage.getItem('enablePerfMonitoring')) {
     return () => {}; // Return empty cleanup function
   }
+  
+  isInitialized = true;
 
   try {
-    // Create observer for long tasks
+    // Create observer for long tasks with higher threshold to reduce noise
     longTaskObserver = new PerformanceObserver((list) => {
       list.getEntries().forEach((entry) => {
-        // Log tasks longer than 100ms which might cause UI freezes (increased threshold)
-        if (entry.duration > 100) {
+        // Only log tasks longer than 150ms (increased threshold significantly)
+        if (entry.duration > 150) {
           console.warn('Long task detected:', {
             duration: Math.round(entry.duration),
-            startTime: entry.startTime,
-            name: entry.name
+            startTime: Math.round(entry.startTime)
           });
         }
       });
@@ -34,19 +42,22 @@ export const initPerformanceMonitoring = (): (() => void) => {
     // Register observer for long tasks
     longTaskObserver.observe({ entryTypes: ['longtask'] });
 
-    // Create observer for custom performance measures - but limit output
+    // Create observer for custom performance measures - with severe limiting
     let measureCount = 0;
     measureObserver = new PerformanceObserver((list) => {
-      // Only log every 5th measure to reduce noise
+      // Only log every 10th measure to drastically reduce noise
       measureCount++;
-      if (measureCount % 5 === 0) {
+      if (measureCount % 10 === 0) {
         const entries = list.getEntries();
         // Only log the last entry to reduce console spam
         if (entries.length > 0) {
           const entry = entries[entries.length - 1];
-          console.info(`Performance measure: ${entry.name}`, {
-            duration: Math.round(entry.duration)
-          });
+          // Only log measures over 100ms to reduce noise
+          if (entry.duration > 100) {
+            console.info(`Performance measure: ${entry.name}`, {
+              duration: Math.round(entry.duration)
+            });
+          }
         }
       }
     });
@@ -54,32 +65,8 @@ export const initPerformanceMonitoring = (): (() => void) => {
     // Register observer for measures
     measureObserver.observe({ entryTypes: ['measure'] });
 
-    // Create observer for frame rates - but more sparingly
-    if ('PerformanceObserver' in window && 'supportedEntryTypes' in PerformanceObserver) {
-      if (PerformanceObserver.supportedEntryTypes.includes('frame')) {
-        let frameDropCount = 0;
-        frameObserver = new PerformanceObserver((list) => {
-          const frames = list.getEntries();
-          // Look for dropped frames (large gaps) - but limit reporting
-          frames.forEach((frame, i) => {
-            if (i > 0) {
-              const previousFrame = frames[i - 1];
-              const gap = frame.startTime - previousFrame.startTime;
-              // More than 100ms between frames (< 10fps) and only log every 5th occurrence
-              if (gap > 100) {
-                frameDropCount++;
-                if (frameDropCount % 5 === 0) {
-                  console.warn('Frame drop detected:', {
-                    gap: Math.round(gap)
-                  });
-                }
-              }
-            }
-          });
-        });
-        frameObserver.observe({ entryTypes: ['frame'] });
-      }
-    }
+    // Skip frame monitoring completely - it generates too much noise
+    // Instead just return the cleanup function
 
     // Return cleanup function
     return () => {
@@ -95,9 +82,12 @@ export const initPerformanceMonitoring = (): (() => void) => {
         frameObserver.disconnect();
         frameObserver = null;
       }
+      
+      isInitialized = false;
     };
   } catch (error) {
     console.error('Error initializing performance monitoring:', error);
+    isInitialized = false;
     return () => {}; // Return empty cleanup function
   }
 };

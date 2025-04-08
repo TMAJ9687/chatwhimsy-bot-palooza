@@ -13,7 +13,28 @@ export * from './reportAdminService';
 export * from './adminActionService';
 export * from './botService';
 
+// Global tracking flag to prevent duplicate initialization
+let adminTrackingInitialized = false;
+
 /**
  * Check if admin is logged in
  */
 export const isAdminLoggedIn = checkAdminStatus;
+
+/**
+ * Initialize admin tracking only once
+ */
+export const initAdminTracking = (): boolean => {
+  if (adminTrackingInitialized) {
+    return false;
+  }
+  adminTrackingInitialized = true;
+  return true;
+};
+
+/**
+ * Check if admin tracking is already initialized
+ */
+export const isAdminTrackingInitialized = (): boolean => {
+  return adminTrackingInitialized;
+};

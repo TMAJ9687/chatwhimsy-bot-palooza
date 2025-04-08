@@ -47,16 +47,29 @@ const SUPPRESSED_PATTERNS = [
   'session check',
   'info loading',
   'periodic',
-  'Periodic'
+  'Periodic',
+  'Setting up Supabase',
+  'Supabase auth state',
+  'AuthListener',
+  'Loaded user from',
+  'is on public path',
+  'logged out',
+  'useEffect cleanup',
+  'User is on path',
+  'No active session',
+  'function waitUntil'
 ];
 
 // Only allow 1 message per key in the specified timeframe (in ms)
 const THROTTLED_MESSAGES: Record<string, number> = {};
-const THROTTLE_INTERVAL = 30000; // Increased to 30 seconds
+const THROTTLE_INTERVAL = 60000; // Increased to 60 seconds
 
 // Track total counts of suppressed messages for debugging
 let suppressedCount = 0;
 let throttledCount = 0;
+
+// Tracking for init status
+let isInitialized = false;
 
 /**
  * Checks if a message should be suppressed based on patterns
@@ -72,10 +85,7 @@ function shouldSuppressMessage(args: any[]): boolean {
   
   if (shouldSuppress) {
     suppressedCount++;
-    // Occasionally log stats about suppressed messages
-    if (suppressedCount % 100 === 0) {
-      originalConsole.debug(`[Console Filter] Suppressed ${suppressedCount} messages, throttled ${throttledCount}`);
-    }
+    return true;
   }
   
   return shouldSuppress;
@@ -108,6 +118,14 @@ function shouldThrottleMessage(args: any[]): boolean {
  * Initialize the console filter
  */
 export function initConsoleFilter() {
+  // Prevent multiple initializations
+  if (isInitialized) {
+    return;
+  }
+  
+  // Mark as initialized immediately to prevent race conditions
+  isInitialized = true;
+  
   // Reset counters
   suppressedCount = 0;
   throttledCount = 0;
@@ -140,7 +158,7 @@ export function initConsoleFilter() {
     originalConsole.error(...args);
   };
   
-  // Occasionally log that the filter is active
+  // Log once that the filter is active - useful for debugging
   originalConsole.log('[Console Filter] Initialized and active');
 }
 
@@ -148,12 +166,18 @@ export function initConsoleFilter() {
  * Restore original console behavior
  */
 export function restoreConsole() {
+  // Only restore if we've actually initialized
+  if (!isInitialized) {
+    return;
+  }
+  
   console.log = originalConsole.log;
   console.warn = originalConsole.warn;
   console.error = originalConsole.error;
   console.info = originalConsole.info;
   console.debug = originalConsole.debug;
   
-  // Log stats about what was filtered
-  originalConsole.log(`[Console Filter] Deactivated. Suppressed ${suppressedCount} messages, throttled ${throttledCount}`);
+  isInitialized = false;
+  
+  // No need to log stats when restoring - it can cause console spam during hot reloads
 }

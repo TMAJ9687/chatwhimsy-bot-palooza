@@ -19,7 +19,7 @@ export const useChatInitialization = () => {
   const registeredBotsRef = useRef<Set<string>>(new Set());
   const isInitializedRef = useRef(false);
   const trackingAttemptedRef = useRef(false);
-
+  
   // Sort bot profiles once and memoize to avoid re-sorting
   const sortedBotProfiles = useMemo(() => sortUsers(botProfiles), []);
 
@@ -30,7 +30,10 @@ export const useChatInitialization = () => {
 
   // Set up online users without network requests - with memory leak prevention
   useEffect(() => {
-    if (isInitializedRef.current) return; // Only run once
+    // Skip if already initialized
+    if (isInitializedRef.current) return;
+    
+    // Mark as initialized immediately to prevent duplicate initialization
     isInitializedRef.current = true;
     
     // Simply set all bots as online - no need for geolocation
@@ -51,9 +54,8 @@ export const useChatInitialization = () => {
     if (!trackingAttemptedRef.current && sortedBotProfiles.length > 0) {
       trackingAttemptedRef.current = true;
       
-      // Randomly select one bot to track (to distribute tracking load)
-      const botIndex = Math.floor(Math.random() * sortedBotProfiles.length);
-      const botToTrack = sortedBotProfiles[botIndex];
+      // Instead of random selection, always pick the first bot to make behavior consistent
+      const botToTrack = sortedBotProfiles[0];
       
       if (botToTrack && !registeredBotsRef.current.has(botToTrack.id)) {
         // Use timeout to delay this non-critical operation

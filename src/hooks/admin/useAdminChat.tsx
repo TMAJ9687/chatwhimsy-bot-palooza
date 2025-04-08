@@ -10,7 +10,7 @@ export const useAdminChat = () => {
   const { lockBody, unlockBody } = useUIState();
   const chatStateRef = useRef({ isOpen: false, lockApplied: false });
   
-  // Use useEffect to manage body scroll locking and prevent excessive logging
+  // Use useEffect to manage body scroll locking with state reference to prevent thrashing
   useEffect(() => {
     // Only make DOM changes when chat state actually changes
     if (chatStateRef.current.isOpen !== isChatOpen) {
@@ -34,6 +34,7 @@ export const useAdminChat = () => {
     };
   }, [isChatOpen, lockBody, unlockBody]);
   
+  // Use state reference to prevent unnecessary state updates
   const openChat = useCallback(() => {
     if (!chatStateRef.current.isOpen) {
       setIsChatOpen(true);
