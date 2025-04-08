@@ -1,3 +1,4 @@
+
 /**
  * Performance monitoring utility
  * Used to track UI freezes and long operations with minimal logging

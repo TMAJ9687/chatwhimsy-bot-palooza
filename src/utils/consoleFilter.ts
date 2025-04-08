@@ -15,6 +15,7 @@ const originalConsole = {
 
 // Patterns to completely suppress
 const SUPPRESSED_PATTERNS = [
+  // Add more admin dashboard related patterns
   'user tracking',
   'already tracked',
   '[Tracking]',
