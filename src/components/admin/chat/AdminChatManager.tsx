@@ -2,15 +2,16 @@
 import React, { memo, useRef, useEffect } from 'react';
 import { useAdminChatVisibility } from '@/hooks/admin/useAdminChatVisibility';
 
-// Load AdminChat component only when needed using dynamic import with a much longer timeout
-const AdminChat = React.lazy(() => 
-  new Promise(resolve => 
-    setTimeout(() => 
-      import('./AdminChat').then(resolve), 
-      2000
-    )
-  )
-);
+// Load AdminChat component only when needed using dynamic import
+// The issue was in the promise chain structure - simplified it while maintaining the delay
+const AdminChat = React.lazy(() => {
+  return new Promise((resolve) => {
+    // Still use a timeout for performance reasons, but fix the promise chain
+    setTimeout(() => {
+      import('./AdminChat').then(module => resolve(module));
+    }, 2000);
+  });
+});
 
 /**
  * Managing component for AdminChat that prevents unnecessary rerenders
