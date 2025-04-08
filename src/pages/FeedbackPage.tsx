@@ -1,124 +1,123 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { ThumbsUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-const FeedbackPage = () => {
+const FeedbackPage: React.FC = () => {
+  const [rating, setRating] = useState<string>('');
+  const [feedback, setFeedback] = useState<string>('');
+  const [submitted, setSubmitted] = useState<boolean>(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [feedback, setFeedback] = useState('');
-  const [rating, setRating] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
     
-    try {
-      // In a real app, this would send the feedback to your server
-      console.log('Submitting feedback:', { rating, feedback });
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Thank you for your feedback!",
-        description: "Your feedback helps us improve our service.",
-      });
-      
-      // Redirect to login after successful submission
-      setTimeout(() => {
-        navigate('/login');
-      }, 1500);
-    } catch (error) {
-      console.error('Error submitting feedback:', error);
-      toast({
-        title: "Error",
-        description: "There was an error submitting your feedback. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setSubmitting(false);
-    }
+    // In a real app, send feedback to server
+    console.log({ rating, feedback });
+    
+    // Show success message
+    toast({
+      title: "Feedback submitted",
+      description: "Thank you for your feedback!",
+      duration: 3000
+    });
+    
+    setSubmitted(true);
   };
   
-  const handleSkip = () => {
-    navigate('/login');
+  const handleGoHome = () => {
+    navigate('/');
   };
+  
+  if (submitted) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900 mb-4">
+              <ThumbsUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+            </div>
+            <CardTitle className="text-xl">Thank You!</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-muted-foreground">
+              Your feedback has been submitted successfully.
+            </p>
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <Button onClick={handleGoHome}>Return to Home</Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
   
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Session Expired</CardTitle>
-          <CardDescription>
-            Your session has expired due to inactivity. Before you go, would you like to share your feedback?
-          </CardDescription>
+          <CardTitle className="text-xl">Session Ended</CardTitle>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium">How would you rate your experience?</h3>
-              <RadioGroup 
-                value={rating || ''} 
-                onValueChange={setRating}
-                className="flex justify-between"
-              >
-                {[1, 2, 3, 4, 5].map(value => (
-                  <div key={value} className="flex flex-col items-center">
-                    <RadioGroupItem 
-                      value={value.toString()} 
-                      id={`rating-${value}`} 
-                      className="peer sr-only" 
-                    />
-                    <Label 
-                      htmlFor={`rating-${value}`}
-                      className="cursor-pointer flex flex-col items-center p-2 rounded-md peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground"
-                    >
-                      <span className="text-2xl">{value}</span>
-                      <span className="text-xs mt-1">
-                        {value === 1 ? 'Poor' : 
-                         value === 2 ? 'Fair' : 
-                         value === 3 ? 'Good' : 
-                         value === 4 ? 'Great' : 'Excellent'}
-                      </span>
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
+            <div>
+              <p className="mb-4">
+                Your session has expired due to inactivity. We'd appreciate your feedback about your experience.
+              </p>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="feedback">Any additional comments?</Label>
-              <Textarea 
-                id="feedback"
-                value={feedback}
-                onChange={(e) => setFeedback(e.target.value)}
-                placeholder="Share your thoughts with us..."
-                rows={4}
-              />
+            <div className="space-y-3">
+              <div>
+                <p className="font-medium mb-2">How would you rate your experience?</p>
+                <RadioGroup 
+                  value={rating} 
+                  onValueChange={setRating}
+                  className="flex space-x-4"
+                >
+                  {['Poor', 'Fair', 'Good', 'Excellent'].map((option) => (
+                    <div key={option} className="flex items-center space-x-2">
+                      <RadioGroupItem value={option} id={option.toLowerCase()} />
+                      <Label htmlFor={option.toLowerCase()}>{option}</Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+              
+              <div>
+                <Label htmlFor="feedback" className="font-medium">Additional feedback (optional)</Label>
+                <Textarea 
+                  id="feedback"
+                  placeholder="Tell us about your experience..."
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  className="mt-2"
+                  rows={4}
+                />
+              </div>
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-2">
+          <CardFooter className="flex flex-col sm:flex-row gap-3">
             <Button 
               type="submit" 
-              className="w-full" 
-              disabled={submitting}
+              className="flex-1"
+              disabled={!rating}
             >
-              {submitting ? 'Submitting...' : 'Submit Feedback'}
+              Submit Feedback
             </Button>
             <Button 
               type="button" 
-              variant="ghost" 
-              onClick={handleSkip}
-              className="w-full"
+              variant="outline" 
+              onClick={handleGoHome}
+              className="flex-1"
             >
-              Skip
+              Skip & Return Home
             </Button>
           </CardFooter>
         </form>

@@ -12,7 +12,7 @@ import ProfilePage from '@/pages/ProfilePage';
 import VipProfilePage from '@/pages/VipProfilePage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminLogin from './pages/AdminLogin';
-import RequireAuth from '@/components/auth/RequireAuth'; 
+import RequireAuth from '@/components/auth/RequireAuth';
 import RequireAdminAuth from '@/components/auth/RequireAdminAuth';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import TermsOfService from '@/pages/TermsOfService';

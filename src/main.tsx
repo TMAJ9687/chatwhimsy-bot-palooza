@@ -1,5 +1,6 @@
 
 import { createRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import './index.css'
 import './styles/performance.css'
@@ -73,7 +74,11 @@ const handleRenderError = (error: Error) => {
 // Attempt to render with error handling
 try {
   // Render with a try-catch to catch initial render errors
-  root.render(<App />);
+  root.render(
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  );
 } catch (error) {
   handleRenderError(error as Error);
   // Try to render again with just a minimal app
