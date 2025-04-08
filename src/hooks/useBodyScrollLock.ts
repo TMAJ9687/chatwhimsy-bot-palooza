@@ -1,55 +1,37 @@
 
-import { useEffect, useCallback, useRef } from 'react';
-
-interface ScrollLockOptions {
-  lockOnMount?: boolean;
-  id?: string; // Identifier for the component using scroll lock
-}
+import { useEffect } from 'react';
 
 /**
- * Simple hook to manage body scroll locking without circular dependencies
+ * Hook to lock/unlock body scroll in a React-friendly way
+ * Replaces direct DOM manipulation with proper React effects
  */
-export const useBodyScrollLock = (options: ScrollLockOptions = {}) => {
-  const { lockOnMount = false, id = 'unknown-component' } = options;
-  const isLockedRef = useRef(false);
-  
-  // The lock function
-  const lock = useCallback(() => {
-    if (document.body) {
-      document.body.style.overflow = 'hidden';
-      document.body.classList.add('dialog-open');
-      isLockedRef.current = true;
-    }
-  }, []);
-  
-  // The unlock function
-  const unlock = useCallback(() => {
-    if (document.body && isLockedRef.current) {
-      document.body.style.overflow = 'auto';
-      document.body.classList.remove('dialog-open', 'overflow-hidden', 'modal-open');
-      isLockedRef.current = false;
-    }
-  }, []);
-  
-  // Set up the scroll lock on mount if requested
+export const useBodyScrollLock = (locked: boolean) => {
   useEffect(() => {
-    if (lockOnMount) {
-      lock();
+    if (!document || !document.body) return;
+    
+    // Store original body style
+    const originalOverflow = document.body.style.overflow;
+    const originalPaddingRight = document.body.style.paddingRight;
+    
+    if (locked) {
+      // Calculate scrollbar width to prevent layout shift
+      const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+      
+      // Apply styles in a batch to minimize reflows
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = `${scrollBarWidth}px`;
+    } else {
+      // Reset styles
+      document.body.style.overflow = originalOverflow;
+      document.body.style.paddingRight = originalPaddingRight;
     }
     
-    // Clean up on unmount
+    // Cleanup function to reset styles on unmount or when dependency changes
     return () => {
-      if (isLockedRef.current) {
-        unlock();
-      }
+      document.body.style.overflow = originalOverflow;
+      document.body.style.paddingRight = originalPaddingRight;
     };
-  }, [lockOnMount, lock, unlock]);
-  
-  return {
-    lock,
-    unlock,
-    isLocked: isLockedRef.current
-  };
+  }, [locked]); // Only re-run when locked state changes
 };
 
 export default useBodyScrollLock;

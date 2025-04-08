@@ -1,63 +1,37 @@
 
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '../../context/UserContext';
+import { useUser } from '@/context/UserContext';
 import { useDialog } from '@/context/DialogContext';
 import { useChat } from '@/context/ChatContext';
-import ChatHeader from './ChatHeader';
-import ChatMessages from './ChatMessages';
-import MessageInputBar from './MessageInputBar';
-import UserList from './UserList';
-import MobileUserList from './MobileUserList';
-import ChatAppHeader from './ChatAppHeader';
-import VipUpgradeSection from './VipUpgradeSection';
-import NotificationSidebar from './NotificationSidebar';
-import EmptyChatState from './EmptyChatState';
 import { useLogout } from '@/hooks/useLogout';
+import AdminChatView from './AdminChatView';
+import RegularChatView from './RegularChatView';
+import { createCleanupFunction, clearTimers } from '@/utils/cleanup';
 
 interface ChatInterfaceProps {
   onLogout: () => void;
-  adminView?: boolean; // New prop to indicate if we're in admin view
+  adminView?: boolean;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout, adminView = false }) => {
   const { user, isVip, isProfileComplete } = useUser();
   const navigate = useNavigate();
   const { openDialog } = useDialog();
-  const [chatHidden, setChatHidden] = useState(true); // Set to true by default
+  const [chatHidden, setChatHidden] = useState(true);
   const [isInitializing, setIsInitializing] = useState(true);
   const [redirectAttempts, setRedirectAttempts] = useState(0);
-  const { performLogout } = useLogout(); // Add this hook for direct logout access
+  const { performLogout } = useLogout();
   
-  // Enhanced navigation guards
+  // Refs for cleanup and state tracking
   const navigationInProgressRef = useRef(false);
   const profileCheckCompletedRef = useRef(false);
   const initializationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Improved initialization flow with better state management
   useEffect(() => {
-    // Clean start for UI - avoid rapid UI flashes during redirect checks
+    // Set overflow to auto in React way rather than direct DOM manipulation
     document.body.style.overflow = 'auto';
-    
-    // Clean up any leftover modals from previous views
-    const cleanup = () => {
-      try {
-        const modals = document.querySelectorAll('.fixed.inset-0');
-        modals.forEach(modal => {
-          if (modal && modal.parentNode) {
-            try {
-              modal.parentNode.removeChild(modal);
-            } catch (error) {
-              console.warn('Error removing modal:', error);
-            }
-          }
-        });
-      } catch (error) {
-        console.warn('Error during modal cleanup:', error);
-      }
-    };
-    
-    cleanup();
     
     // Short delay to allow component to fully mount
     initializationTimeoutRef.current = setTimeout(() => {
@@ -68,7 +42,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout, adminView = fal
       if (initializationTimeoutRef.current) {
         clearTimeout(initializationTimeoutRef.current);
       }
-      cleanup();
     };
   }, []);
   
@@ -95,7 +68,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout, adminView = fal
       
       // Skip navigation if we already know profile is complete
       if (storedProfileComplete) {
-        console.log('Profile is complete according to localStorage');
         profileCheckCompletedRef.current = true;
         return;
       }
@@ -115,13 +87,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout, adminView = fal
         navigationInProgressRef.current = true;
         setRedirectAttempts(prev => prev + 1);
         
-        console.log('Redirecting to VIP profile setup');
-        
         // Mark navigation in progress in localStorage
         localStorage.setItem('vipNavigationInProgress', 'true');
         
         // Use setTimeout to push navigation to next event loop tick
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
           // Double-check before navigation
           if (!profileCheckCompletedRef.current) {
             navigate('/vip-profile');
@@ -133,6 +103,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout, adminView = fal
             }, 500);
           }
         }, 50);
+        
+        return () => clearTimeout(timeoutId);
       } else {
         // Mark check as completed if no redirect needed
         profileCheckCompletedRef.current = true;
@@ -184,9 +156,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout, adminView = fal
     isUserBlocked
   } = useChat();
 
-  // Show site rules dialog after 3 seconds, but only if rules haven't been accepted yet
-  // and user is not VIP (VIP users bypass this) - skip in admin view
-  React.useEffect(() => {
+  // Show site rules dialog after mounting, with better cleanup
+  useEffect(() => {
     // Skip in admin view
     if (adminView) return;
     
@@ -201,39 +172,31 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout, adminView = fal
             setRulesAccepted(true);
           } 
         });
-      }, 5000); // Increased from 3000 to 5000 to allow more loading time
+      }, 5000);
       
       return () => clearTimeout(timer);
     }
   }, [adminView, openDialog, rulesAccepted, setRulesAccepted, isVip]);
 
-  // Navigation handlers - optimized with useCallback
-  const handleLogout = useCallback(() => {
+  // Navigation handlers with useCallback for better performance
+  const handleLogout = React.useCallback(() => {
     openDialog('logout', { 
       onConfirm: () => {
-        performLogout(); // Use the actual logout function from the hook
+        performLogout();
         // The logout function will handle navigation
       }
     });
   }, [performLogout, openDialog]);
 
-  const handleOpenInbox = useCallback(() => {
+  const handleOpenInbox = React.useCallback(() => {
     setShowInbox(true);
     setShowHistory(false);
   }, [setShowInbox, setShowHistory]);
 
-  const handleOpenHistory = useCallback(() => {
+  const handleOpenHistory = React.useCallback(() => {
     setShowHistory(true);
     setShowInbox(false);
   }, [setShowHistory, setShowInbox]);
-
-  // Check if current user is blocked
-  const isCurrentUserBlocked = isUserBlocked(currentBot.id);
-  
-  // Handle completely closing chat
-  const handleCompletelyCloseChat = useCallback(() => {
-    setChatHidden(true);
-  }, []);
 
   // Loading state while initializing
   if (isInitializing) {
@@ -247,183 +210,66 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout, adminView = fal
     );
   }
 
-  // Use a different layout for admin view
+  // Use a different component for admin vs regular view
   if (adminView) {
     return (
-      <div className="flex flex-col h-full overflow-hidden bg-background">
-        {/* Chat area for admin view */}
-        <div className="flex-1 flex flex-col bg-white dark:bg-gray-900">
-          {!chatHidden ? (
-            <>
-              {/* Chat header component */}
-              <ChatHeader 
-                currentUser={currentBot}
-                onBlockUser={handleBlockUser}
-                onCloseChat={handleCompletelyCloseChat}
-              />
-
-              {isCurrentUserBlocked && (
-                <div className="bg-gray-100 p-2 text-center text-gray-600 text-sm border-b border-gray-200">
-                  This user is blocked. You won't receive messages from them.
-                  <button 
-                    onClick={() => handleUnblockUser(currentBot.id)}
-                    className="ml-2 text-blue-600 hover:underline"
-                  >
-                    Unblock
-                  </button>
-                </div>
-              )}
-
-              {/* Messages area component */}
-              <ChatMessages 
-                messages={userChats[currentBot.id] || []}
-                isTyping={typingBots[currentBot.id] || false}
-                showStatus={true}
-                showTyping={true}
-              />
-              
-              {/* Message input component */}
-              <MessageInputBar
-                onSendMessage={handleSendTextMessage}
-                onSendImage={handleSendImageMessage}
-                onSendVoice={handleSendVoiceMessage}
-                imagesRemaining={imagesRemaining}
-                disabled={isCurrentUserBlocked}
-                userType="vip"
-              />
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full p-4">
-              <p className="text-lg text-gray-500 mb-4">Select a user to start chatting</p>
-              <UserList 
-                users={filteredUsers}
-                currentUserId={currentBot.id}
-                onSelectUser={(user) => {
-                  selectUser(user);
-                  setChatHidden(false);
-                }}
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                filters={filters}
-                onFilterChange={handleFilterChange}
-              />
-            </div>
-          )}
-        </div>
-      </div>
+      <AdminChatView
+        currentBot={currentBot}
+        userChats={userChats}
+        typingBots={typingBots}
+        filteredUsers={filteredUsers}
+        searchTerm={searchTerm}
+        filters={filters}
+        imagesRemaining={imagesRemaining}
+        chatHidden={chatHidden}
+        setChatHidden={setChatHidden}
+        handleBlockUser={handleBlockUser}
+        handleUnblockUser={handleUnblockUser}
+        handleSendTextMessage={handleSendTextMessage}
+        handleSendImageMessage={handleSendImageMessage}
+        handleSendVoiceMessage={handleSendVoiceMessage}
+        selectUser={selectUser}
+        setSearchTerm={setSearchTerm}
+        handleFilterChange={handleFilterChange}
+        isUserBlocked={isUserBlocked}
+      />
     );
   }
 
   // Regular chat view for non-admin
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background dark:bg-gray-950">
-      {/* Header with icons */}
-      <ChatAppHeader 
-        unreadCount={unreadCount}
-        onOpenInbox={handleOpenInbox}
-        onOpenHistory={handleOpenHistory}
-        onLogout={handleLogout}
-      />
-
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left sidebar - User list (desktop) */}
-        <div className="hidden md:flex flex-col w-[350px] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-hidden">
-          <UserList 
-            users={filteredUsers}
-            currentUserId={currentBot.id}
-            onSelectUser={(user) => {
-              selectUser(user);
-              setChatHidden(false);
-            }}
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            filters={filters}
-            onFilterChange={handleFilterChange}
-          />
-          
-          {/* VIP Upgrade Section - Only show for non-VIP users */}
-          {!isVip && <VipUpgradeSection />}
-        </div>
-
-        {/* Mobile user list trigger */}
-        <MobileUserList 
-          users={filteredUsers}
-          currentUserId={currentBot.id}
-          onSelectUser={(user) => {
-            selectUser(user);
-            setChatHidden(false);
-          }}
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          filters={filters}
-          onFilterChange={handleFilterChange}
-        />
-
-        {/* Main chat area */}
-        <div className="flex-1 flex flex-col bg-white dark:bg-gray-900">
-          {!chatHidden ? (
-            <>
-              {/* Chat header component */}
-              <ChatHeader 
-                currentUser={currentBot}
-                onBlockUser={handleBlockUser}
-                onCloseChat={handleCompletelyCloseChat}
-              />
-
-              {isCurrentUserBlocked && (
-                <div className="bg-gray-100 p-2 text-center text-gray-600 text-sm border-b border-gray-200">
-                  This user is blocked. You won't receive messages from them.
-                  <button 
-                    onClick={() => handleUnblockUser(currentBot.id)}
-                    className="ml-2 text-blue-600 hover:underline"
-                  >
-                    Unblock
-                  </button>
-                </div>
-              )}
-
-              {/* Messages area component */}
-              <ChatMessages 
-                messages={userChats[currentBot.id] || []}
-                isTyping={typingBots[currentBot.id] || false}
-                showStatus={isVip}
-                showTyping={isVip}
-              />
-              
-              {/* Message input component */}
-              <MessageInputBar
-                onSendMessage={handleSendTextMessage}
-                onSendImage={handleSendImageMessage}
-                onSendVoice={handleSendVoiceMessage}
-                imagesRemaining={imagesRemaining}
-                disabled={isCurrentUserBlocked}
-                userType={isVip ? 'vip' : 'standard'}
-              />
-            </>
-          ) : (
-            <EmptyChatState />
-          )}
-        </div>
-      </div>
-
-      {/* Notification Sidebar */}
-      <NotificationSidebar
-        isOpen={showInbox}
-        onClose={() => setShowInbox(false)}
-        notifications={unreadNotifications}
-        onNotificationRead={handleNotificationRead}
-        type="inbox"
-      />
-
-      {/* History Sidebar */}
-      <NotificationSidebar
-        isOpen={showHistory}
-        onClose={() => setShowHistory(false)}
-        notifications={chatHistory}
-        onNotificationRead={() => {}}
-        type="history"
-      />
-    </div>
+    <RegularChatView
+      currentBot={currentBot}
+      userChats={userChats}
+      typingBots={typingBots}
+      filteredUsers={filteredUsers}
+      searchTerm={searchTerm}
+      filters={filters}
+      imagesRemaining={imagesRemaining}
+      chatHidden={chatHidden}
+      setChatHidden={setChatHidden}
+      showInbox={showInbox}
+      showHistory={showHistory}
+      setShowInbox={setShowInbox}
+      setShowHistory={setShowHistory}
+      unreadNotifications={unreadNotifications}
+      chatHistory={chatHistory}
+      unreadCount={unreadCount}
+      isVip={isVip}
+      handleBlockUser={handleBlockUser}
+      handleUnblockUser={handleUnblockUser}
+      handleSendTextMessage={handleSendTextMessage}
+      handleSendImageMessage={handleSendImageMessage}
+      handleSendVoiceMessage={handleSendVoiceMessage}
+      selectUser={selectUser}
+      setSearchTerm={setSearchTerm}
+      handleFilterChange={handleFilterChange}
+      handleNotificationRead={handleNotificationRead}
+      isUserBlocked={isUserBlocked}
+      handleOpenInbox={handleOpenInbox}
+      handleOpenHistory={handleOpenHistory}
+      handleLogout={handleLogout}
+    />
   );
 };
 

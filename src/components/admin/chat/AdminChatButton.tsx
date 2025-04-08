@@ -1,20 +1,23 @@
 
 import React from 'react';
-import { MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { MessageCircle } from 'lucide-react';
 
 interface AdminChatButtonProps {
   onClick: () => void;
 }
 
+/**
+ * Button to open the admin chat interface
+ */
 const AdminChatButton: React.FC<AdminChatButtonProps> = ({ onClick }) => {
   return (
-    <Button 
+    <Button
       onClick={onClick}
-      className="bg-primary text-white hover:bg-primary/90 flex items-center gap-2"
+      className="h-14 w-14 rounded-full shadow-lg"
+      size="icon"
     >
-      <MessageCircle className="h-5 w-5" />
-      <span>Open Chat</span>
+      <MessageCircle size={24} className="text-white" />
     </Button>
   );
 };

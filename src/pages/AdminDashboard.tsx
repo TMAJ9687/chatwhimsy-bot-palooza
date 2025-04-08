@@ -22,9 +22,7 @@ import BotsTab from '@/components/admin/dashboard/BotsTab';
 import ReportsTab from '@/components/admin/dashboard/ReportsTab';
 
 // Import admin chat components
-import AdminChatButton from '@/components/admin/chat/AdminChatButton';
-import AdminChatSidebar from '@/components/admin/chat/AdminChatSidebar';
-import { useAdminChat } from '@/hooks/admin/useAdminChat';
+import AdminChat from '@/components/admin/chat/AdminChat';
 
 const AdminDashboard = () => {
   const { isAuthenticated, user, isLoading: sessionLoading, refreshSession } = useAdminSession();
@@ -39,9 +37,6 @@ const AdminDashboard = () => {
     vipUsers: 0,
     activeBans: 0
   });
-  
-  // Initialize admin chat state
-  const { isChatOpen, openChat, closeChat } = useAdminChat();
   
   const redirectToLogin = useCallback(() => {
     navigate('/secretadminportal');
@@ -150,13 +145,8 @@ const AdminDashboard = () => {
           handleRetry={handleRetry} 
         />
         
-        {/* Add chat button in a fixed position */}
-        <div className="fixed bottom-6 right-6 z-40">
-          <AdminChatButton onClick={openChat} />
-        </div>
-        
-        {/* Admin Chat Sidebar */}
-        <AdminChatSidebar isOpen={isChatOpen} onClose={closeChat} />
+        {/* Add admin chat component */}
+        <AdminChat />
         
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-6">

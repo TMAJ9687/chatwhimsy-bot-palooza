@@ -3,7 +3,9 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { ChatContextType } from '@/types/chatContext';
 import { useUser } from './UserContext';
 import { useChatState } from '@/hooks/useChatState';
+import useUIState from '@/hooks/useUIState';
 
+// Create the context
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -14,10 +16,19 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const isVip = userIsVip || isAdmin;
   
   // Use our custom hook for all chat state
-  const chatState = useChatState(isVip || false);
+  const chatState = useChatState(isVip);
+  
+  // Use UI state for global UI state management instead of direct DOM manipulation
+  const uiState = useUIState();
+  
+  // Combine the states
+  const contextValue = {
+    ...chatState,
+    ...uiState
+  };
 
   return (
-    <ChatContext.Provider value={chatState}>
+    <ChatContext.Provider value={contextValue as ChatContextType}>
       {children}
     </ChatContext.Provider>
   );
