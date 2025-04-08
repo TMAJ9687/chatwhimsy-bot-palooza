@@ -1,3 +1,4 @@
+
 export interface Bot {
   id: string;
   name: string;
@@ -6,6 +7,7 @@ export interface Bot {
   country: string;
   countryCode: string;
   vip: boolean;
+  isAdmin?: boolean; // Added isAdmin property
   interests: string[];
   avatar: string;
   responses: string[];
@@ -33,6 +35,10 @@ export interface Message {
     userId: string;
   }>;
   isDeleted?: boolean; // For unsend functionality
+  senderProfile?: { // Added senderProfile property
+    vip: boolean;
+    isAdmin?: boolean;
+  };
 }
 
 export interface Notification {

@@ -5,13 +5,14 @@ export type SubscriptionTier = 'none' | 'monthly' | 'semiannual' | 'annual';
 export interface UserProfile {
   id: string;
   nickname: string;
+  name?: string; // Added name property
   email: string;
   gender: Gender;
   age: number;
   country: string;
   interests: string[];
   isVip: boolean;
-  isAdmin?: boolean; // New flag for admin status
+  isAdmin?: boolean; // Flag for admin status
   subscriptionTier: SubscriptionTier;
   subscriptionEndDate?: Date;
   imagesRemaining: number;
@@ -25,7 +26,7 @@ export interface UserContextType {
   updateUserProfile: (profile: Partial<UserProfile>) => void;
   clearUser: () => void;
   isVip: boolean;
-  isAdmin: boolean; // New property to check admin status
+  isAdmin: boolean; // Property to check admin status
   subscribeToVip: (tier: SubscriptionTier) => void;
   cancelVipSubscription: () => void;
 }

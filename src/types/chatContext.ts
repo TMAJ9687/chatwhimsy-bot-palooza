@@ -18,6 +18,7 @@ export interface ChatContextType {
   filteredUsers: Bot[];
   unreadCount: number;
   isVip: boolean;
+  isAdmin: boolean; // Added isAdmin property
   setSearchTerm: (term: string) => void;
   setFilters: (filters: FilterState) => void;
   setShowInbox: (show: boolean) => void;

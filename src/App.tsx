@@ -14,8 +14,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminLogin from './pages/AdminLogin';
 import RequireAuth from '@/components/auth/RequireAuth'; 
 import RequireAdminAuth from '@/components/auth/RequireAdminAuth';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
+import TermsOfService from '@/pages/TermsOfService';
 import ReconnectPage from './pages/ReconnectPage';
 import FeedbackPage from './pages/FeedbackPage';
 
