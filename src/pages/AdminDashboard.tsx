@@ -5,7 +5,8 @@ import useAdminSession from '@/hooks/useAdminSession';
 import { useAdmin } from '@/hooks/useAdmin';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Activity, Users, Settings, UserPlus, ShieldAlert, MessageSquare, BarChart4
+  Activity, Users, Settings, UserPlus, ShieldAlert, MessageSquare, BarChart4,
+  Cog, FileText
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { adminDb } from '@/integrations/supabase/adminTypes';
@@ -21,6 +22,8 @@ const UsersTab = lazy(() => import('@/components/admin/dashboard/UsersTab'));
 const ModerationTab = lazy(() => import('@/components/admin/dashboard/ModerationTab'));
 const BotsTab = lazy(() => import('@/components/admin/dashboard/BotsTab'));
 const ReportsTab = lazy(() => import('@/components/admin/dashboard/ReportsTab'));
+const SiteSettingsTab = lazy(() => import('@/components/admin/dashboard/SiteSettingsTab'));
+const AdminSettingsTab = lazy(() => import('@/components/admin/dashboard/AdminSettingsTab'));
 const Statistics = lazy(() => import('@/components/admin/statistics/Statistics'));
 
 // Lazy load chat manager
@@ -47,6 +50,7 @@ const AdminDashboard = () => {
     activeBans: 0
   });
   const [loadTimestamp, setLoadTimestamp] = useState(0);
+  const [isChatVisible, setIsChatVisible] = useState(false);
   
   const redirectToLogin = useCallback(() => {
     navigate('/secretadminportal');
@@ -116,13 +120,18 @@ const AdminDashboard = () => {
       description: "Refreshing admin dashboard data...",
     });
   };
+  
+  const toggleChat = () => {
+    setIsChatVisible(prev => !prev);
+  };
 
   // Memoize header to prevent re-renders
   const memoizedHeader = useMemo(() => (
     <DashboardHeader 
       email={user?.email} 
       handleLogout={handleLogout} 
-      handleRetry={handleRetry} 
+      handleRetry={handleRetry}
+      toggleChat={toggleChat}
     />
   ), [user?.email, handleLogout, handleRetry]);
   
@@ -168,6 +177,18 @@ const AdminDashboard = () => {
             <ReportsTab />
           </Suspense>
         );
+      case 'settings':
+        return (
+          <Suspense fallback={<TabLoader />}>
+            <SiteSettingsTab />
+          </Suspense>
+        );
+      case 'admin-settings':
+        return (
+          <Suspense fallback={<TabLoader />}>
+            <AdminSettingsTab />
+          </Suspense>
+        );
       case 'statistics':
         return (
           <Suspense fallback={<TabLoader />}>
@@ -197,16 +218,26 @@ const AdminDashboard = () => {
   
   return (
     <AdminErrorHandler>
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6 relative">
         {memoizedHeader}
         
-        {/* Lazy load chat manager */}
+        {/* Chat Manager - will be shown in full screen when isChatVisible is true */}
         <Suspense fallback={null}>
-          <AdminChatManager />
+          <div className={`fixed inset-0 bg-white dark:bg-gray-900 z-50 transition-transform duration-300 transform ${isChatVisible ? 'translate-y-0' : 'translate-y-full'}`}>
+            <div className="h-full flex flex-col">
+              <div className="p-4 border-b flex items-center justify-between">
+                <h2 className="text-xl font-bold">Admin Chat</h2>
+                <Button variant="outline" onClick={toggleChat}>Close Chat</Button>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <AdminChatManager />
+              </div>
+            </div>
+          </div>
         </Suspense>
         
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-6">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Activity className="h-4 w-4" />
               <span>Overview</span>
@@ -226,6 +257,14 @@ const AdminDashboard = () => {
             <TabsTrigger value="reports" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               <span>Reports</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              <span>Site Settings</span>
+            </TabsTrigger>
+            <TabsTrigger value="admin-settings" className="flex items-center gap-2">
+              <Cog className="h-4 w-4" />
+              <span>Admin</span>
             </TabsTrigger>
             <TabsTrigger value="statistics" className="flex items-center gap-2">
               <BarChart4 className="h-4 w-4" />

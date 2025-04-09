@@ -1,45 +1,21 @@
 
-import React, { memo, useRef, useEffect } from 'react';
-import { useAdminChatVisibility } from '@/hooks/admin/useAdminChatVisibility';
-
-// Correctly define the lazy-loaded component using React.lazy
-// The simplest approach is to use the standard React.lazy pattern
-const AdminChat = React.lazy(() => 
-  // Add timeout for performance optimization without complex promise chaining
-  new Promise(resolve => {
-    setTimeout(() => {
-      import('./AdminChat').then(moduleExports => resolve(moduleExports));
-    }, 2000);
-  }) as Promise<typeof import('./AdminChat')>
-);
+import React, { useState } from 'react';
+import { useAdmin } from '@/hooks/useAdmin';
+import ChatInterface from '@/components/chat/ChatInterface';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 /**
- * Managing component for AdminChat that prevents unnecessary rerenders
- * Uses React.lazy for code splitting to improve initial load time
+ * Admin chat component that provides a chat interface in the admin dashboard
  */
 const AdminChatManager: React.FC = () => {
-  const { isVisible } = useAdminChatVisibility();
-  const previousVisibility = useRef(isVisible);
+  const { isAdmin } = useAdmin();
   
-  // Only log when visibility truly changes to avoid console spam
-  useEffect(() => {
-    if (previousVisibility.current !== isVisible) {
-      previousVisibility.current = isVisible;
-    }
-  }, [isVisible]);
+  // Don't render if not an admin
+  if (!isAdmin) {
+    return null;
+  }
   
-  // Don't render anything if visibility is explicitly disabled
-  if (isVisible === false) return null;
-  
-  return (
-    <React.Suspense fallback={null}>
-      <AdminChat />
-    </React.Suspense>
-  );
+  return <ChatInterface adminView={true} onLogout={() => {}} />;
 };
 
-// Use React.memo to prevent unnecessary re-renders with deep comparison
-export default memo(AdminChatManager, (prevProps, nextProps) => {
-  // Always return true since this component has no props
-  return true;
-});
+export default AdminChatManager;

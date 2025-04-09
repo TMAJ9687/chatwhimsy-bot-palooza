@@ -1,138 +1,154 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger,
-  DropdownMenuSeparator
-} from '@/components/ui/dropdown-menu';
-import { 
-  UserCog, 
-  ShieldCheck, 
-  ShieldX, 
-  Ban,
-  Lock
-} from 'lucide-react';
+
+import React, { useState } from 'react';
 import { Bot } from '@/types/chat';
-import { useVipConfirmation } from '@/hooks/admin/useVipConfirmation';
-import { VipDuration } from '@/types/admin';
+import { useAdmin } from '@/hooks/useAdmin';
+import { useToast } from '@/hooks/use-toast';
+import { useDialog } from '@/components/providers/DialogProvider';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { MoreHorizontal, Crown, Shield, UserMinus, Ban, Edit, User } from 'lucide-react';
 
 interface UserActionsButtonProps {
   user: Bot;
-  onDeleteUser?: (userId: string) => Promise<boolean>;
-  onSuspendUser?: (userId: string) => Promise<boolean>;
-  onBanUser?: (userId: string) => Promise<boolean>;
-  onUnbanUser?: (userId: string) => Promise<boolean>;
-  onResetPassword?: (userId: string) => Promise<boolean>;
-  onUpgradeToVIP?: (userId: string, duration: VipDuration) => Promise<boolean>;
-  onDowngradeToStandard?: (userId: string) => Promise<boolean>;
-  disabled?: boolean;
-  variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link';
+  userType?: 'all' | 'vip' | 'standard';
 }
 
-/**
- * Button with dropdown menu for user management actions in the admin dashboard
- */
-const UserActionsButton: React.FC<UserActionsButtonProps> = ({
-  user,
-  onDeleteUser,
-  onSuspendUser,
-  onBanUser,
-  onUnbanUser,
-  onResetPassword,
-  onUpgradeToVIP,
-  onDowngradeToStandard,
-  disabled = false,
-  variant = 'outline'
-}) => {
-  // Use the VIP confirmation hook to show confirmation dialogs
-  const { 
-    showVipConfirmation, 
-    showVipDowngradeConfirmation,
-    showVipDurationSelect
-  } = useVipConfirmation();
+const UserActionsButton: React.FC<UserActionsButtonProps> = ({ user, userType = 'all' }) => {
+  const { kickUser, banUser, upgradeToVIP, downgradeToStandard, isProcessing } = useAdmin();
+  const { toast } = useToast();
+  const { openDialog } = useDialog();
+  const [isOpen, setIsOpen] = useState(false);
 
-  // Handler for VIP upgrade - opens duration selection dialog first
-  const handleUpgradeToVIP = () => {
-    if (onUpgradeToVIP) {
-      showVipDurationSelect(user.id, user.name, (userId, duration) => {
-        // After duration is selected, show confirmation dialog
-        showVipConfirmation(userId, user.name, duration, onUpgradeToVIP);
-      });
-    }
+  const handleKickUser = () => {
+    openDialog('confirm', {
+      title: 'Kick User',
+      message: `Are you sure you want to kick ${user.name}?`,
+      confirmLabel: 'Kick',
+      cancelLabel: 'Cancel',
+      onConfirm: async () => {
+        const success = await kickUser(user.id);
+        if (success) {
+          toast({
+            title: 'User Kicked',
+            description: `${user.name} has been kicked`
+          });
+        }
+      }
+    });
+    setIsOpen(false);
   };
-  
-  // Handler for VIP downgrade - shows confirmation directly
-  const handleDowngradeFromVIP = () => {
-    if (onDowngradeToStandard) {
-      showVipDowngradeConfirmation(user.id, user.name, onDowngradeToStandard);
-    }
+
+  const handleBanUser = () => {
+    openDialog('prompt', {
+      title: 'Ban User',
+      message: `Why do you want to ban ${user.name}?`,
+      placeholder: 'Enter reason',
+      confirmLabel: 'Ban',
+      cancelLabel: 'Cancel',
+      onConfirm: async (reason: string) => {
+        if (!reason) {
+          toast({
+            title: 'Error',
+            description: 'Please provide a reason for banning',
+            variant: 'destructive'
+          });
+          return;
+        }
+        
+        openDialog('select', {
+          title: 'Ban Duration',
+          message: 'Select ban duration:',
+          options: [
+            { label: '1 Day', value: '1 Day' },
+            { label: '1 Week', value: '1 Week' },
+            { label: '1 Month', value: '1 Month' },
+            { label: 'Permanent', value: 'Permanent' }
+          ],
+          confirmLabel: 'Proceed',
+          cancelLabel: 'Cancel',
+          onConfirm: async (duration: string) => {
+            const banRecord = await banUser(user.id, 'user', reason, duration);
+            if (banRecord) {
+              toast({
+                title: 'User Banned',
+                description: `${user.name} has been banned`
+              });
+            }
+          }
+        });
+      }
+    });
+    setIsOpen(false);
+  };
+
+  const handleUpgradeToVip = () => {
+    upgradeToVIP(user.id, user.name);
+    setIsOpen(false);
+  };
+
+  const handleDowngradeFromVip = () => {
+    downgradeToStandard(user.id, user.name);
+    setIsOpen(false);
+  };
+
+  const handleEditUser = () => {
+    openDialog('custom', {
+      title: 'Edit User',
+      content: 'UserEditForm',
+      data: { user },
+      onClose: () => setIsOpen(false)
+    });
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant={variant}
-          size="sm"
-          className="h-8 w-8 p-0"
-          disabled={disabled}
-        >
-          <UserCog className="h-4 w-4" />
-          <span className="sr-only">User Actions</span>
+        <Button variant="ghost" size="sm" disabled={isProcessing}>
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="sr-only">Actions</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        {/* Account Status Actions */}
+      <DropdownMenuContent align="end" className="bg-white dark:bg-gray-900 shadow-lg">
+        <DropdownMenuLabel>User Actions</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {user.isOnline === false ? (
-          <DropdownMenuItem 
-            onClick={() => onUnbanUser && onUnbanUser(user.id)}
-            disabled={!onUnbanUser || disabled}
-          >
-            <Ban className="mr-2 h-4 w-4 text-green-500" />
-            <span>Unban User</span>
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem 
-            onClick={() => onBanUser && onBanUser(user.id)}
-            disabled={!onBanUser || disabled}
-          >
-            <Ban className="mr-2 h-4 w-4 text-red-500" />
-            <span>Ban User</span>
-          </DropdownMenuItem>
-        )}
         
-        {/* VIP Status Actions */}
-        <DropdownMenuSeparator />
-        {user.vip ? (
-          <DropdownMenuItem 
-            onClick={handleDowngradeFromVIP}
-            disabled={!onDowngradeToStandard || disabled}
-          >
-            <ShieldX className="mr-2 h-4 w-4 text-red-500" />
-            <span>Remove VIP Status</span>
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem 
-            onClick={handleUpgradeToVIP}
-            disabled={!onUpgradeToVIP || disabled}
-          >
-            <ShieldCheck className="mr-2 h-4 w-4 text-green-500" />
-            <span>Upgrade to VIP</span>
-          </DropdownMenuItem>
-        )}
-        
-        {/* Other User actions */}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem 
-          onClick={() => onResetPassword && onResetPassword(user.id)}
-          disabled={!onResetPassword || disabled}
-        >
-          <Lock className="mr-2 h-4 w-4" />
-          <span>Reset Password</span>
+        <DropdownMenuItem onClick={handleEditUser}>
+          <Edit className="mr-2 h-4 w-4" />
+          Edit
         </DropdownMenuItem>
+        
+        <DropdownMenuItem onClick={handleKickUser}>
+          <UserMinus className="mr-2 h-4 w-4" />
+          Kick
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem onClick={handleBanUser}>
+          <Ban className="mr-2 h-4 w-4" />
+          Ban
+        </DropdownMenuItem>
+        
+        <DropdownMenuSeparator />
+        
+        {(!user.vip && (userType === 'all' || userType === 'standard')) && (
+          <DropdownMenuItem onClick={handleUpgradeToVip}>
+            <Crown className="mr-2 h-4 w-4" />
+            Upgrade to VIP
+          </DropdownMenuItem>
+        )}
+        
+        {(user.vip && (userType === 'all' || userType === 'vip')) && (
+          <DropdownMenuItem onClick={handleDowngradeFromVip}>
+            <User className="mr-2 h-4 w-4" />
+            Downgrade to Standard
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
