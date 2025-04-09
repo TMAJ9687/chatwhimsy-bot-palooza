@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import useAdminSession from '@/hooks/useAdminSession';
 import { useAdmin } from '@/hooks/useAdmin';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { 
   Activity, Users, Settings, UserPlus, ShieldAlert, MessageSquare, BarChart4,
   Cog, FileText

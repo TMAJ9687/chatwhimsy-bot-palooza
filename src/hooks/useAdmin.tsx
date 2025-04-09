@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useChatInitialization } from './useChatInitialization';
@@ -193,6 +192,7 @@ export const useAdmin = () => {
     addFeedback,
     resolveReportFeedback,
     deleteReportFeedback,
+    loadReportsAndFeedback,
     
     // Admin settings
     changeAdminPassword,
@@ -201,5 +201,9 @@ export const useAdmin = () => {
     // Site settings
     saveSiteSettings,
     getSiteSettings,
+    
+    // Data loading
+    loadBannedUsers,
+    loadDashboardData,
   };
 };

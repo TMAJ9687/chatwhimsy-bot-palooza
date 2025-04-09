@@ -1,10 +1,10 @@
 
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { Bot } from '@/types/chat';
 import { AdminAction } from '@/types/admin';
 
 /**
- * Custom hook for loading dashboard data
+ * Custom hook for loading all dashboard data
  */
 export const useDashboardLoader = (
   isAdmin: boolean,
@@ -16,58 +16,42 @@ export const useDashboardLoader = (
   loadReportsAndFeedback: () => Promise<any[]>,
   cleanupExpiredReports: () => Promise<boolean>
 ) => {
-  // Track when the last load occurred to prevent too-frequent reloads
-  const lastLoadTimeRef = useRef(0);
-  const isLoadingRef = useRef(false);
-  
-  // Combined loader for all dashboard data with extreme throttling
+  // Load all dashboard data
   const loadDashboardData = useCallback(async () => {
-    if (!isAdmin || isLoadingRef.current) {
-      return false;
-    }
-    
-    // Extremely aggressive throttling - once per 30 seconds maximum
-    const now = Date.now();
-    if (now - lastLoadTimeRef.current < 30000) {
-      return false;
-    }
+    if (!isAdmin) return false;
     
     try {
-      isLoadingRef.current = true;
-      lastLoadTimeRef.current = now;
+      console.log('Loading dashboard data...');
       
-      // Load bots first
-      const loadedBots = await loadBots();
-      setBots(loadedBots);
+      // Load in sequence to avoid overloading the server
+      await Promise.all([
+        // Load bots 
+        loadBots().then(bots => {
+          setBots(bots);
+        }),
+        
+        // Load admin actions
+        loadAdminActions().then(actions => {
+          setAdminActions(actions);
+        }),
+        
+        // Load banned users
+        loadBannedUsers(),
+        
+        // Load reports and feedback
+        loadReportsAndFeedback(),
+        
+        // Clean up expired reports
+        cleanupExpiredReports()
+      ]);
       
-      // Load other data in sequence (not parallel) to reduce contention
-      await loadBannedUsers();
-      const actions = await loadAdminActions();
-      setAdminActions(actions);
-      
-      // These operations are less important, so we'll skip them if they've been run recently
-      if (now - lastLoadTimeRef.current > 60000) { // Only run once per minute at most
-        await loadReportsAndFeedback();
-        await cleanupExpiredReports();
-      }
-      
+      console.log('Dashboard data loaded successfully');
       return true;
     } catch (error) {
-      // We'll just return false on error without rethrowing
+      console.error('Error loading dashboard data:', error);
       return false;
-    } finally {
-      isLoadingRef.current = false;
     }
-  }, [
-    isAdmin, 
-    setBots, 
-    setAdminActions, 
-    loadBots, 
-    loadBannedUsers, 
-    loadAdminActions, 
-    loadReportsAndFeedback,
-    cleanupExpiredReports
-  ]);
+  }, [isAdmin, loadBots, loadAdminActions, loadBannedUsers, loadReportsAndFeedback, cleanupExpiredReports, setBots, setAdminActions]);
   
   return {
     loadDashboardData
