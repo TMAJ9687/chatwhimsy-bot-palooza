@@ -12,11 +12,11 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [selectValue, setSelectValue] = useState('');
 
   const openDialog = (type: DialogType, props: DialogProps) => {
-    // Set default values if provided
-    if (type === 'prompt' && props.defaultValue) {
-      setInputValue(props.defaultValue);
-    } else if (type === 'select' && props.defaultValue) {
-      setSelectValue(props.defaultValue);
+    // Set default values if provided - use type guards to check properties
+    if (type === 'prompt' && 'defaultValue' in props) {
+      setInputValue(props.defaultValue || '');
+    } else if (type === 'select' && 'defaultValue' in props) {
+      setSelectValue(props.defaultValue || '');
     } else {
       // Reset values for other dialog types
       setInputValue('');

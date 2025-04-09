@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Bot } from '@/types/chat';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -101,6 +100,7 @@ const UserActionsButton: React.FC<UserActionsButtonProps> = ({ user, userType = 
   const handleEditUser = () => {
     openDialog('custom', {
       title: 'Edit User',
+      message: '',
       content: 'UserEditForm',
       data: { user },
       onClose: () => setIsOpen(false)
