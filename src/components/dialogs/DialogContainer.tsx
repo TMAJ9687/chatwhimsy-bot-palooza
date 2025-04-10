@@ -38,7 +38,19 @@ const DialogFallback = () => (
  * to avoid dynamic import issues
  */
 const DialogContainer = () => {
-  const { state } = useDialog();
+  // Use try/catch to handle potential context errors gracefully
+  let dialogState = { isOpen: false, type: null };
+  let closeDialog = () => {};
+  
+  try {
+    const dialogContext = useDialog();
+    dialogState = dialogContext.state;
+    closeDialog = dialogContext.closeDialog;
+  } catch (error) {
+    console.error('Error accessing dialog context:', error);
+    return null;
+  }
+  
   const mountedRef = useRef(true);
   const activeDialogTypeRef = useRef<string | null>(null);
   const renderAttemptedRef = useRef(false);
@@ -57,31 +69,35 @@ const DialogContainer = () => {
   useEffect(() => {
     if (!mountedRef.current) return;
     
-    if (state.isOpen && !renderAttemptedRef.current) {
+    if (dialogState.isOpen && !renderAttemptedRef.current) {
       // Apply body styles for open dialog
       document.body.style.overflow = 'hidden';
       document.body.classList.add('dialog-open');
       renderAttemptedRef.current = true;
       
       // Track the currently active dialog type to help with cleanup
-      activeDialogTypeRef.current = state.type;
-      trackEvent(`dialog-render-${state.type}`, () => {});
-    } else if (!state.isOpen && renderAttemptedRef.current) {
+      activeDialogTypeRef.current = dialogState.type;
+      try {
+        trackEvent(`dialog-render-${dialogState.type}`, () => {});
+      } catch (e) {
+        console.warn('Failed to track dialog event:', e);
+      }
+    } else if (!dialogState.isOpen && renderAttemptedRef.current) {
       // Only restore body state if we were the ones who changed it
       document.body.style.overflow = 'auto';
       document.body.classList.remove('dialog-open');
       renderAttemptedRef.current = false;
       activeDialogTypeRef.current = null;
     }
-  }, [state.isOpen, state.type]);
+  }, [dialogState.isOpen, dialogState.type]);
 
   // Don't render anything if not open or component is unmounting
-  if (!state.isOpen || !mountedRef.current) {
+  if (!dialogState.isOpen || !mountedRef.current) {
     return null;
   }
 
   // Wrap the logout dialog with our error boundary
-  if (state.type === 'logout') {
+  if (dialogState.type === 'logout') {
     return (
       <LogoutErrorBoundary>
         <LogoutConfirmationDialog key="logout" />
@@ -90,7 +106,7 @@ const DialogContainer = () => {
   }
 
   // Render without suspense for other critical dialogs
-  if (state.type === 'siteRules') {
+  if (dialogState.type === 'siteRules') {
     try {
       return <SiteRulesDialog key="siteRules" />;
     } catch (error) {
@@ -106,7 +122,7 @@ const DialogContainer = () => {
         if (!mountedRef.current) return null;
         
         // Render the appropriate dialog component based on the dialog type
-        switch (state.type) {
+        switch (dialogState.type) {
           case 'report':
             return <ReportDialog key="report" />;
           case 'block':

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Bot } from '@/types/chat';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useToast } from '@/hooks/use-toast';
-import { useDialog } from '@/hooks/use-dialog';
+import { useDialog } from '@/context/DialogContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
