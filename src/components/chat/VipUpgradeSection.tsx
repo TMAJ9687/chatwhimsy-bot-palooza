@@ -11,7 +11,7 @@ const VipUpgradeSection = () => {
   const navigate = useNavigate();
 
   const handleUpgradeClick = () => {
-    // Show the VIP selection dialog
+    // Make sure we're using the correct dialog type from DialogContext
     openDialog('vipSelect');
   };
 

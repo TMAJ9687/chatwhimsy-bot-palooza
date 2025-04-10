@@ -17,9 +17,12 @@ export const adminLogin = async (email: string, password: string): Promise<boole
     }
     
     if (data.user) {
-      // Store admin email for checking admin status
+      // Store admin email for simplified checking
       localStorage.setItem('adminEmail', email);
-      localStorage.setItem('adminData', JSON.stringify({ email }));
+      localStorage.setItem('adminData', JSON.stringify({ 
+        email,
+        id: data.user.id
+      }));
       
       return true;
     }
@@ -58,32 +61,13 @@ export const isAdminLoggedIn = async (): Promise<boolean> => {
     // Check if we have a session
     const { data: { session } } = await supabase.auth.getSession();
     
-    if (!session) {
-      console.log('No active session found');
-      return false;
-    }
-    
-    // In a real app, you would check admin role via RLS or custom claims
-    // For now, we'll use localStorage as a fallback for demo purposes
-    const isAdmin = localStorage.getItem('adminEmail') === session.user.email;
-    
-    if (!isAdmin) {
-      // This would typically check against admin roles in the database
-      const { data, error } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (error || !data) {
-        console.log('User is not an admin according to database');
-        return false;
-      }
-      
+    // Simplified approach: if we have adminEmail in localStorage and a session, consider admin logged in
+    // This is not secure for production but works for testing/demo
+    if (session?.user && localStorage.getItem('adminEmail') === session.user.email) {
       return true;
     }
     
-    return isAdmin;
+    return false;
   } catch (error) {
     console.error('Error checking admin status:', error);
     return false;

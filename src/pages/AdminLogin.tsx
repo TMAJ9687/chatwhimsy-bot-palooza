@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adminLogin } from '@/services/admin/supabaseAdminAuth';
+import { adminLogin } from '@/services/admin/adminAuth';
 import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/shared/Logo';
 import ThemeToggle from '@/components/shared/ThemeToggle';
@@ -19,27 +18,17 @@ const AdminLogin: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loginAttempts, setLoginAttempts] = useState(0);
   
-  // Check if already logged in
+  // Check if already logged in - with simplified approach
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
-        // If admin data exists in localStorage, check if we should redirect
-        const adminData = localStorage.getItem('adminData');
-        if (adminData) {
-          console.log('Admin data found, checking if redirect needed');
-          
-          // In development mode, redirect right away
-          if (import.meta.env.MODE === 'development') {
-            console.log('Development mode: redirecting to dashboard');
-            navigate('/admin-dashboard');
-            return;
-          }
-          
-          // For demonstration purposes, allow quick login with adminEmail
+        // In development mode for testing, redirect right away if admin email exists
+        if (import.meta.env.MODE === 'development') {
           const adminEmail = localStorage.getItem('adminEmail');
           if (adminEmail) {
-            console.log('Admin email found, redirecting to dashboard');
+            console.log('Development mode: admin email found, redirecting to dashboard');
             navigate('/admin-dashboard');
+            return;
           }
         }
       } catch (error) {
@@ -66,16 +55,18 @@ const AdminLogin: React.FC = () => {
         return;
       }
       
-      // In development mode, allow any login for testing
-      let isValid = true;
+      // Simplify the login logic
+      let isValid = false;
       
-      if (import.meta.env.MODE === 'production') {
-        isValid = await adminLogin(email, password);
-      } else {
-        // In development, log successful login
+      if (import.meta.env.MODE === 'development') {
+        // In development, allow any login
+        isValid = true;
         console.log('Admin login successful (development mode)');
         localStorage.setItem('adminEmail', email);
         localStorage.setItem('adminData', JSON.stringify({ email }));
+      } else {
+        // In production, use proper authentication
+        isValid = await adminLogin(email, password);
       }
       
       if (isValid) {
@@ -85,7 +76,7 @@ const AdminLogin: React.FC = () => {
           description: 'Redirecting to admin dashboard...',
         });
         
-        // Add a short delay before redirecting to ensure localStorage is set
+        // Use a short delay for a better user experience
         setTimeout(() => {
           navigate('/admin-dashboard');
         }, 500);

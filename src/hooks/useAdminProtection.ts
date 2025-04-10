@@ -11,6 +11,7 @@ export const useAdminProtection = (redirectPath: string = '/secretadminportal') 
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [checkAttempts, setCheckAttempts] = useState(0);
   
   // Check admin authentication on mount and when location changes
   const checkAdminAuth = useCallback(async () => {
@@ -32,19 +33,21 @@ export const useAdminProtection = (redirectPath: string = '/secretadminportal') 
       setIsAuthenticated(adminLoggedIn);
       
       // If not logged in as admin and on a protected page, redirect to login
-      if (!adminLoggedIn && location.pathname.includes('/admin')) {
+      // but only if we've already tried a couple of times to avoid redirect loops
+      if (!adminLoggedIn && location.pathname.includes('/admin') && checkAttempts >= 1) {
         console.log('Not authenticated as admin, redirecting to login page');
-        // Use navigate instead of setTimeout to avoid race conditions
         navigate(redirectPath);
       }
       
+      // Increment the check attempts
+      setCheckAttempts(prev => prev + 1);
       setIsLoading(false);
     } catch (error) {
       console.error('Error checking admin authentication:', error);
       setIsAuthenticated(false);
       setIsLoading(false);
     }
-  }, [navigate, redirectPath, location.pathname]);
+  }, [navigate, redirectPath, location.pathname, checkAttempts]);
   
   // Check admin authentication when location changes
   useEffect(() => {

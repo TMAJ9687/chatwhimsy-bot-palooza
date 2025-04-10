@@ -38,7 +38,6 @@ const VipSelectDialog = () => {
       subscriptionEndDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
       imagesRemaining: Infinity,
       voiceMessagesRemaining: 120,
-      nickname: 'VIP Tester',
     });
     
     toast({
@@ -54,7 +53,7 @@ const VipSelectDialog = () => {
   };
 
   return (
-    <Dialog open={state.isOpen && state.type === 'vipSelect'} onOpenChange={closeDialog}>
+    <Dialog open={state.type === 'vipSelect'} onOpenChange={closeDialog}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900 mb-4">
