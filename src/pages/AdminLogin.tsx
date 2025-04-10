@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminLogin } from '@/services/admin/adminAuth';
@@ -18,18 +19,14 @@ const AdminLogin: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loginAttempts, setLoginAttempts] = useState(0);
   
-  // Check if already logged in - with simplified approach
+  // Check if already logged in
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
-        // In development mode for testing, redirect right away if admin email exists
-        if (import.meta.env.MODE === 'development') {
-          const adminEmail = localStorage.getItem('adminEmail');
-          if (adminEmail) {
-            console.log('Development mode: admin email found, redirecting to dashboard');
-            navigate('/admin-dashboard');
-            return;
-          }
+        const adminEmail = localStorage.getItem('adminEmail');
+        if (adminEmail) {
+          console.log('Admin email found, redirecting to dashboard');
+          navigate('/admin-dashboard');
         }
       } catch (error) {
         console.error('Error checking admin status:', error);
@@ -55,19 +52,8 @@ const AdminLogin: React.FC = () => {
         return;
       }
       
-      // Simplify the login logic
-      let isValid = false;
-      
-      if (import.meta.env.MODE === 'development') {
-        // In development, allow any login
-        isValid = true;
-        console.log('Admin login successful (development mode)');
-        localStorage.setItem('adminEmail', email);
-        localStorage.setItem('adminData', JSON.stringify({ email }));
-      } else {
-        // In production, use proper authentication
-        isValid = await adminLogin(email, password);
-      }
+      // Simplified login logic
+      const isValid = await adminLogin(email, password);
       
       if (isValid) {
         console.log('Admin login successful');
@@ -82,11 +68,11 @@ const AdminLogin: React.FC = () => {
         }, 500);
       } else {
         console.log('Admin login failed');
-        setErrorMessage('Login failed. Please check your credentials and ensure you have admin access.');
+        setErrorMessage('Login failed. Please check your credentials.');
         toast({
           variant: 'destructive',
           title: 'Authentication failed',
-          description: 'Invalid credentials or admin access denied.',
+          description: 'Invalid credentials.',
         });
       }
     } catch (error: any) {

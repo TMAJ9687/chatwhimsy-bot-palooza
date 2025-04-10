@@ -10,47 +10,43 @@ interface PortalProps {
 // Portal component that safely renders content to a specified DOM element
 export const Portal: React.FC<PortalProps> = ({ children, container }) => {
   const [mounted, setMounted] = useState(false);
-  const isMountedRef = useRef(true);
+  const mountedRef = useRef(true);
   
   useEffect(() => {
-    // Set mounted ref in a more reliable way
-    isMountedRef.current = true;
+    // Set mounted ref
+    mountedRef.current = true;
     
     // Use requestAnimationFrame to ensure DOM is ready
     const frameId = requestAnimationFrame(() => {
-      if (isMountedRef.current) {
+      if (mountedRef.current) {
         setMounted(true);
       }
     });
     
     return () => {
-      isMountedRef.current = false;
+      mountedRef.current = false;
       cancelAnimationFrame(frameId);
       setMounted(false);
     };
   }, []);
   
-  // Check if container exists in document before creating portal
-  const isContainerValid = container && document.contains(container);
-  
-  // Only render if we're mounted and container exists and is valid
-  if (!mounted || !isContainerValid) {
+  // Only render if we're mounted and container exists
+  if (!mounted || !container) {
     return null;
   }
   
-  return createPortal(children, container as HTMLElement);
+  return createPortal(children, container);
 };
 
 // PortalManager that creates a dedicated element for portals
 const PortalManager: React.FC = () => {
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
-  const portalRootRef = useRef<HTMLElement | null>(null);
-  const isInitializedRef = useRef(false);
+  const initializedRef = useRef(false);
   
   useEffect(() => {
     // Avoid duplicate initialization
-    if (isInitializedRef.current) return;
-    isInitializedRef.current = true;
+    if (initializedRef.current) return;
+    initializedRef.current = true;
     
     // Look for existing portal container
     let container = document.getElementById('portal-root');
@@ -70,31 +66,24 @@ const PortalManager: React.FC = () => {
       }
     }
     
-    // Store references safely
-    portalRootRef.current = container;
+    // Store references
+    setPortalRoot(container);
     
-    // Use state update inside requestAnimationFrame for better DOM sync
-    requestAnimationFrame(() => {
-      setPortalRoot(container);
-    });
-    
-    // Clean up when component unmounts with better checks
+    // Clean up when component unmounts
     return () => {
-      isInitializedRef.current = false;
+      initializedRef.current = false;
       
-      // Only remove if we're still in a valid document context
-      if (typeof document !== 'undefined' && document.body) {
-        const portalElement = document.getElementById('portal-root');
-        if (portalElement && document.body.contains(portalElement)) {
-          try {
-            document.body.removeChild(portalElement);
-          } catch (error) {
-            console.warn('Error removing portal root:', error);
+      // Only attempt removal if document is available
+      if (typeof document !== 'undefined') {
+        try {
+          const element = document.getElementById('portal-root');
+          if (element && element.parentNode) {
+            element.parentNode.removeChild(element);
           }
+        } catch (error) {
+          console.warn('Error removing portal root:', error);
         }
       }
-      
-      portalRootRef.current = null;
     };
   }, []);
   

@@ -20,22 +20,13 @@ const DialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => {
   const { registerNode } = useSafeDOMOperations();
   const overlayRef = React.useRef<HTMLDivElement | null>(null);
-  const isMountedRef = React.useRef(true);
-  
-  // Track component mounted state
-  React.useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
   
   React.useImperativeHandle(ref, () => {
     return overlayRef.current as HTMLDivElement;
   }, [overlayRef.current]);
   
   React.useEffect(() => {
-    if (overlayRef.current && isMountedRef.current) {
+    if (overlayRef.current) {
       registerNode(overlayRef.current);
     }
   }, [registerNode]);
@@ -57,55 +48,34 @@ const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
-  const unmountingRef = React.useRef(false);
-  const isMountedRef = React.useRef(true);
-  const cleanupTimeoutsRef = React.useRef<number[]>([]);
-  
   const { registerNode } = useSafeDOMOperations();
   const contentRef = React.useRef<HTMLDivElement | null>(null);
-  
-  // Track component mounted state
-  React.useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
   
   React.useImperativeHandle(ref, () => {
     return contentRef.current as HTMLDivElement;
   }, [contentRef.current]);
   
   React.useEffect(() => {
-    if (contentRef.current && isMountedRef.current) {
+    if (contentRef.current) {
       registerNode(contentRef.current);
     }
-  }, [registerNode]);
-  
-  React.useEffect(() => {
+    
     // Add class to enable proper cleanup
-    if (document.body && isMountedRef.current) {
+    if (document.body) {
       document.body.classList.add('dialog-open');
     }
     
     return () => {
-      // Clear all timeouts first
-      cleanupTimeoutsRef.current.forEach(id => window.clearTimeout(id));
-      cleanupTimeoutsRef.current = [];
-      
-      unmountingRef.current = true;
-      
       try {
         // Reset body state when unmounting
         if (document.body) {
-          document.body.style.overflow = 'auto';
-          document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+          document.body.classList.remove('dialog-open');
         }
       } catch (error) {
         console.warn('Error during dialog cleanup:', error);
       }
     };
-  }, []);
+  }, [registerNode]);
 
   return (
     <DialogPortal>
@@ -118,11 +88,6 @@ const DialogContent = React.forwardRef<
         )}
         onCloseAutoFocus={(event) => {
           event.preventDefault();
-        }}
-        onEscapeKeyDown={(event) => {
-          if (props.onEscapeKeyDown) {
-            props.onEscapeKeyDown(event);
-          }
         }}
         {...props}
       >

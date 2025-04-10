@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -8,7 +8,7 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Crown, Check } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import { useDialog } from '@/context/DialogContext';
 import { SubscriptionTiersList } from '@/components/subscription/SubscriptionTiersList';
 import { SubscriptionBenefits } from '@/components/subscription/SubscriptionBenefits';
@@ -17,28 +17,18 @@ import { SubscriptionTier } from '@/types/user';
 const VipSubscriptionDialog = () => {
   const { state, closeDialog, openDialog } = useDialog();
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>('monthly');
-  const isMountedRef = useRef(true);
   
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
   const handleContinue = () => {
-    // First close, then with a small delay open new dialog
+    // First close current dialog
     closeDialog();
     
     // Use setTimeout to avoid DOM manipulation conflicts
     setTimeout(() => {
-      if (isMountedRef.current) {
-        openDialog('vipPayment', { selectedPlan });
-      }
-    }, 100);
+      openDialog('vipPayment', { selectedPlan });
+    }, 150);
   };
 
-  // Determine if the dialog should be open (safer check)
+  // Determine if the dialog should be open
   const isOpen = state.isOpen && state.type === 'vipSubscription';
 
   return (

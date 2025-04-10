@@ -62,7 +62,6 @@ export const isAdminLoggedIn = async (): Promise<boolean> => {
     const { data: { session } } = await supabase.auth.getSession();
     
     // Simplified approach: if we have adminEmail in localStorage and a session, consider admin logged in
-    // This is not secure for production but works for testing/demo
     if (session?.user && localStorage.getItem('adminEmail') === session.user.email) {
       return true;
     }
@@ -73,5 +72,3 @@ export const isAdminLoggedIn = async (): Promise<boolean> => {
     return false;
   }
 };
-
-// Export all authentication methods from this file

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -73,19 +73,27 @@ const App = () => {
                           <Route path="/vip-profile" element={<VipProfileSetup />} />
                           <Route path="/vip-signup" element={<VipSignup />} />
                           <Route path="/vip-login" element={<VipLogin />} />
-                          <Route path="/vip-subscription" element={<VipSubscription />} />
-                          <Route path="/vip-payment" element={<VipPayment />} />
-                          <Route path="/vip-confirmation" element={<VipConfirmation />} />
-                          <Route path="/feedback" element={<Feedback />} />
-                          <Route path="/secretadminportal" element={<AdminLogin />} />
-                          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                          <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
-                          <Route path="/admin" element={<AdminLogin />} />
-                          <Route path="/admin-login" element={<AdminLogin />} />
+                          
+                          {/* Consolidated VIP subscription routes */}
                           <Route path="/subscribe" element={<VipSubscription />} />
                           <Route path="/subscribe/monthly" element={<VipSubscription />} />
                           <Route path="/subscribe/semiannual" element={<VipSubscription />} />
                           <Route path="/subscribe/annual" element={<VipSubscription />} />
+                          
+                          {/* Redirect old VIP subscription routes */}
+                          <Route path="/vip-subscription" element={<Navigate to="/subscribe" replace />} />
+                          
+                          <Route path="/vip-payment" element={<VipPayment />} />
+                          <Route path="/vip-confirmation" element={<VipConfirmation />} />
+                          <Route path="/feedback" element={<Feedback />} />
+                          
+                          {/* Consolidated Admin routes */}
+                          <Route path="/secretadminportal" element={<AdminLogin />} />
+                          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                          <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
+                          <Route path="/admin" element={<Navigate to="/secretadminportal" replace />} />
+                          <Route path="/admin-login" element={<Navigate to="/secretadminportal" replace />} />
+                          
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                         
