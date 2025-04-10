@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Bot } from '@/types/chat';
 import { useAdmin } from '@/hooks/useAdmin';
