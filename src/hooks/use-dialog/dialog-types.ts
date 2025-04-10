@@ -1,6 +1,6 @@
 
 // Dialog types
-export type DialogType = 'alert' | 'confirm' | 'prompt' | 'select' | 'report' | 'block' | 'custom';
+export type DialogType = 'alert' | 'confirm' | 'prompt' | 'select' | 'report' | 'block' | 'custom' | 'userEdit';
 
 // Common props - making onConfirm optional and generic to fix the extension errors
 export interface DialogBaseProps {
@@ -44,6 +44,11 @@ export interface BlockDialogProps extends DialogBaseProps {
   onBlockUser: (userId: string) => void;
 }
 
+export interface UserEditDialogProps extends DialogBaseProps {
+  user: any;
+  onSave: (updatedUser: any) => void;
+}
+
 export interface CustomDialogProps extends DialogBaseProps {
   content: string;
   data?: any;
@@ -58,6 +63,7 @@ export type DialogProps =
   | { type: 'select'; props: SelectDialogProps }
   | { type: 'report'; props: ReportDialogProps }
   | { type: 'block'; props: BlockDialogProps }
+  | { type: 'userEdit'; props: UserEditDialogProps }
   | { type: 'custom'; props: CustomDialogProps };
 
 // Context type
@@ -78,6 +84,8 @@ export interface DialogContextType {
       ? ReportDialogProps
       : T extends 'block'
       ? BlockDialogProps
+      : T extends 'userEdit'
+      ? UserEditDialogProps
       : T extends 'custom'
       ? CustomDialogProps
       : never

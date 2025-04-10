@@ -18,6 +18,9 @@ const originalConsole = {
 const FILTERED_PATTERNS = [
   'facebook',
   'fb-',
+  'fb:',
+  'fbq',
+  'fbevents',
   'preload',
   '[Facebook]',
   'user tracking',
@@ -26,7 +29,13 @@ const FILTERED_PATTERNS = [
   'admin session',
   'setting up admin',
   'cleaning up',
-  'loading dashboard'
+  'loading dashboard',
+  'react-dom.development.js',
+  'violation',
+  'Preconnect',
+  'Received `true` for a non-boolean attribute',
+  'Failed to load resource',
+  'reflow from'
 ];
 
 // Throttle setup
@@ -109,6 +118,15 @@ export function initConsoleFilter() {
   console.warn = function(...args: any[]) {
     if (shouldFilterMessage(args)) return;
     originalConsole.warn(...args);
+  };
+  
+  console.error = function(...args: any[]) {
+    // Special case for Facebook errors - filter them out completely
+    if (args.length > 0 && typeof args[0] === 'string' && 
+        (args[0].includes('facebook') || args[0].includes('fb-'))) {
+      return;
+    }
+    originalConsole.error(...args);
   };
   
   console.debug = function(...args: any[]) {

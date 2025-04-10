@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Bot } from '@/types/chat';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -20,7 +21,7 @@ interface UserActionsButtonProps {
 }
 
 const UserActionsButton: React.FC<UserActionsButtonProps> = ({ user, userType = 'all' }) => {
-  const { kickUser, banUser, upgradeToVIP, downgradeToStandard, isProcessing } = useAdmin();
+  const { kickUser, banUser, upgradeToVIP, downgradeToStandard, isProcessing, updateBot } = useAdmin();
   const { toast } = useToast();
   const { openDialog } = useDialog();
   const [isOpen, setIsOpen] = useState(false);
@@ -49,7 +50,7 @@ const UserActionsButton: React.FC<UserActionsButtonProps> = ({ user, userType = 
       title: 'Ban User',
       message: `Why do you want to ban ${user.name}?`,
       placeholder: 'Enter reason',
-      confirmLabel: 'Ban',
+      confirmLabel: 'Next',
       cancelLabel: 'Cancel',
       onConfirm: async (reason: string) => {
         if (!reason) {
@@ -68,16 +69,17 @@ const UserActionsButton: React.FC<UserActionsButtonProps> = ({ user, userType = 
             { label: '1 Day', value: '1 Day' },
             { label: '1 Week', value: '1 Week' },
             { label: '1 Month', value: '1 Month' },
+            { label: '1 Year', value: '1 Year' },
             { label: 'Permanent', value: 'Permanent' }
           ],
-          confirmLabel: 'Proceed',
+          confirmLabel: 'Ban User',
           cancelLabel: 'Cancel',
           onConfirm: async (duration: string) => {
             const banRecord = await banUser(user.id, 'user', reason, duration);
             if (banRecord) {
               toast({
                 title: 'User Banned',
-                description: `${user.name} has been banned`
+                description: `${user.name} has been banned for ${duration}`
               });
             }
           }
@@ -98,13 +100,19 @@ const UserActionsButton: React.FC<UserActionsButtonProps> = ({ user, userType = 
   };
 
   const handleEditUser = () => {
-    openDialog('custom', {
+    openDialog('userEdit', {
       title: 'Edit User',
       message: '',
-      content: 'UserEditForm',
-      data: { user },
-      onClose: () => setIsOpen(false)
+      user: user,
+      onSave: (updatedUser: Bot) => {
+        updateBot(updatedUser);
+        toast({
+          title: 'User Updated',
+          description: `${updatedUser.name} has been updated successfully`
+        });
+      }
     });
+    setIsOpen(false);
   };
 
   return (

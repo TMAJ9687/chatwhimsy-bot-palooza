@@ -19,6 +19,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import UserEditForm from '@/components/admin/UserEditForm';
 
 // Create context
 const DialogContext = createContext<DialogContextType | undefined>(undefined);
@@ -76,11 +77,21 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       case 'block':
         dialogConfig.props.onBlockUser(dialogConfig.props.userId);
         break;
+      case 'userEdit':
+        // User edit is handled by the form itself
+        break;
       case 'custom':
         // For custom dialogs, use onClose callback
         dialogConfig.props.onClose?.();
         break;
     }
+    setOpen(false);
+  };
+
+  // Special handler for user edit form
+  const handleUserSave = (updatedUser: any) => {
+    if (!dialogConfig || dialogConfig.type !== 'userEdit') return;
+    dialogConfig.props.onSave(updatedUser);
     setOpen(false);
   };
 
@@ -100,12 +111,14 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       {children}
 
       <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>{dialogConfig?.props.title}</AlertDialogTitle>
-            <AlertDialogDescription className="whitespace-pre-line">
-              {dialogConfig?.props.message}
-            </AlertDialogDescription>
+            {dialogConfig?.type !== 'userEdit' && (
+              <AlertDialogDescription className="whitespace-pre-line">
+                {dialogConfig?.props.message}
+              </AlertDialogDescription>
+            )}
           </AlertDialogHeader>
 
           {dialogConfig?.type === 'prompt' && (
@@ -141,6 +154,16 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             </Select>
           )}
 
+          {dialogConfig?.type === 'userEdit' && (
+            <div className="py-2">
+              <UserEditForm
+                user={(dialogConfig.props as any).user}
+                onSave={handleUserSave}
+                onCancel={closeDialog}
+              />
+            </div>
+          )}
+
           {dialogConfig?.type === 'custom' && (
             <div className="mt-4">
               <div className="text-center text-sm text-gray-500">
@@ -155,14 +178,16 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             </div>
           )}
 
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={closeDialog}>
-              {dialogConfig?.props.cancelLabel || 'Cancel'}
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirm}>
-              {dialogConfig?.props.confirmLabel || 'Continue'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
+          {dialogConfig?.type !== 'userEdit' && (
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={closeDialog}>
+                {dialogConfig?.props.cancelLabel || 'Cancel'}
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirm}>
+                {dialogConfig?.props.confirmLabel || 'Continue'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          )}
         </AlertDialogContent>
       </AlertDialog>
     </DialogContext.Provider>
