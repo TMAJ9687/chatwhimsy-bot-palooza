@@ -105,7 +105,7 @@ const UserActionsButton: React.FC<UserActionsButtonProps> = ({ user, userType = 
       message: '',
       user: user,
       onSave: (updatedUser: Bot) => {
-        updateBot(updatedUser);
+        updateBot(updatedUser.id, updatedUser);
         toast({
           title: 'User Updated',
           description: `${updatedUser.name} has been updated successfully`
