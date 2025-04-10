@@ -7,6 +7,9 @@ import LogoutErrorBoundary from '@/components/error/LogoutErrorBoundary';
 // Import dialogs normally instead of lazy loading for critical ones
 import SiteRulesDialog from './SiteRulesDialog';
 import LogoutConfirmationDialog from './LogoutConfirmationDialog';
+import ConfirmDialog from './ConfirmDialog';
+import AlertDialogComponent from './AlertDialog';
+import UserEditDialog from './UserEditDialog';
 
 // Using lazy loading for all other dialogs to reduce initial load time
 const ReportDialog = React.lazy(() => import('./ReportDialog'));
@@ -18,8 +21,8 @@ const VipPaymentDialog = React.lazy(() => import('./VipPaymentDialog'));
 const VipConfirmationDialog = React.lazy(() => import('./VipConfirmationDialog'));
 const AccountDeletionDialog = React.lazy(() => import('./AccountDeletionDialog'));
 const VipSelectDialog = React.lazy(() => import('./VipSelectDialog'));
-const ConfirmDialog = React.lazy(() => import('./ConfirmDialog'));
-const AlertDialogComponent = React.lazy(() => import('./AlertDialog'));
+const PromptDialog = React.lazy(() => import('./PromptDialog'));
+const SelectDialog = React.lazy(() => import('./SelectDialog'));
 
 // Loading fallback component - lightweight and minimal
 const DialogFallback = () => (
@@ -34,8 +37,6 @@ const DialogFallback = () => (
 
 /**
  * This component renders the appropriate dialog based on the current dialog state
- * Critical dialogs (SiteRules and LogoutConfirmation) are imported directly
- * to avoid dynamic import issues
  */
 const DialogContainer = () => {
   // Use try/catch to handle potential context errors gracefully
@@ -96,7 +97,7 @@ const DialogContainer = () => {
     return null;
   }
 
-  // Wrap the logout dialog with our error boundary
+  // Simple dialogs rendered without suspense for immediate loading
   if (dialogState.type === 'logout') {
     return (
       <LogoutErrorBoundary>
@@ -105,12 +106,38 @@ const DialogContainer = () => {
     );
   }
 
-  // Render without suspense for other critical dialogs
   if (dialogState.type === 'siteRules') {
     try {
       return <SiteRulesDialog key="siteRules" />;
     } catch (error) {
       console.error('Error rendering SiteRulesDialog:', error);
+      return null;
+    }
+  }
+
+  if (dialogState.type === 'confirm') {
+    try {
+      return <ConfirmDialog key="confirm" />;
+    } catch (error) {
+      console.error('Error rendering ConfirmDialog:', error);
+      return null;
+    }
+  }
+
+  if (dialogState.type === 'alert') {
+    try {
+      return <AlertDialogComponent key="alert" />;
+    } catch (error) {
+      console.error('Error rendering AlertDialog:', error);
+      return null;
+    }
+  }
+
+  if (dialogState.type === 'userEdit') {
+    try {
+      return <UserEditDialog key="userEdit" />;
+    } catch (error) {
+      console.error('Error rendering UserEditDialog:', error);
       return null;
     }
   }
@@ -141,10 +168,10 @@ const DialogContainer = () => {
             return <AccountDeletionDialog key="accountDeletion" />;
           case 'vipSelect':
             return <VipSelectDialog key="vipSelect" />;
-          case 'confirm':
-            return <ConfirmDialog key="confirm" />;
-          case 'alert':
-            return <AlertDialogComponent key="alert" />;
+          case 'prompt':
+            return <PromptDialog key="prompt" />;
+          case 'select':
+            return <SelectDialog key="select" />;
           default:
             return null;
         }

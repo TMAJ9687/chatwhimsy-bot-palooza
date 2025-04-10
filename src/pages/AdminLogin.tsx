@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAdminSession } from '@/hooks/useAdminSession';
 import { adminLogin } from '@/services/admin/supabaseAdminAuth';
 import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/shared/Logo';
@@ -19,35 +18,7 @@ const AdminLogin: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loginAttempts, setLoginAttempts] = useState(0);
-  const { isAuthenticated, checkForDashboardRedirect, error: sessionError, isLoading: sessionLoading, failedAttempts } = useAdminSession();
   
-  // Define dashboardPath properly
-  const dashboardPath = '/admin-dashboard';
-  
-  useEffect(() => {
-    if (failedAttempts && failedAttempts > 2) {
-      console.debug('Multiple authentication check failures detected');
-      setErrorMessage(`Authentication system experiencing issues. Try refreshing the page or check browser console for details.`);
-    }
-  }, [failedAttempts]);
-  
-  useEffect(() => {
-    // Get proper redirection path
-    const redirectPath = checkForDashboardRedirect() || dashboardPath;
-    
-    if (isAuthenticated && redirectPath) {
-      console.log('Redirecting to dashboard - already authenticated');
-      navigate(redirectPath);
-    }
-  }, [isAuthenticated, navigate, checkForDashboardRedirect]);
-
-  useEffect(() => {
-    if (sessionError) {
-      console.error('Session error detected:', sessionError);
-      setErrorMessage(`Authentication error: ${sessionError.message}`);
-    }
-  }, [sessionError]);
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
@@ -65,7 +36,6 @@ const AdminLogin: React.FC = () => {
       }
       
       // In this demo, allow any login for testing
-      // For development purposes only
       let isValid = true;
       
       if (import.meta.env.MODE === 'production') {
@@ -84,9 +54,10 @@ const AdminLogin: React.FC = () => {
           description: 'Redirecting to admin dashboard...',
         });
         
+        // Add a short delay before redirecting to ensure localStorage is set
         setTimeout(() => {
           navigate('/admin-dashboard');
-        }, 1000);
+        }, 500);
       } else {
         console.log('Admin login failed');
         setErrorMessage('Login failed. Please check your credentials and ensure you have admin access.');
@@ -132,13 +103,6 @@ const AdminLogin: React.FC = () => {
                 <AlertDescription>{errorMessage}</AlertDescription>
               </Alert>
             )}
-            
-            {sessionLoading && (
-              <div className="flex items-center justify-center p-4 mb-4 bg-muted rounded-md">
-                <Loader className="h-5 w-5 mr-2 animate-spin text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Checking authentication status...</p>
-              </div>
-            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -155,7 +119,7 @@ const AdminLogin: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  disabled={isLoading || sessionLoading}
+                  disabled={isLoading}
                 />
               </div>
               <div>
@@ -172,7 +136,7 @@ const AdminLogin: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  disabled={isLoading || sessionLoading}
+                  disabled={isLoading}
                 />
               </div>
               <Button
@@ -180,7 +144,7 @@ const AdminLogin: React.FC = () => {
                 fullWidth
                 size="lg"
                 className="bg-secondary text-white font-semibold py-3 rounded-lg w-full"
-                disabled={isLoading || sessionLoading}
+                disabled={isLoading}
                 type="submit"
               >
                 {isLoading ? (
@@ -192,12 +156,10 @@ const AdminLogin: React.FC = () => {
               </Button>
             </form>
             
-            {(failedAttempts > 2 || loginAttempts > 3) && (
+            {loginAttempts > 3 && (
               <div className="mt-4 p-3 text-xs bg-muted rounded-md">
                 <p className="font-semibold">Troubleshooting Information:</p>
-                <p>- Auth Check Attempts: {failedAttempts}</p>
                 <p>- Login Attempts: {loginAttempts}</p>
-                <p>- Session Loading: {sessionLoading ? 'Yes' : 'No'}</p>
                 <p>- Browser: {navigator.userAgent}</p>
                 <button 
                   className="text-blue-500 underline mt-1"

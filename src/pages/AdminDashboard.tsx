@@ -1,7 +1,5 @@
-
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import useAdminSession from '@/hooks/useAdminSession';
 import { useAdmin } from '@/hooks/useAdmin';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -38,7 +36,6 @@ const TabLoader = () => (
 );
 
 const AdminDashboard = () => {
-  const { isAuthenticated, user, isLoading: sessionLoading, refreshSession } = useAdminSession();
   const { adminLogout, isAdmin, loading, bots, onlineUsers } = useAdmin();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -53,16 +50,26 @@ const AdminDashboard = () => {
   const [loadTimestamp, setLoadTimestamp] = useState(0);
   const [isChatVisible, setIsChatVisible] = useState(false);
   
+  // Check if user is authenticated as admin
+  useEffect(() => {
+    const checkAdminAuth = async () => {
+      try {
+        if (!isAdmin && !loading) {
+          console.log('Not authenticated as admin, redirecting to login page');
+          navigate('/secretadminportal');
+        }
+      } catch (error) {
+        console.error('Error checking admin auth:', error);
+        navigate('/secretadminportal');
+      }
+    };
+    
+    checkAdminAuth();
+  }, [isAdmin, loading, navigate]);
+  
   const redirectToLogin = useCallback(() => {
     navigate('/secretadminportal');
   }, [navigate]);
-  
-  // Check authentication and redirect if needed
-  useEffect(() => {
-    if (!isAuthenticated && !sessionLoading && !loading) {
-      redirectToLogin();
-    }
-  }, [isAuthenticated, redirectToLogin, sessionLoading, loading]);
   
   // Extreme throttling for stats loading - once per 2 minutes maximum
   const loadStats = useCallback(async () => {
@@ -92,12 +99,12 @@ const AdminDashboard = () => {
     }
   }, [bots, loadTimestamp]);
   
-  // Only load stats on initial mount - removed from dependencies
+  // Only load stats on initial mount
   useEffect(() => {
-    if (isAuthenticated && !sessionLoading) {
+    if (isAdmin && !loading) {
       loadStats();
     }
-  }, [isAuthenticated, sessionLoading]); // Removed loadStats dependency
+  }, [isAdmin, loading]); 
   
   const handleLogout = async () => {
     try {
@@ -114,7 +121,6 @@ const AdminDashboard = () => {
   
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
-    refreshSession();
     loadStats();
     toast({
       title: "Refreshing",
@@ -129,12 +135,12 @@ const AdminDashboard = () => {
   // Memoize header to prevent re-renders
   const memoizedHeader = useMemo(() => (
     <DashboardHeader 
-      email={user?.email} 
+      email={isAdmin ? localStorage.getItem('adminEmail') : undefined} 
       handleLogout={handleLogout} 
       handleRetry={handleRetry}
       toggleChat={toggleChat}
     />
-  ), [user?.email, handleLogout, handleRetry]);
+  ), [handleLogout, handleRetry, isAdmin]);
   
   // Memoize tab content to improve performance
   const tabContent = useMemo(() => {
@@ -202,13 +208,28 @@ const AdminDashboard = () => {
   }, [currentTab, bots, onlineUsers, dataLoading, stats, setCurrentTab]);
 
   // Show loader if not authenticated or still loading
-  if (!isAuthenticated && !sessionLoading || sessionLoading || loading) {
+  if (!isAdmin && !loading) {
     return (
       <AdminErrorHandler>
         <DashboardLoader
-          isAuthenticated={isAuthenticated}
-          sessionLoading={sessionLoading}
+          isAuthenticated={false}
+          sessionLoading={false}
           loading={loading}
+          retryCount={retryCount}
+          handleRetry={handleRetry}
+          redirectToLogin={redirectToLogin}
+        />
+      </AdminErrorHandler>
+    );
+  }
+  
+  if (loading) {
+    return (
+      <AdminErrorHandler>
+        <DashboardLoader
+          isAuthenticated={isAdmin}
+          sessionLoading={false}
+          loading={true}
           retryCount={retryCount}
           handleRetry={handleRetry}
           redirectToLogin={redirectToLogin}
@@ -222,7 +243,7 @@ const AdminDashboard = () => {
       <div className="container mx-auto p-6 relative">
         {memoizedHeader}
         
-        {/* Chat Manager - will be shown in full screen when isChatVisible is true */}
+        {/* Chat Manager */}
         <Suspense fallback={null}>
           <div className={`fixed inset-0 bg-white dark:bg-gray-900 z-50 transition-transform duration-300 transform ${isChatVisible ? 'translate-y-0' : 'translate-y-full'}`}>
             <div className="h-full flex flex-col">
