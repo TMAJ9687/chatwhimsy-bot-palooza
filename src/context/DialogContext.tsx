@@ -1,10 +1,9 @@
-
 import React, { createContext, useContext, useReducer, ReactNode, useMemo, useCallback, useEffect, useRef } from 'react';
 
 // Define dialog types
 export type DialogType = 'report' | 'block' | 'siteRules' | 'logout' | 'vipLogin' | 'vipSignup' 
   | 'vipSubscription' | 'vipPayment' | 'vipConfirmation' | 'accountDeletion' | 'vipSelect' 
-  | 'confirm' | 'alert' | 'prompt' | 'select' | null;
+  | 'confirm' | 'alert' | 'prompt' | 'select' | 'userEdit' | null;
 
 // Define dialog state
 interface DialogState {
