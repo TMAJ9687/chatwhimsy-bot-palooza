@@ -5,7 +5,7 @@ import { BanRecord, AdminAction } from '@/types/admin';
 import { Bot } from '@/types/chat';
 import { getBannedUsers, kickUser, banUser, unbanUser } from '@/services/admin/userAdminService';
 import { getAdminActions } from '@/services/admin/adminActionService';
-import { useAdminVip } from './useAdminVip';
+import { useAdminVipManager } from './useAdminVipManager';
 
 /**
  * Custom hook for user management functionality
@@ -21,12 +21,12 @@ export const useAdminUsers = (
   const [bannedUsers, setBannedUsers] = useState<BanRecord[]>([]);
   const [isUserProcessing, setIsUserProcessing] = useState(false);
   
-  // Import VIP management from separate hook
+  // Use our refactored VIP manager hook
   const { 
     upgradeToVIP, 
     downgradeToStandard, 
     isProcessing: isVipProcessing 
-  } = useAdminVip(isAdmin, user, setBots, setAdminActions);
+  } = useAdminVipManager(isAdmin, user, setBots, setAdminActions);
   
   // Load banned users data
   const loadBannedUsers = useCallback(async () => {
@@ -51,7 +51,6 @@ export const useAdminUsers = (
     
     try {
       setIsUserProcessing(true);
-      console.log('Kicking user:', userId);
       
       // Optimistic update
       const tempAction: AdminAction = {
@@ -75,13 +74,11 @@ export const useAdminUsers = (
           title: 'Success',
           description: 'User kicked successfully',
         });
-        console.log('User kicked successfully');
         
         return true;
       } else {
         // Remove temporary action if failed
         setAdminActions(prev => prev.filter(a => a.id !== tempAction.id));
-        console.error('User kick failed');
         return false;
       }
     } catch (error) {

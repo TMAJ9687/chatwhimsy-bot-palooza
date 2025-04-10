@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useChatInitialization } from './useChatInitialization';
@@ -13,7 +14,7 @@ import { useDashboardLoader } from './admin/useDashboardLoader';
 import { Bot } from '@/types/chat';
 import * as adminService from '@/services/admin/adminService';
 
-// Use a constant flag to completely disable user tracking
+// Disable user tracking to improve performance
 const DISABLE_USER_TRACKING = true;
 
 export const useAdmin = () => {
@@ -23,7 +24,7 @@ export const useAdmin = () => {
   const isProcessingRef = useRef(false);
   const lastTrackingUpdateRef = useRef(0);
   
-  // Initialize all admin hooks
+  // Initialize admin hooks
   const { isAdmin, adminLogout: authLogout, changeAdminPassword, loading: authLoading, adminData } = useAdminAuth();
   const { adminActions, setAdminActions, loadAdminActions } = useAdminActions(isAdmin);
   const { 
@@ -36,10 +37,10 @@ export const useAdmin = () => {
     isProcessing: isBotsProcessing 
   } = useAdminBots(isAdmin);
 
-  // Pass current user from authentication data
+  // Current user from authentication data
   const currentUser = adminData;
   
-  // Initialize users management with both standard user management and VIP methods
+  // Initialize users management
   const { 
     bannedUsers, 
     loadBannedUsers, 
@@ -51,6 +52,7 @@ export const useAdmin = () => {
     isProcessing: isUsersProcessing 
   } = useAdminUsers(isAdmin, bots, setBots, setAdminActions, currentUser);
   
+  // Initialize reports management
   const { 
     reportsFeedback, 
     loadReportsAndFeedback, 
@@ -61,6 +63,7 @@ export const useAdmin = () => {
     deleteReportFeedback 
   } = useAdminReports(isAdmin);
   
+  // Admin settings
   const { saveSiteSettings, getSiteSettings } = useAdminSettings(isAdmin);
   
   // Fix: Update the cleanupExpiredReports function to return a boolean
@@ -73,7 +76,7 @@ export const useAdmin = () => {
     }
   }, [cleanupExpiredReports]);
   
-  // Initialize the dashboard loader with the fixed cleanupExpiredReports function
+  // Initialize the dashboard loader
   const { loadDashboardData } = useDashboardLoader(
     isAdmin,
     setBots,
@@ -85,7 +88,7 @@ export const useAdmin = () => {
     wrappedCleanupReports
   );
   
-  // Initialize the admin logout functionality
+  // Admin logout functionality
   const { adminLogout } = useAdminLogout(authLogout);
   
   // Get calculated stats
@@ -97,7 +100,7 @@ export const useAdmin = () => {
   // Dashboard loading state
   const [loading, setLoading] = useState(true);
   
-  // Load dashboard data when admin status changes - with proper cleanup
+  // Load dashboard data when admin status changes
   useEffect(() => {
     let isMounted = true;
     
@@ -115,46 +118,11 @@ export const useAdmin = () => {
     };
   }, [isAdmin, loadDashboardData]);
   
-  // Completely disable user tracking or throttle extremely aggressively
-  useEffect(() => {
-    if (DISABLE_USER_TRACKING || !isAdmin || isProcessingRef.current) return;
-    
-    // Extremely throttle updates to once per 30 seconds maximum
-    const now = Date.now();
-    if (now - lastTrackingUpdateRef.current < 30000) {
-      return;
-    }
-    
-    // Set processing flag to prevent concurrent processing
-    isProcessingRef.current = true;
-    lastTrackingUpdateRef.current = now;
-    
-    // Process only one user at a time maximum
-    const chatUserIds = chatUsers.map(user => user.id);
-    const newUsers = chatUserIds.filter(id => !processedUsersRef.current.has(id));
-    
-    if (newUsers.length > 0) {
-      // Just track one user at a time
-      const userToTrack = newUsers[0];
-      trackUserOnlineStatus(userToTrack, true);
-      processedUsersRef.current.add(userToTrack);
-    }
-    
-    // Always ensure processing flag is reset
-    setTimeout(() => {
-      isProcessingRef.current = false;
-    }, 1000);
-    
-  }, [isAdmin, trackUserOnlineStatus, chatUsers]);
-  
-  // Clean up all tracking
+  // Clean up all tracking when unmounting
   useEffect(() => {
     return () => {
       if (isAdmin) {
-        // Clean up all user tracking to prevent memory leaks
         adminService.cleanupUserTracking();
-        
-        // Reset our tracking state
         processedUsersRef.current.clear();
         lastTrackingUpdateRef.current = 0;
       }
@@ -197,8 +165,6 @@ export const useAdmin = () => {
     // Admin settings
     changeAdminPassword,
     adminLogout,
-    
-    // Site settings
     saveSiteSettings,
     getSiteSettings,
     
