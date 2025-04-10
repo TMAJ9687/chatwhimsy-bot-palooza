@@ -19,6 +19,37 @@ const AdminLogin: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loginAttempts, setLoginAttempts] = useState(0);
   
+  // Check if already logged in
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        // If admin data exists in localStorage, check if we should redirect
+        const adminData = localStorage.getItem('adminData');
+        if (adminData) {
+          console.log('Admin data found, checking if redirect needed');
+          
+          // In development mode, redirect right away
+          if (import.meta.env.MODE === 'development') {
+            console.log('Development mode: redirecting to dashboard');
+            navigate('/admin-dashboard');
+            return;
+          }
+          
+          // For demonstration purposes, allow quick login with adminEmail
+          const adminEmail = localStorage.getItem('adminEmail');
+          if (adminEmail) {
+            console.log('Admin email found, redirecting to dashboard');
+            navigate('/admin-dashboard');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+      }
+    };
+    
+    checkAdminStatus();
+  }, [navigate]);
+  
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
@@ -35,7 +66,7 @@ const AdminLogin: React.FC = () => {
         return;
       }
       
-      // In this demo, allow any login for testing
+      // In development mode, allow any login for testing
       let isValid = true;
       
       if (import.meta.env.MODE === 'production') {

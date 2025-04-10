@@ -1,14 +1,17 @@
 
 import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SubscriptionTier, UserProfile } from '@/types/user';
 import { redirectToVipSubscription } from '@/utils/vipRedirect';
 
 export const useVipSubscription = (
   updateUserProfile: (profile: Partial<UserProfile>) => void
 ) => {
+  const navigate = useNavigate();
+  
   const subscribeToVip = useCallback((tier: SubscriptionTier) => {
-    // First attempt to redirect to subscription page
-    const redirected = redirectToVipSubscription(tier);
+    // Use React Router navigation for redirection
+    const redirected = redirectToVipSubscription(tier, navigate);
     
     // If redirect fails (or we're in development), proceed with instant upgrade
     if (!redirected) {
@@ -36,7 +39,7 @@ export const useVipSubscription = (
         voiceMessagesRemaining: Infinity
       });
     }
-  }, [updateUserProfile]);
+  }, [navigate, updateUserProfile]);
   
   const cancelVipSubscription = useCallback(() => {
     updateUserProfile({ 

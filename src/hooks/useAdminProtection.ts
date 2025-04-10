@@ -34,9 +34,8 @@ export const useAdminProtection = (redirectPath: string = '/secretadminportal') 
       // If not logged in as admin and on a protected page, redirect to login
       if (!adminLoggedIn && location.pathname.includes('/admin')) {
         console.log('Not authenticated as admin, redirecting to login page');
-        setTimeout(() => {
-          navigate(redirectPath);
-        }, 100);
+        // Use navigate instead of setTimeout to avoid race conditions
+        navigate(redirectPath);
       }
       
       setIsLoading(false);
