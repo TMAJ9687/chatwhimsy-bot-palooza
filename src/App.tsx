@@ -27,7 +27,7 @@ import NavigationLock from './components/shared/NavigationLock';
 import AuthListener from './components/core/AuthListener';
 import { UserProvider } from './context/UserContext';
 import { UIStateProvider } from './context/UIStateContext';
-import { DialogProvider } from './components/providers/DialogProvider';
+import { DialogProvider } from './context/DialogContext';
 import DialogContainer from './components/dialogs/DialogContainer';
 import ErrorHandler from './components/core/ErrorHandler';
 
@@ -74,20 +74,18 @@ const App = () => {
                           <Route path="/vip-signup" element={<VipSignup />} />
                           <Route path="/vip-login" element={<VipLogin />} />
                           
-                          {/* Consolidated VIP subscription routes */}
+                          {/* VIP subscription routes */}
                           <Route path="/subscribe" element={<VipSubscription />} />
                           <Route path="/subscribe/monthly" element={<VipSubscription />} />
                           <Route path="/subscribe/semiannual" element={<VipSubscription />} />
                           <Route path="/subscribe/annual" element={<VipSubscription />} />
-                          
-                          {/* Redirect old VIP subscription routes */}
                           <Route path="/vip-subscription" element={<Navigate to="/subscribe" replace />} />
                           
                           <Route path="/vip-payment" element={<VipPayment />} />
                           <Route path="/vip-confirmation" element={<VipConfirmation />} />
                           <Route path="/feedback" element={<Feedback />} />
                           
-                          {/* Consolidated Admin routes */}
+                          {/* Admin routes */}
                           <Route path="/secretadminportal" element={<AdminLogin />} />
                           <Route path="/admin-dashboard" element={<AdminDashboard />} />
                           <Route path="/admin-dashboard/*" element={<AdminDashboard />} />

@@ -71,10 +71,12 @@ const PortalManager: React.FC = () => {
     
     // Clean up when component unmounts
     return () => {
+      // Don't attempt cleanup if we're not initialized
+      if (!initializedRef.current) return;
       initializedRef.current = false;
       
       // Only attempt removal if document is available
-      if (typeof document !== 'undefined') {
+      if (typeof document !== 'undefined' && document.body) {
         try {
           const element = document.getElementById('portal-root');
           if (element && element.parentNode) {

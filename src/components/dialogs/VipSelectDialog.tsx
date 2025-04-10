@@ -53,7 +53,9 @@ const VipSelectDialog = () => {
   };
 
   return (
-    <Dialog open={state.type === 'vipSelect'} onOpenChange={closeDialog}>
+    <Dialog open={state.type === 'vipSelect'} onOpenChange={(open) => {
+      if (!open) closeDialog();
+    }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900 mb-4">

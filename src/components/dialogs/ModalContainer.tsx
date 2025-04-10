@@ -7,6 +7,7 @@ import LogoutErrorBoundary from '@/components/error/LogoutErrorBoundary';
 import SiteRulesModal from './SiteRulesModal';
 import LogoutConfirmationModal from './LogoutConfirmationModal';
 import AlertModal from './AlertModal';
+import VipSelectModal from './VipSelectModal';
 
 // Simple loading fallback
 const ModalFallback = () => (
@@ -26,7 +27,6 @@ const VipSubscriptionModal = lazy(() => import('./VipSubscriptionModal'));
 const VipPaymentModal = lazy(() => import('./VipPaymentModal'));
 const VipConfirmationModal = lazy(() => import('./VipConfirmationModal'));
 const AccountDeletionModal = lazy(() => import('./AccountDeletionModal'));
-const VipSelectModal = lazy(() => import('./VipSelectModal'));
 const ConfirmModal = lazy(() => import('./ConfirmModal'));
 
 const ModalContainer: React.FC = () => {
@@ -53,6 +53,10 @@ const ModalContainer: React.FC = () => {
   if (state.type === 'alert') {
     return <AlertModal />;
   }
+  
+  if (state.type === 'vipSelect') {
+    return <VipSelectModal />;
+  }
 
   return (
     <Suspense fallback={<ModalFallback />}>
@@ -74,8 +78,6 @@ const ModalContainer: React.FC = () => {
             return <VipConfirmationModal />;
           case 'accountDeletion':
             return <AccountDeletionModal />;
-          case 'vipSelect':
-            return <VipSelectModal />;
           case 'confirm':
             return <ConfirmModal />;
           default:

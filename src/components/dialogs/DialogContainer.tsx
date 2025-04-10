@@ -10,6 +10,7 @@ import LogoutConfirmationDialog from './LogoutConfirmationDialog';
 import ConfirmDialog from './ConfirmDialog';
 import AlertDialogComponent from './AlertDialog';
 import UserEditDialog from './UserEditDialog';
+import VipSelectDialog from './VipSelectDialog';
 
 // Using lazy loading for all other dialogs to reduce initial load time
 const ReportDialog = React.lazy(() => import('./ReportDialog'));
@@ -20,7 +21,6 @@ const VipSubscriptionDialog = React.lazy(() => import('./VipSubscriptionDialog')
 const VipPaymentDialog = React.lazy(() => import('./VipPaymentDialog'));
 const VipConfirmationDialog = React.lazy(() => import('./VipConfirmationDialog'));
 const AccountDeletionDialog = React.lazy(() => import('./AccountDeletionDialog'));
-const VipSelectDialog = React.lazy(() => import('./VipSelectDialog'));
 const PromptDialog = React.lazy(() => import('./PromptDialog'));
 const SelectDialog = React.lazy(() => import('./SelectDialog'));
 
@@ -142,6 +142,16 @@ const DialogContainer = () => {
     }
   }
 
+  // Add VipSelectDialog to render without suspense
+  if (dialogState.type === 'vipSelect') {
+    try {
+      return <VipSelectDialog key="vipSelect" />;
+    } catch (error) {
+      console.error('Error rendering VipSelectDialog:', error);
+      return null;
+    }
+  }
+
   return (
     <Suspense fallback={<DialogFallback />}>
       {(() => {
@@ -166,8 +176,6 @@ const DialogContainer = () => {
             return <VipConfirmationDialog key="vipConfirmation" />;
           case 'accountDeletion':
             return <AccountDeletionDialog key="accountDeletion" />;
-          case 'vipSelect':
-            return <VipSelectDialog key="vipSelect" />;
           case 'prompt':
             return <PromptDialog key="prompt" />;
           case 'select':

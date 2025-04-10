@@ -1,17 +1,17 @@
 
 import React from 'react';
 import { DialogProvider as ContextDialogProvider } from '@/context/DialogContext';
-import { DialogProvider as HooksDialogProvider } from '@/hooks/use-dialog';
 
-// Wrapper component that combines both dialog providers
+/**
+ * DialogProvider component that provides dialog context to the app
+ * This is a simplified version to avoid having multiple dialog providers
+ */
 export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ 
   children 
 }) => {
   return (
     <ContextDialogProvider>
-      <HooksDialogProvider>
-        {children}
-      </HooksDialogProvider>
+      {children}
     </ContextDialogProvider>
   );
 };
