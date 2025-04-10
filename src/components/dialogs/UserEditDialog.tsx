@@ -32,6 +32,10 @@ const UserEditDialog: React.FC<UserEditDialogProps> = () => {
     closeDialog();
   };
 
+  const handleCancel = () => {
+    closeDialog();
+  };
+
   return (
     <Dialog open={true} onOpenChange={closeDialog}>
       <DialogContent className="sm:max-w-lg">
@@ -43,7 +47,11 @@ const UserEditDialog: React.FC<UserEditDialogProps> = () => {
         </DialogHeader>
 
         {user ? (
-          <UserEditForm user={user} onSave={handleSave} />
+          <UserEditForm 
+            user={user} 
+            onSave={handleSave} 
+            onCancel={handleCancel}
+          />
         ) : (
           <div className="py-6 text-center">
             <p>No user data available.</p>
