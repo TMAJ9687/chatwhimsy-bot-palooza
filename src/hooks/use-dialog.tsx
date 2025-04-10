@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState } from 'react';
 import {
   AlertDialog,
@@ -18,9 +19,10 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import UserEditForm from '@/components/admin/UserEditForm';
 
 // Dialog types
-export type DialogType = 'alert' | 'confirm' | 'prompt' | 'select' | 'report' | 'block' | 'custom';
+export type DialogType = 'alert' | 'confirm' | 'prompt' | 'select' | 'report' | 'block' | 'custom' | 'userEdit';
 
 // Common props - making onConfirm optional and generic to fix the extension errors
 interface DialogBaseProps {
@@ -64,6 +66,11 @@ interface BlockDialogProps extends DialogBaseProps {
   onBlockUser: (userId: string) => void;
 }
 
+interface UserEditDialogProps extends DialogBaseProps {
+  user: any;
+  onSave: (updatedUser: any) => void;
+}
+
 interface CustomDialogProps extends DialogBaseProps {
   content: string;
   data?: any;
@@ -78,10 +85,13 @@ type DialogProps =
   | { type: 'select'; props: SelectDialogProps }
   | { type: 'report'; props: ReportDialogProps }
   | { type: 'block'; props: BlockDialogProps }
+  | { type: 'userEdit'; props: UserEditDialogProps }
   | { type: 'custom'; props: CustomDialogProps };
 
 // Context type
 interface DialogContextType {
+  open?: boolean;
+  dialogConfig?: DialogProps | null;
   openDialog: <T extends DialogType>(
     type: T,
     props: T extends 'alert'
@@ -96,11 +106,17 @@ interface DialogContextType {
       ? ReportDialogProps
       : T extends 'block'
       ? BlockDialogProps
+      : T extends 'userEdit'
+      ? UserEditDialogProps
       : T extends 'custom'
       ? CustomDialogProps
       : never
   ) => void;
   closeDialog: () => void;
+  inputValue?: string;
+  setInputValue?: React.Dispatch<React.SetStateAction<string>>;
+  selectValue?: string;
+  setSelectValue?: React.Dispatch<React.SetStateAction<string>>;
 }
 
 // Create context
@@ -127,6 +143,8 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       ? ReportDialogProps
       : T extends 'block'
       ? BlockDialogProps
+      : T extends 'userEdit'
+      ? UserEditDialogProps
       : T extends 'custom'
       ? CustomDialogProps
       : never
@@ -174,21 +192,42 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // For custom dialogs, we can use onClose callback
         dialogConfig.props.onClose?.();
         break;
+      // No case for userEdit as it's handled separately with its own form
     }
     setOpen(false);
   };
 
+  // Special handler for user edit form
+  const handleUserSave = (updatedUser: any) => {
+    if (!dialogConfig || dialogConfig.type !== 'userEdit') return;
+    (dialogConfig.props.onSave as (user: any) => void)(updatedUser);
+    setOpen(false);
+  };
+
   return (
-    <DialogContext.Provider value={{ openDialog, closeDialog }}>
+    <DialogContext.Provider 
+      value={{ 
+        open, 
+        dialogConfig, 
+        openDialog, 
+        closeDialog,
+        inputValue,
+        setInputValue,
+        selectValue,
+        setSelectValue
+      }}
+    >
       {children}
 
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{dialogConfig?.props.title}</AlertDialogTitle>
-            <AlertDialogDescription className="whitespace-pre-line">
-              {dialogConfig?.props.message}
-            </AlertDialogDescription>
+            {dialogConfig?.type !== 'userEdit' && (
+              <AlertDialogDescription className="whitespace-pre-line">
+                {dialogConfig?.props.message}
+              </AlertDialogDescription>
+            )}
           </AlertDialogHeader>
 
           {dialogConfig?.type === 'prompt' && (
@@ -224,22 +263,34 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             </Select>
           )}
 
+          {dialogConfig?.type === 'userEdit' && (
+            <div className="py-2">
+              <UserEditForm
+                user={(dialogConfig.props as UserEditDialogProps).user}
+                onSave={handleUserSave}
+                onCancel={closeDialog}
+              />
+            </div>
+          )}
+
           {dialogConfig?.type === 'custom' && (
             <div className="mt-4">
               <div className="text-center text-sm text-gray-500">
-                Custom content: {(dialogConfig.props as any).content}
+                Custom content: {(dialogConfig.props as CustomDialogProps).content}
               </div>
             </div>
           )}
 
-          <AlertDialogFooter>
-            <AlertDialogCancel>
-              {dialogConfig?.props.cancelLabel || 'Cancel'}
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirm}>
-              {dialogConfig?.props.confirmLabel || 'Continue'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
+          {dialogConfig?.type !== 'userEdit' && (
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={closeDialog}>
+                {dialogConfig?.props.cancelLabel || 'Cancel'}
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirm}>
+                {dialogConfig?.props.confirmLabel || 'Continue'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          )}
         </AlertDialogContent>
       </AlertDialog>
     </DialogContext.Provider>

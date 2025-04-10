@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Bot } from '@/types/chat';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -102,7 +103,7 @@ const UserActionsButton: React.FC<UserActionsButtonProps> = ({ user, userType = 
     openDialog('userEdit', {
       title: 'Edit User',
       message: '',
-      user,
+      user: user,
       onSave: (updatedUser: Bot) => {
         updateBot(updatedUser);
         toast({
