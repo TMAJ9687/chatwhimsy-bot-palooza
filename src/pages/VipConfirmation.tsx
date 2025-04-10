@@ -1,22 +1,42 @@
 
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Crown } from 'lucide-react';
+import { CheckCircle2, Crown, Loader2 } from 'lucide-react';
 import ThemeToggle from '@/components/shared/ThemeToggle';
+import { useVipPricing } from '@/hooks/useVipPricing';
 
 const VipConfirmation = () => {
   const navigate = useNavigate();
-  const { isVip } = useUser();
+  const location = useLocation();
+  const { isVip, user } = useUser();
+  const { prices, loading: pricesLoading } = useVipPricing();
+  const [loading, setLoading] = useState(true);
+  const [tier, setTier] = useState<string | null>(null);
+  
+  // Extract subscription data from URL or state
+  useEffect(() => {
+    // Parse tier from query params or state
+    const params = new URLSearchParams(location.search);
+    const tierParam = params.get('tier') || (location.state?.tier as string) || 'monthly';
+    setTier(tierParam);
+    
+    // Simulate loading process
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [location]);
   
   // If not VIP, redirect to signup
-  React.useEffect(() => {
-    if (!isVip) {
+  useEffect(() => {
+    if (!loading && !isVip && !location.state?.fromPayment) {
       navigate('/vip-subscription');
     }
-  }, [isVip, navigate]);
+  }, [isVip, navigate, loading, location.state]);
   
   const handleContinueToProfile = () => {
     navigate('/vip-profile');
@@ -24,6 +44,30 @@ const VipConfirmation = () => {
   
   const handleGoToChat = () => {
     navigate('/chat');
+  };
+  
+  // Show loader while processing
+  if (loading || pricesLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-secondary/20">
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 animate-spin mx-auto mb-4 text-primary" />
+          <h2 className="text-xl font-semibold">Processing subscription...</h2>
+          <p className="text-muted-foreground mt-2">Please wait while we activate your VIP account.</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Format the subscription price based on tier
+  const getSubscriptionPrice = () => {
+    if (tier === 'annual') {
+      return prices.annualPrice;
+    } else if (tier === 'semiannual') {
+      return prices.semiannualPrice;
+    } else {
+      return prices.monthlyPrice;
+    }
   };
   
   return (
@@ -40,7 +84,7 @@ const VipConfirmation = () => {
             </div>
             <h1 className="text-2xl font-bold text-center">Welcome to VIP!</h1>
             <p className="text-center text-muted-foreground mt-2">
-              Your payment was successful and your VIP account is now active.
+              Your {tier === 'annual' ? 'annual' : tier === 'semiannual' ? 'semi-annual' : 'monthly'} subscription is now active.
             </p>
           </CardHeader>
           
@@ -51,7 +95,7 @@ const VipConfirmation = () => {
                 <div>
                   <h3 className="font-medium">VIP Status Activated</h3>
                   <p className="text-sm text-muted-foreground">
-                    You now have access to all premium features and benefits.
+                    {tier === 'annual' ? 'Annual' : tier === 'semiannual' ? 'Semi-Annual' : 'Monthly'} plan: {getSubscriptionPrice()}
                   </p>
                 </div>
               </div>

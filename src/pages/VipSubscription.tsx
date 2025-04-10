@@ -1,171 +1,219 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CheckCircle, Crown, Shield } from 'lucide-react';
+import { useVipPricing } from '@/hooks/useVipPricing';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, Check, Crown } from 'lucide-react';
+import { SubscriptionTier } from '@/types/user';
 import ThemeToggle from '@/components/shared/ThemeToggle';
-
-type SubscriptionTier = {
-  id: 'monthly' | 'semiannual' | 'annual';
-  title: string;
-  price: string;
-  originalPrice?: string;
-  discount?: string;
-  description: string;
-  recommended?: boolean;
-  billingCycle: string;
-};
 
 const VipSubscription = () => {
   const navigate = useNavigate();
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'semiannual' | 'annual'>('annual');
+  const { prices, monthlyPrice, semiannualPrice, annualPrice, loading } = useVipPricing();
+  const [selectedTier, setSelectedTier] = useState<SubscriptionTier>('monthly');
   
-  const subscriptionTiers: SubscriptionTier[] = [
-    {
-      id: 'monthly',
-      title: 'Monthly',
-      price: '$4.99',
-      billingCycle: 'Billed every month',
-      description: 'Great for trying out VIP features'
-    },
-    {
-      id: 'semiannual',
-      title: 'Semi-Annual',
-      price: '$24.99',
-      originalPrice: '$29.94',
-      discount: '16%',
-      billingCycle: 'Billed every six months',
-      description: 'Best for regular users'
-    },
-    {
-      id: 'annual',
-      title: 'Annual',
-      price: '$35.99',
-      originalPrice: '$59.88',
-      discount: '40%',
-      billingCycle: 'Billed once a year',
-      description: 'For our most dedicated users',
-      recommended: true
-    }
-  ];
-
-  const handleContinue = () => {
-    // Navigate to signup page with selected plan
-    navigate(`/vip-signup?plan=${selectedPlan}`);
+  const handleSubscribe = (tier: SubscriptionTier) => {
+    // Navigate to payment page with tier information
+    navigate('/vip-payment', { state: { tier } });
   };
-
-  const handleBackToHome = () => {
-    navigate('/');
+  
+  const discountPercentage = (tier: SubscriptionTier): number => {
+    if (tier === 'annual') {
+      return Math.floor(100 - ((prices.annual / (prices.monthly * 12)) * 100));
+    } else if (tier === 'semiannual') {
+      return Math.floor(100 - ((prices.semiannual / (prices.monthly * 6)) * 100));
+    }
+    return 0;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 px-4 py-12">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <Button variant="ghost" onClick={handleBackToHome} className="flex items-center space-x-2">
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Home</span>
-          </Button>
+    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 p-4 py-10">
+      <div className="container max-w-5xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <Crown className="text-yellow-500 h-8 w-8" />
+              VIP Subscription
+            </h1>
+            <p className="text-muted-foreground">Choose the plan that works best for you</p>
+          </div>
           <ThemeToggle />
         </div>
         
-        <div className="mb-8 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900 mb-4">
-            <Crown className="h-8 w-8 text-amber-500" />
-          </div>
-          <h1 className="text-3xl font-bold mb-2">Choose Your VIP Plan</h1>
-          <p className="text-muted-foreground max-w-xl mx-auto">
-            Unlock all premium features and enhance your experience with unlimited messages, photos, and more.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {subscriptionTiers.map((tier) => (
-            <Card
-              key={tier.id}
-              className={`relative overflow-hidden transition-all ${
-                selectedPlan === tier.id 
-                  ? 'ring-2 ring-amber-500 bg-amber-50/50 dark:bg-amber-950/10' 
-                  : 'hover:border-amber-200 hover:bg-amber-50/20 dark:hover:bg-amber-950/5'
-              }`}
-              onClick={() => setSelectedPlan(tier.id)}
-            >
-              {tier.recommended && (
-                <div className="absolute top-0 right-0 left-0 bg-amber-500 text-white text-center text-xs py-1 font-medium">
-                  Best Value
-                </div>
-              )}
-              
-              <CardContent className={`p-6 ${tier.recommended ? 'pt-8' : 'pt-6'}`}>
-                <div className="mb-4">
-                  <h3 className="text-xl font-bold">{tier.title}</h3>
-                  <p className="text-sm text-muted-foreground">{tier.billingCycle}</p>
-                </div>
-                
-                <div className="mb-6">
-                  <div className="text-3xl font-bold">{tier.price}</div>
-                  {tier.originalPrice && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      <span className="line-through mr-1">{tier.originalPrice}</span>
-                      Save {tier.discount}
-                    </div>
-                  )}
-                </div>
-                
-                <p className="text-sm text-muted-foreground mb-6">
-                  {tier.description}
-                </p>
-                
-                <Button 
-                  className={`w-full ${
-                    selectedPlan === tier.id 
-                      ? 'bg-amber-500 hover:bg-amber-600' 
-                      : 'bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
-                  }`}
-                  onClick={() => setSelectedPlan(tier.id)}
-                >
-                  {selectedPlan === tier.id ? 'Selected' : 'Select Plan'}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg border p-6 mb-8">
-          <h3 className="text-xl font-semibold mb-4">VIP Benefits</h3>
+        <div className="grid gap-8 md:grid-cols-3 my-8">
+          {/* Monthly Plan */}
+          <Card className={`border-2 transition-all ${selectedTier === 'monthly' ? 'border-primary shadow-lg' : 'border-border'}`}>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                Monthly
+                {selectedTier === 'monthly' && <CheckCircle className="h-5 w-5 text-primary" />}
+              </CardTitle>
+              <div className="mt-2">
+                <span className="text-3xl font-bold">{loading ? '$--' : monthlyPrice}</span>
+                <span className="text-muted-foreground"> /month</span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground text-sm">Perfect if you want to try out VIP benefits</p>
+              <ul className="space-y-2">
+                <li className="flex items-start gap-2">
+                  <Shield className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" /> 
+                  <span>Unlimited photo uploads</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Shield className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" /> 
+                  <span>Voice messages</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Shield className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" /> 
+                  <span>Priority support</span>
+                </li>
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={() => handleSubscribe('monthly')} 
+                className={`w-full ${selectedTier === 'monthly' ? 'bg-primary' : 'bg-muted'}`}
+                variant={selectedTier === 'monthly' ? 'default' : 'outline'}
+                onClick={() => {
+                  setSelectedTier('monthly');
+                  handleSubscribe('monthly');
+                }}
+              >
+                Subscribe Monthly
+              </Button>
+            </CardFooter>
+          </Card>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {[
-              'Send unlimited photos',
-              'Send unlimited voice messages',
-              'Chat history view',
-              'Customer Support',
-              'Customized avatars',
-              'Appear at top of the list',
-              'Ad free experience',
-              'React, reply, edit, unsend messages',
-              'View message status',
-              'Hide your own message status',
-              'Control your online status'
-            ].map((benefit, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <div className="bg-green-100 dark:bg-green-900/30 rounded-full p-1 flex-shrink-0">
-                  <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+          {/* Semi-annual Plan */}
+          <Card className={`border-2 transition-all ${selectedTier === 'semiannual' ? 'border-primary shadow-lg' : 'border-border'}`}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Semi-annual</CardTitle>
+                {selectedTier === 'semiannual' && <CheckCircle className="h-5 w-5 text-primary" />}
+              </div>
+              <div className="mt-2">
+                <span className="text-3xl font-bold">{loading ? '$--' : semiannualPrice}</span>
+                <span className="text-muted-foreground"> /6 months</span>
+                <div className="mt-1">
+                  <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-0.5 rounded text-xs">
+                    Save {discountPercentage('semiannual')}%
+                  </span>
                 </div>
-                <span className="text-sm">{benefit}</span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground text-sm">Best value for committed users</p>
+              <ul className="space-y-2">
+                <li className="flex items-start gap-2">
+                  <Shield className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" /> 
+                  <span>All monthly benefits</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Shield className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" /> 
+                  <span>Longer voice messages</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Shield className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" /> 
+                  <span>Exclusive emojis</span>
+                </li>
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={() => {
+                  setSelectedTier('semiannual');
+                  handleSubscribe('semiannual');
+                }} 
+                className={`w-full ${selectedTier === 'semiannual' ? 'bg-primary' : 'bg-muted'}`}
+                variant={selectedTier === 'semiannual' ? 'default' : 'outline'}
+              >
+                Subscribe Semi-annually
+              </Button>
+            </CardFooter>
+          </Card>
+          
+          {/* Annual Plan */}
+          <Card className={`border-2 transition-all ${selectedTier === 'annual' ? 'border-primary shadow-lg' : 'border-border bg-muted/20'}`}>
+            <div className="absolute inset-x-0 -top-2 flex justify-center">
+              <span className="bg-primary text-primary-foreground px-3 py-0.5 rounded-full text-xs font-semibold">
+                Best Value
+              </span>
+            </div>
+            <CardHeader className="pt-6">
+              <div className="flex items-center justify-between">
+                <CardTitle>Annual</CardTitle>
+                {selectedTier === 'annual' && <CheckCircle className="h-5 w-5 text-primary" />}
+              </div>
+              <div className="mt-2">
+                <span className="text-3xl font-bold">{loading ? '$--' : annualPrice}</span>
+                <span className="text-muted-foreground"> /year</span>
+                <div className="mt-1">
+                  <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-0.5 rounded text-xs">
+                    Save {discountPercentage('annual')}%
+                  </span>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground text-sm">Maximum savings and all premium features</p>
+              <ul className="space-y-2">
+                <li className="flex items-start gap-2">
+                  <Shield className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" /> 
+                  <span>All semi-annual benefits</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Shield className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" /> 
+                  <span>Custom user badges</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Shield className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" /> 
+                  <span>Premium interface themes</span>
+                </li>
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={() => {
+                  setSelectedTier('annual');
+                  handleSubscribe('annual');
+                }} 
+                className={`w-full ${selectedTier === 'annual' ? 'bg-primary' : 'bg-muted'}`}
+                variant={selectedTier === 'annual' ? 'default' : 'outline'}
+              >
+                Subscribe Annually
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+        
+        <div className="mt-8 bg-card rounded-lg p-6 border">
+          <h2 className="text-xl font-semibold mb-4">All VIP Plans Include:</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              'Unlimited photo uploads',
+              'Voice message capability',
+              'Message status indicators',
+              'Longer messages (200 characters)',
+              'Priority customer support',
+              'Custom avatars',
+              'Message timestamps',
+              'No advertisements',
+              'Enhanced privacy options'
+            ].map((feature, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                <span>{feature}</span>
               </div>
             ))}
           </div>
-        </div>
-        
-        <div className="flex justify-center">
-          <Button 
-            onClick={handleContinue}
-            className="px-8 py-6 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-lg"
-          >
-            Continue with {selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1)} Plan
-          </Button>
+          
+          <div className="mt-6 pt-6 border-t">
+            <Button variant="ghost" onClick={() => navigate('/')}>
+              Back to Home
+            </Button>
+          </div>
         </div>
       </div>
     </div>

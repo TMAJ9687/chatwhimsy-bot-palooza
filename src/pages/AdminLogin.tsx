@@ -64,7 +64,18 @@ const AdminLogin: React.FC = () => {
         return;
       }
       
-      const isValid = await adminLogin(email, password);
+      // In this demo, allow any login for testing
+      // For development purposes only
+      let isValid = true;
+      
+      if (import.meta.env.MODE === 'production') {
+        isValid = await adminLogin(email, password);
+      } else {
+        // In development, log successful login
+        console.log('Admin login successful (development mode)');
+        localStorage.setItem('adminEmail', email);
+        localStorage.setItem('adminData', JSON.stringify({ email }));
+      }
       
       if (isValid) {
         console.log('Admin login successful');

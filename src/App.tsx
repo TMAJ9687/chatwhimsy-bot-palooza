@@ -27,7 +27,7 @@ import NavigationLock from './components/shared/NavigationLock';
 import AuthListener from './components/core/AuthListener';
 import { UserProvider } from './context/UserContext';
 import { UIStateProvider } from './context/UIStateContext';
-import { DialogProvider } from './components/providers/DialogProvider';
+import { DialogProvider } from './hooks/use-dialog';
 import DialogContainer from './components/dialogs/DialogContainer';
 import ErrorHandler from './components/core/ErrorHandler';
 
@@ -79,8 +79,13 @@ const App = () => {
                           <Route path="/feedback" element={<Feedback />} />
                           <Route path="/secretadminportal" element={<AdminLogin />} />
                           <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                          <Route path="/admin" element={<NotFound />} />
-                          <Route path="/admin-login" element={<NotFound />} />
+                          <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
+                          <Route path="/admin" element={<AdminLogin />} />
+                          <Route path="/admin-login" element={<AdminLogin />} />
+                          <Route path="/subscribe" element={<VipSubscription />} />
+                          <Route path="/subscribe/monthly" element={<VipSubscription />} />
+                          <Route path="/subscribe/semiannual" element={<VipSubscription />} />
+                          <Route path="/subscribe/annual" element={<VipSubscription />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                         
