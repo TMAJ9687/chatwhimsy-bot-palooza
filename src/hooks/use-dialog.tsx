@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState } from 'react';
 import {
   AlertDialog,
@@ -21,7 +20,7 @@ import {
 } from '@/components/ui/select';
 
 // Dialog types
-export type DialogType = 'alert' | 'confirm' | 'prompt' | 'select' | 'report' | 'block';
+export type DialogType = 'alert' | 'confirm' | 'prompt' | 'select' | 'report' | 'block' | 'custom';
 
 // Common props - making onConfirm optional and generic to fix the extension errors
 interface DialogBaseProps {
@@ -65,6 +64,12 @@ interface BlockDialogProps extends DialogBaseProps {
   onBlockUser: (userId: string) => void;
 }
 
+interface CustomDialogProps extends DialogBaseProps {
+  content: string;
+  data?: any;
+  onClose?: () => void;
+}
+
 // Union of all dialog props
 type DialogProps =
   | { type: 'alert'; props: AlertDialogProps }
@@ -72,7 +77,8 @@ type DialogProps =
   | { type: 'prompt'; props: PromptDialogProps }
   | { type: 'select'; props: SelectDialogProps }
   | { type: 'report'; props: ReportDialogProps }
-  | { type: 'block'; props: BlockDialogProps };
+  | { type: 'block'; props: BlockDialogProps }
+  | { type: 'custom'; props: CustomDialogProps };
 
 // Context type
 interface DialogContextType {
@@ -90,6 +96,8 @@ interface DialogContextType {
       ? ReportDialogProps
       : T extends 'block'
       ? BlockDialogProps
+      : T extends 'custom'
+      ? CustomDialogProps
       : never
   ) => void;
   closeDialog: () => void;
@@ -119,6 +127,8 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       ? ReportDialogProps
       : T extends 'block'
       ? BlockDialogProps
+      : T extends 'custom'
+      ? CustomDialogProps
       : never
   ) => {
     // Reset state - safely handle defaultValue access
@@ -159,6 +169,10 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         break;
       case 'block':
         dialogConfig.props.onBlockUser(dialogConfig.props.userId);
+        break;
+      case 'custom':
+        // For custom dialogs, we can use onClose callback
+        dialogConfig.props.onClose?.();
         break;
     }
     setOpen(false);
@@ -208,6 +222,14 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 ))}
               </SelectContent>
             </Select>
+          )}
+
+          {dialogConfig?.type === 'custom' && (
+            <div className="mt-4">
+              <div className="text-center text-sm text-gray-500">
+                Custom content: {(dialogConfig.props as any).content}
+              </div>
+            </div>
           )}
 
           <AlertDialogFooter>
