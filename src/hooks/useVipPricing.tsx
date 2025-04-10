@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 // VIP pricing structure
-interface VipPricing {
+export interface VipPricing {
   monthly: number;
   semiannual: number;
   annual: number;
@@ -80,6 +80,11 @@ export const useVipPricing = () => {
     return `$${price.toFixed(2)}`;
   };
   
+  // Create formatted price getters
+  const monthlyPrice = formatPrice(prices.monthly);
+  const semiannualPrice = formatPrice(prices.semiannual);
+  const annualPrice = formatPrice(prices.annual);
+  
   // Return pricing data and utility functions
   return {
     prices,
@@ -87,8 +92,8 @@ export const useVipPricing = () => {
     error,
     refresh: loadPrices,
     formatPrice,
-    monthlyPrice: formatPrice(prices.monthly),
-    semiannualPrice: formatPrice(prices.semiannual),
-    annualPrice: formatPrice(prices.annual)
+    monthlyPrice,
+    semiannualPrice,
+    annualPrice
   };
 };

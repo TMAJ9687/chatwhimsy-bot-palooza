@@ -2,6 +2,24 @@
 import { VipDuration } from '@/types/admin';
 
 /**
+ * VIP Duration options for dropdown menus
+ */
+export const VIP_DURATION_OPTIONS = [
+  '1 Day',
+  '1 Week',
+  '1 Month',
+  '1 Year',
+  'Lifetime'
+] as const;
+
+/**
+ * Get a display name for a VIP duration
+ */
+export const getVipDurationDisplay = (duration: VipDuration): string => {
+  return duration;
+};
+
+/**
  * Calculate expiry date based on VIP duration
  */
 export const calculateExpiryDate = (duration: VipDuration): Date | null => {

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, Crown, Shield } from 'lucide-react';
@@ -73,13 +72,12 @@ const VipSubscription = () => {
             </CardContent>
             <CardFooter>
               <Button 
-                onClick={() => handleSubscribe('monthly')} 
-                className={`w-full ${selectedTier === 'monthly' ? 'bg-primary' : 'bg-muted'}`}
-                variant={selectedTier === 'monthly' ? 'default' : 'outline'}
                 onClick={() => {
                   setSelectedTier('monthly');
                   handleSubscribe('monthly');
-                }}
+                }} 
+                className={`w-full ${selectedTier === 'monthly' ? 'bg-primary' : 'bg-muted'}`}
+                variant={selectedTier === 'monthly' ? 'default' : 'outline'}
               >
                 Subscribe Monthly
               </Button>

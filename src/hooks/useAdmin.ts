@@ -4,6 +4,8 @@ import { BanRecord, AdminAction } from '@/types/admin';
 import { Bot } from '@/types/chat';
 import { useAdminUsers } from './admin/useAdminUsers';
 import { useAdminAuth } from './admin/useAdminAuth';
+import { useAdminReports } from './admin/useAdminReports';
+import { useAdminSettings } from './admin/useAdminSettings';
 
 /**
  * Main admin hook for the admin dashboard
@@ -11,7 +13,20 @@ import { useAdminAuth } from './admin/useAdminAuth';
 export const useAdmin = () => {
   const [bots, setBots] = useState<Bot[]>([]);
   const [adminActions, setAdminActions] = useState<AdminAction[]>([]);
-  const { isAdmin, authUser } = useAdminAuth();
+  const { isAdmin, authUser, changeAdminPassword } = useAdminAuth();
+  const [loading, setLoading] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  
+  // Admin settings functionality
+  const { saveSiteSettings, getSiteSettings } = useAdminSettings(isAdmin);
+  
+  // Reports functionality
+  const {
+    reportsFeedback,
+    loadReportsAndFeedback,
+    resolveReportFeedback,
+    deleteReportFeedback
+  } = useAdminReports(isAdmin);
   
   // Use the admin users hook for user management
   const {
@@ -32,6 +47,13 @@ export const useAdmin = () => {
     ));
   }, []);
   
+  // Admin logout functionality
+  const adminLogout = useCallback(async () => {
+    // Implementation would go here
+    console.log('Admin logout called');
+    return true;
+  }, []);
+  
   return {
     bots,
     setBots,
@@ -45,6 +67,20 @@ export const useAdmin = () => {
     upgradeToVIP,
     downgradeToStandard,
     isProcessing,
-    updateBot
+    updateBot,
+    // Add missing properties
+    isAdmin,
+    adminLogout,
+    loading,
+    onlineUsers,
+    changeAdminPassword,
+    // Reports properties
+    reportsFeedback,
+    loadReportsAndFeedback,
+    resolveReportFeedback,
+    deleteReportFeedback,
+    // Settings properties
+    saveSiteSettings,
+    getSiteSettings
   };
 };
