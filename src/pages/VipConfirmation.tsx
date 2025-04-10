@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
@@ -12,7 +11,7 @@ const VipConfirmation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isVip, user } = useUser();
-  const { prices, loading: pricesLoading } = useVipPricing();
+  const { monthlyPrice, semiannualPrice, annualPrice, loading: pricesLoading } = useVipPricing();
   const [loading, setLoading] = useState(true);
   const [tier, setTier] = useState<string | null>(null);
   
@@ -62,11 +61,11 @@ const VipConfirmation = () => {
   // Format the subscription price based on tier
   const getSubscriptionPrice = () => {
     if (tier === 'annual') {
-      return prices.annualPrice;
+      return annualPrice;
     } else if (tier === 'semiannual') {
-      return prices.semiannualPrice;
+      return semiannualPrice;
     } else {
-      return prices.monthlyPrice;
+      return monthlyPrice;
     }
   };
   
