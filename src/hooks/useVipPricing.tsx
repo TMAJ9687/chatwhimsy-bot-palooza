@@ -45,8 +45,8 @@ export const useVipPricing = () => {
       
       if (data) {
         // Calculate semi-annual price (6 months) as 45% of yearly price
-        const monthlyPrice = parseFloat(data.monthly_vip_price) || DEFAULT_PRICES.monthly;
-        const yearlyPrice = parseFloat(data.yearly_vip_price) || DEFAULT_PRICES.annual;
+        const monthlyPrice = parseFloat(String(data.monthly_vip_price)) || DEFAULT_PRICES.monthly;
+        const yearlyPrice = parseFloat(String(data.yearly_vip_price)) || DEFAULT_PRICES.annual;
         const semiannualPrice = yearlyPrice * 0.55;
         
         setPrices({

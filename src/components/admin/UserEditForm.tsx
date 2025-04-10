@@ -16,7 +16,6 @@ interface UserEditFormProps {
 
 const UserEditForm: React.FC<UserEditFormProps> = ({ user, onSave, onCancel }) => {
   const [name, setName] = useState(user.name || '');
-  const [description, setDescription] = useState(user.description || '');
   const [isVip, setIsVip] = useState(user.vip || false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -24,7 +23,6 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, onSave, onCancel }) =
   // Reset form when user changes
   useEffect(() => {
     setName(user.name || '');
-    setDescription(user.description || '');
     setIsVip(user.vip || false);
   }, [user]);
 
@@ -48,7 +46,6 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, onSave, onCancel }) =
       const updatedUser: Bot = {
         ...user,
         name,
-        description,
         vip: isVip,
       };
 
@@ -74,16 +71,6 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, onSave, onCancel }) =
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="User name"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Input 
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="User description"
         />
       </div>
 

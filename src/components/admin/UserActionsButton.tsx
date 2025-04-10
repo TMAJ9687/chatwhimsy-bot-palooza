@@ -100,7 +100,7 @@ const UserActionsButton: React.FC<UserActionsButtonProps> = ({ user, userType = 
   };
 
   const handleEditUser = () => {
-    openDialog('userEdit', {
+    openDialog('userEdit' as any, {
       title: 'Edit User',
       message: '',
       user: user,
