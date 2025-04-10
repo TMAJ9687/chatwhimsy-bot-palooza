@@ -18,7 +18,7 @@ const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
 >(({ className, ...props }, ref) => {
-  const { safeRemoveElement, registerNode } = useSafeDOMOperations();
+  const { registerNode } = useSafeDOMOperations();
   const overlayRef = React.useRef<HTMLDivElement | null>(null);
   const isMountedRef = React.useRef(true);
   
@@ -38,14 +38,7 @@ const DialogOverlay = React.forwardRef<
     if (overlayRef.current && isMountedRef.current) {
       registerNode(overlayRef.current);
     }
-    
-    return () => {
-      if (overlayRef.current && !isMountedRef.current) {
-        // Try to remove element only if component is unmounting
-        safeRemoveElement(overlayRef.current);
-      }
-    };
-  }, [safeRemoveElement, registerNode]);
+  }, [registerNode]);
   
   return (
     <DialogPrimitive.Overlay
@@ -68,7 +61,7 @@ const DialogContent = React.forwardRef<
   const isMountedRef = React.useRef(true);
   const cleanupTimeoutsRef = React.useRef<number[]>([]);
   
-  const { cleanupOverlays, registerNode } = useSafeDOMOperations();
+  const { registerNode } = useSafeDOMOperations();
   const contentRef = React.useRef<HTMLDivElement | null>(null);
   
   // Track component mounted state
@@ -90,13 +83,10 @@ const DialogContent = React.forwardRef<
   }, [registerNode]);
   
   React.useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (document.body && isMountedRef.current) {
-        document.body.classList.add('dialog-open');
-      }
-    }, 0);
-    
-    cleanupTimeoutsRef.current.push(timeoutId as unknown as number);
+    // Add class to enable proper cleanup
+    if (document.body && isMountedRef.current) {
+      document.body.classList.add('dialog-open');
+    }
     
     return () => {
       // Clear all timeouts first
@@ -104,26 +94,18 @@ const DialogContent = React.forwardRef<
       cleanupTimeoutsRef.current = [];
       
       unmountingRef.current = true;
-      clearTimeout(timeoutId);
       
       try {
-        // Wrapped in requestAnimationFrame for better timing
-        requestAnimationFrame(() => {
-          if (document.body) {
-            document.body.style.overflow = 'auto';
-            document.body.classList.remove('overflow-hidden', 'dialog-open');
-          }
-          
-          // Only run cleanup if component is unmounting
-          if (unmountingRef.current) {
-            cleanupOverlays();
-          }
-        });
+        // Reset body state when unmounting
+        if (document.body) {
+          document.body.style.overflow = 'auto';
+          document.body.classList.remove('overflow-hidden', 'dialog-open', 'modal-open');
+        }
       } catch (error) {
         console.warn('Error during dialog cleanup:', error);
       }
     };
-  }, [cleanupOverlays]);
+  }, []);
 
   return (
     <DialogPortal>

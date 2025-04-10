@@ -25,15 +25,20 @@ export const Portal: React.FC<PortalProps> = ({ children, container }) => {
     
     return () => {
       isMountedRef.current = false;
-      setMounted(false);
       cancelAnimationFrame(frameId);
+      setMounted(false);
     };
   }, []);
   
+  // Check if container exists in document before creating portal
+  const isContainerValid = container && document.contains(container);
+  
   // Only render if we're mounted and container exists and is valid
-  return (mounted && container && document.contains(container) && isMountedRef.current) 
-    ? createPortal(children, container) 
-    : null;
+  if (!mounted || !isContainerValid) {
+    return null;
+  }
+  
+  return createPortal(children, container as HTMLElement);
 };
 
 // PortalManager that creates a dedicated element for portals
@@ -77,15 +82,15 @@ const PortalManager: React.FC = () => {
     return () => {
       isInitializedRef.current = false;
       
-      // Only remove the container if we created it and it's still valid
-      if (container && 
-          container.parentElement && 
-          document.body && 
-          document.body.contains(container)) {
-        try {
-          document.body.removeChild(container);
-        } catch (error) {
-          console.warn('Error removing portal root:', error);
+      // Only remove if we're still in a valid document context
+      if (typeof document !== 'undefined' && document.body) {
+        const portalElement = document.getElementById('portal-root');
+        if (portalElement && document.body.contains(portalElement)) {
+          try {
+            document.body.removeChild(portalElement);
+          } catch (error) {
+            console.warn('Error removing portal root:', error);
+          }
         }
       }
       

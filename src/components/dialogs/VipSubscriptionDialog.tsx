@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -17,14 +17,34 @@ import { SubscriptionTier } from '@/types/user';
 const VipSubscriptionDialog = () => {
   const { state, closeDialog, openDialog } = useDialog();
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>('monthly');
+  const isMountedRef = useRef(true);
+  
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const handleContinue = () => {
+    // First close, then with a small delay open new dialog
     closeDialog();
-    openDialog('vipPayment', { selectedPlan });
+    
+    // Use setTimeout to avoid DOM manipulation conflicts
+    setTimeout(() => {
+      if (isMountedRef.current) {
+        openDialog('vipPayment', { selectedPlan });
+      }
+    }, 100);
   };
 
+  // Determine if the dialog should be open (safer check)
+  const isOpen = state.isOpen && state.type === 'vipSubscription';
+
   return (
-    <Dialog open={state.isOpen && state.type === 'vipSubscription'} onOpenChange={closeDialog}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) closeDialog();
+    }}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader className="text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900">
