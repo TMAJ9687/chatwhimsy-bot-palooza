@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminLogin } from '@/services/admin/adminAuth';
@@ -20,9 +19,15 @@ const AdminLogin: React.FC = () => {
   const [loginAttempts, setLoginAttempts] = useState(0);
   const loginInProgressRef = useRef(false);
   const lastAttemptRef = useRef(0);
+  const checkingSessionRef = useRef(false);
   
-  // Check if already logged in - with cache optimization
+  // Check if already logged in - with cache optimization and debounce
   useEffect(() => {
+    if (checkingSessionRef.current) {
+      return; // Prevent multiple simultaneous checks
+    }
+    checkingSessionRef.current = true;
+
     const checkAdminStatus = () => {
       try {
         // Check cached login state first
@@ -32,19 +37,22 @@ const AdminLogin: React.FC = () => {
         
         // Use cached auth for 5 minutes to reduce login checks
         if (adminEmail && cachedAuthTime && (now - parseInt(cachedAuthTime, 10)) < 300000) {
-          console.log('Using cached admin session, redirecting to dashboard');
           navigate('/admin-dashboard');
           return;
         }
         
         if (adminEmail) {
-          console.log('Admin email found, redirecting to dashboard');
           // Update last auth time
           localStorage.setItem('adminAuthTime', now.toString());
           navigate('/admin-dashboard');
         }
       } catch (error) {
         console.error('Error checking admin status:', error);
+      } finally {
+        // Add a delay before allowing another check
+        setTimeout(() => {
+          checkingSessionRef.current = false;
+        }, 500);
       }
     };
     
@@ -80,7 +88,6 @@ const AdminLogin: React.FC = () => {
     setErrorMessage(null);
     
     try {
-      console.log('Attempting admin login with email:', email);
       setLoginAttempts(prev => prev + 1);
       
       if (loginAttempts >= 5) {
@@ -94,8 +101,6 @@ const AdminLogin: React.FC = () => {
       const isValid = await adminLogin(email, password);
       
       if (isValid) {
-        console.log('Admin login successful');
-        
         // Cache successful auth time
         localStorage.setItem('adminAuthTime', Date.now().toString());
         
@@ -110,7 +115,6 @@ const AdminLogin: React.FC = () => {
           loginInProgressRef.current = false;
         }, 500);
       } else {
-        console.log('Admin login failed');
         setErrorMessage('Login failed. Please check your credentials.');
         toast({
           variant: 'destructive',

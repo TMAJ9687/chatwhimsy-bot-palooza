@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Circle, CheckCircle2, UserPlus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAdmin } from '@/hooks/useAdmin';
 
 interface BotsTabProps {
   bots: Bot[];
@@ -27,6 +27,7 @@ interface BotFormData {
 
 const BotsTab: React.FC<BotsTabProps> = ({ bots, onlineUsers }) => {
   const { toast } = useToast();
+  const { createBot } = useAdmin();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<BotFormData>({
@@ -50,18 +51,24 @@ const BotsTab: React.FC<BotsTabProps> = ({ bots, onlineUsers }) => {
     try {
       setIsLoading(true);
       
-      // Here you would connect to your bot creation API
-      // For now, we'll just show a toast and close the dialog
-      setTimeout(() => {
+      const newBot = await createBot({
+        name: formData.name,
+        age: formData.age,
+        gender: formData.gender,
+        country: formData.country,
+        vip: formData.vip,
+        avatar: "🤖",
+        responses: ["Hello there!", "Nice to meet you!"],
+      });
+      
+      if (newBot) {
         toast({
           title: "Bot created",
           description: `Bot "${formData.name}" has been created successfully`
         });
         
         setIsAddDialogOpen(false);
-        setIsLoading(false);
         
-        // Reset form data
         setFormData({
           name: '',
           age: 25,
@@ -69,7 +76,13 @@ const BotsTab: React.FC<BotsTabProps> = ({ bots, onlineUsers }) => {
           country: 'us',
           vip: false,
         });
-      }, 1000);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to create bot",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       console.error('Error creating bot:', error);
       toast({
@@ -77,6 +90,7 @@ const BotsTab: React.FC<BotsTabProps> = ({ bots, onlineUsers }) => {
         description: "Failed to create bot",
         variant: "destructive"
       });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -151,7 +165,6 @@ const BotsTab: React.FC<BotsTabProps> = ({ bots, onlineUsers }) => {
           </Button>
         </div>
 
-        {/* Add Bot Dialog */}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogContent>
             <DialogHeader>

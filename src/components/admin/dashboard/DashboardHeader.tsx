@@ -25,14 +25,24 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
   const handleLogout = async () => {
     try {
+      // Call the adminLogout function from useAdmin hook
       await adminLogout();
+      
       toast({
         title: "Logged out",
         description: "You have been logged out successfully",
       });
+      
+      // Navigate to login page after successful logout
       navigate('/secretadminportal');
     } catch (error) {
       console.error('Error during logout:', error);
+      toast({
+        title: "Error",
+        description: "Failed to logout. Please try again.",
+        variant: "destructive"
+      });
+      
       // Still redirect even if there's an error
       navigate('/secretadminportal');
     }

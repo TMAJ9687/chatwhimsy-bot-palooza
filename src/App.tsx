@@ -68,30 +68,31 @@ const App = () => {
                         <ErrorHandler />
                         
                         <Routes>
+                          {/* Main routes */}
                           <Route path="/" element={<Index />} />
                           <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
+                          
+                          {/* VIP routes */}
                           <Route path="/vip-profile" element={<VipProfileSetup />} />
                           <Route path="/vip-signup" element={<VipSignup />} />
                           <Route path="/vip-login" element={<VipLogin />} />
-                          
-                          {/* VIP subscription routes */}
                           <Route path="/subscribe" element={<VipSubscription />} />
                           <Route path="/subscribe/monthly" element={<VipSubscription />} />
                           <Route path="/subscribe/semiannual" element={<VipSubscription />} />
                           <Route path="/subscribe/annual" element={<VipSubscription />} />
                           <Route path="/vip-subscription" element={<Navigate to="/subscribe" replace />} />
-                          
                           <Route path="/vip-payment" element={<VipPayment />} />
                           <Route path="/vip-confirmation" element={<VipConfirmation />} />
                           <Route path="/feedback" element={<Feedback />} />
                           
-                          {/* Admin routes */}
+                          {/* Admin routes - consolidate all admin dashboard routes */}
                           <Route path="/secretadminportal" element={<AdminLogin />} />
-                          <Route path="/admin-dashboard" element={<AdminDashboard />} />
                           <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
+                          <Route path="/admin/*" element={<AdminDashboard />} />
                           <Route path="/admin" element={<Navigate to="/secretadminportal" replace />} />
                           <Route path="/admin-login" element={<Navigate to="/secretadminportal" replace />} />
                           
+                          {/* 404 route */}
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                         

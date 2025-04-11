@@ -81,9 +81,22 @@ const THROTTLED_MESSAGES: Record<string, number> = {};
 const THROTTLE_INTERVAL = 5000; // 5 seconds
 const SEEN_MESSAGES = new Set<string>();
 const LOGIN_TIMEOUT = 15000; // 15 seconds
+const MESSAGE_LIFETIME = 300000; // 5 minutes
 
 // Tracking for init status
 let isInitialized = false;
+let lastCleanup = Date.now();
+
+/**
+ * Periodically cleanup seen messages to prevent memory leaks
+ */
+function cleanupSeenMessages() {
+  const now = Date.now();
+  if (now - lastCleanup > MESSAGE_LIFETIME) {
+    SEEN_MESSAGES.clear();
+    lastCleanup = now;
+  }
+}
 
 /**
  * Check if a message should be filtered
@@ -141,6 +154,9 @@ function shouldThrottleMessage(args: any[]): boolean {
   }
     
   const now = Date.now();
+  
+  // Cleanup old messages occasionally
+  cleanupSeenMessages();
   
   if (!THROTTLED_MESSAGES[key] || now - THROTTLED_MESSAGES[key] > THROTTLE_INTERVAL) {
     THROTTLED_MESSAGES[key] = now;
@@ -231,7 +247,30 @@ export function restoreConsole() {
   console.info = originalConsole.info;
   console.debug = originalConsole.debug;
   
+  // Clear all state
+  SEEN_MESSAGES.clear();
+  Object.keys(THROTTLED_MESSAGES).forEach(key => {
+    delete THROTTLED_MESSAGES[key];
+  });
+  
+  if (adminLoginTimeout) {
+    clearTimeout(adminLoginTimeout);
+    adminLoginTimeout = null;
+  }
+  
+  inAdminLoginContext = false;
   isInitialized = false;
+}
+
+/**
+ * Clean up admin-specific tracking data
+ */
+export function cleanupAdminTracking() {
+  inAdminLoginContext = false;
+  if (adminLoginTimeout) {
+    clearTimeout(adminLoginTimeout);
+    adminLoginTimeout = null;
+  }
 }
 
 // Auto-initialize in non-development environments
