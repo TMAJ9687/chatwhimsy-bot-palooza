@@ -11,20 +11,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useLogout } from '@/hooks/useLogout';
 
 interface DashboardHeaderProps {
   email?: string;
-  handleLogout: () => void;
   handleRetry: () => void;
   toggleChat?: () => void;
 }
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({ 
   email, 
-  handleLogout, 
   handleRetry,
   toggleChat 
 }) => {
+  const { performLogout } = useLogout();
+  
+  const handleLogout = async () => {
+    await performLogout();
+  };
+  
   return (
     <div className="flex justify-between items-center mb-6 pb-4 border-b">
       <div>

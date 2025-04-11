@@ -57,11 +57,8 @@ export const useAdminLogout = (authLogout?: () => Promise<boolean>) => {
         description: 'You have been logged out of the admin panel',
       });
       
-      // Navigate to login page after successful logout
-      // Use setTimeout to ensure state updates complete first
-      setTimeout(() => {
-        navigate('/secretadminportal');
-      }, 100);
+      // Use navigate directly for React Router navigation
+      navigate('/secretadminportal');
       
       return true;
     } catch (error) {

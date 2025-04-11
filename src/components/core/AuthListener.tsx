@@ -10,7 +10,6 @@ const AuthListener = () => {
   const authListenerSetRef = useRef(false);
   const adminRedirectInProgress = useRef(false);
   const [user, setUser] = useState<User | null>(null);
-  const redirectInProgressRef = useRef(false);
   const lastPathRef = useRef<string | null>(null);
   
   useEffect(() => {
@@ -24,11 +23,6 @@ const AuthListener = () => {
     // Store the current path to detect actual changes
     lastPathRef.current = location.pathname;
     
-    // Reset redirect status when path changes
-    if (redirectInProgressRef.current) {
-      redirectInProgressRef.current = false;
-    }
-    
     // Single, well-managed auth listener
     if (!authListenerSetRef.current) {
       authListenerSetRef.current = true;
@@ -40,7 +34,7 @@ const AuthListener = () => {
           const currentPath = location.pathname;
           
           // Avoid redirecting if we're on public paths or during admin redirect
-          if (adminRedirectInProgress.current || redirectInProgressRef.current) {
+          if (adminRedirectInProgress.current) {
             return;
           }
           
@@ -59,11 +53,6 @@ const AuthListener = () => {
   
   // Extracted redirect logic for better organization
   const handleNonAuthenticatedRedirect = (currentPath: string) => {
-    // Prevent redirect loops
-    if (redirectInProgressRef.current) {
-      return;
-    }
-    
     // Public paths that don't require redirection
     const publicPaths = ['/', '/vip-login', '/vip-signup', '/secretadminportal', 
                          '/feedback', '/vip-profile', '/subscribe', '/subscribe/monthly', 
@@ -89,37 +78,25 @@ const AuthListener = () => {
           
           // VIP users without complete profile should be redirected to profile setup
           if (userData.isVip && localStorage.getItem('vipProfileComplete') !== 'true') {
-            redirectInProgressRef.current = true;
-            // Use setTimeout to avoid immediate navigation that could cause DOM issues
-            setTimeout(() => {
-              navigate('/vip-profile');
-            }, 50);
+            // Use navigate for React Router navigation instead of direct DOM manipulation
+            navigate('/vip-profile');
             return;
           }
         } else {
-          redirectInProgressRef.current = true;
-          // Use setTimeout to avoid immediate navigation that could cause DOM issues
-          setTimeout(() => {
-            navigate('/');
-          }, 50);
+          // Use navigate for React Router navigation instead of direct DOM manipulation
+          navigate('/');
           return;
         }
       } catch (e) {
-        redirectInProgressRef.current = true;
-        // Use setTimeout to avoid immediate navigation that could cause DOM issues
-        setTimeout(() => {
-          navigate('/');
-        }, 50);
+        // Use navigate for React Router navigation instead of direct DOM manipulation
+        navigate('/');
         return;
       }
     }
     
     // Default redirect for other protected routes
-    redirectInProgressRef.current = true;
-    // Use setTimeout to avoid immediate navigation that could cause DOM issues
-    setTimeout(() => {
-      navigate('/');
-    }, 50);
+    // Use navigate for React Router navigation instead of direct DOM manipulation
+    navigate('/');
   };
   
   return null;

@@ -24,6 +24,10 @@ export const useLogout = () => {
         // Special admin logout handling
         console.log('Performing admin logout...');
         await admin.adminLogout();
+        
+        // Navigate to admin login after admin logout
+        navigate('/secretadminportal');
+        return true;
       }
       
       // Regular logout for all users

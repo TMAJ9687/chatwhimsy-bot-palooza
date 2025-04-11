@@ -1,6 +1,6 @@
 
 /**
- * Utility class for safe DOM operations
+ * Utility class for safe DOM operations with a more declarative approach
  */
 export class DOMSafetyUtils {
   /**
@@ -10,11 +10,11 @@ export class DOMSafetyUtils {
     if (typeof document === 'undefined' || !document.body) return;
     
     try {
-      // Reset overflow and other properties that might be set
+      // Use a direct assignment rather than manipulating style properties individually
       document.body.style.overflow = '';
       document.body.style.paddingRight = '';
       
-      // Remove classes that might be added by UI libraries
+      // Use classList methods instead of manual manipulation
       document.body.classList.remove(
         'dialog-open',
         'overflow-hidden',
@@ -24,83 +24,6 @@ export class DOMSafetyUtils {
       );
     } catch (error) {
       console.warn('[DOMSafetyUtils] Error resetting body state:', error);
-    }
-  }
-  
-  /**
-   * Safely remove an element with additional validation
-   */
-  public safeRemoveElement(element: Element | null, elements?: WeakMap<Node, any>): boolean {
-    if (!element) return false;
-    
-    try {
-      // Basic validations before attempting removal
-      if (!element.parentNode) {
-        return false;
-      }
-      
-      // Check that the element is actually in the DOM
-      if (!document || !document.contains(element)) {
-        return false;
-      }
-      
-      // Verify that the element is still a child of its parent
-      const parent = element.parentNode;
-      if (!parent.contains(element)) {
-        return false;
-      }
-      
-      // Remove element from registry if provided
-      if (elements) {
-        elements.delete(element);
-      }
-      
-      // Use a safer approach for element removal
-      try {
-        // First check if the element is still in the DOM and has a parent
-        if (document.contains(element) && parent && parent.contains(element)) {
-          // First try the modern Element.remove() method
-          element.remove();
-          return true;
-        }
-      } catch (e) {
-        try {
-          // If remove() fails, try removeChild() as fallback
-          if (parent && document.contains(parent) && parent.contains(element)) {
-            parent.removeChild(element);
-            return true;
-          }
-        } catch (innerError) {
-          console.warn('[DOMSafetyUtils] Failed to remove element using both methods');
-        }
-      }
-    } catch (error) {
-      console.warn('[DOMSafetyUtils] Error removing element:', error);
-    }
-    
-    return false;
-  }
-  
-  /**
-   * Safely remove elements by selector
-   */
-  public safeRemoveElementsBySelector(selector: string): number {
-    if (typeof document === 'undefined') return 0;
-    
-    try {
-      const elements = document.querySelectorAll(selector);
-      let count = 0;
-      
-      elements.forEach(element => {
-        if (this.safeRemoveElement(element)) {
-          count++;
-        }
-      });
-      
-      return count;
-    } catch (error) {
-      console.warn(`[DOMSafetyUtils] Error removing elements with selector ${selector}:`, error);
-      return 0;
     }
   }
   
@@ -117,6 +40,33 @@ export class DOMSafetyUtils {
                 element.parentNode.contains(element));
     } catch (error) {
       return false;
+    }
+  }
+  
+  /**
+   * Safely check if a portal container exists or create it
+   */
+  public ensurePortalContainer(id: string): HTMLElement | null {
+    if (typeof document === 'undefined') return null;
+    
+    try {
+      let container = document.getElementById(id);
+      
+      if (!container) {
+        container = document.createElement('div');
+        container.id = id;
+        
+        if (document.body) {
+          document.body.appendChild(container);
+        } else {
+          return null;
+        }
+      }
+      
+      return container;
+    } catch (error) {
+      console.error(`[DOMSafetyUtils] Error ensuring portal container ${id}:`, error);
+      return null;
     }
   }
 }

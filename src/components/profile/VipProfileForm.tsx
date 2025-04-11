@@ -73,6 +73,8 @@ const VipProfileForm = forwardRef<VipProfileFormRef, VipProfileFormProps>(({ onC
   const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
+  const [nickname, setNickname] = useState<string>(user?.nickname || 'VIP User');
+  
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
@@ -84,6 +86,12 @@ const VipProfileForm = forwardRef<VipProfileFormRef, VipProfileFormProps>(({ onC
       avatarId: 'avatar1',
     },
   });
+
+  useEffect(() => {
+    if (user?.nickname) {
+      setNickname(user.nickname);
+    }
+  }, [user]);
 
   useImperativeHandle(ref, () => ({
     saveForm: async () => {
@@ -211,6 +219,7 @@ const VipProfileForm = forwardRef<VipProfileFormRef, VipProfileFormProps>(({ onC
   const handleFormSubmit = async (data: ProfileFormValues): Promise<boolean> => {
     try {
       updateUserProfile({
+        nickname: nickname,
         gender: data.gender,
         age: parseInt(data.age),
         country: data.country,
@@ -220,6 +229,7 @@ const VipProfileForm = forwardRef<VipProfileFormRef, VipProfileFormProps>(({ onC
       
       const profileData = {
         ...data,
+        nickname: nickname,
         age: parseInt(data.age),
         avatarId: selectedAvatar,
         customAvatarUrl: customAvatarUrl,
@@ -266,13 +276,14 @@ const VipProfileForm = forwardRef<VipProfileFormRef, VipProfileFormProps>(({ onC
               <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Your VIP Nickname</FormLabel>
               <div className="mt-1 flex items-center">
                 <Input 
-                  value={user?.nickname || 'VIP User'} 
+                  value={nickname} 
+                  onChange={(e) => {
+                    setNickname(e.target.value);
+                    onChange();
+                  }}
                   className="font-semibold border-amber-200 bg-white/50"
-                  readOnly 
+                  placeholder="Enter your VIP nickname"
                 />
-                <div className="ml-2 bg-amber-100 dark:bg-amber-800 px-2 py-1 rounded text-xs font-medium text-amber-800 dark:text-amber-200">
-                  Cannot be changed
-                </div>
               </div>
             </div>
 

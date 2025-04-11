@@ -23,8 +23,6 @@ export const Overlay: React.FC<OverlayProps> = ({
   const { openOverlay, closeOverlay } = useOverlay();
   const [shouldRender, setShouldRender] = useState(isOpen);
   const { registerNode } = useSafeDOMOperations();
-  const isUnmountingRef = useRef(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
   
   // Track mounted state
@@ -42,7 +40,6 @@ export const Overlay: React.FC<OverlayProps> = ({
     if (isOpen) {
       openOverlay(id);
       setShouldRender(true);
-      isUnmountingRef.current = false;
       
       // Register the overlay node once it's created
       if (overlayRef.current) {
@@ -50,31 +47,20 @@ export const Overlay: React.FC<OverlayProps> = ({
       }
     } else {
       closeOverlay(id);
-      isUnmountingRef.current = true;
       
-      // Clear any existing timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      
-      // Use a small delay before unmounting to allow for animations
-      timeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current && isUnmountingRef.current) {
+      // Use React's state update for unmounting
+      const timer = setTimeout(() => {
+        if (isMountedRef.current) {
           setShouldRender(false);
         }
-        timeoutRef.current = null;
       }, 300);
+      
+      return () => clearTimeout(timer);
     }
     
     return () => {
       if (isMountedRef.current) {
         closeOverlay(id);
-      }
-      
-      // Clean up timeout on unmount
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
       }
     };
   }, [id, isOpen, openOverlay, closeOverlay, registerNode]);
@@ -94,53 +80,13 @@ export const Overlay: React.FC<OverlayProps> = ({
   }, [isOpen, onClose]);
   
   // Handle clicks outside content
-  useEffect(() => {
-    if (!isOpen || !isMountedRef.current) return;
-    
-    const handleOutsideClick = (e: MouseEvent) => {
-      if (overlayRef.current === e.target) {
-        onClose();
-      }
-    };
-    
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [isOpen, onClose]);
-  
-  // Listen for global cleanup signals
-  useEffect(() => {
-    if (!isOpen || !isMountedRef.current) return;
-    
-    const handleCleanupSignal = () => {
-      if (isOpen) {
-        onClose();
-      }
-    };
-    
-    // Use a MutationObserver to watch for cleanup signals
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'data-cleanup-overlays' || 
-            mutation.attributeName === 'data-cleanup-target') {
-          handleCleanupSignal();
-        }
-      });
-    });
-    
-    if (document.body) {
-      try {
-        observer.observe(document.body, { attributes: true });
-      } catch (error) {
-        console.warn('Error setting up MutationObserver:', error);
-      }
+  const handleOutsideClick = (e: React.MouseEvent) => {
+    if (overlayRef.current === e.target) {
+      onClose();
     }
-    
-    return () => {
-      observer.disconnect();
-    };
-  }, [isOpen, onClose]);
+  };
   
-  // Don't render if we shouldn't or component is unmounting
+  // Don't render if component is unmounting
   if (!shouldRender || !isMountedRef.current) return null;
   
   // Find portal container with fallback
@@ -156,6 +102,7 @@ export const Overlay: React.FC<OverlayProps> = ({
         role="dialog"
         aria-modal="true"
         data-overlay-id={id}
+        onClick={handleOutsideClick}
       >
         {children}
       </div>

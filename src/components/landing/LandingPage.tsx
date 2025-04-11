@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Crown, RefreshCw } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../shared/Logo';
 import Button from '../shared/Button';
@@ -8,6 +9,7 @@ import { useUser } from '../../context/UserContext';
 import ThemeToggle from '../shared/ThemeToggle';
 import { useDialog } from '@/context/DialogContext';
 import { DialogType } from '@/context/DialogContext';
+import NicknameGenerator from './NicknameGenerator';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,50 +26,12 @@ const LandingPage: React.FC = () => {
   
   const [step, setStep] = useState<'nickname' | 'profile'>('nickname');
   const [nickname, setNickname] = useState('');
-  const [nicknameError, setNicknameError] = useState('');
   const [navigationInProgress, setNavigationInProgress] = useState(false);
 
-  const validateNickname = (value: string): boolean => {
-    if (value.length > 16) {
-      setNicknameError('Nickname must be 16 characters or less');
-      return false;
-    }
-    
-    for (let i = 0; i < value.length - 2; i++) {
-      if (value[i] === value[i + 1] && value[i] === value[i + 2]) {
-        setNicknameError('Cannot use more than 2 identical characters in a row');
-        return false;
-      }
-    }
-    
-    setNicknameError('');
-    return true;
-  };
-
-  const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    
-    if (newValue.length >= 3) {
-      const lastChar = newValue[newValue.length - 1];
-      const secondLastChar = newValue[newValue.length - 2];
-      const thirdLastChar = newValue[newValue.length - 3];
-      
-      if (lastChar === secondLastChar && lastChar === thirdLastChar) {
-        setNicknameError('Cannot use more than 2 identical characters in a row');
-        return;
-      }
-    }
-    
-    setNickname(newValue);
-    validateNickname(newValue);
-  };
-
   const handleNicknameSelected = (selectedNickname: string) => {
-    if (validateNickname(selectedNickname)) {
-      setNickname(selectedNickname);
-      updateUserProfile({ nickname: selectedNickname });
-      setStep('profile');
-    }
+    setNickname(selectedNickname);
+    updateUserProfile({ nickname: selectedNickname });
+    setStep('profile');
   };
 
   const handleProfileComplete = (profile: {
@@ -93,45 +57,8 @@ const LandingPage: React.FC = () => {
       isVip: profile.isVip === true ? true : false,
     });
     
-    setTimeout(() => {
-      console.log('Navigating to chat from LandingPage');
-      navigate('/chat');
-    }, 50);
-  };
-  
-  const generateRandomNickname = () => {
-    const adjectives = [
-      'Happy', 'Clever', 'Brave', 'Shiny', 'Witty', 
-      'Calm', 'Swift', 'Smooth', 'Bright', 'Gentle',
-      'Wild', 'Noble', 'Keen', 'Merry', 'Wise',
-      'Lucky', 'Lively', 'Jolly', 'Mighty', 'Proud'
-    ];
-    
-    const nouns = [
-      'Panda', 'Tiger', 'Dolphin', 'Eagle', 'Phoenix',
-      'Voyager', 'Explorer', 'Wanderer', 'Knight', 'Pioneer',
-      'Hawk', 'Wolf', 'Falcon', 'Lynx', 'Fox',
-      'Raven', 'Panther', 'Dragon', 'Lion', 'Bear'
-    ];
-    
-    const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
-    const randomNumber = Math.floor(Math.random() * 100);
-    const generatedNickname = `${randomAdjective}${randomNoun}${randomNumber}`;
-    
-    setNicknameError('');
-    return generatedNickname;
-  };
-  
-  const handleStartChat = () => {
-    if (nickname && !nicknameError) {
-      setStep('profile');
-    } else if (!nickname) {
-      const randomNickname = generateRandomNickname();
-      setNickname(randomNickname);
-      updateUserProfile({ nickname: randomNickname });
-      setStep('profile');
-    }
+    // Use React Router's navigate for navigation
+    navigate('/chat');
   };
 
   const handleVipClick = () => {
@@ -185,48 +112,7 @@ const LandingPage: React.FC = () => {
                   </p>
                 </div>
                 
-                <div className="relative mb-6">
-                  <div className="flex items-center justify-between bg-input rounded-lg p-2">
-                    <input
-                      type="text"
-                      value={nickname}
-                      onChange={handleNicknameChange}
-                      className="px-4 py-2 text-lg font-medium flex-1 bg-transparent outline-none text-foreground"
-                      placeholder="Enter a nickname"
-                      maxLength={16}
-                    />
-                    <div className="absolute right-16 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                      {nickname.length}/16
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="rounded-lg p-2 hover:bg-primary/10"
-                      onClick={() => {
-                        const newNickname = generateRandomNickname();
-                        setNickname(newNickname);
-                      }}
-                      aria-label="Generate new nickname"
-                    >
-                      <RefreshCw className="h-5 w-5" />
-                      <span className="sr-only">Refresh</span>
-                    </Button>
-                  </div>
-                  {nicknameError && (
-                    <div className="text-destructive text-sm mt-1">{nicknameError}</div>
-                  )}
-                </div>
-                
-                <Button
-                  variant="primary"
-                  fullWidth
-                  size="lg"
-                  className="bg-secondary text-white font-semibold py-3 rounded-lg w-full"
-                  onClick={handleStartChat}
-                  disabled={!!nicknameError}
-                >
-                  Start Chat
-                </Button>
+                <NicknameGenerator onNicknameSelected={handleNicknameSelected} />
               </div>
             ) : (
               <ProfileSetup 
