@@ -1,3 +1,4 @@
+
 import { BanRecord, AdminAction } from '@/types/admin';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -6,8 +7,8 @@ const onlineUsers = new Set<string>();
 const userTimeouts = new Map<string, NodeJS.Timeout>();
 const MAX_ONLINE_USERS = 50; // Reduce the limit for tracking
 
-// Disable tracking flag - set to true to completely disable tracking
-const DISABLE_TRACKING = true;
+// Disable tracking flag - set to false to enable tracking
+const DISABLE_TRACKING = false;
 
 /**
  * User tracking functions for admin dashboard

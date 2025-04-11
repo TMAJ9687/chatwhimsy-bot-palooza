@@ -1,4 +1,3 @@
-
 import { Bot } from '@/types/chat';
 import { botProfiles } from '@/data/botProfiles';
 import { getOnlineUserIds } from './userService';
@@ -8,8 +7,7 @@ import { getOnlineUserIds } from './userService';
  */
 export const getAllBots = async (): Promise<Bot[]> => {
   try {
-    // Use the bot profiles from chat data instead of mock data
-    // This connects the admin dashboard with the actual bots in the chat
+    // Ensure we're using the latest bot profiles
     const bots = [...botProfiles];
     
     // Get online user IDs
@@ -23,7 +21,7 @@ export const getAllBots = async (): Promise<Bot[]> => {
     }));
   } catch (error) {
     console.error('Error getting bots:', error);
-    return [];
+    return botProfiles; // Return original profiles as fallback
   }
 };
 

@@ -12,9 +12,9 @@ export interface VipPricing {
 
 // Default prices if database fetch fails
 const DEFAULT_PRICES = {
-  monthly: 9.99,
-  semiannual: 49.99,
-  annual: 99.99,
+  monthly: 4.99,
+  semiannual: 24.95,
+  annual: 35.99,
   loaded: false
 };
 
@@ -40,11 +40,14 @@ export const useVipPricing = () => {
         .single();
       
       if (dbError) {
-        throw new Error(`Database error: ${dbError.message}`);
-      }
-      
-      if (data) {
-        // Calculate semi-annual price (6 months) as 45% of yearly price
+        console.error('Error loading VIP prices from database:', dbError);
+        // Use default prices if database fetch fails
+        setPrices({
+          ...DEFAULT_PRICES,
+          loaded: true
+        });
+      } else if (data) {
+        // Calculate semi-annual price (6 months) as 55% of yearly price
         const monthlyPrice = parseFloat(String(data.monthly_vip_price)) || DEFAULT_PRICES.monthly;
         const yearlyPrice = parseFloat(String(data.yearly_vip_price)) || DEFAULT_PRICES.annual;
         const semiannualPrice = yearlyPrice * 0.55;
@@ -53,6 +56,12 @@ export const useVipPricing = () => {
           monthly: monthlyPrice,
           semiannual: semiannualPrice,
           annual: yearlyPrice,
+          loaded: true
+        });
+      } else {
+        // Fallback to default prices if no data
+        setPrices({
+          ...DEFAULT_PRICES,
           loaded: true
         });
       }

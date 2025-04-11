@@ -1,106 +1,112 @@
-import React, { createContext, useContext, useReducer, ReactNode, useMemo, useCallback, useEffect, useRef } from 'react';
 
-// Define dialog types
-export type DialogType = 'report' | 'block' | 'siteRules' | 'logout' | 'vipLogin' | 'vipSignup' 
-  | 'vipSubscription' | 'vipPayment' | 'vipConfirmation' | 'accountDeletion' | 'vipSelect' 
-  | 'confirm' | 'alert' | 'prompt' | 'select' | 'userEdit' | null;
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { 
+  ConfirmDialogOptions, 
+  AlertDialogOptions, 
+  PromptDialogOptions, 
+  SelectDialogOptions,
+  UserEditDialogOptions,
+  VipDurationDialogOptions,
+  VipConfirmDialogOptions,
+  VipDowngradeDialogOptions
+} from '@/types/dialog';
 
-// Define dialog state
-interface DialogState {
+type DialogState = {
   isOpen: boolean;
-  type: DialogType;
-  data: Record<string, any>;
-}
-
-// Define dialog actions
-type DialogAction = 
-  | { type: 'OPEN_DIALOG'; payload: { type: DialogType; data?: Record<string, any> } }
-  | { type: 'CLOSE_DIALOG' };
-
-// Initial dialog state
-const initialState: DialogState = {
-  isOpen: false,
-  type: null,
-  data: {}
+  type: 
+    | 'confirm' 
+    | 'alert' 
+    | 'prompt' 
+    | 'select' 
+    | 'logout' 
+    | 'vipSelect'
+    | 'userEdit'
+    | 'vipDuration'
+    | 'vipConfirm'
+    | 'vipDowngrade';
+  options?: any;
 };
 
-// Create context
-const DialogContext = createContext<{
+type DialogContextType = {
   state: DialogState;
-  openDialog: (type: DialogType, data?: Record<string, any>) => void;
+  openDialog: (
+    type: DialogState['type'], 
+    options?: any
+  ) => void;
   closeDialog: () => void;
-} | undefined>(undefined);
+};
 
-// Optimized reducer - completely reset state on close
-function dialogReducer(state: DialogState, action: DialogAction): DialogState {
-  switch (action.type) {
-    case 'OPEN_DIALOG':
-      return {
-        isOpen: true,
-        type: action.payload.type,
-        data: action.payload.data || {}
-      };
-    case 'CLOSE_DIALOG':
-      return initialState; // Reset completely to initial state 
-    default:
-      return state;
-  }
-}
+const initialState: DialogState = {
+  isOpen: false,
+  type: 'alert',
+  options: null,
+};
 
-// Provider component
-export function DialogProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(dialogReducer, initialState);
-  const dialogIdRef = useRef('dialog-context');
-  const prevStateRef = useRef(state);
+const DialogContext = createContext<DialogContextType | undefined>(undefined);
 
-  // Effect to manage body scroll lock based on dialog state
-  useEffect(() => {
-    // Skip if state hasn't changed to avoid loops
-    if (state === prevStateRef.current) return;
-    prevStateRef.current = state;
+export const DialogProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [state, setState] = useState<DialogState>(initialState);
 
-    // Apply body styles directly here instead of using UIStateContext
-    if (state.isOpen) {
-      // Lock body scroll when dialog opens
-      document.body.style.overflow = 'hidden';
-      document.body.classList.add('dialog-open');
-    } else {
-      // Unlock body scroll when dialog closes, but be careful about other active dialogs
-      document.body.style.overflow = 'auto';
-      document.body.classList.remove('dialog-open');
-    }
-  }, [state]);
+  const openDialog = (
+    type: DialogState['type'], 
+    options?: any
+  ) => {
+    setState({
+      isOpen: true,
+      type,
+      options,
+    });
+  };
 
-  // Memoize functions to prevent unnecessary re-renders
-  const openDialog = useCallback((type: DialogType, data?: Record<string, any>) => {
-    dispatch({ type: 'OPEN_DIALOG', payload: { type, data } });
-  }, []);
-  
-  const closeDialog = useCallback(() => {
-    dispatch({ type: 'CLOSE_DIALOG' });
-  }, []);
-
-  // Memoize the context value to prevent unnecessary re-renders
-  const contextValue = useMemo(() => ({
-    state,
-    openDialog,
-    closeDialog
-  }), [state, openDialog, closeDialog]);
+  const closeDialog = () => {
+    setState({
+      ...state,
+      isOpen: false,
+    });
+  };
 
   return (
-    <DialogContext.Provider value={contextValue}>
+    <DialogContext.Provider value={{ state, openDialog, closeDialog }}>
       {children}
     </DialogContext.Provider>
   );
-}
+};
 
-// Custom hook
-export function useDialog() {
+export const useDialog = () => {
   const context = useContext(DialogContext);
-  
   if (context === undefined) {
     throw new Error('useDialog must be used within a DialogProvider');
   }
-  
   return context;
-}
+};
+
+// Type-safe helper methods
+export const useConfirmDialog = () => {
+  const { openDialog } = useDialog();
+  return (options: ConfirmDialogOptions) => openDialog('confirm', options);
+};
+
+export const useAlertDialog = () => {
+  const { openDialog } = useDialog();
+  return (options: AlertDialogOptions) => openDialog('alert', options);
+};
+
+export const usePromptDialog = () => {
+  const { openDialog } = useDialog();
+  return (options: PromptDialogOptions) => openDialog('prompt', options);
+};
+
+export const useSelectDialog = () => {
+  const { openDialog } = useDialog();
+  return (options: SelectDialogOptions) => openDialog('select', options);
+};
+
+export const useLogoutDialog = () => {
+  const { openDialog } = useDialog();
+  return () => openDialog('logout');
+};
+
+export const useVipSelectDialog = () => {
+  const { openDialog } = useDialog();
+  return () => openDialog('vipSelect');
+};

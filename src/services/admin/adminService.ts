@@ -14,8 +14,8 @@ export * from './botService';
 let adminTrackingInitialized = false;
 const trackedUsers = new Set<string>();
 
-// Set this to true to completely disable admin tracking
-const DISABLE_ADMIN_TRACKING = true;
+// Set this to false to enable admin tracking
+const DISABLE_ADMIN_TRACKING = false;
 
 /**
  * Check if admin is logged in
