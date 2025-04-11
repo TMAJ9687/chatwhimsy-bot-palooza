@@ -6,6 +6,7 @@ import { useAdminUsers } from './admin/useAdminUsers';
 import { useAdminAuth } from './admin/useAdminAuth';
 import { useAdminReports } from './admin/useAdminReports';
 import { useAdminSettings } from './admin/useAdminSettings';
+import { useAdminBots } from './admin/useAdminBots';
 
 /**
  * Main admin hook for the admin dashboard
@@ -40,12 +41,13 @@ export const useAdmin = () => {
     isProcessing,
   } = useAdminUsers(isAdmin, bots, setBots, setAdminActions, authUser);
   
-  // Update a bot's data
-  const updateBot = useCallback((id: string, updatedBot: Bot) => {
-    setBots(prev => prev.map(bot => 
-      bot.id === id ? { ...bot, ...updatedBot } : bot
-    ));
-  }, []);
+  // Use the admin bots hook for bot management
+  const { 
+    createBot, 
+    updateBot, 
+    deleteBot, 
+    trackUserOnlineStatus 
+  } = useAdminBots(isAdmin);
   
   // Admin logout functionality
   const adminLogout = useCallback(async () => {
@@ -68,6 +70,10 @@ export const useAdmin = () => {
     downgradeToStandard,
     isProcessing,
     updateBot,
+    // Add bot management functions
+    createBot,
+    deleteBot,
+    trackUserOnlineStatus,
     // Add missing properties
     isAdmin,
     adminLogout,

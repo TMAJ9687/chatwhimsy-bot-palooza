@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Circle, CheckCircle2, UserPlus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,7 +28,7 @@ interface BotFormData {
 
 const BotsTab: React.FC<BotsTabProps> = ({ bots, onlineUsers }) => {
   const { toast } = useToast();
-  const { createBot } = useAdmin();
+  const { createBot } = useAdmin(); // Make sure createBot is correctly destructured
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<BotFormData>({

@@ -143,7 +143,7 @@ export const useAdmin = () => {
     reportsFeedback,
     
     // Bot management
-    createBot,  // Ensure createBot is exposed here
+    createBot,  // Explicitly include createBot here
     updateBot,
     deleteBot,
     trackUserOnlineStatus,
