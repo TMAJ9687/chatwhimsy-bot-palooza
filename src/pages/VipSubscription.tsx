@@ -1,14 +1,29 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Check, Crown, ChevronLeft } from 'lucide-react';
 import VipPricingDisplay from '@/components/vip/VipPricingDisplay';
+import { useToast } from '@/hooks/use-toast';
 
 const VipSubscription: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'semiannual' | 'annual' | null>(null);
+
+  // Extract plan information from URL path if available
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.includes('monthly')) {
+      setSelectedPlan('monthly');
+    } else if (path.includes('semiannual')) {
+      setSelectedPlan('semiannual');
+    } else if (path.includes('annual')) {
+      setSelectedPlan('annual');
+    }
+  }, [location.pathname]);
 
   const handleBackClick = () => {
     navigate(-1);
@@ -19,8 +34,21 @@ const VipSubscription: React.FC = () => {
   };
   
   const handleContinue = () => {
-    if (!selectedPlan) return;
-    navigate('/vip-payment', { state: { plan: selectedPlan } });
+    if (!selectedPlan) {
+      toast({
+        title: "Please select a plan",
+        description: "You need to select a subscription plan to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Navigate to payment page with proper state information
+    navigate('/vip-payment', { 
+      state: { 
+        tier: selectedPlan 
+      }
+    });
   };
 
   const getBorderClass = (plan: 'monthly' | 'semiannual' | 'annual') => {

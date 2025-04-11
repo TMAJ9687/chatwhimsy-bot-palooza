@@ -20,16 +20,16 @@ export const redirectToVipSubscription = (
     
     switch(tier) {
       case 'monthly':
-        redirectUrl = '/subscribe/monthly';
+        redirectUrl = '/vip-payment';
         break;
       case 'semiannual':
-        redirectUrl = '/subscribe/semiannual';
+        redirectUrl = '/vip-payment';
         break;
       case 'annual':
-        redirectUrl = '/subscribe/annual';
+        redirectUrl = '/vip-payment';
         break;
       default:
-        redirectUrl = '/subscribe';
+        redirectUrl = '/vip-subscription';
     }
     
     // In testing mode, just log the URL
@@ -41,14 +41,23 @@ export const redirectToVipSubscription = (
     if (navigate) {
       // Use React Router navigation if provided
       console.log('Using React Router to navigate to:', redirectUrl);
-      navigate(redirectUrl);
+      
+      // Pass tier information as state
+      navigate(redirectUrl, { 
+        state: { tier } 
+      });
       return true;
     } else {
       // Fallback to window.location only if navigate isn't provided
       console.log('Fallback: using window.location to navigate to:', redirectUrl);
+      
+      // Add tier as a query parameter for window.location navigation
+      const urlWithParams = new URL(redirectUrl, window.location.origin);
+      urlWithParams.searchParams.append('tier', tier);
+      
       // Add a small delay for better UX
       setTimeout(() => {
-        window.location.href = redirectUrl;
+        window.location.href = urlWithParams.toString();
       }, 300);
       return true;
     }
@@ -63,7 +72,7 @@ export const redirectToVipSubscription = (
  */
 export const isVipSubscriptionPage = (): boolean => {
   const path = window.location.pathname;
-  return path.startsWith('/subscribe');
+  return path.startsWith('/subscribe') || path.startsWith('/vip-subscription') || path.startsWith('/vip-payment');
 };
 
 /**
@@ -78,6 +87,14 @@ export const getTierFromUrl = (): SubscriptionTier | null => {
     return 'semiannual';
   } else if (path.includes('/annual')) {
     return 'annual';
+  }
+  
+  // Check query parameters as a fallback
+  const params = new URLSearchParams(window.location.search);
+  const tierParam = params.get('tier');
+  
+  if (tierParam === 'monthly' || tierParam === 'semiannual' || tierParam === 'annual') {
+    return tierParam;
   }
   
   return null;

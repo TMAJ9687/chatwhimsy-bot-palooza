@@ -27,13 +27,22 @@ const VipPayment: React.FC = () => {
   
   // Get tier from navigation state
   useEffect(() => {
-    const tierFromState = location.state?.tier as SubscriptionTier;
-    
-    if (tierFromState) {
-      setTier(tierFromState);
+    // Check location.state first
+    if (location.state && location.state.tier) {
+      setTier(location.state.tier as SubscriptionTier);
     } else {
-      // Default to monthly if no tier specified
-      setTier('monthly');
+      // Fallback to URL parsing if state is not available
+      const path = location.pathname;
+      if (path.includes('monthly')) {
+        setTier('monthly');
+      } else if (path.includes('semiannual')) {
+        setTier('semiannual');
+      } else if (path.includes('annual')) {
+        setTier('annual');
+      } else {
+        // Default to monthly if no tier specified
+        setTier('monthly');
+      }
     }
   }, [location]);
   
@@ -91,7 +100,7 @@ const VipPayment: React.FC = () => {
       
       // Navigate to confirmation page
       navigate('/vip-confirmation', { 
-        state: { tier, fromPayment: true }
+        state: { tier: tier, fromPayment: true }
       });
     }, 2000);
   };

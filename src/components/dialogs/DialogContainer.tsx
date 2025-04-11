@@ -25,6 +25,9 @@ const UserEditDialog = lazy(() => import('./UserEditDialog'));
 const VipDurationDialog = lazy(() => import('./VipDurationDialog'));
 const VipConfirmDialog = lazy(() => import('./VipConfirmDialog'));
 const VipDowngradeDialog = lazy(() => import('./VipDowngradeDialog'));
+const VipSubscriptionDialog = lazy(() => import('./VipSubscriptionDialog'));
+const VipPaymentDialog = lazy(() => import('./VipPaymentDialog'));
+const VipConfirmationDialog = lazy(() => import('./VipConfirmationDialog'));
 
 const DialogContainer: React.FC = () => {
   const { state } = useDialog();
@@ -67,6 +70,12 @@ const DialogContainer: React.FC = () => {
             return <VipConfirmDialog />;
           case 'vipDowngrade':
             return <VipDowngradeDialog />;
+          case 'vipSubscription':
+            return <VipSubscriptionDialog />;
+          case 'vipPayment':
+            return <VipPaymentDialog />;
+          case 'vipConfirmation':
+            return <VipConfirmationDialog />;
           default:
             return null;
         }

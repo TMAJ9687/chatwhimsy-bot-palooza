@@ -14,7 +14,7 @@ const VipPricingDisplay: React.FC<VipPricingDisplayProps> = ({
   showLabel = true, 
   size = 'medium' 
 }) => {
-  const { monthlyPrice, semiannualPrice, annualPrice, loading } = useVipPricing();
+  const { monthlyPrice, semiannualPrice, annualPrice, loading, error } = useVipPricing();
   
   const getSkeletonClass = () => {
     switch(size) {
@@ -34,6 +34,11 @@ const VipPricingDisplay: React.FC<VipPricingDisplayProps> = ({
   
   if (loading) {
     return <Skeleton className={getSkeletonClass()} />;
+  }
+  
+  if (error) {
+    console.warn('VipPricingDisplay error:', error);
+    // Fallback to showing the price anyway from the hook's default
   }
   
   const getPriceByPlan = () => {
