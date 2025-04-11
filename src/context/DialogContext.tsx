@@ -8,29 +8,20 @@ import {
   UserEditDialogOptions,
   VipDurationDialogOptions,
   VipConfirmDialogOptions,
-  VipDowngradeDialogOptions
+  VipDowngradeDialogOptions,
+  DialogType
 } from '@/types/dialog';
 
 type DialogState = {
   isOpen: boolean;
-  type: 
-    | 'confirm' 
-    | 'alert' 
-    | 'prompt' 
-    | 'select' 
-    | 'logout' 
-    | 'vipSelect'
-    | 'userEdit'
-    | 'vipDuration'
-    | 'vipConfirm'
-    | 'vipDowngrade';
+  type: DialogType;
   options?: any;
 };
 
 type DialogContextType = {
   state: DialogState;
   openDialog: (
-    type: DialogState['type'], 
+    type: DialogType, 
     options?: any
   ) => void;
   closeDialog: () => void;
@@ -48,7 +39,7 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [state, setState] = useState<DialogState>(initialState);
 
   const openDialog = (
-    type: DialogState['type'], 
+    type: DialogType, 
     options?: any
   ) => {
     setState({
@@ -109,4 +100,49 @@ export const useLogoutDialog = () => {
 export const useVipSelectDialog = () => {
   const { openDialog } = useDialog();
   return () => openDialog('vipSelect');
+};
+
+export const useReportDialog = () => {
+  const { openDialog } = useDialog();
+  return (options: any) => openDialog('report', options);
+};
+
+export const useBlockDialog = () => {
+  const { openDialog } = useDialog();
+  return (options: any) => openDialog('block', options);
+};
+
+export const useSiteRulesDialog = () => {
+  const { openDialog } = useDialog();
+  return () => openDialog('siteRules');
+};
+
+export const useAccountDeletionDialog = () => {
+  const { openDialog } = useDialog();
+  return () => openDialog('accountDeletion');
+};
+
+export const useVipLoginDialog = () => {
+  const { openDialog } = useDialog();
+  return () => openDialog('vipLogin');
+};
+
+export const useVipSignupDialog = () => {
+  const { openDialog } = useDialog();
+  return () => openDialog('vipSignup');
+};
+
+export const useVipSubscriptionDialog = () => {
+  const { openDialog } = useDialog();
+  return () => openDialog('vipSubscription');
+};
+
+export const useVipPaymentDialog = () => {
+  const { openDialog } = useDialog();
+  return () => openDialog('vipPayment');
+};
+
+export const useVipConfirmationDialog = () => {
+  const { openDialog } = useDialog();
+  return () => openDialog('vipConfirmation');
 };
