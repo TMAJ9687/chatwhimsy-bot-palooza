@@ -6,13 +6,34 @@ import { Skeleton } from '@/components/ui/skeleton';
 interface VipPricingDisplayProps {
   plan: 'monthly' | 'semiannual' | 'annual';
   showLabel?: boolean;
+  size?: 'small' | 'medium' | 'large';
 }
 
-const VipPricingDisplay: React.FC<VipPricingDisplayProps> = ({ plan, showLabel = true }) => {
+const VipPricingDisplay: React.FC<VipPricingDisplayProps> = ({ 
+  plan, 
+  showLabel = true, 
+  size = 'medium' 
+}) => {
   const { monthlyPrice, semiannualPrice, annualPrice, loading } = useVipPricing();
   
+  const getSkeletonClass = () => {
+    switch(size) {
+      case 'small': return 'h-4 w-14';
+      case 'large': return 'h-8 w-24';
+      default: return 'h-6 w-20';
+    }
+  };
+  
+  const getFontClass = () => {
+    switch(size) {
+      case 'small': return 'text-sm';
+      case 'large': return 'text-2xl';
+      default: return 'text-base';
+    }
+  };
+  
   if (loading) {
-    return <Skeleton className="h-6 w-20" />;
+    return <Skeleton className={getSkeletonClass()} />;
   }
   
   const getPriceByPlan = () => {
@@ -42,7 +63,7 @@ const VipPricingDisplay: React.FC<VipPricingDisplayProps> = ({ plan, showLabel =
   };
   
   return (
-    <span className="font-medium">
+    <span className={`font-medium ${getFontClass()}`}>
       {getPriceByPlan()}
       {showLabel && <span className="text-sm text-muted-foreground ml-1">{getLabel()}</span>}
     </span>

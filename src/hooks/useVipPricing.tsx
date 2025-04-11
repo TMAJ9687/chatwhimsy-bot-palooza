@@ -25,6 +25,7 @@ export const useVipPricing = () => {
   const [prices, setPrices] = useState<VipPricing>(DEFAULT_PRICES);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   
   // Load prices from database
   const loadPrices = useCallback(async () => {
@@ -41,16 +42,23 @@ export const useVipPricing = () => {
       
       if (dbError) {
         console.error('Error loading VIP prices from database:', dbError);
-        // Use default prices if database fetch fails
-        setPrices({
-          ...DEFAULT_PRICES,
-          loaded: true
-        });
+        
+        // After multiple retries, use default prices
+        if (retryCount >= 2) {
+          setPrices({
+            ...DEFAULT_PRICES,
+            loaded: true
+          });
+        } else {
+          // Increment retry counter
+          setRetryCount(prev => prev + 1);
+          throw dbError;
+        }
       } else if (data) {
         // Calculate semi-annual price (6 months) as 55% of yearly price
         const monthlyPrice = parseFloat(String(data.monthly_vip_price)) || DEFAULT_PRICES.monthly;
         const yearlyPrice = parseFloat(String(data.yearly_vip_price)) || DEFAULT_PRICES.annual;
-        const semiannualPrice = yearlyPrice * 0.55;
+        const semiannualPrice = Number((yearlyPrice * 0.55).toFixed(2));
         
         setPrices({
           monthly: monthlyPrice,
@@ -58,6 +66,9 @@ export const useVipPricing = () => {
           annual: yearlyPrice,
           loaded: true
         });
+        
+        // Reset retry counter on success
+        setRetryCount(0);
       } else {
         // Fallback to default prices if no data
         setPrices({
@@ -69,15 +80,21 @@ export const useVipPricing = () => {
       console.error('Error loading VIP prices:', err);
       setError(err instanceof Error ? err.message : 'Unknown error loading VIP prices');
       
-      // Use default prices if there's an error
-      setPrices({
-        ...DEFAULT_PRICES,
-        loaded: true
-      });
+      // Schedule retry with exponential backoff if under retry limit
+      if (retryCount < 3) {
+        const backoffTime = Math.min(1000 * Math.pow(2, retryCount), 5000);
+        setTimeout(() => loadPrices(), backoffTime);
+      } else {
+        // Use default prices if max retries reached
+        setPrices({
+          ...DEFAULT_PRICES,
+          loaded: true
+        });
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [retryCount]);
   
   // Load prices on initial mount
   useEffect(() => {

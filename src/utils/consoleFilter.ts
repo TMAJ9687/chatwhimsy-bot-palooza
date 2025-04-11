@@ -35,7 +35,17 @@ const FILTERED_PATTERNS = [
   'Preconnect',
   'Received `true` for a non-boolean attribute',
   'Failed to load resource',
-  'reflow from'
+  'reflow from',
+  // Add new patterns for unrecognized features and preload warnings
+  'Unrecognized feature:',
+  'was preloaded using link preload but not used',
+  'ambient-light-sensor',
+  'battery',
+  'vr',
+  'unsuccessful attempt to use',
+  'Permission',
+  'The resource http',
+  'The resource https'
 ];
 
 // Throttle setup
@@ -87,7 +97,7 @@ function shouldThrottleMessage(args: any[]): boolean {
     
     // Add to seen messages after a few occurrences
     const pattern = key.toLowerCase();
-    if (pattern.includes('admin') || pattern.includes('facebook')) {
+    if (pattern.includes('admin') || pattern.includes('facebook') || pattern.includes('feature:') || pattern.includes('preload')) {
       SEEN_MESSAGES.add(key);
     }
     
@@ -117,13 +127,23 @@ export function initConsoleFilter() {
   
   console.warn = function(...args: any[]) {
     if (shouldFilterMessage(args)) return;
+    
+    // Special handling for feature warnings
+    if (args.length > 0 && typeof args[0] === 'string') {
+      const message = args[0].toLowerCase();
+      if (message.includes('unrecognized feature') || message.includes('preload')) {
+        return;
+      }
+    }
+    
     originalConsole.warn(...args);
   };
   
   console.error = function(...args: any[]) {
     // Special case for Facebook errors - filter them out completely
     if (args.length > 0 && typeof args[0] === 'string' && 
-        (args[0].includes('facebook') || args[0].includes('fb-'))) {
+        (args[0].includes('facebook') || args[0].includes('fb-') || 
+         args[0].includes('unrecognized feature'))) {
       return;
     }
     originalConsole.error(...args);

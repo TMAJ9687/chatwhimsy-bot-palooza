@@ -16,7 +16,8 @@ const PerformanceMonitor = () => {
     // Only initialize console filter - performance monitoring completely disabled by default
     if (!isInitialized.current) {
       try {
-        // Initialize console filters to drastically reduce logging
+        // Initialize console filters to drastically reduce logging - with higher priority
+        console.log('Initializing console filter to reduce warnings...');
         initConsoleFilter();
         
         // Only enable performance monitoring if explicitly requested via localStorage
