@@ -86,7 +86,7 @@ const AlertDialogComponent = () => {
   
   if (!isOpen) return null;
 
-  const { title, message } = state.data;
+  const { title, message } = state.options || {};
 
   return (
     <Dialog 

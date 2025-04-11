@@ -28,12 +28,13 @@ const SelectDialog: React.FC = () => {
   const [selectedValue, setSelectedValue] = useState('');
   const [error, setError] = useState('');
 
-  const title = state.data?.title || 'Select Option';
-  const message = state.data?.message || 'Please select an option';
-  const options: SelectOption[] = state.data?.options || [];
-  const confirmLabel = state.data?.confirmLabel || 'Confirm';
-  const cancelLabel = state.data?.cancelLabel || 'Cancel';
-  const required = state.data?.required !== false;
+  const options = state.options || {};
+  const title = options.title || 'Select Option';
+  const message = options.message || 'Please select an option';
+  const selectOptions: SelectOption[] = options.options || [];
+  const confirmLabel = options.confirmLabel || 'Confirm';
+  const cancelLabel = options.cancelLabel || 'Cancel';
+  const required = options.required !== false;
 
   const handleConfirm = () => {
     if (required && !selectedValue) {
@@ -41,15 +42,15 @@ const SelectDialog: React.FC = () => {
       return;
     }
     
-    if (state.data?.onConfirm && typeof state.data.onConfirm === 'function') {
-      state.data.onConfirm(selectedValue);
+    if (options.onConfirm && typeof options.onConfirm === 'function') {
+      options.onConfirm(selectedValue);
     }
     closeDialog();
   };
 
   const handleCancel = () => {
-    if (state.data?.onCancel && typeof state.data.onCancel === 'function') {
-      state.data.onCancel();
+    if (options.onCancel && typeof options.onCancel === 'function') {
+      options.onCancel();
     }
     closeDialog();
   };
@@ -71,7 +72,7 @@ const SelectDialog: React.FC = () => {
               <SelectValue placeholder="Select an option" />
             </SelectTrigger>
             <SelectContent>
-              {options.map((option, index) => (
+              {selectOptions.map((option, index) => (
                 <SelectItem key={index} value={option.value}>
                   {option.label}
                 </SelectItem>

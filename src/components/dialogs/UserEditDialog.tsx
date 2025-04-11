@@ -20,14 +20,14 @@ const UserEditDialog: React.FC<UserEditDialogProps> = () => {
   const [user, setUser] = useState<Bot | null>(null);
 
   useEffect(() => {
-    if (state.data?.user) {
-      setUser(state.data.user);
+    if (state.options?.user) {
+      setUser(state.options.user);
     }
-  }, [state.data]);
+  }, [state]);
 
   const handleSave = (updatedUser: Bot) => {
-    if (state.data?.onSave && typeof state.data.onSave === 'function') {
-      state.data.onSave(updatedUser);
+    if (state.options?.onSave && typeof state.options.onSave === 'function') {
+      state.options.onSave(updatedUser);
     }
     closeDialog();
   };

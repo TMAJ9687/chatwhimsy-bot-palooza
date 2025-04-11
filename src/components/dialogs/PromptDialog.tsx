@@ -16,18 +16,19 @@ const PromptDialog: React.FC = () => {
   const { state, closeDialog } = useDialog();
   const [value, setValue] = useState('');
   const [error, setError] = useState('');
-  const title = state.data?.title || 'Prompt';
-  const message = state.data?.message || 'Please enter a value';
-  const placeholder = state.data?.placeholder || '';
-  const confirmLabel = state.data?.confirmLabel || 'Confirm';
-  const cancelLabel = state.data?.cancelLabel || 'Cancel';
-  const required = state.data?.required !== false;
+  const options = state.options || {};
+  const title = options.title || 'Prompt';
+  const message = options.message || 'Please enter a value';
+  const placeholder = options.placeholder || '';
+  const confirmLabel = options.confirmLabel || 'Confirm';
+  const cancelLabel = options.cancelLabel || 'Cancel';
+  const required = options.required !== false;
 
   useEffect(() => {
-    if (state.data?.initialValue) {
-      setValue(state.data.initialValue);
+    if (options.initialValue) {
+      setValue(options.initialValue);
     }
-  }, [state.data]);
+  }, [options]);
 
   const handleConfirm = () => {
     if (required && !value.trim()) {
@@ -35,15 +36,15 @@ const PromptDialog: React.FC = () => {
       return;
     }
     
-    if (state.data?.onConfirm && typeof state.data.onConfirm === 'function') {
-      state.data.onConfirm(value);
+    if (options.onConfirm && typeof options.onConfirm === 'function') {
+      options.onConfirm(value);
     }
     closeDialog();
   };
 
   const handleCancel = () => {
-    if (state.data?.onCancel && typeof state.data.onCancel === 'function') {
-      state.data.onCancel();
+    if (options.onCancel && typeof options.onCancel === 'function') {
+      options.onCancel();
     }
     closeDialog();
   };

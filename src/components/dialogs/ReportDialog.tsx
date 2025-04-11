@@ -71,7 +71,7 @@ const ReportDialog = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const isOpen = state.isOpen && state.type === 'report';
-  const { userName } = state.data || {};
+  const { userName } = state.options || {};
 
   // Reset state when dialog opens
   useEffect(() => {

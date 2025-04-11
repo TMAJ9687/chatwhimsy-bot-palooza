@@ -64,7 +64,7 @@ const BlockUserDialog = () => {
     
     // Use requestAnimationFrame to prevent UI freeze
     requestAnimationFrame(() => {
-      const { userName, userId, onBlockUser } = state.data;
+      const { userName, userId, onBlockUser } = state.options || {};
       
       // Call the block user function from props with userId
       if (typeof onBlockUser === 'function' && userId) {
@@ -81,12 +81,12 @@ const BlockUserDialog = () => {
       // Close the dialog
       closeDialog();
     });
-  }, [isOpen, state.data, toast, closeDialog]);
+  }, [isOpen, state.options, toast, closeDialog]);
 
   // Don't render anything if dialog isn't open
   if (!isOpen) return null;
 
-  const { userName } = state.data;
+  const { userName } = state.options || {};
 
   return (
     <AlertDialog open={true} onOpenChange={(open) => !open && closeDialog()}>

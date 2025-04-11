@@ -12,6 +12,8 @@ import {
   DialogType
 } from '@/types/dialog';
 
+export type { DialogType } from '@/types/dialog';
+
 type DialogState = {
   isOpen: boolean;
   type: DialogType;

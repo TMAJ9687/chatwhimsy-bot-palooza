@@ -31,7 +31,7 @@ const VipPaymentDialog = () => {
     cvv: ''
   });
 
-  const selectedPlan = state.data?.selectedPlan || 'monthly';
+  const selectedPlan = state.options?.selectedPlan || 'monthly';
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

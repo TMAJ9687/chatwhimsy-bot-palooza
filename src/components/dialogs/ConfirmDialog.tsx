@@ -59,7 +59,7 @@ const ConfirmDialog = () => {
   
   if (!isOpen) return null;
 
-  const { title, message, onConfirm } = state.data;
+  const { title, message, onConfirm } = state.options || {};
 
   const handleSafeClose = () => {
     handleDialogClose(closeDialog);

@@ -71,23 +71,23 @@ const SiteRulesDialog = () => {
   
   useEffect(() => {
     // Auto-accept rules for VIP users
-    if (isVip && isRulesOpen && state.data?.onAccept && mountedRef.current) {
-      state.data.onAccept();
+    if (isVip && isRulesOpen && state.options?.onAccept && mountedRef.current) {
+      state.options.onAccept();
       closeDialog();
     }
-  }, [isVip, isRulesOpen, closeDialog, state.data]);
+  }, [isVip, isRulesOpen, closeDialog, state]);
   
   // Memoized handlers
   const handleAccept = useCallback(() => {
     if (!mountedRef.current) return;
     
     // Call the onAccept callback if it exists
-    if (state.data?.onAccept) {
-      state.data.onAccept();
+    if (state.options?.onAccept) {
+      state.options.onAccept();
     }
     // Close the dialog
     closeDialog();
-  }, [state.data, closeDialog]);
+  }, [state, closeDialog]);
 
   const handleDecline = useCallback(() => {
     if (!mountedRef.current) return;
