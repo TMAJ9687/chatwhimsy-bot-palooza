@@ -44,23 +44,29 @@ export class DOMSafetyUtils {
         return false;
       }
       
+      // Verify that the element is still a child of its parent
+      const parent = element.parentNode;
+      if (!parent.contains(element)) {
+        return false;
+      }
+      
       // Remove element from registry if provided
       if (elements) {
         elements.delete(element);
       }
       
       // Use a safer approach for element removal
-      const parent = element.parentNode;
-      
-      // Use a try-catch for the actual removal with multiple safeguards
       try {
-        // First try the modern Element.remove() method
-        element.remove();
-        return true;
+        // First check if the element is still in the DOM and has a parent
+        if (document.contains(element) && parent && parent.contains(element)) {
+          // First try the modern Element.remove() method
+          element.remove();
+          return true;
+        }
       } catch (e) {
         try {
           // If remove() fails, try removeChild() as fallback
-          if (parent && document.contains(parent)) {
+          if (parent && document.contains(parent) && parent.contains(element)) {
             parent.removeChild(element);
             return true;
           }
@@ -95,6 +101,22 @@ export class DOMSafetyUtils {
     } catch (error) {
       console.warn(`[DOMSafetyUtils] Error removing elements with selector ${selector}:`, error);
       return 0;
+    }
+  }
+  
+  /**
+   * Check if an element is still valid and attached to the DOM
+   */
+  public isElementValid(element: Element | null): boolean {
+    if (!element) return false;
+    
+    try {
+      return !!(document && 
+                document.contains(element) && 
+                element.parentNode && 
+                element.parentNode.contains(element));
+    } catch (error) {
+      return false;
     }
   }
 }

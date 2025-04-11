@@ -90,24 +90,36 @@ const AuthListener = () => {
           // VIP users without complete profile should be redirected to profile setup
           if (userData.isVip && localStorage.getItem('vipProfileComplete') !== 'true') {
             redirectInProgressRef.current = true;
-            navigate('/vip-profile');
+            // Use setTimeout to avoid immediate navigation that could cause DOM issues
+            setTimeout(() => {
+              navigate('/vip-profile');
+            }, 50);
             return;
           }
         } else {
           redirectInProgressRef.current = true;
-          navigate('/');
+          // Use setTimeout to avoid immediate navigation that could cause DOM issues
+          setTimeout(() => {
+            navigate('/');
+          }, 50);
           return;
         }
       } catch (e) {
         redirectInProgressRef.current = true;
-        navigate('/');
+        // Use setTimeout to avoid immediate navigation that could cause DOM issues
+        setTimeout(() => {
+          navigate('/');
+        }, 50);
         return;
       }
     }
     
     // Default redirect for other protected routes
     redirectInProgressRef.current = true;
-    navigate('/');
+    // Use setTimeout to avoid immediate navigation that could cause DOM issues
+    setTimeout(() => {
+      navigate('/');
+    }, 50);
   };
   
   return null;

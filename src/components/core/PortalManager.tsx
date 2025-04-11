@@ -11,6 +11,7 @@ interface PortalProps {
 export const Portal: React.FC<PortalProps> = ({ children, container }) => {
   const [mounted, setMounted] = useState(false);
   const mountedRef = useRef(true);
+  const portalNodeRef = useRef<HTMLElement | null>(null);
   
   useEffect(() => {
     // Set mounted ref
@@ -27,8 +28,26 @@ export const Portal: React.FC<PortalProps> = ({ children, container }) => {
       mountedRef.current = false;
       cancelAnimationFrame(frameId);
       setMounted(false);
+      
+      // Ensure the portal content is removed from DOM when component is unmounted
+      try {
+        if (portalNodeRef.current && portalNodeRef.current.childNodes.length > 0) {
+          while (portalNodeRef.current.firstChild) {
+            portalNodeRef.current.removeChild(portalNodeRef.current.firstChild);
+          }
+        }
+      } catch (error) {
+        console.warn('[Portal] Error cleaning up portal:', error);
+      }
     };
   }, []);
+  
+  useEffect(() => {
+    // Store reference to container
+    if (container) {
+      portalNodeRef.current = container;
+    }
+  }, [container]);
   
   // Only render if we're mounted and container exists
   if (!mounted || !container) {
@@ -79,8 +98,16 @@ const PortalManager: React.FC = () => {
       if (typeof document !== 'undefined' && document.body) {
         try {
           const element = document.getElementById('portal-root');
-          if (element && element.parentNode) {
-            element.parentNode.removeChild(element);
+          if (element) {
+            // First, clear all children to avoid React trying to unmount them later
+            while (element.firstChild) {
+              element.removeChild(element.firstChild);
+            }
+            
+            // Then remove the container itself
+            if (element.parentNode) {
+              element.parentNode.removeChild(element);
+            }
           }
         } catch (error) {
           console.warn('Error removing portal root:', error);
