@@ -18,18 +18,20 @@ export const redirectToVipSubscription = (
     // Get the appropriate URL based on the subscription tier
     let redirectUrl = '';
     
+    // Use consistent routing that matches App.tsx route definitions
     switch(tier) {
       case 'monthly':
-        redirectUrl = '/vip-payment';
+        redirectUrl = '/subscribe/monthly';
         break;
       case 'semiannual':
-        redirectUrl = '/vip-payment';
+        redirectUrl = '/subscribe/semiannual';
         break;
       case 'annual':
-        redirectUrl = '/vip-payment';
+        redirectUrl = '/subscribe/annual';
         break;
       default:
-        redirectUrl = '/vip-subscription';
+        // Default to the base subscription page
+        redirectUrl = '/subscribe';
     }
     
     // In testing mode, just log the URL

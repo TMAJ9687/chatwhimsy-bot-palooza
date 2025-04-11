@@ -27,7 +27,8 @@ const VipSelectDialog = () => {
 
   const handleSignupClick = () => {
     closeDialog();
-    navigate('/vip-subscription');
+    // Direct navigation to the subscription page without redirect utility
+    navigate('/subscribe');
   };
 
   const handleActivateTestVip = () => {
