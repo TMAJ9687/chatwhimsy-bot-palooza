@@ -136,11 +136,10 @@ const AdminDashboard = () => {
   const memoizedHeader = useMemo(() => (
     <DashboardHeader 
       email={isAdmin ? localStorage.getItem('adminEmail') : undefined} 
-      handleLogout={handleLogout} 
       handleRetry={handleRetry}
       toggleChat={toggleChat}
     />
-  ), [handleLogout, handleRetry, isAdmin]);
+  ), [handleRetry, toggleChat, isAdmin]);
   
   // Memoize tab content to improve performance
   const tabContent = useMemo(() => {

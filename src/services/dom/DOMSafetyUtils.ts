@@ -69,4 +69,47 @@ export class DOMSafetyUtils {
       return null;
     }
   }
+
+  /**
+   * Safely remove an element with additional validation
+   */
+  public safeRemoveElement(element: Element | null, elements?: WeakMap<Node, any>): boolean {
+    if (!element) return false;
+    
+    try {
+      // Check if element is valid and attached to DOM
+      if (this.isElementValid(element)) {
+        // Modern browsers support element.remove()
+        element.remove();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.warn('[DOMSafetyUtils] Error removing element:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Safely remove elements by selector
+   */
+  public safeRemoveElementsBySelector(selector: string): number {
+    if (typeof document === 'undefined') return 0;
+    
+    try {
+      const elements = document.querySelectorAll(selector);
+      let removedCount = 0;
+      
+      elements.forEach(element => {
+        if (this.safeRemoveElement(element)) {
+          removedCount++;
+        }
+      });
+      
+      return removedCount;
+    } catch (error) {
+      console.warn(`[DOMSafetyUtils] Error removing elements with selector ${selector}:`, error);
+      return 0;
+    }
+  }
 }
