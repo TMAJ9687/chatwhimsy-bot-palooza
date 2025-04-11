@@ -11,7 +11,7 @@ import { SubscriptionTier } from '@/types/user';
  */
 export const redirectToVipSubscription = (
   tier: SubscriptionTier, 
-  navigate?: (path: string) => void,
+  navigate?: (path: string, options?: object) => void,
   testing?: boolean
 ): boolean => {
   try {
