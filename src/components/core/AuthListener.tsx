@@ -66,7 +66,9 @@ const AuthListener = () => {
     
     // Public paths that don't require redirection
     const publicPaths = ['/', '/vip-login', '/vip-signup', '/secretadminportal', 
-                         '/feedback', '/vip-profile'];
+                         '/feedback', '/vip-profile', '/subscribe', '/subscribe/monthly', 
+                         '/subscribe/semiannual', '/subscribe/annual', '/vip-payment', 
+                         '/vip-confirmation'];
     
     // Early return for public paths
     if (publicPaths.includes(currentPath) || currentPath.includes('/admin')) {
