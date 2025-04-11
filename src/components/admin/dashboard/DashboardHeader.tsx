@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
-  Settings, LogOut, RefreshCw, User, MessageSquare 
+  Settings, LogOut, RefreshCw, MessageSquare 
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -33,12 +33,12 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           title: "Logged out",
           description: "You have been logged out successfully",
         });
+        
+        // Navigate to login page after successful logout
+        navigate('/secretadminportal');
       } else {
         throw new Error("Logout failed");
       }
-      
-      // Navigate to login page after successful logout
-      navigate('/secretadminportal');
     } catch (error) {
       console.error('Error during logout:', error);
       toast({

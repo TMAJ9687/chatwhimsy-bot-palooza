@@ -1,46 +1,58 @@
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useChatInitialization } from './useChatInitialization';
-import { useAdminAuth } from './admin/useAdminAuth';
+import { useAdminCore } from './admin/useAdminCore';
 import { useAdminBots } from './admin/useAdminBots';
 import { useAdminUsers } from './admin/useAdminUsers';
 import { useAdminReports } from './admin/useAdminReports';
 import { useAdminSettings } from './admin/useAdminSettings';
 import { useAdminActions } from './admin/useAdminActions';
 import { useAdminLogout } from './admin/useAdminLogout';
-import { useAdminStatsHook } from './admin/useAdminStatsHook';
-import { useDashboardLoader } from './admin/useDashboardLoader';
+import { useAdminDashboardData } from './admin/useAdminDashboardData';
 import { Bot } from '@/types/chat';
 import * as adminService from '@/services/admin/adminService';
 
-// Disable user tracking to improve performance
-const DISABLE_USER_TRACKING = true;
-
+/**
+ * Main admin hook for the admin dashboard
+ * Composed from smaller, focused hooks
+ */
 export const useAdmin = () => {
-  const [bots, setBots] = useState<Bot[]>([]);
-  const { onlineUsers: chatUsers } = useChatInitialization();
+  // Core admin state and authentication
+  const {
+    bots,
+    setBots,
+    adminActions,
+    setAdminActions,
+    loading,
+    setLoading,
+    onlineUsers,
+    setOnlineUsers,
+    isAdmin,
+    currentUser,
+    isProcessingAuth,
+    authLogout,
+    changeAdminPassword
+  } = useAdminCore();
+  
+  // Tracking references
   const processedUsersRef = useRef(new Set<string>());
   const isProcessingRef = useRef(false);
   const lastTrackingUpdateRef = useRef(0);
   
   // Initialize admin hooks
-  const { isAdmin, adminLogout: authLogout, changeAdminPassword, loading: authLoading, adminData } = useAdminAuth();
-  const { adminActions, setAdminActions, loadAdminActions } = useAdminActions(isAdmin);
+  const { loadAdminActions } = useAdminActions(isAdmin, setAdminActions);
+  
+  // Bot management functionality
   const { 
     loadBots, 
     createBot, 
     updateBot, 
     deleteBot, 
-    onlineUsers,
     trackUserOnlineStatus,
     isProcessing: isBotsProcessing 
   } = useAdminBots(isAdmin);
-
-  // Current user from authentication data
-  const currentUser = adminData;
   
-  // Initialize users management
+  // User management functionality
   const { 
     bannedUsers, 
     loadBannedUsers, 
@@ -52,7 +64,7 @@ export const useAdmin = () => {
     isProcessing: isUsersProcessing 
   } = useAdminUsers(isAdmin, bots, setBots, setAdminActions, currentUser);
   
-  // Initialize reports management
+  // Reports management functionality
   const { 
     reportsFeedback, 
     loadReportsAndFeedback, 
@@ -63,10 +75,10 @@ export const useAdmin = () => {
     deleteReportFeedback 
   } = useAdminReports(isAdmin);
   
-  // Admin settings
+  // Settings management functionality
   const { saveSiteSettings, getSiteSettings } = useAdminSettings(isAdmin);
   
-  // Fix: Update the cleanupExpiredReports function to return a boolean
+  // Wrap cleanup reports for consistent return type
   const wrappedCleanupReports = useCallback(async (): Promise<boolean> => {
     try {
       await cleanupExpiredReports();
@@ -76,11 +88,12 @@ export const useAdmin = () => {
     }
   }, [cleanupExpiredReports]);
   
-  // Initialize the dashboard loader
-  const { loadDashboardData } = useDashboardLoader(
+  // Dashboard data loading
+  const { loadDashboardData } = useAdminDashboardData(
     isAdmin,
     setBots,
     setAdminActions,
+    setLoading,
     loadBots,
     loadBannedUsers,
     loadAdminActions,
@@ -91,32 +104,8 @@ export const useAdmin = () => {
   // Admin logout functionality
   const { adminLogout } = useAdminLogout(authLogout);
   
-  // Get calculated stats
-  const { vipUsers, standardUsers } = useAdminStatsHook(bots, onlineUsers || []);
-  
   // Combine processing states
-  const isProcessing = isBotsProcessing || isUsersProcessing || authLoading;
-
-  // Dashboard loading state
-  const [loading, setLoading] = useState(true);
-  
-  // Load dashboard data when admin status changes
-  useEffect(() => {
-    let isMounted = true;
-    
-    if (isAdmin) {
-      setLoading(true);
-      loadDashboardData().finally(() => {
-        if (isMounted) {
-          setLoading(false);
-        }
-      });
-    }
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [isAdmin, loadDashboardData]);
+  const isProcessing = isBotsProcessing || isUsersProcessing || isProcessingAuth;
   
   // Clean up all tracking when unmounting
   useEffect(() => {
@@ -136,14 +125,13 @@ export const useAdmin = () => {
     isProcessing,
     bots,
     onlineUsers,
-    vipUsers,
-    standardUsers,
     bannedUsers,
     adminActions,
     reportsFeedback,
     
     // Bot management
-    createBot,  // Explicitly include createBot here
+    loadBots,
+    createBot,
     updateBot,
     deleteBot,
     trackUserOnlineStatus,
