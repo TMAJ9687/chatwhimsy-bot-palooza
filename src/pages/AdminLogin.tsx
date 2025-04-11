@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminLogin } from '@/services/admin/adminAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -18,14 +18,29 @@ const AdminLogin: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loginAttempts, setLoginAttempts] = useState(0);
+  const loginInProgressRef = useRef(false);
+  const lastAttemptRef = useRef(0);
   
-  // Check if already logged in
+  // Check if already logged in - with cache optimization
   useEffect(() => {
-    const checkAdminStatus = async () => {
+    const checkAdminStatus = () => {
       try {
+        // Check cached login state first
         const adminEmail = localStorage.getItem('adminEmail');
+        const cachedAuthTime = localStorage.getItem('adminAuthTime');
+        const now = Date.now();
+        
+        // Use cached auth for 5 minutes to reduce login checks
+        if (adminEmail && cachedAuthTime && (now - parseInt(cachedAuthTime, 10)) < 300000) {
+          console.log('Using cached admin session, redirecting to dashboard');
+          navigate('/admin-dashboard');
+          return;
+        }
+        
         if (adminEmail) {
           console.log('Admin email found, redirecting to dashboard');
+          // Update last auth time
+          localStorage.setItem('adminAuthTime', now.toString());
           navigate('/admin-dashboard');
         }
       } catch (error) {
@@ -38,17 +53,40 @@ const AdminLogin: React.FC = () => {
   
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    
+    // Prevent multiple simultaneous login attempts
+    if (loginInProgressRef.current) {
+      toast({
+        title: "Login in progress",
+        description: "Please wait while we process your login request.",
+      });
+      return;
+    }
+    
+    // Implement rate limiting (1 login every 2 seconds)
+    const now = Date.now();
+    if (now - lastAttemptRef.current < 2000) {
+      toast({
+        variant: 'destructive',
+        title: 'Too many attempts',
+        description: 'Please wait a moment before trying again.',
+      });
+      return;
+    }
+    
+    lastAttemptRef.current = now;
+    loginInProgressRef.current = true;
     setIsLoading(true);
     setErrorMessage(null);
     
     try {
       console.log('Attempting admin login with email:', email);
-      
       setLoginAttempts(prev => prev + 1);
       
       if (loginAttempts >= 5) {
         setErrorMessage('Too many login attempts. Please try again later.');
         setIsLoading(false);
+        loginInProgressRef.current = false;
         return;
       }
       
@@ -57,6 +95,10 @@ const AdminLogin: React.FC = () => {
       
       if (isValid) {
         console.log('Admin login successful');
+        
+        // Cache successful auth time
+        localStorage.setItem('adminAuthTime', Date.now().toString());
+        
         toast({
           title: 'Login successful',
           description: 'Redirecting to admin dashboard...',
@@ -65,6 +107,7 @@ const AdminLogin: React.FC = () => {
         // Use a short delay for a better user experience
         setTimeout(() => {
           navigate('/admin-dashboard');
+          loginInProgressRef.current = false;
         }, 500);
       } else {
         console.log('Admin login failed');
@@ -74,6 +117,7 @@ const AdminLogin: React.FC = () => {
           title: 'Authentication failed',
           description: 'Invalid credentials.',
         });
+        loginInProgressRef.current = false;
       }
     } catch (error: any) {
       console.error('Admin login error:', error.message);
@@ -83,6 +127,7 @@ const AdminLogin: React.FC = () => {
         title: 'Login error',
         description: 'Failed to log in. Please try again later.',
       });
+      loginInProgressRef.current = false;
     } finally {
       setIsLoading(false);
     }

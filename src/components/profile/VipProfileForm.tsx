@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { User, Calendar, MapPin, Heart, Save, Check, Image } from 'lucide-react';
 import { countries } from '@/data/countries';
 import { uploadProfileImage } from '@/utils/storageUtils';
+import { validateNickname } from './VipProfileFormValidation';
 
 const profileFormSchema = z.object({
   gender: z.enum(['male', 'female'], {
@@ -74,6 +75,7 @@ const VipProfileForm = forwardRef<VipProfileFormRef, VipProfileFormProps>(({ onC
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
   const [nickname, setNickname] = useState<string>(user?.nickname || 'VIP User');
+  const [nicknameError, setNicknameError] = useState<string | null>(null);
   
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -216,8 +218,32 @@ const VipProfileForm = forwardRef<VipProfileFormRef, VipProfileFormProps>(({ onC
     }
   };
 
+  const handleNicknameChange = (newNickname: string) => {
+    setNickname(newNickname);
+    const { valid, message } = validateNickname(newNickname, true);
+    
+    if (!valid) {
+      setNicknameError(message);
+    } else {
+      setNicknameError(null);
+    }
+    
+    onChange();
+  };
+
   const handleFormSubmit = async (data: ProfileFormValues): Promise<boolean> => {
     try {
+      const { valid, message } = validateNickname(nickname, true);
+      if (!valid) {
+        toast({
+          title: "Invalid Nickname",
+          description: message,
+          variant: "destructive",
+        });
+        setNicknameError(message);
+        return false;
+      }
+      
       updateUserProfile({
         nickname: nickname,
         gender: data.gender,
@@ -274,16 +300,16 @@ const VipProfileForm = forwardRef<VipProfileFormRef, VipProfileFormProps>(({ onC
           <form onSubmit={form.handleSubmit(onSubmit)} onChange={onChange} className="space-y-6">
             <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
               <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Your VIP Nickname</FormLabel>
-              <div className="mt-1 flex items-center">
+              <div className="mt-1">
                 <Input 
                   value={nickname} 
-                  onChange={(e) => {
-                    setNickname(e.target.value);
-                    onChange();
-                  }}
-                  className="font-semibold border-amber-200 bg-white/50"
+                  onChange={(e) => handleNicknameChange(e.target.value)}
+                  className={`font-semibold border ${nicknameError ? 'border-red-500 focus:ring-red-500' : 'border-amber-200'} bg-white/50`}
                   placeholder="Enter your VIP nickname"
                 />
+                {nicknameError && (
+                  <p className="mt-1 text-sm text-red-500">{nicknameError}</p>
+                )}
               </div>
             </div>
 

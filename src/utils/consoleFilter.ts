@@ -45,13 +45,42 @@ const FILTERED_PATTERNS = [
   'unsuccessful attempt to use',
   'Permission',
   'The resource http',
-  'The resource https'
+  'The resource https',
+  // Admin login specific patterns
+  'Attempting admin login',
+  'Admin login successful',
+  'Using cached admin',
+  'Admin email found',
+  'checking admin status',
+  'admin data',
 ];
+
+// Admin specific patterns to filter more aggressively
+const ADMIN_LOGIN_PATTERNS = [
+  'admin',
+  'login',
+  'auth',
+  'session',
+  'token',
+  'credential',
+  'password',
+  'supabase',
+  'redirect',
+  'navigation',
+  'dashboard',
+  'authenticat',
+  'cache',
+];
+
+// Limit logging during admin login attempts
+let inAdminLoginContext = false;
+let adminLoginTimeout: number | null = null;
 
 // Throttle setup
 const THROTTLED_MESSAGES: Record<string, number> = {};
 const THROTTLE_INTERVAL = 5000; // 5 seconds
 const SEEN_MESSAGES = new Set<string>();
+const LOGIN_TIMEOUT = 15000; // 15 seconds
 
 // Tracking for init status
 let isInitialized = false;
@@ -69,6 +98,27 @@ function shouldFilterMessage(args: any[]): boolean {
     String(arg)
   ).join(' ');
   
+  // Check if it matches admin login context
+  if (messageString.toLowerCase().includes('admin login')) {
+    inAdminLoginContext = true;
+    
+    // Reset admin login context after a timeout
+    if (adminLoginTimeout) clearTimeout(adminLoginTimeout);
+    adminLoginTimeout = window.setTimeout(() => {
+      inAdminLoginContext = false;
+      adminLoginTimeout = null;
+    }, LOGIN_TIMEOUT);
+  }
+  
+  // More aggressive filtering during admin login
+  if (inAdminLoginContext) {
+    // Filter all common login-related messages
+    return ADMIN_LOGIN_PATTERNS.some(pattern => 
+      messageString.toLowerCase().includes(pattern.toLowerCase())
+    );
+  }
+  
+  // Normal filtering for non-login contexts
   return FILTERED_PATTERNS.some(pattern => 
     messageString.toLowerCase().includes(pattern.toLowerCase())
   );
@@ -97,7 +147,8 @@ function shouldThrottleMessage(args: any[]): boolean {
     
     // Add to seen messages after a few occurrences
     const pattern = key.toLowerCase();
-    if (pattern.includes('admin') || pattern.includes('facebook') || pattern.includes('feature:') || pattern.includes('preload')) {
+    if (pattern.includes('admin') || pattern.includes('facebook') || pattern.includes('feature:') || 
+        pattern.includes('preload') || pattern.includes('tracking')) {
       SEEN_MESSAGES.add(key);
     }
     
@@ -136,16 +187,27 @@ export function initConsoleFilter() {
       }
     }
     
+    if (shouldThrottleMessage(args)) return;
     originalConsole.warn(...args);
   };
   
   console.error = function(...args: any[]) {
-    // Special case for Facebook errors - filter them out completely
+    // Special case for Facebook and admin errors - filter them out completely
     if (args.length > 0 && typeof args[0] === 'string' && 
         (args[0].includes('facebook') || args[0].includes('fb-') || 
          args[0].includes('unrecognized feature'))) {
       return;
     }
+    
+    // More strict filtering for admin login related errors
+    if (inAdminLoginContext && args.length > 0 && typeof args[0] === 'string') {
+      const message = args[0].toLowerCase();
+      if (ADMIN_LOGIN_PATTERNS.some(pattern => message.includes(pattern.toLowerCase()))) {
+        return;
+      }
+    }
+    
+    if (shouldThrottleMessage(args)) return;
     originalConsole.error(...args);
   };
   
@@ -170,4 +232,9 @@ export function restoreConsole() {
   console.debug = originalConsole.debug;
   
   isInitialized = false;
+}
+
+// Auto-initialize in non-development environments
+if (process.env.NODE_ENV !== 'development') {
+  initConsoleFilter();
 }
