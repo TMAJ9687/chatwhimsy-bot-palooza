@@ -24,7 +24,7 @@ export const PaymentSummary: React.FC<PaymentSummaryProps> = ({ selectedPlan }) 
       case 'annual':
         return { 
           name: 'Annual VIP Subscription', 
-          price: '$39.99', 
+          price: '$35.99', 
           billing: 'Billed once a year'
         };
       default:

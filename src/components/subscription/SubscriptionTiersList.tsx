@@ -43,9 +43,9 @@ export const SubscriptionTiersList: React.FC<SubscriptionTiersListProps> = ({
     {
       id: 'annual',
       title: 'Annual',
-      price: '$39.99',
+      price: '$35.99',
       originalPrice: '$59.88',
-      discount: '33%',
+      discount: '40%',
       billingCycle: 'Billed once a year',
       description: 'For our most dedicated users',
       recommended: true
