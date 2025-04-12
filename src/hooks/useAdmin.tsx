@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAdminCore } from './admin/useAdminCore';
@@ -88,8 +87,8 @@ export const useAdmin = () => {
     }
   }, [cleanupExpiredReports]);
   
-  // Dashboard data loading with all required parameters
-  const { loadDashboardData } = useAdminDashboardData(
+  // Dashboard data loading with object configuration
+  const { loadDashboardData } = useAdminDashboardData({
     isAdmin,
     setBots,
     setAdminActions,
@@ -98,8 +97,8 @@ export const useAdmin = () => {
     loadBannedUsers,
     loadAdminActions,
     loadReportsAndFeedback,
-    wrappedCleanupReports
-  );
+    cleanupExpiredReports: wrappedCleanupReports
+  });
   
   // Admin logout functionality
   const { adminLogout } = useAdminLogout(authLogout);

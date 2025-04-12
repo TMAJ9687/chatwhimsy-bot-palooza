@@ -7,17 +7,27 @@ import { AdminAction } from '@/types/admin';
 /**
  * Hook for loading and managing all dashboard data
  */
-export const useAdminDashboardData = (
-  isAdmin: boolean,
-  setBots: React.Dispatch<React.SetStateAction<Bot[]>>,
-  setAdminActions: React.Dispatch<React.SetStateAction<AdminAction[]>>,
-  setLoading: React.Dispatch<React.SetStateAction<boolean>>,
-  loadBots: () => Promise<Bot[]>,
-  loadBannedUsers: () => Promise<any[]>,
-  loadAdminActions: () => Promise<AdminAction[]>,
-  loadReportsAndFeedback: () => Promise<any[]>,
-  cleanupExpiredReports: () => Promise<boolean>
-) => {
+export const useAdminDashboardData = ({
+  isAdmin,
+  setBots,
+  setAdminActions,
+  setLoading,
+  loadBots,
+  loadBannedUsers,
+  loadAdminActions,
+  loadReportsAndFeedback,
+  cleanupExpiredReports
+}: {
+  isAdmin: boolean;
+  setBots: React.Dispatch<React.SetStateAction<Bot[]>>;
+  setAdminActions: React.Dispatch<React.SetStateAction<AdminAction[]>>;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  loadBots: () => Promise<Bot[]>;
+  loadBannedUsers: () => Promise<any[]>;
+  loadAdminActions: () => Promise<AdminAction[]>;
+  loadReportsAndFeedback: () => Promise<any[]>;
+  cleanupExpiredReports: () => Promise<boolean>;
+}) => {
   const { toast } = useToast();
 
   // Combined loading function for all dashboard data
