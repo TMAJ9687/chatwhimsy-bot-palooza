@@ -9,7 +9,11 @@ import { useAdminContext } from '@/context/AdminContext';
 export const useAdminDashboard = () => {
   const { 
     isAdmin, 
-    setLoading
+    setLoading,
+    setBots,
+    setAdminActions,
+    setReportsFeedback,
+    setBannedUsers
   } = useAdminContext();
   
   const { toast } = useToast();
@@ -17,9 +21,21 @@ export const useAdminDashboard = () => {
   // Function references from other hooks (these would be passed in or available through context)
   // Note: In a full implementation, you might want to pass these functions in or make them available through context
   const loadBots = async () => [];
-  const loadBannedUsers = async () => [];
-  const loadAdminActions = async () => [];
-  const loadReportsAndFeedback = async () => [];
+  const loadBannedUsers = async () => {
+    const bannedUsers = [];
+    setBannedUsers(bannedUsers);
+    return bannedUsers;
+  };
+  const loadAdminActions = async () => {
+    const actions = [];
+    setAdminActions(actions);
+    return actions;
+  };
+  const loadReportsAndFeedback = async () => {
+    const reports = [];
+    setReportsFeedback(reports);
+    return reports;
+  };
   const cleanupExpiredReports = async () => {};
   
   // Combined loading function for all dashboard data
@@ -54,7 +70,7 @@ export const useAdminDashboard = () => {
       setLoading(false);
       return false;
     }
-  }, [isAdmin, setLoading, toast]);
+  }, [isAdmin, setLoading, toast, setAdminActions, setBannedUsers, setReportsFeedback]);
   
   return {
     loadDashboardData

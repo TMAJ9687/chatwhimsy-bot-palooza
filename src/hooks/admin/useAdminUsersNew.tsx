@@ -5,7 +5,7 @@ import { useAdminContext } from '@/context/AdminContext';
 import { BanRecord, AdminAction } from '@/types/admin';
 import { getBannedUsers, kickUser, banUser, unbanUser } from '@/services/admin/userAdminService';
 import { getAdminActions } from '@/services/admin/adminActionService';
-import { useAdminVipManager } from './useAdminVipManager';
+import { useAdminVipManager } from './useAdminVipManagerNew';
 
 /**
  * Hook for user management functionality that uses the AdminContext

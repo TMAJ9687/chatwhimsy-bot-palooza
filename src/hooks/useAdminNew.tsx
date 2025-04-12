@@ -5,7 +5,7 @@ import { useAdminBots } from './admin/useAdminBotsNew';
 import { useAdminUsers } from './admin/useAdminUsersNew';
 import { useAdminReports } from './admin/useAdminReportsNew';
 import { useAdminSettings } from './admin/useAdminSettings';
-import { useAdminDashboard } from './admin/useAdminDashboard';
+import { useAdminDashboard } from './admin/useAdminDashboardNew';
 
 /**
  * Main admin hook that uses the AdminContext for state management
