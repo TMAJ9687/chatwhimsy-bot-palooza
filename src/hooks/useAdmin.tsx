@@ -1,5 +1,4 @@
-
-import { useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAdminCore } from './admin/useAdminCore';
 import { useAdminBots } from './admin/useAdminBots';
@@ -88,7 +87,7 @@ export const useAdmin = () => {
     }
   }, [cleanupExpiredReports]);
   
-  // Dashboard data loading - Fix: Pass setLoading as a single argument
+  // Dashboard data loading 
   const { loadDashboardData } = useAdminDashboardData(
     isAdmin,
     setBots,
