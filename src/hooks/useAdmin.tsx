@@ -88,7 +88,7 @@ export const useAdmin = () => {
     }
   }, [cleanupExpiredReports]);
   
-  // Dashboard data loading
+  // Dashboard data loading - Fix: Pass setLoading as a single argument
   const { loadDashboardData } = useAdminDashboardData(
     isAdmin,
     setBots,
