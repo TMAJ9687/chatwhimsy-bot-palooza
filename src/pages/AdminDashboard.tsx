@@ -1,39 +1,18 @@
-import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '@/hooks/useAdmin';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { 
-  Activity, Users, Settings, UserPlus, ShieldAlert, MessageSquare, BarChart4,
-  Cog, FileText
-} from 'lucide-react';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { adminDb } from '@/integrations/supabase/adminTypes';
 import AdminErrorHandler from '@/components/admin/ErrorHandler';
 
-// Import header and loader components
+// Import components
 import DashboardHeader from '@/components/admin/dashboard/DashboardHeader';
-import DashboardLoader from '@/components/admin/dashboard/DashboardLoader';
-
-// Lazy load tab components
-const OverviewTab = lazy(() => import('@/components/admin/dashboard/OverviewTab'));
-const UsersTab = lazy(() => import('@/components/admin/dashboard/UsersTab'));
-const ModerationTab = lazy(() => import('@/components/admin/dashboard/ModerationTab'));
-const BotsTab = lazy(() => import('@/components/admin/dashboard/BotsTab'));
-const ReportsTab = lazy(() => import('@/components/admin/dashboard/ReportsTab'));
-const SiteSettingsTab = lazy(() => import('@/components/admin/dashboard/SiteSettingsTab'));
-const AdminSettingsTab = lazy(() => import('@/components/admin/dashboard/AdminSettingsTab'));
-const Statistics = lazy(() => import('@/components/admin/statistics/Statistics'));
-
-// Lazy load chat manager
-const AdminChatManager = lazy(() => import('@/components/admin/chat/AdminChatManager'));
-
-// TabLoader component
-const TabLoader = () => (
-  <div className="flex items-center justify-center w-full h-32">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-  </div>
-);
+import TabContent from '@/components/admin/dashboard/TabContent';
+import AdminTabs from '@/components/admin/dashboard/AdminTabs';
+import AdminChatOverlay from '@/components/admin/chat/AdminChatOverlay';
+import AdminAuthChecker from '@/components/admin/dashboard/AdminAuthChecker';
 
 const AdminDashboard = () => {
   const { adminLogout, isAdmin, loading, bots, onlineUsers } = useAdmin();
@@ -50,28 +29,11 @@ const AdminDashboard = () => {
   const [loadTimestamp, setLoadTimestamp] = useState(0);
   const [isChatVisible, setIsChatVisible] = useState(false);
   
-  // Check if user is authenticated as admin
-  useEffect(() => {
-    const checkAdminAuth = async () => {
-      try {
-        if (!isAdmin && !loading) {
-          console.log('Not authenticated as admin, redirecting to login page');
-          navigate('/secretadminportal');
-        }
-      } catch (error) {
-        console.error('Error checking admin auth:', error);
-        navigate('/secretadminportal');
-      }
-    };
-    
-    checkAdminAuth();
-  }, [isAdmin, loading, navigate]);
-  
   const redirectToLogin = useCallback(() => {
     navigate('/secretadminportal');
   }, [navigate]);
   
-  // Extreme throttling for stats loading - once per 2 minutes maximum
+  // Throttled stats loading - once per 2 minutes maximum
   const loadStats = useCallback(async () => {
     // Prevent multiple loads within 2 minutes
     const now = Date.now();
@@ -104,7 +66,7 @@ const AdminDashboard = () => {
     if (isAdmin && !loading) {
       loadStats();
     }
-  }, [isAdmin, loading]); 
+  }, [isAdmin, loading, loadStats]); 
   
   const handleLogout = async () => {
     try {
@@ -141,163 +103,43 @@ const AdminDashboard = () => {
     />
   ), [handleRetry, toggleChat, isAdmin]);
   
-  // Memoize tab content to improve performance
-  const tabContent = useMemo(() => {
-    switch(currentTab) {
-      case 'overview':
-        return (
-          <Suspense fallback={<TabLoader />}>
-            <OverviewTab 
-              dataLoading={dataLoading} 
-              stats={stats} 
-              onlineUsersCount={onlineUsers?.length || 0} 
-              setCurrentTab={setCurrentTab} 
-            />
-          </Suspense>
-        );
-      case 'users':
-        return (
-          <Suspense fallback={<TabLoader />}>
-            <UsersTab 
-              bots={bots} 
-              onlineUsers={onlineUsers || []} 
-              onViewAll={() => setCurrentTab('bots')} 
-            />
-          </Suspense>
-        );
-      case 'moderation':
-        return (
-          <Suspense fallback={<TabLoader />}>
-            <ModerationTab />
-          </Suspense>
-        );
-      case 'bots':
-        return (
-          <Suspense fallback={<TabLoader />}>
-            <BotsTab bots={bots} onlineUsers={onlineUsers || []} />
-          </Suspense>
-        );
-      case 'reports':
-        return (
-          <Suspense fallback={<TabLoader />}>
-            <ReportsTab />
-          </Suspense>
-        );
-      case 'settings':
-        return (
-          <Suspense fallback={<TabLoader />}>
-            <SiteSettingsTab />
-          </Suspense>
-        );
-      case 'admin-settings':
-        return (
-          <Suspense fallback={<TabLoader />}>
-            <AdminSettingsTab />
-          </Suspense>
-        );
-      case 'statistics':
-        return (
-          <Suspense fallback={<TabLoader />}>
-            <Statistics />
-          </Suspense>
-        );
-      default:
-        return null;
-    }
-  }, [currentTab, bots, onlineUsers, dataLoading, stats, setCurrentTab]);
-
-  // Show loader if not authenticated or still loading
-  if (!isAdmin && !loading) {
-    return (
-      <AdminErrorHandler>
-        <DashboardLoader
-          isAuthenticated={false}
-          sessionLoading={false}
-          loading={loading}
-          retryCount={retryCount}
-          handleRetry={handleRetry}
-          redirectToLogin={redirectToLogin}
-        />
-      </AdminErrorHandler>
-    );
-  }
-  
-  if (loading) {
-    return (
-      <AdminErrorHandler>
-        <DashboardLoader
-          isAuthenticated={isAdmin}
-          sessionLoading={false}
-          loading={true}
-          retryCount={retryCount}
-          handleRetry={handleRetry}
-          redirectToLogin={redirectToLogin}
-        />
-      </AdminErrorHandler>
-    );
-  }
-  
   return (
     <AdminErrorHandler>
-      <div className="container mx-auto p-6 relative">
-        {memoizedHeader}
-        
-        {/* Chat Manager */}
-        <Suspense fallback={null}>
-          <div className={`fixed inset-0 bg-white dark:bg-gray-900 z-50 transition-transform duration-300 transform ${isChatVisible ? 'translate-y-0' : 'translate-y-full'}`}>
-            <div className="h-full flex flex-col">
-              <div className="p-4 border-b flex items-center justify-between">
-                <h2 className="text-xl font-bold">Admin Chat</h2>
-                <Button variant="outline" onClick={toggleChat}>Close Chat</Button>
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <AdminChatManager />
-              </div>
-            </div>
-          </div>
-        </Suspense>
-        
-        <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              <span>Overview</span>
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              <span>Users</span>
-            </TabsTrigger>
-            <TabsTrigger value="moderation" className="flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4" />
-              <span>Moderation</span>
-            </TabsTrigger>
-            <TabsTrigger value="bots" className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4" />
-              <span>Bots</span>
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              <span>Reports</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              <span>Site Settings</span>
-            </TabsTrigger>
-            <TabsTrigger value="admin-settings" className="flex items-center gap-2">
-              <Cog className="h-4 w-4" />
-              <span>Admin</span>
-            </TabsTrigger>
-            <TabsTrigger value="statistics" className="flex items-center gap-2">
-              <BarChart4 className="h-4 w-4" />
-              <span>Statistics</span>
-            </TabsTrigger>
-          </TabsList>
+      <AdminAuthChecker
+        isAdmin={isAdmin}
+        loading={loading}
+        retryCount={retryCount}
+        handleRetry={handleRetry}
+        redirectToLogin={redirectToLogin}
+      >
+        <div className="container mx-auto p-6 relative">
+          {memoizedHeader}
           
-          <TabsContent value={currentTab} className="space-y-4">
-            {tabContent}
-          </TabsContent>
-        </Tabs>
-      </div>
+          {/* Chat Manager Overlay */}
+          <AdminChatOverlay 
+            isVisible={isChatVisible}
+            toggleVisibility={toggleChat}
+          />
+          
+          <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4">
+            <AdminTabs 
+              currentTab={currentTab}
+              onTabChange={setCurrentTab}
+            />
+            
+            <TabsContent value={currentTab} className="space-y-4">
+              <TabContent
+                currentTab={currentTab}
+                setCurrentTab={setCurrentTab}
+                dataLoading={dataLoading}
+                stats={stats}
+                bots={bots}
+                onlineUsers={onlineUsers}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </AdminAuthChecker>
     </AdminErrorHandler>
   );
 };
