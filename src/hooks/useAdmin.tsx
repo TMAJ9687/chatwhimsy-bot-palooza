@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAdminCore } from './admin/useAdminCore';
@@ -87,7 +88,7 @@ export const useAdmin = () => {
     }
   }, [cleanupExpiredReports]);
   
-  // Dashboard data loading 
+  // Dashboard data loading with all required parameters
   const { loadDashboardData } = useAdminDashboardData(
     isAdmin,
     setBots,
