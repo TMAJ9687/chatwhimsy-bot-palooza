@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 
@@ -166,11 +165,7 @@ export const isUserAdmin = async (user: User | null): Promise<boolean> => {
     return !!data;
   } catch (error) {
     console.error('Error checking admin status:', error);
-    
-    // Fallback for testing
-    const adminEmails = ['admin@example.com', 'your-email@example.com', 'user@example.com'];
-    const isAdmin = adminEmails.includes(user.email || '');
-    return isAdmin;
+    return false;
   }
 };
 
@@ -219,12 +214,6 @@ export const verifyAdminCredentials = async (email: string, password: string): P
     
     if (error) {
       console.error('Authentication error:', error);
-      
-      // Hardcoded admin login for testing
-      if (email === 'admin@example.com' && password === 'admin123') {
-        console.log('Using hardcoded admin credentials');
-        return true;
-      }
       
       return false;
     }
