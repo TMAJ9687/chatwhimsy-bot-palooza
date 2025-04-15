@@ -1,113 +1,57 @@
 
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import './App.css';
 import { Toaster } from '@/components/ui/toaster';
-import { Toaster as Sonner } from '@/components/ui/sonner';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import MainLayout from './components/layout/MainLayout';
-import Index from './pages/Index';
+import HomePage from './pages/HomePage';
 import NotFound from './pages/NotFound';
-import ChatInterface from './components/chat/ChatInterface';
-import VipProfileSetup from './pages/VipProfileSetup';
-import VipSignup from './pages/VipSignup';
-import VipLogin from './pages/VipLogin';
-import VipSubscription from './pages/VipSubscription';
-import VipPayment from './pages/VipPayment';
-import VipConfirmation from './pages/VipConfirmation';
-import Feedback from './pages/Feedback';
-import AdminLogin from './pages/AdminLogin';
-import AdminDashboard from './pages/AdminDashboard';
-import { OverlayProvider } from './context/OverlayContext';
-import { ModalProvider } from './context/ModalContext';
-import ModalContainer from './components/dialogs/ModalContainer';
-import PortalManager from './components/core/PortalManager';
-import { ChatProvider } from './context/ChatContext';
-import NavigationLock from './components/shared/NavigationLock';
-import AuthListener from './components/core/AuthListener';
-import { UserProvider } from './context/UserContext';
-import { UIStateProvider } from './context/UIStateContext';
-import { DialogProvider } from './context/DialogContext';
-import DialogContainer from './components/dialogs/DialogContainer';
-import ErrorHandler from './components/core/ErrorHandler';
 
-// Create QueryClient with proper configuration to reduce re-renders
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 30000,
-      refetchOnWindowFocus: false,
-      structuralSharing: true,
-      gcTime: 5 * 60 * 1000,
-    },
-  },
-});
+// Lazy load admin pages for better performance
+const AdminDashboardWrapper = lazy(() => import('./pages/AdminDashboardWrapper'));
+const AdminLogin = lazy(() => import('./pages/AdminLogin'));
+
+// Add lazy-loaded routes
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+const FeedbackPage = lazy(() => import('./pages/FeedbackPage'));
+const VipLogin = lazy(() => import('./pages/VipLogin'));
+const VipSignup = lazy(() => import('./pages/VipSignup'));
+const VipProfileSetup = lazy(() => import('./pages/VipProfileSetup'));
+const VipPayment = lazy(() => import('./pages/VipPayment'));
+const VipConfirmation = lazy(() => import('./pages/VipConfirmation'));
+const VipSubscription = lazy(() => import('./pages/VipSubscription'));
 
 const App = () => {
-  const handleLogout = React.useCallback(() => {
-    // This will now be handled by the ModalContext
-  }, []);
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <BrowserRouter>
-          <UserProvider>
-            <UIStateProvider>
-              <DialogProvider>
-                <OverlayProvider>
-                  <ModalProvider>
-                    <ChatProvider>
-                      <PortalManager />
-                      <MainLayout>
-                        <Toaster />
-                        <Sonner />
-                        <NavigationLock />
-                        <AuthListener />
-                        <ErrorHandler />
-                        
-                        <Routes>
-                          {/* Main routes */}
-                          <Route path="/" element={<Index />} />
-                          <Route path="/chat" element={<ChatInterface onLogout={handleLogout} />} />
-                          
-                          {/* VIP routes */}
-                          <Route path="/vip-profile" element={<VipProfileSetup />} />
-                          <Route path="/vip-signup" element={<VipSignup />} />
-                          <Route path="/vip-login" element={<VipLogin />} />
-                          <Route path="/subscribe" element={<VipSubscription />} />
-                          <Route path="/subscribe/monthly" element={<VipSubscription />} />
-                          <Route path="/subscribe/semiannual" element={<VipSubscription />} />
-                          <Route path="/subscribe/annual" element={<VipSubscription />} />
-                          <Route path="/vip-subscription" element={<Navigate to="/subscribe" replace />} />
-                          <Route path="/vip-payment" element={<VipPayment />} />
-                          <Route path="/vip-confirmation" element={<VipConfirmation />} />
-                          <Route path="/feedback" element={<Feedback />} />
-                          
-                          {/* Admin routes - consolidate all admin dashboard routes */}
-                          <Route path="/secretadminportal" element={<AdminLogin />} />
-                          <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
-                          <Route path="/admin/*" element={<AdminDashboard />} />
-                          <Route path="/admin" element={<Navigate to="/secretadminportal" replace />} />
-                          <Route path="/admin-login" element={<Navigate to="/secretadminportal" replace />} />
-                          
-                          {/* 404 route */}
-                          <Route path="*" element={<NotFound />} />
-                        </Routes>
-                        
-                        <ModalContainer />
-                        <DialogContainer />
-                      </MainLayout>
-                    </ChatProvider>
-                  </ModalProvider>
-                </OverlayProvider>
-              </DialogProvider>
-            </UIStateProvider>
-          </UserProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <Router>
+      <MainLayout>
+        <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/feedback" element={<FeedbackPage />} />
+
+            {/* VIP routes */}
+            <Route path="/vip-login" element={<VipLogin />} />
+            <Route path="/vip-signup" element={<VipSignup />} />
+            <Route path="/vip-profile" element={<VipProfileSetup />} />
+            <Route path="/vip-payment" element={<VipPayment />} />
+            <Route path="/vip-confirmation" element={<VipConfirmation />} />
+            <Route path="/subscribe" element={<Navigate to="/subscribe/monthly" replace />} />
+            <Route path="/subscribe/:plan" element={<VipSubscription />} />
+
+            {/* Admin routes */}
+            <Route path="/secretadminportal" element={<AdminLogin />} />
+            <Route path="/admin/*" element={<AdminDashboardWrapper />} />
+
+            {/* 404 page */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </MainLayout>
+      <Toaster />
+    </Router>
   );
 };
 

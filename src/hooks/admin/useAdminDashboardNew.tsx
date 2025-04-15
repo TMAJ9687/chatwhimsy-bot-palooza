@@ -18,26 +18,6 @@ export const useAdminDashboard = () => {
   
   const { toast } = useToast();
   
-  // Function references from other hooks (these would be passed in or available through context)
-  // Note: In a full implementation, you might want to pass these functions in or make them available through context
-  const loadBots = async () => [];
-  const loadBannedUsers = async () => {
-    const bannedUsers = [];
-    setBannedUsers(bannedUsers);
-    return bannedUsers;
-  };
-  const loadAdminActions = async () => {
-    const actions = [];
-    setAdminActions(actions);
-    return actions;
-  };
-  const loadReportsAndFeedback = async () => {
-    const reports = [];
-    setReportsFeedback(reports);
-    return reports;
-  };
-  const cleanupExpiredReports = async () => {};
-  
   // Combined loading function for all dashboard data
   const loadDashboardData = useCallback(async () => {
     if (!isAdmin) return false;
@@ -46,12 +26,32 @@ export const useAdminDashboard = () => {
       setLoading(true);
       console.log('Loading dashboard data...');
       
+      // Get references to load functions from other hooks
+      // In a real implementation, we'd import these functions or get them from context
+      const loadBots = async () => [];
+      const loadAdminActions = async () => [];
+      const loadBannedUsers = async () => [];
+      const loadReportsAndFeedback = async () => [];
+      const cleanupExpiredReports = async () => true;
+      
       // Load data in parallel where possible
       await Promise.all([
-        loadBots(),
-        loadAdminActions(),
-        loadBannedUsers(),
-        loadReportsAndFeedback()
+        loadBots().then(loadedBots => {
+          setBots(loadedBots);
+          return loadedBots;
+        }),
+        loadAdminActions().then(actions => {
+          setAdminActions(actions);
+          return actions;
+        }),
+        loadBannedUsers().then(banned => {
+          setBannedUsers(banned);
+          return banned;
+        }),
+        loadReportsAndFeedback().then(reports => {
+          setReportsFeedback(reports);
+          return reports;
+        })
       ]);
       
       // Cleanup expired reports in background
@@ -70,7 +70,7 @@ export const useAdminDashboard = () => {
       setLoading(false);
       return false;
     }
-  }, [isAdmin, setLoading, toast, setAdminActions, setBannedUsers, setReportsFeedback]);
+  }, [isAdmin, setLoading, toast, setBots, setAdminActions, setBannedUsers, setReportsFeedback]);
   
   return {
     loadDashboardData

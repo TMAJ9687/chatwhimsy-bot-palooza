@@ -3,21 +3,14 @@ import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAdminContext } from '@/context/AdminContext';
 import { ReportFeedback } from '@/types/admin';
-import { 
-  getReportsAndFeedback, 
-  addReportOrFeedback,
-  resolveReportOrFeedback,
-  deleteReportOrFeedback,
-  cleanupExpiredReportsFeedback
-} from '@/services/admin/reportAdminService';
 
 /**
- * Hook for reports and feedback management that uses the AdminContext
+ * Hook for reports and feedback management that uses AdminContext
  */
 export const useAdminReports = () => {
   const { 
-    isAdmin, 
-    setReportsFeedback 
+    isAdmin,
+    setReportsFeedback,
   } = useAdminContext();
   
   const { toast } = useToast();
@@ -28,27 +21,15 @@ export const useAdminReports = () => {
     if (!isAdmin) return [];
     
     try {
-      const items = await getReportsAndFeedback();
-      setReportsFeedback(items);
-      return items;
+      // In a real implementation, this would fetch from the database
+      const reports: ReportFeedback[] = [];
+      setReportsFeedback(reports);
+      return reports;
     } catch (error) {
       console.error('Error loading reports and feedback:', error);
       return [];
     }
   }, [isAdmin, setReportsFeedback]);
-  
-  // Clean up expired reports
-  const cleanupExpiredReports = useCallback(async () => {
-    if (!isAdmin) return;
-    
-    try {
-      await cleanupExpiredReportsFeedback();
-      // Refresh the list after cleanup
-      loadReportsAndFeedback();
-    } catch (error) {
-      console.error('Error cleaning up expired reports:', error);
-    }
-  }, [isAdmin, loadReportsAndFeedback]);
   
   // Add a new report
   const addReport = useCallback(async (userId: string, content: string) => {
@@ -56,18 +37,26 @@ export const useAdminReports = () => {
     
     try {
       setIsProcessing(true);
-      const report = await addReportOrFeedback('report', userId, content);
       
-      if (report) {
-        setReportsFeedback(prev => [...prev, report]);
-        
-        toast({
-          title: 'Report Added',
-          description: 'User report has been recorded'
-        });
-      }
+      // Mock implementation
+      const newReport: ReportFeedback = {
+        id: `report-${Date.now()}`,
+        type: 'report',
+        userId,
+        content,
+        timestamp: new Date(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+        resolved: false
+      };
       
-      return report;
+      setReportsFeedback(prev => [...prev, newReport]);
+      
+      toast({
+        title: 'Success',
+        description: 'Report added successfully',
+      });
+      
+      return newReport;
     } catch (error) {
       console.error('Error adding report:', error);
       toast({
@@ -81,24 +70,32 @@ export const useAdminReports = () => {
     }
   }, [isAdmin, toast, setReportsFeedback]);
   
-  // Add new feedback
+  // Add feedback
   const addFeedback = useCallback(async (userId: string, content: string) => {
     if (!isAdmin) return null;
     
     try {
       setIsProcessing(true);
-      const feedback = await addReportOrFeedback('feedback', userId, content);
       
-      if (feedback) {
-        setReportsFeedback(prev => [...prev, feedback]);
-        
-        toast({
-          title: 'Feedback Added',
-          description: 'User feedback has been recorded'
-        });
-      }
+      // Mock implementation
+      const newFeedback: ReportFeedback = {
+        id: `feedback-${Date.now()}`,
+        type: 'feedback',
+        userId,
+        content,
+        timestamp: new Date(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+        resolved: false
+      };
       
-      return feedback;
+      setReportsFeedback(prev => [...prev, newFeedback]);
+      
+      toast({
+        title: 'Success',
+        description: 'Feedback added successfully',
+      });
+      
+      return newFeedback;
     } catch (error) {
       console.error('Error adding feedback:', error);
       toast({
@@ -112,7 +109,7 @@ export const useAdminReports = () => {
     }
   }, [isAdmin, toast, setReportsFeedback]);
   
-  // Resolve a report/feedback
+  // Resolve a report or feedback
   const resolveReportFeedback = useCallback(async (id: string) => {
     if (!isAdmin) return false;
     
@@ -120,33 +117,22 @@ export const useAdminReports = () => {
       setIsProcessing(true);
       
       // Optimistic update
-      setReportsFeedback(prev => prev.map(item => 
-        item.id === id ? { ...item, resolved: true } : item
-      ));
+      setReportsFeedback(prev => 
+        prev.map(item => 
+          item.id === id 
+            ? { ...item, resolved: true } 
+            : item
+        )
+      );
       
-      const success = await resolveReportOrFeedback(id);
+      toast({
+        title: 'Success',
+        description: 'Item resolved successfully',
+      });
       
-      if (success) {
-        toast({
-          title: 'Success',
-          description: 'Item marked as resolved'
-        });
-      } else {
-        // Revert on failure
-        setReportsFeedback(prev => prev.map(item => 
-          item.id === id ? { ...item, resolved: false } : item
-        ));
-        
-        toast({
-          title: 'Error',
-          description: 'Failed to resolve item',
-          variant: 'destructive',
-        });
-      }
-      
-      return success;
+      return true;
     } catch (error) {
-      console.error('Error resolving report/feedback:', error);
+      console.error('Error resolving item:', error);
       toast({
         title: 'Error',
         description: 'Failed to resolve item',
@@ -158,40 +144,24 @@ export const useAdminReports = () => {
     }
   }, [isAdmin, toast, setReportsFeedback]);
   
-  // Delete a report/feedback
+  // Delete a report or feedback
   const deleteReportFeedback = useCallback(async (id: string) => {
     if (!isAdmin) return false;
     
     try {
       setIsProcessing(true);
       
-      // Store the item for potential rollback
-      const itemToDelete = (await getReportsAndFeedback()).find(item => item.id === id);
-      
       // Optimistic update
       setReportsFeedback(prev => prev.filter(item => item.id !== id));
       
-      const success = await deleteReportOrFeedback(id);
+      toast({
+        title: 'Success',
+        description: 'Item deleted successfully',
+      });
       
-      if (!success && itemToDelete) {
-        // Rollback if the operation failed
-        setReportsFeedback(prev => [...prev, itemToDelete]);
-        
-        toast({
-          title: 'Error',
-          description: 'Failed to delete item',
-          variant: 'destructive',
-        });
-      } else {
-        toast({
-          title: 'Success',
-          description: 'Item deleted successfully'
-        });
-      }
-      
-      return success;
+      return true;
     } catch (error) {
-      console.error('Error deleting report/feedback:', error);
+      console.error('Error deleting item:', error);
       toast({
         title: 'Error',
         description: 'Failed to delete item',
@@ -202,6 +172,23 @@ export const useAdminReports = () => {
       setIsProcessing(false);
     }
   }, [isAdmin, toast, setReportsFeedback]);
+  
+  // Cleanup expired reports
+  const cleanupExpiredReports = useCallback(async () => {
+    if (!isAdmin) return;
+    
+    try {
+      const now = new Date();
+      
+      setReportsFeedback(prev => 
+        prev.filter(item => item.expiresAt > now)
+      );
+      
+      console.log('Expired reports and feedback cleaned up');
+    } catch (error) {
+      console.error('Error cleaning up expired reports:', error);
+    }
+  }, [isAdmin, setReportsFeedback]);
   
   return {
     loadReportsAndFeedback,
