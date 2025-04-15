@@ -50,7 +50,8 @@ export const isAdminLoggedIn = async (): Promise<boolean> => {
       // Continue to fallback methods
     }
     
-    // Fallback: Direct check
+    // Fallback: Direct check using database query
+    // This is more secure than client-side checks using localStorage
     try {
       const { data, error } = await supabase
         .from('admin_users')
@@ -93,7 +94,7 @@ export const adminLogin = async (email: string, password: string): Promise<boole
     }
     
     if (data.user) {
-      // Try RPC method first
+      // Try RPC method first - most secure
       try {
         const { data: isAdmin, error: rpcError } = await supabase.rpc(
           'is_admin',
